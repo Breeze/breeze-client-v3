@@ -329,7 +329,7 @@ export class Predicate {
       context.visitor = visitor;
     }
     let tVisitor = visitor || context.visitor!;
-    let fn = tVisitor[this.visitorMethodName];
+    let fn = (tVisitor as Record<string, any>)[this.visitorMethodName];
     if (fn == null) {
       throw new Error("Unable to locate method: " + this.visitorMethodName + " on visitor");
     }
@@ -375,8 +375,8 @@ function createPredicateFromArray(arr: any[]) {
   //      [ "orders", "any", "freight",  ">", 950 ]
   //      [ "orders", "and", anotherPred ]
   //      [ "orders", "and", [ "freight, ">", 950 ]]
-  let json = {};
-  let value = {};
+  let json: Record<string, any> = {};
+  let value: Record<string, any> = {};
   json[arr[0]] = value;
   let op = arr[1];
   op = op.operator || op;  // incoming op will be either a string or a FilterQueryOp
@@ -396,7 +396,7 @@ function createPredicateFromObject(obj: Object) {
   }
   let keys = Object.keys(obj);
   let preds = keys.map(function (key) {
-    return createPredicateFromKeyValue(key, obj[key]);
+    return createPredicateFromKeyValue(key, (obj as Record<string, any>)[key]);
   });
   return (preds.length === 1) ? preds[0] : new AndOrPredicate("and", preds);
 }
@@ -482,7 +482,7 @@ class PassthruPredicate extends Predicate {
 
   // _validate = core.noop;
 }
-Error['x'] = PassthruPredicate.prototype._initialize('passthruPredicate');
+(Error as any)['x'] = PassthruPredicate.prototype._initialize('passthruPredicate');
 
 /** For use by breeze plugin authors only. The class is for use in building a [[IUriBuilderAdapter]] implementation. 
 @adapter (see [[IUriBuilderAdapter]])    
@@ -501,7 +501,7 @@ export class UnaryPredicate extends Predicate {
   }
 }
 
-Error['x'] = UnaryPredicate.prototype._initialize('unaryPredicate', {
+(Error as any)['x'] = UnaryPredicate.prototype._initialize('unaryPredicate', {
   'not': { aliases: ['!', '~'] },
 });
 
@@ -553,7 +553,7 @@ export class BinaryPredicate extends Predicate {
 
 }
 
-Error['x'] = BinaryPredicate.prototype._initialize('binaryPredicate', {
+(Error as any)['x'] = BinaryPredicate.prototype._initialize('binaryPredicate', {
   'eq': {
     aliases: ["==", "equals", "equal"]
   },
@@ -621,7 +621,7 @@ export class AndOrPredicate extends Predicate {
   }
 }
 
-Error['x'] = AndOrPredicate.prototype._initialize("andOrPredicate", {
+(Error as any)['x'] = AndOrPredicate.prototype._initialize("andOrPredicate", {
   'and': { aliases: ['&&'] },
   'or': { aliases: ['||'] }
 } );
@@ -655,7 +655,7 @@ export class AnyAllPredicate extends Predicate {
 
 }
 
-Error['x'] = AnyAllPredicate.prototype._initialize("anyAllPredicate", {
+(Error as any)['x'] = AnyAllPredicate.prototype._initialize("anyAllPredicate", {
   'any': { aliases: ['some'] },
   'all': { aliases: ["every"] }
 });
@@ -801,7 +801,7 @@ export class FnExpr extends PredicateExpression {
     });
   }
 
-  static _funcMap = {
+  static _funcMap: { [key: string]: { fn: (...args: any[]) => any; dataType: DataType } } = {
     toupper: {
       fn: function (source: string) {
         return source.toUpperCase();
@@ -1016,7 +1016,7 @@ function parseFnExpr(source: string, parts: string[], tokens: string[], exprCont
   try {
     let fnName = parts[0].trim().toLowerCase();
 
-    let argSource = tokens[parts[1]].trim() as string;
+    let argSource = (tokens as unknown as Record<string, string>)[parts[1]].trim() as string;
     if (argSource.substr(0, 1) === "(") {
       argSource = argSource.substr(1, argSource.length - 2);
     }
@@ -1288,7 +1288,7 @@ let toJSONVisitor = {
 
   unaryPredicate: function (this: UnaryPredicate, context: VisitContext) {
     let predVal = this.pred.visit(context);
-    let json = {};
+    let json: Record<string, any> = {};
     json[this.op.key] = predVal;
     return json;
   },
@@ -1296,14 +1296,14 @@ let toJSONVisitor = {
   binaryPredicate: function (this: BinaryPredicate, context: VisitContext) {
     let expr1Val = this.expr1!.visit(context);
     let expr2Val = this.expr2!.visit(context);
-    let json = {};
+    let json: Record<string, any> = {};
     if (this.expr2 instanceof PropExpr) {
       expr2Val = { value: expr2Val, isProperty: true };
     }
     if (this.op.key === "eq") {
       json[expr1Val] = expr2Val;
     } else {
-      let value = {};
+      let value: Record<string, any> = {};
       json[expr1Val] = value;
       value[this.op.key] = expr2Val;
     }
@@ -1317,7 +1317,7 @@ let toJSONVisitor = {
     if (!predVals || !predVals.length) {
       return {};
     }
-    let json: Object | undefined;
+    let json: Record<string, any> | undefined;
     // normalizeAnd clauses if possible.
     // passthru predicate will appear as string and their 'ands' can't be 'normalized'
     if (this.op!.key === 'and' && predVals.length === 2 && !predVals.some((v) => v.or || typeof(v) === 'string')) {
@@ -1336,8 +1336,8 @@ let toJSONVisitor = {
     let newContext = core.extend({}, context) as VisitContext;
     newContext.entityType = this.expr.dataType as EntityType;
     let predVal = this.pred.visit(newContext);
-    let json = {};
-    let value = {};
+    let json: Record<string, any> = {};
+    let value: Record<string, any> = {};
     value[this.op.key] = predVal;
     json[exprVal] = value;
     return json;
@@ -1375,20 +1375,21 @@ let toJSONVisitor = {
 };
 
 function combine(j1: Object, j2: Object) {
-  let ok = Object.keys(j2).every(function (key) {
-    if (j1.hasOwnProperty(key)) {
-      if (typeof (j2[key]) !== 'object') {
+  const a = j1 as Record<string, any>, b = j2 as Record<string, any>;
+  let ok = Object.keys(b).every(function (key) {
+    if (a.hasOwnProperty(key)) {
+      if (typeof (b[key]) !== 'object') {
         // exit and indicate that we can't combine
         return false;
       }
-      if (combine(j1[key], j2[key]) == null) {
+      if (combine(a[key], b[key]) == null) {
         return false;
       }
-    } else if (typeof (j1) !== 'object') {
+    } else if (typeof (a) !== 'object') {
       // cannot assign to j1[key]
       return false;
     } else {
-      j1[key] = j2[key];
+      a[key] = b[key];
     }
     return true;
   });

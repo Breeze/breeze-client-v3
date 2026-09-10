@@ -11,7 +11,7 @@
     "verbatimModuleSyntax": false,
     // STAGED. The 2.x build hid these behind suppressImplicitAnyIndexErrors, which
     // TypeScript removed in 5.5. Started at 105 errors across 19 files; core.ts is done,
-    // 82 remain. Flip to true once the rest are fixed - `npm run typecheck:strict` lists them.
+    // 57 remain. Flip to true once the rest are fixed - `npm run typecheck:strict` lists them.
     "noImplicitAny": false,
     "strictNullChecks": false,
     "experimentalDecorators": true,
