@@ -34,9 +34,8 @@ Companion repo: **`breeze-server-v3`** (the .NET server the integration tests ru
 
 ## Vitest port — DONE (node environment)
 
-`npm test` runs the suite. **622 passing, 4 failing, 7 skipped of 633 - and it is
-deterministic**: two consecutive runs produced an identical pass/fail list.
-
+`npm test` runs the suite. **629 passing, 3 failing, 7 skipped of 639**, identical across
+three consecutive runs.
 That is parity with the 2.x Jest baseline of 623–624 of 636 — the totals differ because
 `odata-specific.spec.ts` and its 3 tests were dropped with OData.
 
@@ -203,3 +202,25 @@ custom transport registers a factory instead, the same trick the Angular adapter
 
 Covered by `test/configure-ns.spec.ts` (6 tests, no server needed), which also asserts the
 2.x string-based startup still works.
+
+## Determinism — how it was actually achieved
+
+Two things were needed, and the first alone was not enough.
+
+**1. Rebuild the database per run** (`test/global-setup.ts`). This removed drift caused by
+pollution accumulating *across* runs.
+
+**2. Pin the file order** (`AlphabeticalSequencer` in `vitest.config.ts`). Vitest's default
+sequencer reorders spec files by their durations from the previous run, cached in
+`node_modules/.vite/vitest/.../results.json`. Because several tests assert on rows that a
+*different* spec file created, a change in order flips them between pass and fail.
+
+Before pinning the order, three runs gave 4, 5 and 4 failures with a shifting membership.
+After, three consecutive runs gave an identical list. An earlier claim in this file that
+the suite was deterministic after step 1 alone was wrong — it rested on two runs that
+happened to agree.
+
+Pinning the order also made `nullable dateTime` and `expand through null child object`
+pass consistently, because alphabetically their data-creating files now run first. They are
+still order-dependent; they are simply no longer *randomly* order-dependent. Making each
+test create the data it asserts on is the real fix.
