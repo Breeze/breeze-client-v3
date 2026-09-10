@@ -168,14 +168,14 @@ function publish(publisher: ObservableArray, eventName: string, eventArgs: any) 
     if (!publisher._pendingArgs) {
       publisher._pendingArgs = eventArgs;
       pendingPubs.push(function () {
-        publisher[eventName].publish(publisher._pendingArgs);
+        (publisher as Record<string, any>)[eventName].publish(publisher._pendingArgs);
         publisher._pendingArgs = null;
       });
     } else {
       combineArgs(publisher._pendingArgs, eventArgs);
     }
   } else {
-    publisher[eventName].publish(eventArgs);
+    (publisher as Record<string, any>)[eventName].publish(eventArgs);
   }
 }
 
@@ -200,17 +200,18 @@ function processRemoves(obsArray: ObservableArray, removes: any[]) {
 
 // TODO: see if this function already exists in core and can be imported.
 function combineArgs(target: Object, source: Object) {
-  for (let key in source) {
-    if (key !== "array" && target.hasOwnProperty(key)) {
-      let sourceValue = source[key];
-      let targetValue = target[key];
+  const tgt = target as Record<string, any>, src = source as Record<string, any>;
+  for (let key in src) {
+    if (key !== "array" && tgt.hasOwnProperty(key)) {
+      let sourceValue = src[key];
+      let targetValue = tgt[key];
       if (targetValue) {
         if (!Array.isArray(targetValue)) {
           throw new Error("Cannot combine non array args");
         }
         Array.prototype.push.apply(targetValue, sourceValue);
       } else {
-        target[key] = sourceValue;
+        tgt[key] = sourceValue;
       }
     }
   }

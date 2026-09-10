@@ -1897,7 +1897,7 @@ function exportEntityGroups(em: EntityManager, entitiesOrEntityTypes: Entity[] |
   let tempKeys: ITempKey[] = [];
   let newGroupMap = {};
   core.objectForEach(entityGroupMap, (entityTypeName, entityGroup) => {
-    newGroupMap[entityTypeName] = exportEntityGroup(entityGroup, tempKeys);
+    (newGroupMap as Record<string, any>)[entityTypeName] = exportEntityGroup(entityGroup, tempKeys);
   });
 
   return { entityGroupMap: newGroupMap, tempKeys: tempKeys };
@@ -1939,7 +1939,7 @@ function structuralObjectToJson(so: StructuralObject, dps: DataProperty[], seria
       }
     }
     if (value === undefined) return;
-    result[dpName] = value;
+    (result as Record<string, any>)[dpName] = value;
   });
 
   // if (so.entityAspect) {
@@ -2377,7 +2377,7 @@ function unwrapInstance(structObj: StructuralObject, transformFn?: (dp: DataProp
       val = serializerFn ? serializerFn(dp, val) : val;
       if (val !== undefined) {
         if (dp.isUnmapped) {
-          unmapped[dp.nameOnServer] = core.toJSONSafe(val, core.toJSONSafeReplacer);
+          (unmapped as Record<string, any>)[dp.nameOnServer] = core.toJSONSafe(val, core.toJSONSafeReplacer);
         } else {
           rawObject[dp.nameOnServer] = val;
         }

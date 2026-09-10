@@ -793,7 +793,7 @@ function fromJSON(eq: EntityQuery, json: Object) {
 function clone(eq: EntityQuery, propName?: string, value?: any) {
   // immutable queries mean that we don't need to clone if no change in value.
   if (propName) {
-    if (eq[propName] === value) return eq;
+    if ((eq as Record<string, any>)[propName] === value) return eq;
   }
   // copying QueryOptions is safe because they are are immutable;
   let copy = core.extend(new EntityQuery(), eq, [
@@ -816,12 +816,14 @@ function clone(eq: EntityQuery, propName?: string, value?: any) {
   ]) as EntityQuery;
   copy.parameters = core.extend({}, eq.parameters);
   if (propName) {
-    copy[propName] = value;
+    (copy as Record<string, any>)[propName] = value;
   }
   return copy;
 }
 
-function processUsing(eq: EntityQuery, map: Object, value: any, propertyName?: string) {
+function processUsing(eq: EntityQuery, mapArg: Object, value: any, propertyName?: string) {
+  const map = mapArg as Record<string, any>;
+  const eqx = eq as Record<string, any>;
   let typeName = value._$typeName || ((value instanceof BreezeEnum) && (value.constructor as any).name);
   let key = typeName && typeName.substr(0, 1).toLowerCase() + typeName.substr(1);
   if (propertyName && key !== propertyName) {
@@ -832,7 +834,7 @@ function processUsing(eq: EntityQuery, map: Object, value: any, propertyName?: s
     if (fn === undefined) {
       throw new Error("Invalid config property: " + key);
     } else if (fn === null) {
-      eq[key] = value;
+      eqx[key] = value;
     } else {
       fn(eq, value);
     }
@@ -937,7 +939,7 @@ export class FilterQueryOp extends BreezeEnum implements QueryOp {
   static IsTypeOf = new FilterQueryOp({ operator: "isof" });
 }
 FilterQueryOp.prototype._$typeName = "FilterQueryOp";
-Error['x'] = FilterQueryOp.resolveSymbols();
+(Error as any)['x'] = FilterQueryOp.resolveSymbols();
 
 
 /**
@@ -954,7 +956,7 @@ export class BooleanQueryOp extends BreezeEnum implements QueryOp {
 
 }
 BooleanQueryOp.prototype._$typeName = "BooleanQueryOp";
-Error['x'] = BooleanQueryOp.resolveSymbols();
+(Error as any)['x'] = BooleanQueryOp.resolveSymbols();
 
 
 /** For use by breeze plugin authors only.  The class is used in most [[IUriBuilderAdapter]] implementations
@@ -1133,7 +1135,7 @@ export class SelectClause {
     return function (entity: Entity) {
       let result = {};
       that.propertyPaths.forEach(function (path, i) {
-        result[that._pathNames[i]] = EntityAspect.getPropertyPathValue(entity, path);
+        (result as Record<string, any>)[that._pathNames[i]] = EntityAspect.getPropertyPathValue(entity, path);
       });
       return result;
     };

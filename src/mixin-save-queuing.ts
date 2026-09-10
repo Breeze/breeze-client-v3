@@ -64,8 +64,9 @@ import { Entity, EntityManager, KeyMapping, EntityState, SaveResult, breeze } fr
 
 
 export function enableSaveQueuing(em: EntityManager, enable: boolean = true) {
-  let saveQueuing = em['_saveQueueing'] ||
-    (em['_saveQueuing'] = new SaveQueuing(em));
+  const emx = em as unknown as Record<string, any>;
+  let saveQueuing = emx['_saveQueueing'] ||
+    (emx['_saveQueuing'] = new SaveQueuing(em));
 
   enable = (enable === undefined) ? true : enable;
   saveQueuing._isEnabled = enable;
@@ -74,7 +75,7 @@ export function enableSaveQueuing(em: EntityManager, enable: boolean = true) {
     em.saveChanges = saveChangesWithQueuing;
   } else {
     // revert to the native EntityManager.saveChanges
-    em.saveChanges = em['_saveQueuing'].baseSaveChanges;
+    em.saveChanges = emx['_saveQueuing'].baseSaveChanges;
   }
 }
 

@@ -190,7 +190,7 @@ export class Param {
         let parentTypeName = instance._$typeName;
         let allowUnknownProperty = (parentTypeName && this.parent.config._$typeName === parentTypeName);
 
-        let clone = core.extend({}, this.parent.config);
+        let clone = core.extend({}, this.parent.config) as Record<string, any>;
         this.parent.params.forEach(function (p) {
             if (!allowUnknownProperty) delete clone[p.name];
             try {

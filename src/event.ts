@@ -39,7 +39,7 @@ Class to support basic event publication and subscription semantics.
 **/
 export class BreezeEvent<T> {
   /** @hidden @internal */
-  static __eventNameMap = {};
+  static __eventNameMap: Record<string, boolean> = {};
   /** @hidden @internal */
   static __nextUnsubKey = 1;
   /** The name of this Event */

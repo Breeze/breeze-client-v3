@@ -15,7 +15,7 @@ export function encodeParams(obj: {}) {
   for (let name in obj) {
     if (!obj.hasOwnProperty(name)) { continue; }
 
-    let value = obj[name];
+    let value = (obj as Record<string, any>)[name];
 
     if (value instanceof Array) {
       for (let i = 0; i < value.length; ++i) {

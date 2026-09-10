@@ -54,9 +54,9 @@ export interface BaseAdapter {
 }
 
 export class BreezeConfig {
-    functionRegistry = {};
-    typeRegistry = {};
-    objectRegistry = {};
+    functionRegistry: Record<string, Function> = {};
+    typeRegistry: Record<string, Function> = {};
+    objectRegistry: Record<string, any> = {};
     interfaceInitialized: BreezeEvent<{ interfaceName: string, instance: BaseAdapter, isDefault: boolean }>;
 
     stringifyPad = '';
@@ -69,7 +69,7 @@ export class BreezeConfig {
         this.interfaceInitialized = new BreezeEvent("interfaceInitialized", this);
         if (this.noEval === undefined) {
             try {
-                Error['x'] = Function('');
+                (Error as any)['x'] = Function('');
                 this.noEval = false; // eval succeeded
             } catch {
                 this.noEval = true; // eval failed, probably due to CSP

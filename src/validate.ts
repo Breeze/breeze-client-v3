@@ -365,7 +365,7 @@ export class Validator {
   @property messageTemplates {Object}
   @static
   **/
-  public static messageTemplates = {
+  public static messageTemplates: Record<string, any> = {
     bool: "'%displayName%' must be a 'true' or 'false' value",
     creditCard: "The %displayName% is not a valid credit card number",
     date: "'%displayName%' must be a date",
@@ -834,7 +834,7 @@ export class Validator {
 Validator.prototype._$typeName = "Validator";
 
 // register all validators
-Error['x'] = core.objectForEach(Validator, function (key: string, value: any) {
+(Error as any)['x'] = core.objectForEach(Validator, function (key: string, value: any) {
   if (typeof (value) !== "function") {
     return;
   }
@@ -851,9 +851,9 @@ function formatTemplate(template: string, vars: Object, ownPropertiesOnly: boole
   return template.replace(/%([^%]+)%/g, function (_, key) {
     let valOrFn: any;
     if (ownPropertiesOnly) {
-      valOrFn = vars.hasOwnProperty(key) ? vars[key] : '';
+      valOrFn = vars.hasOwnProperty(key) ? (vars as Record<string, any>)[key] : '';
     } else {
-      valOrFn = vars[key];
+      valOrFn = (vars as Record<string, any>)[key];
     }
     if (valOrFn != null) {
       if (core.isFunction(valOrFn)) {

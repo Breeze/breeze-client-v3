@@ -44,7 +44,7 @@ Unlike enums in some other environments, each 'symbol' can have both methods and
 >         expect(DayOfWeek.Friday.toString()).toBe("Friday");
 >       });
 >   });
-Note that we have Error['x'] = ... in some places in the code to prevent Terser from optimizing out some important calls.
+Note that we have (Error as any)['x'] = ... in some places in the code to prevent Terser from optimizing out some important calls.
 @dynamic
 */
 export class BreezeEnum {
@@ -59,7 +59,8 @@ export class BreezeEnum {
   /**  */
   constructor(propertiesObj?: Object) {
     if (propertiesObj) {
-      Object.keys(propertiesObj).forEach((key) => this[key] = propertiesObj[key]);
+      const self = this as Record<string, any>, props = propertiesObj as Record<string, any>;
+      Object.keys(props).forEach((key) => self[key] = props[key]);
     }
   }
 
@@ -89,7 +90,7 @@ export class BreezeEnum {
   @return The symbol that matches the name or 'undefined' if not found.
   **/
   static fromName(name: string) {
-    return this[name];
+    return (this as Record<string, any>)[name];
   }
 
   /**
@@ -101,12 +102,13 @@ export class BreezeEnum {
     if (this._resolvedNamesAndSymbols) return this._resolvedNamesAndSymbols;
     let result: {name: string, symbol: BreezeEnum }[] = [];
 
+    const self = this as unknown as Record<string, any>;
     for (let key in this) {
       if (this.hasOwnProperty(key)) {
-        let symb = this[key];
+        let symb = self[key];
         if (symb instanceof BreezeEnum) {
           result.push( { name: key, symbol: symb });
-          this[key] = symb;
+          self[key] = symb;
           symb.name = key;
         }
       }
@@ -129,7 +131,7 @@ export class BreezeEnum {
       return false;
     }
 
-    return this[sym.name] != null;
+    return (this as Record<string, any>)[sym.name] != null;
   }
 
 

@@ -284,3 +284,32 @@ alphabetical sequencer is what keeps that reproducible. `query-misc.spec.ts`'s
 "self-referencing entity" still requires an employee with id > 10, which only exists
 because `bugs.spec.ts` inserts one earlier in the run. Splitting into unit and integration
 tiers, with per-file reset for the integration tier, is what actually fixes that.
+
+## noImplicitAny (done)
+
+`tsconfig.json` has `noImplicitAny: true`. All 105 errors the 2.x build hid behind
+`suppressImplicitAnyIndexErrors` — removed from TypeScript in 5.5 — are fixed.
+
+Approach, in order of preference:
+
+1. **Type the map.** `BreezeConfig.functionRegistry`, `typeRegistry`, `objectRegistry`,
+   `Validator.messageTemplates`, `BreezeEvent.__eventNameMap` and `FnExpr._funcMap` are
+   now declared as records instead of bare `{}`.
+2. **Annotate the local.** The JSON fragments the `toJSON` visitors build by string key
+   are `Record<string, any>` at declaration.
+3. **Cast at the one site that needs it**, with a comment, where the dynamic access is
+   deliberate — visitor dispatch, `BreezeEnum`'s symbol table, the backing-store accessors.
+
+**Exported signatures still say `Object`.** Narrowing them to `Record<string, any>` would
+reject every class instance callers pass, because class types get no implicit index
+signature. The cast is confined inside the function instead.
+
+### The trap
+
+`core.ts`'s `for...in` + `hasOwnProperty` loops became `Object.keys`, which is exactly
+equivalent for own enumerable properties — except that **`Object.keys(null)` throws while
+`for (let key in null)` is a silent no-op**, and these helpers are called with null by
+design. That broke 572 of 639 tests on the first attempt. Every `Object.keys` call in
+`core.ts` now carries a `|| {}` guard and a comment saying it is load-bearing.
+
+`strictNullChecks` is still off and is the remaining piece of the modernization.

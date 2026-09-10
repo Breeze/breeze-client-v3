@@ -23,7 +23,7 @@ export class ModelLibraryBackingStoreAdapter implements breeze.ModelLibraryAdapt
     for (let p in entity) {
       if (p === "entityAspect" || p === "entityType") continue;
       if (p === "_$typeName" || p === "_pendingSets" || p === "_backingStore") continue;
-      let val = entity[p];
+      let val = (entity as Record<string, any>)[p];
       if (!core.isFunction(val)) {
         names.push(p);
       }
@@ -63,7 +63,7 @@ export class ModelLibraryBackingStoreAdapter implements breeze.ModelLibraryAdapt
     stype.getProperties().forEach(function (prop) {
 
       let propName = prop.name;
-      let val = entity[propName];
+      let val = (entity as Record<string, any>)[propName];
 
       if (prop instanceof breeze.DataProperty) {
         if (prop.isComplexProperty) {
@@ -194,7 +194,8 @@ function makePropDescription(proto: any, property: breeze.EntityProperty) {
 
 }
 
-function getAccessorFn(bs: {}, propName: string): any {
+function getAccessorFn(bsArg: {}, propName: string): any {
+  const bs = bsArg as Record<string, any>;
   return function () {
     if (arguments.length === 0) {
       return bs[propName];

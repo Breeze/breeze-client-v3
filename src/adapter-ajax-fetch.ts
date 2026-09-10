@@ -159,7 +159,7 @@ function getHeadersFn(response: Response): any {
       }
       let hob = {};
       response.headers.forEach((val, key) => {
-        hob[key] = val;
+        (hob as Record<string, any>)[key] = val;
       });
       return hob;
     };
