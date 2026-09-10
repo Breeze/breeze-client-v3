@@ -1,5 +1,9 @@
-﻿import { AjaxAdapter, AjaxConfig, AjaxRequestInterceptor, BreezeConfig, config, core } from './breeze';
+﻿import { AjaxAdapter, AjaxConfig, AjaxRequestInterceptor, BreezeConfig, BreezeFetch, config, core } from './breeze';
 import { appendQueryStringParameter, encodeParams } from './adapter-core';
+
+/** The transport used when none is supplied. Bound so that `fetch` keeps its
+    receiver, which some environments require. */
+const defaultFetch: BreezeFetch = (input, init) => globalThis.fetch(input as any, init);
 
 /** Breeze AJAX adapter using fetch API 
  * See https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch
@@ -9,16 +13,30 @@ export class AjaxFetchAdapter implements AjaxAdapter {
   name: string;
   defaultSettings: { headers?: { [name: string]: string } };
   requestInterceptor?: AjaxRequestInterceptor;
+  /** The function used to make the request. Defaults to `globalThis.fetch`. */
+  fetchFn: BreezeFetch;
 
-  constructor() {
+  constructor(fetchFn?: BreezeFetch) {
     this.name = AjaxFetchAdapter.adapterName;
     this.defaultSettings = { };
     this.requestInterceptor = undefined;
+    this.fetchFn = fetchFn || defaultFetch;
   }
 
-  static register(breezeConfig?: BreezeConfig) {
+  /**
+   * @param breezeConfig - defaults to the global breeze config
+   * @param fetchFn - supply your own transport to add auth headers, retry, or to
+   *   route requests through a framework HTTP client (Angular's HttpClient, so that
+   *   requests pass through its interceptors). Defaults to `globalThis.fetch`.
+   */
+  static register(breezeConfig?: BreezeConfig, fetchFn?: BreezeFetch) {
     breezeConfig = breezeConfig || config;
-    breezeConfig.registerAdapter("ajax", AjaxFetchAdapter);
+    if (fetchFn) {
+      // registerAdapter news up the ctor, so a custom transport needs a factory.
+      breezeConfig.registerAdapter("ajax", <any>function () { return new AjaxFetchAdapter(fetchFn); });
+    } else {
+      breezeConfig.registerAdapter("ajax", AjaxFetchAdapter);
+    }
     return breezeConfig.initializeAdapterInstance("ajax", AjaxFetchAdapter.adapterName, true) as AjaxFetchAdapter;
   }
 
@@ -26,7 +44,7 @@ export class AjaxFetchAdapter implements AjaxAdapter {
   }
 
   ajax(config: AjaxConfig) {
-    if (!fetch) {
+    if (!this.fetchFn) {
       throw new Error("fetch API not supported in this browser");
     }
 
@@ -87,7 +105,7 @@ export class AjaxFetchAdapter implements AjaxAdapter {
     }
 
     if (requestInfo.config) { // exists unless requestInterceptor killed it.
-      fetch(url, requestInfo.config).then(response => {
+      this.fetchFn(url, requestInfo.config).then(response => {
         if (!response.ok) {
           response.text().then(s => {
             requestInfo.error(response.status, response.statusText, s, response, null);

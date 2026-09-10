@@ -104,6 +104,14 @@ export interface AjaxRequest {
     success: (data: any, statusText: string, response: Response) => void;
 }
 
+/**
+ * A fetch-compatible function. This is the seam for supplying your own transport:
+ * add auth headers, retry, request signing, route through a framework HTTP client
+ * (Angular's HttpClient, so requests pass through its interceptors), or stub it in
+ * tests. Defaults to `globalThis.fetch`.
+ */
+export type BreezeFetch = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
+
 /** Handles AJAX requests to server */
 export interface AjaxAdapter extends BaseAdapter {
     /** Function that performs the ajax request and calls the success or error function */

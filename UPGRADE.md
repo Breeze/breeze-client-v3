@@ -61,60 +61,77 @@ If you need CSDL, stay on 2.x or export your metadata to Breeze JSON once and ch
 separate `breeze-client-angular` package so that Angular and RxJS are not dependencies of
 the core library. Until it ships, Angular users should stay on 2.x.
 
-## 3. Ajax adapters become a plain fetch function
+## 3. Supplying your own transport
 
-***Planned — not yet implemented.***
+**Done, in part.** The `AjaxAdapter` interface, `AjaxConfig` and
+`config.registerAdapter("ajax", ...)` are all unchanged, so nothing you have breaks.
 
-The `AjaxAdapter` interface existed so Breeze could sit on top of jQuery, AngularJS
-`$http`, Angular `HttpClient` or `fetch`. With the first three gone, the abstraction has
-one implementation.
-
-It will be replaced by a single injectable function:
+What is new is that the fetch adapter now takes an injectable transport:
 
 ```ts
 type BreezeFetch = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 ```
 
-defaulting to `globalThis.fetch`. Supply your own to add auth headers, retry, or to route
-requests through Angular's `HttpClient` so they pass through its interceptors.
-
-This also retires the callback-shaped `AjaxConfig` (`success` / `error`) in favour of a
-promise.
-
-**If you implement `AjaxAdapter` directly, or call
-`config.registerAdapter("ajax", ...)`, this will affect you.** A deprecated shim is
-planned for the common cases. Migration guidance will land here when it does.
-
-## 4. Adapter configuration becomes typed
-
-***Planned — not yet implemented.***
-
-Today adapters are wired by string name, and importing an adapter module silently
-registers it as a side effect:
+Pass one to `configureBreeze` (see below) or to `AjaxFetchAdapter.register`:
 
 ```ts
-import { AjaxFetchAdapter } from 'breeze-client/adapter-ajax-fetch';
-config.registerAdapter("ajax", AjaxFetchAdapter);
-config.initializeAdapterInstance("ajax", "fetch", true);
+configureBreeze({
+  ajax: AjaxFetchAdapter,
+  fetch: async (input, init) => {
+    const res = await fetch(input, { ...init, headers: { ...init?.headers, Authorization: token } });
+    return res;
+  },
+});
 ```
 
-v3 will add a typed setup call:
+Use it for auth headers, retry, request signing, stubbing in tests, or to route requests
+through a framework HTTP client such as Angular's `HttpClient` so they pass through its
+interceptors. It defaults to `globalThis.fetch`.
+
+***Still planned:*** retiring the `AjaxAdapter` class and the `"ajax"` registry slot
+altogether in favour of just this function, and replacing the callback-shaped `AjaxConfig`
+(`success` / `error`) with a promise. That is a larger change and will come with its own
+deprecation shim. Nothing you write against `BreezeFetch` today will be affected by it.
+
+## 4. Typed configuration
+
+**Done.** Adapters can now be wired in one typed call:
 
 ```ts
+import { configureBreeze, NamingConvention } from 'breeze-client';
+import { AjaxFetchAdapter } from 'breeze-client/adapter-ajax-fetch';
+import { DataServiceWebApiAdapter } from 'breeze-client/adapter-data-service-webapi';
+import { UriBuilderJsonAdapter } from 'breeze-client/adapter-uri-builder-json';
+import { ModelLibraryBackingStoreAdapter } from 'breeze-client/adapter-model-library-backing-store';
+
 configureBreeze({
   ajax: AjaxFetchAdapter,
   dataService: DataServiceWebApiAdapter,
   uriBuilder: UriBuilderJsonAdapter,
   modelLibrary: ModelLibraryBackingStoreAdapter,
+  namingConvention: NamingConvention.camelCase,
 });
 ```
 
-`config.registerAdapter`, `initializeAdapterInstance` and `initializeAdapterInstances`
-will keep working, marked `@deprecated`, so existing startup code runs unchanged.
+instead of the stringly-typed pairs:
 
-One behavioural change to be aware of: **importing an adapter will no longer register
-it.** Registration becomes explicit. If you rely on the import side effect today, add the
-adapter to `configureBreeze`.
+```ts
+config.registerAdapter("ajax", AjaxFetchAdapter);
+config.initializeAdapterInstance("ajax", "fetch", true);
+```
+
+Misspell an adapter name in the old form and you get a runtime error; in the new form it
+does not compile. `configureBreeze` also takes `fetch`, `noEval`, and a `config` for
+targeting a non-global `BreezeConfig`, and it registers adapters in dependency order so
+the data service adapter can resolve the ajax adapter when it initializes.
+
+**`config.registerAdapter`, `initializeAdapterInstance` and `initializeAdapterInstances`
+are unchanged and still work.** They are the compatibility path; existing 2.x startup code
+runs as-is. They will be marked `@deprecated` in a later release.
+
+***Still planned:*** making adapter registration fully explicit. Today, importing an
+adapter module still registers it as a side effect, so import order can matter. When that
+changes, passing the adapter to `configureBreeze` will be the only thing that registers it.
 
 ## 5. Class constructors require `new`
 

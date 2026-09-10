@@ -172,3 +172,30 @@ This is what makes the pass/fail list stable. Environment overrides:
 It runs in Node even when the tests themselves run in a browser, so it will keep working
 in browser mode. If the script is missing it warns and continues rather than failing, so
 a no-server unit run is unaffected.
+
+## Configuration API (done)
+
+`configureBreeze(options)` in `src/configure.ts` replaces the stringly-typed
+`config.registerAdapter(...)` + `config.initializeAdapterInstance(...)` pairs:
+
+```ts
+configureBreeze({
+  ajax: AjaxFetchAdapter,
+  dataService: DataServiceWebApiAdapter,
+  uriBuilder: UriBuilderJsonAdapter,
+  modelLibrary: ModelLibraryBackingStoreAdapter,
+  namingConvention: NamingConvention.camelCase,
+  fetch: myTransport,   // optional
+});
+```
+
+It is a typed facade over the `static register()` each adapter already had, so it is thin
+rather than a new mechanism. Adapters register in dependency order (ajax before
+dataService, because `AbstractDataServiceAdapter.initialize` resolves the ajax adapter).
+
+`AjaxFetchAdapter` now takes an optional `BreezeFetch` — the seam for auth headers, retry,
+Angular's `HttpClient`, or a test stub. `registerAdapter` news up the constructor, so a
+custom transport registers a factory instead, the same trick the Angular adapter used.
+
+Covered by `test/configure-ns.spec.ts` (6 tests, no server needed), which also asserts the
+2.x string-based startup still works.

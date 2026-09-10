@@ -1,0 +1,79 @@
+
+ RUN  v5.0.0 C:/GitHub/breeze-client-v3
+
+[db-reset] BreezeTestDb rebuilt in 4741ms
+ ❯ test/datatypes.spec.ts (37 tests | 3 failed) 790ms
+   ❯ Unusual Datatypes (37)
+     × nullable dateTime 32ms
+     × where dateOnly & timeOnly 29ms
+     × nullable guid == null 18ms
+ ❯ test/bugs.spec.ts (17 tests | 1 failed | 1 skipped) 572ms
+   ❯ Old Fixed Bugs (17)
+     × executeQuery returns before in-cache entities are all attached 153ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/bugs.spec.ts > Old Fixed Bugs > executeQuery returns before in-cache entities are all attached
+AssertionError: expected [ Employee__Foo{ …(2) }, …(9) ] to have a length of 9 but got 10
+
+- Expected
++ Received
+
+- 9
++ 10
+
+ ❯ test/bugs.spec.ts:416:25
+    414|     const [qr4, qr3, qr2] = await Promise.all([em.executeQuery(q4), em…
+    415|
+    416|     expect(qr2.results).toHaveLength(9);
+       |                         ^
+    417|
+    418|     const empsWithTerr = qr2.results.filter((e: any) => e.employeeTerr…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+ FAIL  test/datatypes.spec.ts > Unusual Datatypes > nullable dateTime
+AssertionError: expected 0 to be greater than 0
+ ❯ test/datatypes.spec.ts:113:43
+    111|     const qr1 = await em.executeQuery(q);
+    112|     const empsWithNullBirthDates = qr1.results;
+    113|     expect(empsWithNullBirthDates.length).toBeGreaterThan(0);
+       |                                           ^
+    114|     empsWithNullBirthDates.forEach(function (emp1) {
+    115|       const birthDate1 = emp1.getProperty("birthDate");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/4]⎯
+
+ FAIL  test/datatypes.spec.ts > Unusual Datatypes > where dateOnly & timeOnly
+AssertionError: expected 0 to be greater than 0
+ ❯ test/datatypes.spec.ts:281:32
+    279|     const query = EntityQuery.from("UnusualDates").where(p1);
+    280|     const qr1 = await em.executeQuery(query);
+    281|     expect(qr1.results.length).toBeGreaterThan(0);
+       |                                ^
+    282|   });
+    283|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/4]⎯
+
+ FAIL  test/datatypes.spec.ts > Unusual Datatypes > nullable guid == null
+AssertionError: expected 0 to be greater than 0
+ ❯ test/datatypes.spec.ts:662:32
+    660|
+    661|     const qr1 = await em.executeQuery(query);
+    662|     expect(qr1.results.length).toBeGreaterThan(0);
+       |                                ^
+    663|   });
+    664|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/4]⎯
+
+
+ Test Files  2 failed | 38 passed (40)
+      Tests  4 failed | 628 passed | 7 skipped (639)
+   Start at  13:37:15
+   Duration  35.11s (tests 85%, import 6%, setup 5%, transform 3%, worker 1%)
+
+    Isolate  40 workers spawned · ~76ms startup each (spawn + environment, per file)
+             at least ~2.96s faster with isolate: false — reuses workers across files instead of one per file
+
