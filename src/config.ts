@@ -14,30 +14,29 @@ export class InterfaceDef<T extends BaseAdapter> {
     name: string;
     defaultInstance?: T;
     /** @hidden @internal */
-    _implMap: { [name: string]: IDef<T> };
+    _implMap: Map<string, IDef<T>>;
 
     constructor(name: string) {
         this.name = name;
         this.defaultInstance = undefined;
-        this._implMap = {};
+        this._implMap = new Map();
     }
 
     /** Define an implementation of the given adaptername */
     registerCtor(adapterName: string, ctor: AdapterCtor<T>): void {
-        this._implMap[adapterName.toLowerCase()] = { ctor: ctor, defaultInstance: undefined };
+        this._implMap.set(adapterName.toLowerCase(), { ctor: ctor, defaultInstance: undefined });
     }
 
     /** Return the definition for the given adapterName */
     getImpl(adapterName: string): IDef<T> {
-        return this._implMap[adapterName.toLowerCase()];
+        return this._implMap.get(adapterName.toLowerCase()) as IDef<T>;
     }
 
     /** Return the first implementation for this InterfaceDef */
     getFirstImpl(): IDef<T> {
-        let kv = core.objectFirst(this._implMap, function () {
-            return true;
-        });
-        return kv ? kv.value : null;
+        // Map preserves insertion order, so 'first' is well defined here.
+        const first = this._implMap.values().next();
+        return first.done ? null as any : first.value;
     }
 
     getDefaultInstance() {

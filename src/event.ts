@@ -39,7 +39,8 @@ Class to support basic event publication and subscription semantics.
 **/
 export class BreezeEvent<T> {
   /** @hidden @internal */
-  static __eventNameMap: Record<string, boolean> = {};
+  /** Names of every event constructed so far. A Set: it is membership, not mapping. */
+  static __eventNameMap = new Set<string>();
   /** @hidden @internal */
   static __nextUnsubKey = 1;
   /** The name of this Event */
@@ -67,7 +68,7 @@ export class BreezeEvent<T> {
 
     this.name = name;
     // register the name
-    BreezeEvent.__eventNameMap[name] = true;
+    BreezeEvent.__eventNameMap.add(name);
     this.publisher = publisher;
     if (defaultErrorCallback) {
       this._defaultErrorCallback = defaultErrorCallback;

@@ -287,10 +287,12 @@ export class QueuedSaveFailedError extends Error {
 //   queuedChanges: entities that are queued for save but
 //                  are not currently being saved
 class SaveMemo {
-  entityMemos: { [key: string]: EntityMemo };
+  /** Keyed by 'entityTypeName|keyValues'. A Map: keys are data, entries are added,
+      renamed on pk fixup, and deleted. */
+  entityMemos: Map<string, EntityMemo>;
   queuedChanges: Entity[];
   constructor() {
-    this.entityMemos = {};
+    this.entityMemos = new Map();
     this.queuedChanges = [];
   }
 
@@ -301,7 +303,7 @@ class SaveMemo {
     try {
       savedEntities.forEach(saved => {
         let key = this.makeEntityMemoKey(saved);
-        let entityMemo = entityMemos[key];
+        let entityMemo = entityMemos.get(key);
         let resave = entityMemo && entityMemo.applyToSavedEntity(saved);
         if (resave) {
           queuedChanges.push(saved);
@@ -332,13 +334,12 @@ class SaveMemo {
     keyMappings.forEach(km => {
       let type = km.entityTypeName;
       let tempKey = type + '|' + km.tempValue;
-      if (entityMemos[tempKey]) {
-        entityMemos[type + '|' + km.realValue] = entityMemos[tempKey];
-        delete entityMemos[tempKey];
+      const memo = entityMemos.get(tempKey);
+      if (memo) {
+        entityMemos.set(type + '|' + km.realValue, memo);
+        entityMemos.delete(tempKey);
       }
-      for (let memoKey in entityMemos) {
-        entityMemos[memoKey].fkFixup(km);
-      }
+      entityMemos.forEach(m => m.fkFixup(km));
     });
   }
 
@@ -354,7 +355,11 @@ class SaveMemo {
       if (!change.entityAspect.isBeingSaved) { return; }
 
       let key = this.makeEntityMemoKey(change);
-      let entityMemo = entityMemos[key] || (entityMemos[key] = new EntityMemo(change));
+      let entityMemo = entityMemos.get(key);
+      if (!entityMemo) {
+        entityMemo = new EntityMemo(change);
+        entityMemos.set(key, entityMemo);
+      }
       entityMemo.update();
     });
   }

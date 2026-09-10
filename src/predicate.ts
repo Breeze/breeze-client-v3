@@ -221,7 +221,7 @@ export class Predicate {
   static extendFuncMap (funcMap: {[key: string]: {fn: (...args: any[]) => any, dataType: DataType}}): void {
     for (let func in (funcMap || {})) {
       let config = funcMap[func];
-      FnExpr._funcMap[func] = config;
+      FnExpr._funcMap.set(func, config);
     }
   };
 
@@ -780,7 +780,7 @@ export class FnExpr extends PredicateExpression {
     // 4 public props: fnName, exprs, localFn, dataType
     this.fnName = fnName;
     this.exprs = exprs;
-    let qf = FnExpr._funcMap[fnName];
+    let qf = FnExpr._funcMap.get(fnName);
     if (qf == null) {
       throw new Error("Unknown function: " + fnName);
     }
@@ -801,7 +801,7 @@ export class FnExpr extends PredicateExpression {
     });
   }
 
-  static _funcMap: { [key: string]: { fn: (...args: any[]) => any; dataType: DataType } } = {
+  static _funcMap = new Map<string, { fn: (...args: any[]) => any; dataType: DataType }>(Object.entries({
     toupper: {
       fn: function (source: string) {
         return source.toUpperCase();
@@ -902,7 +902,7 @@ export class FnExpr extends PredicateExpression {
         return source.getFullYear();
       }, dataType: DataType.Int32
     }
-  };
+  }));
 
 }
 
