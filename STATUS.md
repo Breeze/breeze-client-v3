@@ -32,7 +32,7 @@ Companion repo: **`breeze-server-v3`** (the .NET server the integration tests ru
   No ng-packagr, no second `node_modules`, no `downlevel-dts`, no Angular.
 - `package.json` `exports` map covers the root plus 7 subpaths; all 8 verified to resolve.
 
-## Vitest port — DONE (node environment)
+## Vitest port — DONE (node *and* browser)
 
 `npm test` runs the suite. **629 passing, 3 failing, 7 skipped of 639**, identical across
 three consecutive runs.
@@ -224,3 +224,30 @@ Pinning the order also made `nullable dateTime` and `expand through null child o
 pass consistently, because alphabetically their data-creating files now run first. They are
 still order-dependent; they are simply no longer *randomly* order-dependent. Making each
 test create the data it asserts on is the real fix.
+
+## Browser mode (done)
+
+`npm run test:browser` runs the same specs in real Chromium via Playwright
+(`vitest.browser.config.ts`). Results are **identical to the node run: 629 passing,
+3 failing, and the same three tests**. Breeze is a browser library, so this is the run
+that matters; the node run stays as the fast default.
+
+Setup: `npm install` then `npx playwright install chromium`, once. The test server must be
+running — its `BreezeTestCors` policy is what lets a browser-origin request through, and
+it reflects the caller's origin rather than using a wildcard because the fetch adapter
+sends `credentials: 'include'`.
+
+`globalSetup` still runs in Node, so the per-run database rebuild is unchanged.
+
+### What browser mode caught
+
+The barrel re-exported **41 type-only symbols as if they were runtime values**. Node mode
+tolerated it because Vite's SSR transform can drop exports it cannot resolve; a browser
+loading real ES modules cannot, and every spec file failed to import with
+`SyntaxError: The requested module '/src/configure.ts' does not provide an export named
+'AdapterRegistration'`.
+
+`src/breeze.ts` now separates them: 51 value exports in `export { ... }` and 41 in
+`export type { ... }`, with the imports split into `import` and `import type` to match.
+This is also what makes the package safe for any file-by-file transpiler, not just
+browsers.
