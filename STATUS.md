@@ -34,8 +34,8 @@ Companion repo: **`breeze-server-v3`** (the .NET server the integration tests ru
 
 ## Vitest port — DONE (node *and* browser)
 
-`npm test` runs the suite. **629 passing, 3 failing, 7 skipped of 639**, identical across
-three consecutive runs.
+`npm test` runs the suite. **632 passing, 0 failing, 7 skipped of 639 — all 40 files
+green**, in both node and browser, reproducibly.
 That is parity with the 2.x Jest baseline of 623–624 of 636 — the totals differ because
 `odata-specific.spec.ts` and its 3 tests were dropped with OData.
 
@@ -251,3 +251,36 @@ loading real ES modules cannot, and every spec file failed to import with
 `export type { ... }`, with the imports split into `import` and `import type` to match.
 This is also what makes the package safe for any file-by-file transpiler, not just
 browsers.
+
+## The suite is green
+
+**632 passing, 0 failing, 7 skipped of 639.** Verified over three consecutive node runs
+and one browser run, all identical.
+
+Getting there took four fixes, and only the last two were test changes:
+
+1. **A silent UTF-8 corruption.** `sqlcmd -i` decodes its input as the system ANSI
+   codepage, so every database rebuild was turning `México D.F.` into `MÃ©xico D.F.`.
+   Invisible until a rebuild-then-regenerate cycle compounded it into column overflow.
+   Fixed with `-f 65001` everywhere and a BOM on the generated script.
+2. **`UnusualDate.DateOnly` / `TimeOnly` were never populated** — the old
+   `Add_DateOnly_TimeOnly.sql` added the columns and stopped. Now seeded.
+3. **`bugs.spec.ts` asserted an exact employee count** that an earlier test *in the same
+   file* had already invalidated by inserting one. Now asserts a floor; the test is about
+   attachment, not counting.
+4. **`nullable guid == null` queried for an order with no customer** without creating one,
+   relying on some other spec file to have made one. It creates its own now.
+
+### About the shipped Northwind data
+
+The pristine employee ids are **1-6, 8, 9, 10** — there is no employee 7, and there is a
+10. That gap is in the `.mdf` this data came from; it predates this repo. Worth knowing
+before writing an assertion about employee counts or ids.
+
+### Still not isolated
+
+Green is not the same as isolated. Tests still share one database within a run, and the
+alphabetical sequencer is what keeps that reproducible. `query-misc.spec.ts`'s
+"self-referencing entity" still requires an employee with id > 10, which only exists
+because `bugs.spec.ts` inserts one earlier in the run. Splitting into unit and integration
+tiers, with per-file reset for the integration tier, is what actually fixes that.

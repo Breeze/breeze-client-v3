@@ -654,6 +654,12 @@ describe("Unusual Datatypes", () => {
   test("nullable guid == null", async function () {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
+
+    // Northwind ships no order without a customer. This test used to depend on some
+    // other spec file having created one, which made it order-dependent. Create it.
+    em.createEntity("Order", { shipName: "Test order with no customer" });
+    await em.saveChanges();
+
     const query = new EntityQuery("Orders")
       .where("customerID", "==", null)
       .take(10);
