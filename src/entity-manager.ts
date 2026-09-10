@@ -295,7 +295,8 @@ export class EntityManager {
   /** @hidden @internal */
   _hasChanges: boolean;
   /** @hidden @internal */
-  _entityGroupMap: { [index: string]: EntityGroup };
+  /** @hidden @internal keyed by qualified entityType name */
+  _entityGroupMap: Map<string, EntityGroup>;
   /** @hidden @internal */
   _unattachedChildrenMap: UnattachedChildrenMap;
   /** @hidden @internal */
@@ -703,13 +704,13 @@ export class EntityManager {
   >     // em1 is will now contain no entities, but all other setting will be maintained.
   **/
   clear() {
-    core.objectMap(this._entityGroupMap, function (key: string, entityGroup: EntityGroup) {
-      return entityGroup._checkOperation('clear');
-    }).forEach((entityGroup: EntityGroup) => {
-      entityGroup._clear();
-    });
+    // The constructor calls clear() before _entityGroupMap is assigned, so this runs
+    // once with it undefined. core.objectMap used to absorb that; Map.values() does not.
+    Array.from(this._entityGroupMap?.values() ?? [])
+      .map(entityGroup => entityGroup._checkOperation('clear'))
+      .forEach(entityGroup => entityGroup._clear());
 
-    this._entityGroupMap = {};
+    this._entityGroupMap = new Map();
     this._unattachedChildrenMap = new UnattachedChildrenMap();
     this.keyGenerator = new this.keyGeneratorCtor();
     this.entityChanged.publish({ entityAction: EntityAction.Clear });
@@ -1177,7 +1178,7 @@ export class EntityManager {
 
   /** @hidden @internal */
   _findEntityGroup(entityType: EntityType) {
-    return this._entityGroupMap[entityType.name];
+    return this._entityGroupMap.get(entityType.name);
   }
 
   /**
@@ -1656,7 +1657,7 @@ export class EntityManager {
 
   /** @hidden @internal */
   _updateFkVal(fkProp: DataProperty, oldValue: any, newValue: any) {
-    let group = this._entityGroupMap[fkProp.parentType.name];
+    let group = this._entityGroupMap.get(fkProp.parentType.name);
     if (!group) return;
     group._updateFkVal(fkProp, oldValue, newValue);
   }
@@ -1852,13 +1853,13 @@ function markIsBeingSaved(entities: Entity[], flag: boolean) {
 }
 
 function exportEntityGroups(em: EntityManager, entitiesOrEntityTypes: Entity[] | EntityType[] | string[]) {
-  let entityGroupMap: { [index: string]: EntityGroup };
+  let entityGroupMap: Map<string, EntityGroup>;
   let first = entitiesOrEntityTypes && entitiesOrEntityTypes[0];
   // check if array
   if (first) {
     // group entities by entityType and
     // create 'groups' that look like entityGroups.
-    entityGroupMap = {};
+    entityGroupMap = new Map();
     if ((first as any).entityType) {
       let entities = entitiesOrEntityTypes as Entity[];
       // assume "entities" is an array of entities;
@@ -1866,12 +1867,12 @@ function exportEntityGroups(em: EntityManager, entitiesOrEntityTypes: Entity[] |
         if (e.entityAspect.entityState === EntityState.Detached) {
           throw new Error("Unable to export an entity with an EntityState of 'Detached'");
         }
-        let group = entityGroupMap[e.entityType.name];
+        let group = entityGroupMap.get(e.entityType.name);
         if (!group) {
           group = {} as EntityGroup;
           group.entityType = e.entityType;
           group._entities = [];
-          entityGroupMap[e.entityType.name] = group;
+          entityGroupMap.set(e.entityType.name, group);
         }
         group._entities.push(e);
       });
@@ -1880,24 +1881,26 @@ function exportEntityGroups(em: EntityManager, entitiesOrEntityTypes: Entity[] |
       let entityTypes = checkEntityTypes(em, entitiesOrEntityTypes as EntityType[] | string[]) as EntityType[];
       if (entityTypes != null) {
         entityTypes.forEach((et) => {
-          let group = em._entityGroupMap[et.name];
+          let group = em._entityGroupMap.get(et.name);
           if (group && group._entities.length) {
-            entityGroupMap[et.name] = group;
+            entityGroupMap.set(et.name, group);
           }
         });
       }
     }
   } else if (entitiesOrEntityTypes && entitiesOrEntityTypes.length === 0) {
     // empty array = export nothing
-    entityGroupMap = {};
+    entityGroupMap = new Map();
   } else {
     entityGroupMap = em._entityGroupMap;
   }
 
   let tempKeys: ITempKey[] = [];
-  let newGroupMap = {};
-  core.objectForEach(entityGroupMap, (entityTypeName, entityGroup) => {
-    (newGroupMap as Record<string, any>)[entityTypeName] = exportEntityGroup(entityGroup, tempKeys);
+  // the exported shape is a plain object: this is the serialized wire format,
+  // and JSON.stringify(new Map()) would produce '{}'.
+  let newGroupMap: Record<string, any> = {};
+  entityGroupMap.forEach((entityGroup, entityTypeName) => {
+    newGroupMap[entityTypeName] = exportEntityGroup(entityGroup, tempKeys);
   });
 
   return { entityGroupMap: newGroupMap, tempKeys: tempKeys };
@@ -2112,7 +2115,7 @@ function getEntitiesToSave(em: EntityManager, entities?: Entity[]) {
 function fixupKeys(em: EntityManager, keyMappings: KeyMapping[]) {
   em._inKeyFixup = true;
   keyMappings.forEach(function (km) {
-    let group = em._entityGroupMap[km.entityTypeName];
+    let group = em._entityGroupMap.get(km.entityTypeName);
     if (!group) {
       throw new Error("Unable to locate the following fully qualified EntityType name: " + km.entityTypeName);
     }
@@ -2126,13 +2129,13 @@ function getEntityGroups(em: EntityManager, entityTypes?: EntityType | EntityTyp
   if (entityTypes) {
     return core.toArray(entityTypes).map(function (et: EntityType) {
       if (et instanceof EntityType) {
-        return groupMap[et.name];
+        return groupMap.get(et.name) as EntityGroup;
       } else {
         throw new Error("The EntityManager.getChanges() 'entityTypes' parameter must be either an entityType or an array of entityTypes or null");
       }
     });
   } else {
-    return core.getOwnPropertyValues(groupMap) as EntityGroup[];
+    return Array.from(groupMap.values());
   }
 }
 
@@ -2344,10 +2347,10 @@ function updateConcurrencyProperty(entity: Entity, property: DataProperty) {
 
 
 function findOrCreateEntityGroup(em: EntityManager, entityType: EntityType) {
-  let group = em._entityGroupMap[entityType.name];
+  let group = em._entityGroupMap.get(entityType.name);
   if (!group) {
     group = new EntityGroup(em, entityType);
-    em._entityGroupMap[entityType.name] = group;
+    em._entityGroupMap.set(entityType.name, group);
   }
   return group;
 }

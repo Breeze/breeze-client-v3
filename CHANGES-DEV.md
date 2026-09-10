@@ -162,6 +162,10 @@ Map's insertion order is defined, which one call site was already relying on imp
 | `MetadataStore._incompleteTypeMap` | `Map<string, NavigationProperty[]>` | see note on import below |
 | `MetadataStore._incompleteComplexTypeMap` | `Map<string, DataProperty[]>` | internal |
 | `MetadataStore._deferredTypes` | `Map<string, any[]>` | internal |
+| `EntityManager._entityGroupMap` | `Map<string, EntityGroup>` | the most-used of them; the export path still builds a plain object |
+| `UnattachedChildrenMap.map` | `Map<string, INavTuple[]>` | get-or-create, lookup, delete |
+| `KeyGenerator._tempIdMap` | `Map<string, IPropEntry>` | private |
+| `IPropEntry.keyMap` | `Set<string>` | recorded which generated ids were taken; the values were always `true` |
 
 `core.getMapArray(map, key)` was added as the Map counterpart of `core.getArray` —
 get-or-create-array, which three of these needed.
@@ -189,3 +193,18 @@ the wire:
 The rule: **a `Map` for internal state, a plain object for anything a consumer touches or
 that gets `JSON.stringify`d.** `JSON.stringify(new Map())` is `{}`, which would fail
 silently.
+
+### The trap, twice
+
+Both times this bit, the cause was the same shape: **the object-based helper tolerated
+`undefined`, and the `Map` method does not.**
+
+- `core.objectMap(undefined, fn)` returns `[]`. `undefined.values()` throws. `EntityManager`'s
+  constructor calls `clear()` *before* `_entityGroupMap` is assigned, so `clear()` runs once
+  against an undefined field — by design, apparently. 572 of 639 tests failed until
+  `clear()` got an optional-chaining guard.
+- Earlier, in `core.ts` itself, `for (let key in null)` is a silent no-op while
+  `Object.keys(null)` throws. Same 572 failures, same root cause.
+
+When converting one of these, check whether the call site can pass `undefined` — the old
+code very often relied on it silently.

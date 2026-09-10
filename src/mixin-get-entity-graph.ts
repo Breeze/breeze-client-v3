@@ -80,7 +80,7 @@ function getEntityGraph(roots: Entity | Array<Entity> | EntityQuery, expand: str
 }
 
 function getEntityGraphCore(root: Entity | Array<Entity>, expand: string | Array<string> | ExpandClause) {
-  let entityGroupMap: { [index: string]: EntityGroup };
+  let entityGroupMap: Map<string, EntityGroup>;
   let graph = [] as Array<Entity>;
   let rootType: EntityType;
   let roots = Array.isArray(root) ? root : [root];
@@ -248,7 +248,7 @@ function getEntityGraphCore(root: Entity | Array<Entity>, expand: string | Array
       let navTypes = navType.getSelfAndSubtypes();
       let grps = [] as Array<EntityGroup>; // non-empty groups for these types
       navTypes.forEach(function (t) {
-        let grp = entityGroupMap[t.name];
+        let grp = entityGroupMap.get(t.name);
         if (grp && grp._entities.length > 0) {
           grps.push(grp);
         }
