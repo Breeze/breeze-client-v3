@@ -110,9 +110,9 @@ wrapper can make the constructors callable again if that turns out to matter.
 
 ## Known issues
 
-- **`noImplicitAny` is `false`** in `tsconfig.json`. The 2.x build hid **106 TS7053
-  index-signature errors across 20 files** behind `suppressImplicitAnyIndexErrors`, which
-  TypeScript removed in 5.5. They need real fixes; re-enable per module.
+- ~~`noImplicitAny`~~ **done** - see the section below. It is on, and the 105
+  index-signature errors the 2.x build hid behind `suppressImplicitAnyIndexErrors`
+  are fixed rather than re-suppressed.
 - **`strictNullChecks` is `false`**, as in 2.x. Turning it on is the single largest chunk
   of the modernization pass.
 - **`"sideEffects": true` in `package.json` must stay true.** 25 classes brand
