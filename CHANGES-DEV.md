@@ -109,7 +109,16 @@ make any breakage impossible to attribute.
 Moving from Jest to **Vitest**, and eventually Vitest **browser mode** — Breeze is a
 browser library, but the suite has always run in Node behind a `node-fetch` shim.
 
-The port is in progress and not yet runnable; `STATUS.md` lists the exact remaining work.
+The port is done for the node environment: **621 passing, 5 failing, 7 skipped of 633**,
+parity with the 2.x Jest baseline. Browser mode is next and needs CORS on the test server.
+
+The port exposed two pre-existing bugs that Jest had been hiding, because
+`spec/tsconfig.json` set `"target": "es5"` and did not exclude `breeze-client` from
+`transformIgnorePatterns` - so the harness compiled the library down to ES5 and masked
+every ES2022 class semantic. `JsonResultsAdapter` was missing a `declare` on its
+`_` field, so the constructor shadowed the prototype brand with `undefined`; and
+the fetch adapter set `referrer: "client"`, which Node rejects as an invalid URL. The same
+downlevel is why `Predicate(...)` without `new` appeared to work in 2.x.
 
 Two things about the existing suite that shape the rewrite:
 

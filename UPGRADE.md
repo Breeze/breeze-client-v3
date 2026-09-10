@@ -116,7 +116,31 @@ One behavioural change to be aware of: **importing an adapter will no longer reg
 it.** Registration becomes explicit. If you rely on the import side effect today, add the
 adapter to `configureBreeze`.
 
-## 5. What has *not* changed
+## 5. Class constructors require `new`
+
+**Done.** This is a real breaking change, and it is worth reading even if it looks obscure.
+
+```ts
+Predicate("CompanyName", "StartsWith", "B");      // 2.x: worked. v3: throws.
+new Predicate("CompanyName", "StartsWith", "B");  // works
+Predicate.create("CompanyName", "startsWith", "B"); // works, preferred
+```
+
+v3 ships real ES2022 classes. A class constructor cannot be invoked as a plain function,
+so any Breeze type called without `new` now throws
+`TypeError: Class constructor X cannot be invoked without 'new'`.
+
+In 2.x this appeared to work. It did not, in any modern build — the 2.x *test harness*
+compiled the library down to ES5, which turned classes back into functions and masked it.
+Anyone consuming the `mjs` build was already affected.
+
+**Fix:** add `new`, or use the static factory where one exists (`Predicate.create`,
+`DataType.fromName`, and so on).
+
+If this affects a lot of your code, say so — the constructors can be made callable again
+with a small compatibility wrapper.
+
+## 6. What has *not* changed
 
 The public API is otherwise intended to be source-compatible with 2.x. `EntityManager`,
 `EntityQuery`, `Predicate`, `MetadataStore`, `EntityType`, `EntityAspect`, `Validator`,
@@ -131,6 +155,15 @@ If you hit a difference that is not listed above, it is a bug — please file an
 
 Small pre-existing defects corrected in v3:
 
+- **`JsonResultsAdapter` lost its type brand.** `JsonResultsAdapter` declared
+  `_$typeName: string` without TypeScript's `declare` modifier, so under ES2022 class-field
+  semantics the constructor defined the field as `undefined`, shadowing the value set on
+  the prototype. `EntityQuery.using(myJsonResultsAdapter)` therefore failed to recognise
+  its argument. Every other Breeze class already had `declare`; this one was missed.
+  Affected the 2.x `mjs` build.
+- **The fetch adapter set `referrer: 'client'`**, which is the browser default and
+  redundant there, but which Node's `fetch` rejects outright as an invalid URL. Breeze
+  was unusable with the fetch adapter under Node. Now unset.
 - `breeze.version` reported `"2.1.5"` in the 2.2.2 release. It will report the real
   version. *(planned)*
 - `breeze.assertConfig` and `breeze.assertParam` were `null` on the `breeze` object

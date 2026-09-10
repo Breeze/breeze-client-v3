@@ -13,7 +13,7 @@ import { DataServiceWebApiAdapter } from '../src/adapter-data-service-webapi';
 import { ModelLibraryBackingStoreAdapter } from '../src/adapter-model-library-backing-store';
 
 import { UriBuilderJsonAdapter } from '../src/adapter-uri-builder-json';
-import { AjaxFakeAdapter } from './adapter-ajax-fake';
+import { AjaxFakeAdapter } from './support/adapter-ajax-fake';
 
 // jasmine.DEFAULT_TIMEOUT_INTERVAL = 120000;
 ModelLibraryBackingStoreAdapter.register();
@@ -23,7 +23,7 @@ AjaxFakeAdapter.register();
 DataServiceWebApiAdapter.register();
 
 
-const metadata = require('./support/ComplexTypeMetadata.json');
+import metadata from './support/ComplexTypeMetadata.json';
 
 const dtoAdapter = {
   name: 'dtoAdapter',

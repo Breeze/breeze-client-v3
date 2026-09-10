@@ -12,7 +12,7 @@ import { ModelLibraryBackingStoreAdapter } from '../src/adapter-model-library-ba
 import { UriBuilderJsonAdapter } from '../src/adapter-uri-builder-json';
 import { DataServiceWebApiAdapter } from '../src/adapter-data-service-webapi';
 // import { AjaxFakeAdapter } from './support/adapter-ajax-fake';  // OK
-import { AjaxFakeAdapter } from './adapter-ajax-fake';    // OK
+import { AjaxFakeAdapter } from './support/adapter-ajax-fake';    // OK
 import { TestFns, skipDescribeIf } from './test-fns';
 // import { AjaxFakeAdapter } from '../src/adapter-ajax-fake'; // BAD
 
@@ -21,7 +21,7 @@ UriBuilderJsonAdapter.register();
 DataServiceWebApiAdapter.register();
 AjaxFakeAdapter.register();
 
-const metadata = require('./support/ComplexTypeMetadata.json');
+import metadata from './support/ComplexTypeMetadata.json';
 
 // Sequelize does not support complex types.
 skipDescribeIf(TestFns.isSequelizeServer, 'ComplexType', () => {

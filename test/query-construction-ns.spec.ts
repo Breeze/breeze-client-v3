@@ -216,19 +216,23 @@ describe("Query Construction", () => {
     okJSON(p, { "companyName": { "startswith": "B" }, "not": { "country": { "in": ["Belgium", "Germany"] } } });
   });
 
-  test("should support both new and old ctor mechs", () => {
+  test("Predicate factory forms agree; calling without new is no longer supported", () => {
     let p1 = new Predicate("CompanyName", "StartsWith", "B");
-    let p2 = (Predicate as any)("CompanyName", "StartsWith", "B"); // calling without ctor
     let p3 = Predicate.create("CompanyName", "startsWith", "B");
     let p4 = Predicate.create(["CompanyName", "StartsWith", "B"]);
     let p5 = Predicate.create({ CompanyName: { startsWith: "B" } });
-    let p6 = (Predicate as any)({ CompanyName: { StartsWith: "B" } }); // calling without ctor
-    expect(p1.toString()).toEqual(p2.toString());
     expect(p1.toString()).toEqual(p3.toString());
     expect(p1.toString()).toEqual(p4.toString());
     expect(p1.toString()).toEqual(p5.toString());
-    expect(p1.toString()).toEqual(p6.toString());
 
+    // BREAKING CHANGE in v3. Predicate is a real ES2022 class, and a class
+    // constructor cannot be invoked without `new`. In 2.x this appeared to work,
+    // but only because the Jest harness compiled the library down to ES5
+    // (spec/tsconfig.json set "target": "es5" and breeze-client was not in
+    // transformIgnorePatterns), which turned the class back into a function.
+    // Use Predicate.create(...) instead.
+    expect(() => (Predicate as any)("CompanyName", "StartsWith", "B")).toThrow(/without .new./);
+    expect(() => (Predicate as any)({ CompanyName: { StartsWith: "B" } })).toThrow(/without .new./);
   });
 
   test("should support toJson", () => {

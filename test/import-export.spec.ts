@@ -146,8 +146,13 @@ describe("EntityManager import/export", () => {
 
     const changes = em.getChanges();
     const changesExport = em.exportEntities(changes, {includeMetadata: false});
-    const LocalStorage = require('node-localstorage').LocalStorage;
-    const localStorage = new LocalStorage('./support');
+    // An in-memory stand-in for Web Storage. The original used node-localstorage,
+    // which is Node-only and wrote a file into test/support on every run.
+    const stash = new Map<string, string>();
+    const localStorage = {
+      setItem: (k: string, v: string) => { stash.set(k, v); },
+      getItem: (k: string) => stash.get(k) ?? null,
+    };
 
     expect(localStorage).toBeTruthy();
 

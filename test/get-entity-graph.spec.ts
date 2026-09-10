@@ -6,7 +6,7 @@
 import { EntityManager } from '../src/breeze';
 import { ModelLibraryBackingStoreAdapter } from '../src/adapter-model-library-backing-store';
 
-import 'breeze-client/mixin-get-entity-graph';
+import '../src/mixin-get-entity-graph';
 import { HasEntityGraph } from '../src/mixin-get-entity-graph';
 
 import { TestFns } from './test-fns';

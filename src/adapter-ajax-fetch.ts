@@ -41,7 +41,9 @@ export class AjaxFetchAdapter implements AjaxAdapter {
         // 'Content-Type': 'application/x-www-form-urlencoded',
       },
       redirect: 'follow', // manual, *follow, error
-      referrer: 'client', // no-referrer, *client
+      // 'referrer' is deliberately unset. 'client' is the browser default, but
+      // Node's fetch (undici) rejects it as an invalid URL, so setting it explicitly
+      // breaks server-side and test usage for no gain.
     };
     if (config.type !== "GET" && config.type !== "HEAD") {
       // body data type must match "Content-Type" header

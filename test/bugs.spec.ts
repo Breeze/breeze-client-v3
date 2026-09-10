@@ -1,5 +1,6 @@
 import { Entity, EntityQuery, EntityType, MetadataStore, Predicate, breeze, MergeStrategy, EntityState, QueryResult } from '../src/breeze';
 import { TestFns, skipTestIf } from './test-fns';
+import exportImportSample1 from './support/export-import-1.json';
 
 TestFns.initServerEnv();
 
@@ -255,7 +256,6 @@ describe("Old Fixed Bugs", () => {
   test("bug with import relationship resolution", async function () {
     expect.hasAssertions();
 
-    const exportImportSample1 = require('./support/export-import-1.json');
 
     const ds = new breeze.DataService({
       serviceName: "none",

@@ -5,14 +5,14 @@ import { UriBuilderJsonAdapter } from '../src/adapter-uri-builder-json';
 
 import { enableSaveQueuing } from '../src/mixin-save-queuing';
 
-import { AjaxFakeAdapter } from './adapter-ajax-fake';
+import { AjaxFakeAdapter } from './support/adapter-ajax-fake';
 
 // jasmine.DEFAULT_TIMEOUT_INTERVAL = 120000;
 ModelLibraryBackingStoreAdapter.register();
 UriBuilderJsonAdapter.register();
 DataServiceWebApiAdapter.register();
 AjaxFakeAdapter.register();
-const metadata = require('./support/NorthwindIBMetadata.json');
+import metadata from './support/NorthwindIBMetadata.json';
 
 // TODO migrate tests from https://github.com/Breeze/breeze.js.samples/blob/master/net/DocCode/DocCode/tests/saveQueuingTests.js
 

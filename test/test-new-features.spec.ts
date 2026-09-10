@@ -1,6 +1,5 @@
 import { Entity, EntityQuery, EntityType, MetadataStore, Predicate, breeze, MergeStrategy, DataProperty, NavigationProperty, core, QueryOptions, EntityManager, EntityKey, FetchStrategy, EntityState, FilterQueryOp, EntityAspect } from '../src/breeze';
 import { TestFns, skipTestIf, skipDescribeIf } from './test-fns';
-import { ObjectBindingOrAssignmentElement } from 'typescript';
 
 TestFns.initServerEnv();
 

@@ -3,3 +3,7 @@ dist/
 coverage/
 *.tsbuildinfo
 .vitest/
+
+# test run logs
+vitest-run*.txt
+vq.txt

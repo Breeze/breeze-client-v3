@@ -22,7 +22,7 @@ describe("Save exception handling", () => {
   });
 
 
-  test("should throw when delete saved added entity (store-gen key) before server save response", function (done) {
+  test("should throw when delete saved added entity (store-gen key) before server save response", () => new Promise<void>((done) => {
     expect.assertions(7);
     // Fails D#2649 "Internal Error in key fixup - unable to locate entity"
     const em = TestFns.newEntityManager();
@@ -52,9 +52,9 @@ describe("Save exception handling", () => {
       // hope to trap error when call setDeleted() on added entity that is being saved.
       expect(error.message).toMatch(/in the process of being saved/);
     }
-  });
+  }));
 
-  test("should throw when detach saved added entity (store-gen key) before server save response", function (done) {
+  test("should throw when detach saved added entity (store-gen key) before server save response", () => new Promise<void>((done) => {
     expect.assertions(7);
     // Fails D#2650 fixupKeys: "Internal Error in key fixup - unable to locate entity"
     const em = TestFns.newEntityManager();
@@ -83,9 +83,9 @@ describe("Save exception handling", () => {
       // hope to trap error when call em.detachEntity on added entity that is being saved.
       expect(error.message).toMatch(/in the process of being saved/);
     }
-  });
+  }));
 
-  test("should throw when call rejectChanges for saved added entity (store-gen key) before server save response", function (done) {
+  test("should throw when call rejectChanges for saved added entity (store-gen key) before server save response", () => new Promise<void>((done) => {
     expect.assertions(7);
     // Fails D#2649 fixupKeys: "Internal Error in key fixup - unable to locate entity"
     const em = TestFns.newEntityManager();
@@ -114,9 +114,9 @@ describe("Save exception handling", () => {
       expect(error.message).toMatch(/in the process of being saved/);
 
     }
-  });
+  }));
 
-  test("should throw when clear manager before server save response of saved added entity (store-gen key)", function (done) {
+  test("should throw when clear manager before server save response of saved added entity (store-gen key)", () => new Promise<void>((done) => {
     expect.assertions(3);
     // Fails D#2650 fixupKeys: "Unable to locate the following fully qualified EntityType..."
     const em = TestFns.newEntityManager();
@@ -138,7 +138,7 @@ describe("Save exception handling", () => {
       expect(error.message).toMatch(/in the process of being saved/);
 
     }
-  });
+  }));
 
   test("can clear manager before server save response when no fixup needed", async function () {
     expect.hasAssertions();
@@ -173,7 +173,7 @@ describe("Save exception handling", () => {
   });
 
   // This test passes when the server returns the saved added entity as most servers do
-  test("reverts to saved values when save an added entity then modify it before save response", function (done) {
+  test("reverts to saved values when save an added entity then modify it before save response", () => new Promise<void>((done) => {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
     const emp1 = em.createEntity("Employee", { firstName: 'Test fn1', lastName: 'Test ln1' });
@@ -186,11 +186,11 @@ describe("Save exception handling", () => {
 
     // modify it while save is in-flight
     emp1.setProperty('firstName', 'Test fn1 mod');
-  });
+  }));
 
   // This test passes when the server returns the saved entity
   // That won't be true for every server and therefore behavior can be different
-  test("reverts to saved values when save modifed entity then modify it again before save response", function (done) {
+  test("reverts to saved values when save modifed entity then modify it again before save response", () => new Promise<void>((done) => {
     expect.assertions(4);
     const em = TestFns.newEntityManager();
     const emp1 = em.createEntity("Employee", { firstName: 'Test fn1', lastName: 'Test ln1' });
@@ -209,12 +209,12 @@ describe("Save exception handling", () => {
       expect(emp1.getProperty('firstName')).toBe('Test fn1 mod1');
     }).finally(done);
 
-  });
+  }));
 
   // This test passes when the server returns the whole saved entity
   // That won't be true for servers that return patch values
   // rather than entire entities and therefore behavior can be different
-  test("reverts to saved values when save modified entity then modify a different value before save response", function (done) {
+  test("reverts to saved values when save modified entity then modify a different value before save response", () => new Promise<void>((done) => {
     expect.assertions(4);
     const em = TestFns.newEntityManager();
     const emp1 = em.createEntity("Employee", { firstName: 'Test fn1', lastName: 'Test ln1' });
@@ -234,10 +234,10 @@ describe("Save exception handling", () => {
       expect(emp1.getProperty('lastName')).toBe('Test ln1');
     }).finally(done);
 
-  });
+  }));
 
 
-  test("manager.hasChanges() is true after save if manager other changes were made during save", function (done) {
+  test("manager.hasChanges() is true after save if manager other changes were made during save", () => new Promise<void>((done) => {
     expect.hasAssertions();
     // D#2651
     expect(2);
@@ -254,7 +254,7 @@ describe("Save exception handling", () => {
     // Create another entity while save is in progress
     const emp2 = em.createEntity("Employee", { firstName: 'Test fn2', lastName: 'Test fn2' });
 
-  });
+  }));
 
   //TestFns.skipIf("odata", "does not support server interception or alt resources").
   test("adds with EntityErrorsException", async function () {

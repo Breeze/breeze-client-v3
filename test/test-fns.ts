@@ -5,9 +5,9 @@ import { AjaxFetchAdapter } from '../src/adapter-ajax-fetch';
 import { DataServiceWebApiAdapter } from '../src/adapter-data-service-webapi';
 import { UtilFns } from './util-fns';
 
-// Choose whether to use EmployeeTerritoriesNoPayload join table
-// const northwindIBMetadata = require('./support/NorthwindIBMetadata.json');
-const northwindIBMetadata = require('./support/NorthwindIBMetadata_ETNOPAYLOAD.json');
+// Choose whether to use the EmployeeTerritoriesNoPayload join table by swapping this import.
+// import northwindIBMetadata from './support/NorthwindIBMetadata.json';
+import northwindIBMetadata from './support/NorthwindIBMetadata_ETNOPAYLOAD.json';
 
 export class TestFns extends UtilFns {
   // Uncomment just one
@@ -56,7 +56,6 @@ export class TestFns extends UtilFns {
   static initNonServerEnv() {
     TestFns.serverEnvName = "NO SERVER";
     TestFns.calcServerTypes(TestFns.serverEnvName);
-    TestFns.initBrowserShims();
     TestFns.initAdapters();
   }
 
@@ -68,7 +67,6 @@ export class TestFns extends UtilFns {
 
     TestFns.calcServerTypes(serverEnvName);
 
-    TestFns.initBrowserShims();
     TestFns.initAdapters();
 
     if (TestFns.isAspCoreServer) {
@@ -90,10 +88,6 @@ export class TestFns extends UtilFns {
     TestFns.isAspWebApiServer = serverEnvName === 'ASPWEBAPI';
     TestFns.isHibernateServer = serverEnvName === 'HIBERNATE';
     TestFns.isNHibernateServer = serverEnvName === 'NHIBERNATE';
-  }
-
-  private static initBrowserShims() {
-    global['fetch'] = require('node-fetch');
   }
 
   private static initAdapters() {
@@ -215,7 +209,7 @@ export type JsonObj = {[k: string]: any};
 // export const skipDescribeIf = (condition: boolean) => (condition ? describe.skip : describe);
 export const expectPass = () => expect(true).toBe(true);
 
-export const describeIf = (condition: boolean, name: string, fn: jest.EmptyFunction ) => {
+export const describeIf = (condition: boolean, name: string, fn: () => void ) => {
   if (condition) {
     return describe(name, fn);
   } else {
@@ -223,7 +217,7 @@ export const describeIf = (condition: boolean, name: string, fn: jest.EmptyFunct
   }
 };
 
-export const skipDescribeIf = (condition: boolean, name: string, fn: jest.EmptyFunction ) => {
+export const skipDescribeIf = (condition: boolean, name: string, fn: () => void ) => {
   if (condition) {
     return describe.skip(name, fn);
   } else {
@@ -231,7 +225,7 @@ export const skipDescribeIf = (condition: boolean, name: string, fn: jest.EmptyF
   }
 };
 
-export const testIf = (condition: boolean, name: string, fn: jest.EmptyFunction) => {
+export const testIf = (condition: boolean, name: string, fn: () => void) => {
   if (condition) {
     return test(name, fn);
   } else {
@@ -240,7 +234,7 @@ export const testIf = (condition: boolean, name: string, fn: jest.EmptyFunction)
 };
 
 
-export const skipTestIf = (condition: boolean, name: string, fn: jest.EmptyFunction) => {
+export const skipTestIf = (condition: boolean, name: string, fn: () => void) => {
   if (condition) {
     return test.skip(name, fn);
   } else {

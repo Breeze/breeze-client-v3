@@ -32,38 +32,67 @@ Companion repo: **`breeze-server-v3`** (the .NET server the integration tests ru
   No ng-packagr, no second `node_modules`, no `downlevel-dts`, no Angular.
 - `package.json` `exports` map covers the root plus 7 subpaths; all 8 verified to resolve.
 
-## In flight — the Vitest port (INCOMPLETE)
+## Vitest port — DONE (node environment)
 
-`test/` holds the 39 ported spec files (`odata-specific.spec.ts` was dropped) plus
-`test-fns.ts`, `util-fns.ts`, `save-test-fns.ts` and `test/support/`.
+`npm test` runs the suite. **621 passing, 5 failing, 7 skipped of 633.**
 
-Done so far: all imports rewritten from `breeze-client*` to relative `../src/*` paths, and
-the OData uri-builder removed from `TestFns.initAdapters`.
+That is parity with the 2.x Jest baseline of 623–624 of 636 — the totals differ because
+`odata-specific.spec.ts` and its 3 tests were dropped with OData.
 
-**Still to do before the suite can run — none of this is started:**
+What the port involved:
 
-1. No `vitest.config.ts` yet, and `vitest` is not in `devDependencies`.
-2. Node-isms to remove (file + line, from the audit):
-   - `test-fns.ts:97` `global['fetch'] = require('node-fetch')` — delete; Node 20+ and
-     browsers both have native `fetch`. Called from **both** `initServerEnv` and
-     `initNonServerEnv`, so it affects every file.
-   - CJS `require()` of JSON fixtures: `test-fns.ts:11`, `ajax-fake.spec.ts:26`,
-     `complex-type.spec.ts:24`, `save-queuing.spec.ts:15`, `bugs.spec.ts:258`
-     → convert to ESM imports.
-   - `import-export.spec.ts:149-150` `node-localstorage` writing into `test/support/`
-     → needs an in-memory shim.
-   - `save-test-fns.ts:3-4` unused `assert` and `rxjs/operators` imports → delete.
-   - `test-new-features.spec.ts:3` imports the **TypeScript compiler package**, unused
-     → delete.
-   - `test-fns.ts:222,230,238,247` `jest.EmptyFunction` → Vitest equivalent.
-3. `jest-extended` matchers are used throughout (`toBeTrue`, `toEqualCaseInsensitive`).
-   Either register them via `expect.extend` or replace the call sites.
-4. Browser mode additionally needs **CORS on the test server** — it is not configured
-   today, and browser-origin requests to `localhost:34377` will fail without it.
+- `vitest.config.ts` with `globals: true` (so the ported specs keep bare `describe`/`test`/
+  `expect`) and `fileParallelism: false` — the integration tier shares one database and one
+  server, so it must stay serial until each file resets its own state.
+- `test/setup.ts` registers the `jest-extended` matchers the suite relies on
+  (`toBeTrue`, `toEqualCaseInsensitive`).
+- Every Node-only dependency removed: the `node-fetch` shim and `initBrowserShims` are
+  gone (Node 20+ and browsers both have native `fetch`), the five CJS `require()` calls on
+  JSON fixtures are ESM imports, `node-localstorage` is a small in-memory `Map` shim, and
+  the unused `assert`, `rxjs/operators` and `typescript` imports are deleted.
+- The eight `done`-callback tests in `save-exceptions.spec.ts` became explicit
+  `new Promise<void>((done) => {...})`. Naming the resolver `done` left the bodies
+  untouched, which matters: the file's header comment warns against converting them to
+  `await`, because the point is to mutate the manager *while a save is in flight*.
+- `test/support/import-export-test-stash`, a fixture the suite overwrote on every run,
+  is deleted.
+
+### Two real bugs the port exposed
+
+Both were pre-existing, and both were invisible under Jest.
+
+1. **`JsonResultsAdapter` declared `_$typeName: string` without `declare`.** Under ES2022
+   class-field semantics the constructor defines the field as `undefined`, shadowing the
+   value assigned to the prototype, so `EntityQuery.using(jsonResultsAdapter)` could not
+   identify its argument. Every other class in the codebase already had `declare`.
+   Broke 3 tests.
+2. **The fetch adapter set `referrer: 'client'`.** Valid and redundant in a browser;
+   Node's `fetch` rejects it as an invalid URL. This broke metadata fetch and with it 26
+   of 39 files. Now unset.
+
+Jest hid both because `spec/tsconfig.json` set `"target": "es5"` and `breeze-client` was
+excluded from `transformIgnorePatterns`, so the harness compiled the library down to ES5.
+
+### One deliberate breaking change
+
+Same root cause. `Predicate("x", "eq", 1)` without `new` worked in 2.x only because of
+that ES5 downlevel. v3 ships real ES2022 classes, so it throws. The test now asserts the
+new behaviour and `UPGRADE.md` documents it. **Reversible** — a small compatibility
+wrapper can make the constructors callable again if that turns out to matter.
+
+### Remaining 5 failures — all pre-existing, none caused by the port
+
+| Test | Why |
+|---|---|
+| `where dateOnly & timeOnly` | genuine data gap: the columns exist but were never populated |
+| `executeQuery returns before in-cache entities are all attached` | passes in isolation; fails after earlier files pollute the database |
+| `nullable dateTime`, `nullable guid == null` | data-state dependent; they rotate between runs |
 
 ## Next steps, in order
 
-1. Finish the Vitest port (node environment first) and get it green against the v3 server.
+1. **Reset the database per run in the integration tier.** Re-apply
+   `tests/Databases/BreezeTestDb.sql` from the server repo; it is fast and proven. Until
+   this lands there is no stable pass/fail list to hold the rewrite to.
 2. Add CORS to the test server, then switch Vitest to browser mode.
 3. Split the suite into unit and integration tiers.
 4. **Then** do the ajax → injectable-fetch refactor. It rewrites the request path that all
