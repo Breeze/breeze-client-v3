@@ -141,3 +141,51 @@ own errors. Filter those files out of a run and nothing is ever cleaned up.
 The fix is a per-run database rebuild, not a better cleanup script — re-applying
 `tests/Databases/BreezeTestDb.sql` from the server repo takes seconds and is proven to
 restore a correct baseline.
+
+## Object-as-map to Map
+
+Where a structure is keyed by *data* rather than by fixed property names, it is now a real
+`Map` (or `Set`). That removes the `delete` operator, `for...in` with `hasOwnProperty`
+guards, and the prototype-collision hazard of using a plain object as a dictionary — and
+Map's insertion order is defined, which one call site was already relying on implicitly.
+
+**Converted:**
+
+| Was | Now | Note |
+|---|---|---|
+| `InterfaceDef._implMap` | `Map<string, IDef<T>>` | `getFirstImpl` takes the first value directly instead of going via `core.objectFirst` |
+| `FnExpr._funcMap` | `Map` | seeded from the existing object literal with `Object.entries`, so the declaration still reads as a table |
+| `SaveMemo.entityMemos` | `Map` | adds, renames a key during pk fixup, deletes, iterates — the best fit of the lot |
+| `BreezeEvent.__eventNameMap` | `Set<string>` | only ever recorded membership; the boolean value carried nothing |
+| `MetadataStore._shortNameMap` | `Map<string, string>` | explicitly documented as not serialized |
+| `MetadataStore._ctorRegistry` | `Map<string, CtorRecord>` | internal |
+| `MetadataStore._incompleteTypeMap` | `Map<string, NavigationProperty[]>` | see note on import below |
+| `MetadataStore._incompleteComplexTypeMap` | `Map<string, DataProperty[]>` | internal |
+| `MetadataStore._deferredTypes` | `Map<string, any[]>` | internal |
+
+`core.getMapArray(map, key)` was added as the Map counterpart of `core.getArray` —
+get-or-create-array, which three of these needed.
+
+`MetadataStore.getIncompleteNavigationProperties()` is public and still returns an array;
+it is now `Array.from(map.values())` instead of `core.objectMap`.
+
+`importMetadata` reads `json.incompleteTypeMap` as a plain object, because that is the
+serialized shape. It now merges those entries into the Map explicitly. **The wire format
+is unchanged.**
+
+**Deliberately not converted.** A Map is wrong when the structure is public API or crosses
+the wire:
+
+- `BreezeConfig.functionRegistry` / `typeRegistry` / `objectRegistry` — public fields that
+  applications read directly.
+- `Validator.messageTemplates` — public, and used with dot notation
+  (`Validator.messageTemplates.countryIsUS = ...`).
+- `MetadataStore._resourceEntityTypeMap` / `_entityTypeResourceMap` — `exportMetadata`
+  writes the first straight into the metadata JSON.
+- `MetadataStore._structuralTypeMap` — serialized via `core.objectMap` in `exportMetadata`.
+- `EntityAspect.originalValues`, `MappingContext.refMap` (returned to callers as
+  `data.retrievedEntities`), and every JSON fragment the predicate visitors build.
+
+The rule: **a `Map` for internal state, a plain object for anything a consumer touches or
+that gets `JSON.stringify`d.** `JSON.stringify(new Map())` is `{}`, which would fail
+silently.

@@ -417,6 +417,16 @@ function arrayEquals(a1: any[], a2: any[], equalsFn?: (x1: any, x2: any) => bool
 // end of array functions
 
 /** Returns an array for a source and a prop, and creates the prop if needed. */
+/** Returns the array stored under key, creating it if absent. Map counterpart of getArray. */
+function getMapArray<K, V>(map: Map<K, V[]>, key: K): V[] {
+    let arr = map.get(key);
+    if (!arr) {
+        arr = [];
+        map.set(key, arr);
+    }
+    return arr;
+}
+
 function getArray(source: Object, propName: string): any[] {
     const rec = source as Indexed;
     let arr = rec[propName];
@@ -723,6 +733,7 @@ export const core = {
     setAsDefault: setAsDefault,
     updateWithDefaults: updateWithDefaults,
     getArray: getArray,
+    getMapArray: getMapArray,
     toArray: toArray,
     arrayEquals: arrayEquals,
     arraySlice: arraySlice,

@@ -102,15 +102,15 @@ export class MetadataStore {
   /** @hidden @internal key is qualified structuraltype name - value is structuralType. ( structural = entityType or complexType). */
   _structuralTypeMap: IStructuralTypeMap;
   /** @hidden @internal key is shortName, value is qualified name - does not need to be serialized. **/
-  _shortNameMap: Record<string, string>;
+  _shortNameMap: Map<string, string>;
   /** @hidden @internal key is either short or qual type name - value is ctor; **/
-  _ctorRegistry: Record<string, CtorRecord>;
+  _ctorRegistry: Map<string, CtorRecord>;
   /** @hidden @internal key is entityTypeName; value is array of nav props **/
-  _incompleteTypeMap: Record<string, NavigationProperty[]>;
+  _incompleteTypeMap: Map<string, NavigationProperty[]>;
   /** @hidden @internal **/
-  _incompleteComplexTypeMap: Record<string, DataProperty[]>;
+  _incompleteComplexTypeMap: Map<string, DataProperty[]>;
   /** @hidden @internal { json: any, stype: StructuralType }[] **/
-  _deferredTypes: Record<string, any>;
+  _deferredTypes: Map<string, any[]>;
   /** @hidden @internal **/
   _id: number;
 
@@ -146,11 +146,11 @@ export class MetadataStore {
     this.dataServices = []; // array of dataServices;
     this._resourceEntityTypeMap = {}; // key is resource name - value is qualified entityType name
     this._structuralTypeMap = {}; // key is qualified structuraltype name - value is structuralType. ( structural = entityType or complexType).
-    this._shortNameMap = {}; // key is shortName, value is qualified name - does not need to be serialized.
-    this._ctorRegistry = {}; // key is either short or qual type name - value is ctor;
+    this._shortNameMap = new Map(); // key is shortName, value is qualified name - does not need to be serialized.
+    this._ctorRegistry = new Map(); // key is either short or qual type name - value is ctor;
 
-    this._incompleteTypeMap = {}; // key is entityTypeName; value is array of nav props
-    this._incompleteComplexTypeMap = {}; // key is complexTypeName; value is array of complexType props
+    this._incompleteTypeMap = new Map(); // key is entityTypeName; value is array of nav props
+    this._incompleteComplexTypeMap = new Map(); // key is complexTypeName; value is array of complexType props
     this._id = MetadataStore.__id++;
     this.metadataFetched = new BreezeEvent("metadataFetched", this);
 
@@ -244,7 +244,7 @@ export class MetadataStore {
       }
 
       this._structuralTypeMap[structuralType.name] = structuralType;
-      this._shortNameMap[structuralType.shortName] = structuralType.name;
+      this._shortNameMap.set(structuralType.shortName, structuralType.name);
     }
 
     structuralType.getProperties().forEach(p => {
@@ -314,7 +314,7 @@ export class MetadataStore {
   **/
   importMetadata(exportedMetadata: string | Object, allowMerge: boolean = false) {
     assertParam(allowMerge, "allowMerge").isOptional().isBoolean().check();
-    this._deferredTypes = {};
+    this._deferredTypes = new Map();
     // insure that we don't mutate incoming exportedMetadata ( if its an object)
     let metadataAsString = (typeof (exportedMetadata) === "string") ? exportedMetadata : JSON.stringify(exportedMetadata);
     const metadataJson = JSON.parse(metadataAsString);
@@ -351,7 +351,10 @@ export class MetadataStore {
       structuralTypeFromJson(this, stype, allowMerge);
     });
     core.extend(this._resourceEntityTypeMap, json.resourceEntityTypeMap);
-    core.extend(this._incompleteTypeMap, json.incompleteTypeMap);
+    // the serialized form is a plain object; the in-memory form is a Map
+    if (json.incompleteTypeMap) {
+      Object.entries(json.incompleteTypeMap).forEach(([k, v]) => this._incompleteTypeMap.set(k, v as NavigationProperty[]));
+    }
 
     return this;
   }
@@ -508,7 +511,7 @@ export class MetadataStore {
       aCtor._$typeName = typeName;
     }
 
-    this._ctorRegistry[typeName] = { ctor: aCtor, initFn: initFn, noTrackingFn: noTrackingFn };
+    this._ctorRegistry.set(typeName, { ctor: aCtor, initFn: initFn, noTrackingFn: noTrackingFn });
     if (qualifiedTypeName) {
       let stype = this._structuralTypeMap[qualifiedTypeName];
       stype && stype.getCtor(true); // this will complete the registration if avail now.
@@ -632,9 +635,7 @@ export class MetadataStore {
   }
 
   getIncompleteNavigationProperties() {
-    return core.objectMap(this._incompleteTypeMap, function (key, value) {
-      return value;
-    });
+    return Array.from(this._incompleteTypeMap.values());
   }
 
   /**
@@ -774,7 +775,7 @@ function structuralTypeFromJson(metadataStore: MetadataStore, json: any, allowMe
     if (baseEntityType) {
       completeStructuralTypeFromJson(metadataStore, json, stype);
     } else {
-      core.getArray(metadataStore._deferredTypes, json.baseTypeName).push({ json: json, stype: stype });
+      core.getMapArray(metadataStore._deferredTypes, json.baseTypeName).push({ json: json, stype: stype });
 
     }
   } else {
@@ -839,18 +840,18 @@ function completeStructuralTypeFromJson(metadataStore: MetadataStore, json: any,
   metadataStore.addEntityType(stype);
 
   let deferredTypes = metadataStore._deferredTypes;
-  let deferrals = deferredTypes[stype.name];
+  let deferrals = deferredTypes.get(stype.name);
   if (deferrals) {
     deferrals.forEach(function (d: any) {
       completeStructuralTypeFromJson(metadataStore, d.json, d.stype);
     });
-    delete deferredTypes[stype.name];
+    deferredTypes.delete(stype.name);
   }
 }
 
 function getQualifiedTypeName(metadataStore: MetadataStore, structTypeName: string, throwIfNotFound?: boolean) {
   if (isQualifiedTypeName(structTypeName)) return structTypeName;
-  let result = metadataStore._shortNameMap[structTypeName];
+  let result = metadataStore._shortNameMap.get(structTypeName);
   if (!result && throwIfNotFound) {
     throw new Error("Unable to locate 'entityTypeName' of: " + structTypeName);
   }
@@ -1265,7 +1266,7 @@ export class EntityType {
     if (this._ctor && !forceRefresh) return this._ctor;
 
     let ctorRegistry = this.metadataStore._ctorRegistry;
-    let r = ctorRegistry[this.name] || ctorRegistry[this.shortName] || {} as CtorRecord;
+    let r = ctorRegistry.get(this.name) || ctorRegistry.get(this.shortName) || {} as CtorRecord;
     let aCtor = r.ctor || this._ctor;
 
     let ctorType = aCtor && aCtor.prototype && (aCtor.prototype.entityType || aCtor.prototype.complexType);
@@ -1647,15 +1648,15 @@ export class EntityType {
     this.complexProperties.forEach(function (cp) {
       if (cp.complexType) return;
       if (!resolveCp(cp, metadataStore)) {
-        core.getArray(incompleteTypeMap, cp.complexTypeName).push(cp);
+        core.getMapArray(incompleteTypeMap, cp.complexTypeName).push(cp);
       }
     });
 
     if (this.isComplexType) {
-      (incompleteTypeMap[this.name] || []).forEach(function (cp: DataProperty) {
+      (incompleteTypeMap.get(this.name) || []).forEach(function (cp: DataProperty) {
         resolveCp(cp, metadataStore);
       });
-      delete incompleteTypeMap[this.name];
+      incompleteTypeMap.delete(this.name);
     }
   }
 
@@ -1669,11 +1670,11 @@ export class EntityType {
     });
     let incompleteTypeMap = metadataStore._incompleteTypeMap;
     // next resolve all navProp that point to this entityType.
-    (incompleteTypeMap[this.name] || []).forEach(function (np: NavigationProperty) {
+    (incompleteTypeMap.get(this.name) || []).forEach(function (np: NavigationProperty) {
       tryResolveNp(np, metadataStore);
     });
     // every navProp that pointed to this type should now be resolved
-    delete incompleteTypeMap[this.name];
+    incompleteTypeMap.delete(this.name);
   }
 }
 
@@ -1771,7 +1772,7 @@ function tryResolveNp(np: NavigationProperty, metadataStore: MetadataStore) {
     // don't bother removing - _updateNps will do it later.
     // __arrayRemoveItem(incompleteNps, np, false);
   } else {
-    let incompleteNps = core.getArray(metadataStore._incompleteTypeMap, np.entityTypeName);
+    let incompleteNps = core.getMapArray(metadataStore._incompleteTypeMap, np.entityTypeName);
     core.arrayAddItemUnique(incompleteNps, np);
   }
   return !!entityType;
