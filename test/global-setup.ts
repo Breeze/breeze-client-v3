@@ -31,7 +31,11 @@ const DEFAULT_SCRIPT = resolve(
 const SCRIPT = process.env.BREEZE_TEST_DB_SCRIPT ?? DEFAULT_SCRIPT;
 
 function sqlcmd(args: string[]): void {
-  execFileSync('sqlcmd', ['-S', SQL_INSTANCE, '-E', '-b', ...args], {
+  // -f 65001 is not optional. The script is UTF-8; without it sqlcmd decodes the file
+  // as the system ANSI codepage and every non-ASCII value is silently mangled
+  // ('San Cristobal' with an accented o becomes 'San CristÃ³bal'). Re-scripting a
+  // database loaded that way compounds the damage until values overflow their columns.
+  execFileSync('sqlcmd', ['-S', SQL_INSTANCE, '-E', '-b', '-f', '65001', ...args], {
     stdio: 'pipe',
     encoding: 'utf8',
   });
