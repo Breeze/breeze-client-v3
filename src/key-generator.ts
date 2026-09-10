@@ -5,12 +5,11 @@ import { config } from './config';
 interface IPropEntry {
   entityType: EntityType;
   propertyName: string;
-  keyMap: Record<string, any>;
+  /** Keys are generated id values as strings. A Set: it records which ids are taken. */
+  keyMap: Set<string>;
 }
 
-interface ITempIdMap {
-  [index: string]: IPropEntry;
-}
+type ITempIdMap = Map<string, IPropEntry>;
 
 /*
   @class KeyGenerator
@@ -24,7 +23,7 @@ export class KeyGenerator {
     // key is dataProperty.name + || + entityType.name, value is propEntry
     // propEntry = { entityType, propertyName, keyMap }
     // keyMap has key of the actual value ( as a string) and a value of null or the real id.
-    this._tempIdMap = {};
+    this._tempIdMap = new Map();
   }
 
 
@@ -62,7 +61,7 @@ export class KeyGenerator {
     let propEntry = this._getPropEntry(keyProp, true);
     let nextId: any;
     if (valueIfAvail != null) {
-      if (!propEntry.keyMap[valueIfAvail.toString()]) {
+      if (!propEntry.keyMap.has(valueIfAvail.toString())) {
         nextId = valueIfAvail;
       }
     }
@@ -73,7 +72,7 @@ export class KeyGenerator {
       if (getNextFn) {
         nextId = getNextFn(this);
         // need to watch out for collision with previously imported ids that might also get generated.
-        while (propEntry.keyMap[nextId.toString()] != null) {
+        while (propEntry.keyMap.has(nextId.toString())) {
           nextId = getNextFn(this);
         }
       } else {
@@ -81,22 +80,19 @@ export class KeyGenerator {
       }
     }
 
-    propEntry.keyMap[nextId.toString()] = true;
+    propEntry.keyMap.add(nextId.toString());
     return nextId;
   }
 
   getTempKeys() {
     let results: EntityKey[] = [];
     //noinspection JSHint
-    for (let key in this._tempIdMap) {
-      let propEntry = this._tempIdMap[key];
-      let entityType = propEntry.entityType;
-      // let propName = propEntry.propertyName;
-      //noinspection JSHint
-      for (let keyValue in propEntry.keyMap) {
+    this._tempIdMap.forEach(propEntry => {
+      const entityType = propEntry.entityType;
+      propEntry.keyMap.forEach(keyValue => {
         results.push(new EntityKey(entityType, [keyValue]));
-      }
-    }
+      });
+    });
     return results;
   }
 
@@ -111,17 +107,17 @@ export class KeyGenerator {
     if (!propEntry) {
       return false;
     }
-    return (propEntry.keyMap[entityKey.values[0].toString()] !== undefined);
+    return propEntry.keyMap.has(entityKey.values[0].toString());
   }
 
   /** @hidden @internal */
   private _getPropEntry(keyProp: DataProperty, createIfMissing = false) {
     let key = keyProp.name + ".." + keyProp.parentType.name;
-    let propEntry = this._tempIdMap[key];
+    let propEntry = this._tempIdMap.get(key);
     if (!propEntry) {
       if (createIfMissing) {
-        propEntry = { entityType: keyProp.parentType as EntityType, propertyName: keyProp.name, keyMap: {} };
-        this._tempIdMap[key] = propEntry;
+        propEntry = { entityType: keyProp.parentType as EntityType, propertyName: keyProp.name, keyMap: new Set() };
+        this._tempIdMap.set(key, propEntry);
       }
     }
     return propEntry;

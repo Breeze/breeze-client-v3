@@ -13,26 +13,26 @@ export interface INavTuple {
 // Represents entities not yet attached to navigationProperties. 
 export class UnattachedChildrenMap {
   // key is EntityKey.toString(), value is array of { navigationProperty, children }
-  map: { [index: string]: INavTuple[] } = {};
+  map = new Map<string, INavTuple[]>();
 
 
   addChild(parentEntityKey: EntityKey, navigationProperty: NavigationProperty, child: Entity) {
     let tuple = this.getTuple(parentEntityKey, navigationProperty);
     if (!tuple) {
       tuple = { navigationProperty: navigationProperty, children: [] };
-      core.getArray(this.map, parentEntityKey.toString()).push(tuple);
+      core.getMapArray(this.map, parentEntityKey.toString()).push(tuple);
     }
     tuple.children.push(child);
   }
 
   removeChildren(parentEntityKeyString: string, navigationProperty: NavigationProperty) {
-    let tuples = this.map[parentEntityKeyString];
+    let tuples = this.map.get(parentEntityKeyString);
     if (!tuples) return;
     core.arrayRemoveItem(tuples, (t: any) => {
       return t.navigationProperty === navigationProperty;
     });
     if (!tuples.length) {
-      delete this.map[parentEntityKeyString];
+      this.map.delete(parentEntityKeyString);
     }
   }
 
@@ -47,7 +47,7 @@ export class UnattachedChildrenMap {
 
   getTuples(parentEntityKey: EntityKey) {
     let allTuples: INavTuple[] = [];
-    let tuples = this.map[parentEntityKey.toString()];
+    let tuples = this.map.get(parentEntityKey.toString());
     if (tuples) {
       allTuples = allTuples.concat(tuples);
     }
@@ -55,7 +55,7 @@ export class UnattachedChildrenMap {
     while (entityType.baseEntityType) {
       entityType = entityType.baseEntityType;
       let baseKey = parentEntityKey.toString(entityType);
-      tuples = this.map[baseKey];
+      tuples = this.map.get(baseKey);
       if (tuples) {
         allTuples = allTuples.concat(tuples);
       }
@@ -64,7 +64,7 @@ export class UnattachedChildrenMap {
   }
 
   getTuplesByString(parentEntityKeyString: string) {
-    return this.map[parentEntityKeyString];
+    return this.map.get(parentEntityKeyString);
   }
 
 }
