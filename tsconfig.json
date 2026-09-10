@@ -1,0 +1,24 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022", "DOM"],
+    "declaration": true,
+    "sourceMap": true,
+    "removeComments": false,
+    "stripInternal": true,
+    "verbatimModuleSyntax": false,
+    // STAGED: 106 TS7053 index-signature errors across 20 files. The 2.x build hid
+    // these with suppressImplicitAnyIndexErrors, which TypeScript removed in 5.5, so
+    // they must be fixed properly. Re-enable per module during the modernization pass.
+    "noImplicitAny": false,
+    "strictNullChecks": false,
+    "experimentalDecorators": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "outDir": "dist"
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules", "dist", "deferred", "test"]
+}

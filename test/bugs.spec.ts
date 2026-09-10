@@ -1,0 +1,503 @@
+import { Entity, EntityQuery, EntityType, MetadataStore, Predicate, breeze, MergeStrategy, EntityState, QueryResult } from '../src/breeze';
+import { TestFns, skipTestIf } from './test-fns';
+
+TestFns.initServerEnv();
+
+beforeAll(async () => {
+  // MetadataStore.importMetadata(metadata);
+  await TestFns.initDefaultMetadataStore();
+
+});
+
+describe("Old Fixed Bugs", () => {
+
+  beforeEach(function () {
+
+  });
+
+  test("bug where we throw when add where clause to query with a `.fromEntityType` value", async () => {
+    const em = TestFns.newEntityManager();
+    const query = new EntityQuery("Customers");
+    await TestFns.initDefaultMetadataStore(); // needed because a local query need to have an ms
+    // Don't care about the query result.
+    // Just want the `fromEntityType` property to set as a side effect or execution
+    em.executeQueryLocally(query);
+    // now we can repro the bug reported in https://github.com/Breeze/breeze.js/issues/44
+    // This next statement throws the "undefined is not a function" exception in 1.5.1
+    const q2 = query.where('city', 'eq', 'London');
+
+    const qr = await em.executeQuery(q2);
+    expect(qr.results.length).toBeGreaterThan(0);
+    expect.assertions(1);
+  });
+
+  test("bug in local cache query for all Suppliers in region 'Papa'", async function () {
+    expect.hasAssertions();
+    const em = TestFns.newEntityManager(); // creates a new EntityManager configured with metadata
+    const query = new breeze.EntityQuery("Suppliers");
+    const data = await em.executeQuery(query);
+    
+    const count = data.results.length;
+    expect(count).toBeGreaterThan(0);
+
+    const predicate = breeze.Predicate.create(TestFns.wellKnownData.keyNames.supplier, '==', 0)
+      .or('companyName', '==', 'Papa');
+
+    const localQuery = breeze.EntityQuery
+      .from('Suppliers')
+      .where(predicate)
+      .toType('Supplier');
+
+    const suppliers = em.executeQueryLocally(localQuery);
+    // Defect #2486 Fails with "Invalid ISO8601 duration 'Papa'"
+    expect(suppliers.length).toBe(0);
+  
+  });
+
+  test("bug with expand not working with paging or inlinecount", async () => {
+
+    const em1 = TestFns.newEntityManager();
+    const predicate = Predicate.create(TestFns.wellKnownData.keyNames.order, "<", 10500);
+
+    const query = new EntityQuery()
+      .from("Orders")
+      .expand("orderDetails, orderDetails.product")
+      .where(predicate)
+      .inlineCount()
+      .orderBy("orderDate")
+      .take(2)
+      .skip(1)
+      .using(em1);
+    const qr1 = await query.execute();
+
+    expect(qr1.results.length).toBeGreaterThan(0);
+    expect(qr1.inlineCount).toBeGreaterThan(0);
+
+    // For ODATA this is a known bug: https://aspnetwebstack.codeplex.com/workitem/1037
+    // having to do with mixing expand and inlineCount
+    // it sounds like it might already be fixed in the next major release but not yet avail.
+    const localQuery = EntityQuery.from('OrderDetails');
+    const orderDetails = em1.executeQueryLocally(localQuery);
+    expect(orderDetails.length).toBeGreaterThan(0);
+
+    const localQuery2 = EntityQuery.from('Products');
+    const products = em1.executeQueryLocally(localQuery2);
+    expect(products.length).toBeGreaterThan(0);
+
+  });
+
+  test("bug with local cache query for all Suppliers in fax 'Papa'", async () => {
+    expect.hasAssertions();
+    const em1 = TestFns.newEntityManager();
+    const query = new breeze.EntityQuery("Suppliers");
+    const qr1 = await em1.executeQuery(query);
+    expect(qr1.results.length).toBeGreaterThan(0);
+    const predicate = Predicate.create(TestFns.wellKnownData.keyNames.supplier, '==', 0)
+      .or('fax', '==', 'Papa');
+    const localQuery = EntityQuery
+      .from('Suppliers')
+      .where(predicate)
+      .toType('Supplier');
+
+    const suppliers = em1.executeQueryLocally(localQuery);
+    // Defect #2486 Fails with "Invalid ISO8601 duration 'Papa'"
+    expect(suppliers.length).toBe(0);
+
+  });
+
+  test("bug with detached unresolved children", async () => {
+      expect.hasAssertions();
+      const em1 = TestFns.newEntityManager();
+      const metadataStore = em1.metadataStore;
+      const orderType = metadataStore.getEntityType("Order") as EntityType;
+
+      const query = EntityQuery.from("Customers")
+        .where("customerID", "==", "729de505-ea6d-4cdf-89f6-0360ad37bde7")
+        .expand("orders");
+      let newOrder = orderType.createEntity(); // call the factory function for the Customer type
+      em1.addEntity(newOrder);
+      newOrder.setProperty("customerID", "729de505-ea6d-4cdf-89f6-0360ad37bde7");
+
+      let items = em1.rejectChanges();
+
+      const qr1 = await em1.executeQuery(query);
+      let orders = qr1.results[0].getProperty("orders");
+      // the bug was that this included the previously detached order above. ( making a length of 11).
+      expect(orders.length).toBe(10);
+
+      newOrder = orderType.createEntity(); // call the factory function for the Customer type
+      em1.addEntity(newOrder);
+      newOrder.setProperty("customerID", "729de505-ea6d-4cdf-89f6-0360ad37bde7");
+
+      items = em1.rejectChanges();
+      const qr2 = await em1.executeQuery(query);
+      orders = qr2.results[0].getProperty("orders");
+      expect(orders.length).toBe(10);
+    });
+
+  test("bug with duplicates after relation query", async () => {
+    expect.hasAssertions();
+    const em1 = TestFns.newEntityManager();
+    em1.queryOptions = em1.queryOptions.using(MergeStrategy.OverwriteChanges);
+    const alfredsID = '785efa04-cbf2-4dd7-a7de-083ee17b6ad2';
+    const query = EntityQuery.from("Customers")
+      .where(TestFns.wellKnownData.keyNames.customer, "==", alfredsID);
+    // bug goes away if you add this.
+    // .expand("orders");
+
+    const qr1 = await query.using(em1).execute();
+    const customer = qr1.results[0];
+    const q2 = EntityQuery.from("Orders")
+      .where("customerID", "==", alfredsID)
+      .expand("customer"); // bug goes away if you remove this
+    await q2.using(em1).execute();
+
+    expect(em1.hasChanges()).toBe(false);
+    expect(em1.getChanges().length).toBe(0);
+    const details = customer.getProperty("orders");
+    const dups = TestFns.getDups(details);
+    expect(dups.length).toBe(0);
+  });
+
+  test("bug where we fill placeholder customer asynchronously", async () => {
+    expect.hasAssertions();
+    const em1 = TestFns.newEntityManager();
+    const custType = em1.metadataStore.getEntityType("Customer") as EntityType;
+    const custKeyName = TestFns.wellKnownData.keyNames.customer;
+    const customer = custType.createEntity();
+    customer.setProperty("companyName", "[don't know name yet]");
+    const alfredsID = '785efa04-cbf2-4dd7-a7de-083ee17b6ad2';
+    // TEST PASSES (NO DUPLICATE) IF SET ID HERE ... BEFORE ATTACH
+    // customer.CustomerID(testFns.wellKnownData.alfredsID); // 785efa04-cbf2-4dd7-a7de-083ee17b6ad2
+
+    em1.attachEntity(customer);
+
+    // TEST FAILS  (2 IN CACHE W/ SAME ID) ... CHANGING THE ID AFTER ATTACH
+    customer.setProperty(custKeyName, alfredsID); // 785efa04-cbf2-4dd7-a7de-083ee17b6ad2
+    const ek = customer.entityAspect.getKey();
+    const sameCustomer = em1.getEntityByKey(ek);
+    customer.entityAspect.setUnchanged();
+
+    // SHOULD BE THE SAME. EITHER WAY ITS AN ATTACHED UNCHANGED ENTITY
+    expect(customer.entityAspect.entityState.isUnchanged()).toBe(true);
+    expect(em1.getEntities().length).toBe(1);
+
+    // this refresh query will fill the customer values from remote storage
+    const refreshQuery = breeze.EntityQuery.fromEntities(customer);
+    const qr1 = await refreshQuery.using(em1).execute();
+    const results = qr1.results, count = results.length;
+    expect(count).toBe(1);
+    
+    const inCache = em1.getEntities();
+    if (inCache.length === 2) {
+      const c1 = inCache[0], c2 = inCache[1];
+      throw new Error("Two custs in cache with same ID");
+      // "Two custs in cache with same ID, ({0})-{1} and ({2})-{3}".format(// format is my extension to String
+      //   c1.getProperty(custKeyName), c1.getProperty("companyName"), c2.getProperty(custKeyName), c2.getProperty("companyName")));
+    }
+
+    // refresh query result is the same as the customer in cache" +
+    // whose updated name is " + customer.getProperty("companyName"));
+    // This test should succeed; it fails because of above bug!!!
+    expect(results[0]).toBe(customer);
+      
+  });
+
+  //Using EntityManager em1, query Entity A and it's nav property (R1) Entity B1.
+  //Using EntityManager em2, query A and change it's nav property to B2. Save the change.
+  //Using EntityManager em1, still holding A and B1, query A, including it's expanded nav property R1.
+  //In R1.subscribeChanges, the correct new value of B2 will exist as R1's value but it will have a status of "Detached".
+  test("bug with nav prop change and expand", async () => {
+    const em1 = TestFns.newEntityManager();
+    const em2 = TestFns.newEntityManager();
+    const p = Predicate.create("freight", ">", 100).and("customerID", "!=", null);
+    const query = new EntityQuery()
+      .from("Orders")
+      .where(p)
+      .orderBy("orderID")
+      .expand("customer")
+      .take(1);
+
+    let oldCust, newCust1a, newCust1b, order1, order1a, order1b;
+    const qr1 = await em1.executeQuery(query);
+
+    order1 = qr1.results[0];
+    oldCust = order1.getProperty("customer");
+    expect(oldCust).not.toBeNull();
+    const qr2 = await em2.executeQuery(EntityQuery.fromEntityKey(order1.entityAspect.getKey()));
+
+    order1a = qr2.results[0];
+    expect(order1.entityAspect.getKey()).toEqual(order1a.entityAspect.getKey());
+
+    const customerType = em2.metadataStore.getEntityType("Customer") as EntityType;
+    newCust1a = customerType.createEntity();
+    newCust1a.setProperty("companyName", "Test_compName");
+    order1a.setProperty("customer", newCust1a);
+
+    const sr = await em2.saveChanges();
+
+    em1.entityChanged.subscribe((args) => {
+      const entity = args.entity;
+      expect(entity).not.toBeNull();
+      expect(entity.entityAspect.entityState).not.toEqual(EntityState.Detached);
+    });
+
+    const qr3 = await em1.executeQuery(query);
+
+    order1b = qr3.results[0];
+    expect(order1b).toBe(order1);
+    newCust1b = order1b.getProperty("customer");
+    expect(newCust1a.entityAspect.getKey()).toEqual(newCust1b.entityAspect.getKey());
+    expect(newCust1b).not.toBeNull();
+    expect(newCust1b.entityAspect.entityState.isUnchanged()).toBe(true);
+  });
+
+  test("bug with import relationship resolution", async function () {
+    expect.hasAssertions();
+
+    const exportImportSample1 = require('./support/export-import-1.json');
+
+    const ds = new breeze.DataService({
+      serviceName: "none",
+      hasServerMetadata: false
+    });
+    const manager = new breeze.EntityManager({
+      dataService: ds
+    });
+    manager.importEntities(exportImportSample1);
+
+    const q2 = new breeze.EntityQuery("OrderHeaders")
+        .using(breeze.FetchStrategy.FromLocalCache);
+    
+    const data2 = await manager.executeQuery(q2);
+    const order = data2.results[0];
+    //uncomment line below and the relationship is resolved
+    //manager._linkRelatedEntities(order);
+    const orderShipments = order.getProperty("orderShipments");
+    expect(orderShipments.length).toBeGreaterThan(0);
+  });
+
+  
+  test("bug were detaching the parent modifies the in-cache children", async function () {
+    // Bug - D2460
+    expect.hasAssertions();
+    const em = TestFns.newEntityManager();
+    const q = EntityQuery.from("Employees").where("employeeID", "==", 1)
+        .expand("orders");
+    
+    const qr = await em.executeQuery(q);
+    const employee = qr.results[0];
+    employee.entityAspect.setDetached();
+    expect(em.hasChanges()).toBe(false);
+  });
+
+  test("bug where registerEntityTypeCtor causes error on importEntities1", function () {
+    // 4/25/13 - sbelini - this test should not fail - it's just to ensure the third parameter is causing the error
+    const em = TestFns.newEntityManager(MetadataStore.importMetadata(TestFns.sampleMetadata));
+    const customerKeyName = TestFns.wellKnownData.keyNames.customer;
+
+    em.metadataStore.registerEntityTypeCtor("Customer", Customer);
+
+    const m1 = em.createEmptyCopy();
+    
+    const cfg = {};
+    cfg[customerKeyName] = breeze.core.getUuid();
+    const customer = m1.createEntity("Customer", cfg);
+    const exported = m1.exportEntities([customer], { includeMetadata: false });
+    const m2 = em.createEmptyCopy();
+
+    m2.importEntities(exported);
+    expect(m2.getEntities().length).toBe(1);
+  });
+
+  test("bug with registerEntityTypeCtor with ES5 props and importEntities", function () {
+    // 4/25/13 - sbelini - this test should not fail - it's just to ensure the third parameter is causing the error
+    const em = TestFns.newEntityManager(MetadataStore.importMetadata(TestFns.sampleMetadata));
+    const customerKeyName = TestFns.wellKnownData.keyNames.customer;
+    const Customer = TestFns.getCustomerWithES5PropsCtor();
+    em.metadataStore.registerEntityTypeCtor("Customer", Customer);
+
+    const m1 = em.createEmptyCopy();
+    const cfg = {};
+    cfg[customerKeyName] = breeze.core.getUuid();
+    const customer = m1.createEntity("Customer", cfg);
+    const exported = m1.exportEntities([customer], { includeMetadata: false });
+    const m2 = em.createEmptyCopy();
+
+    m2.importEntities(exported);
+    expect(m2.getEntities().length).toBe(1);
+  });
+
+  test("bug with registerEntityTypeCtor causing error on importEntities2", function () {
+    // 4/25/13 - sbelini - this test is failing due to the third parameter in registerEntityTypeCtor
+    const em = TestFns.newEntityManager(MetadataStore.importMetadata(TestFns.sampleMetadata));
+    const customerKeyName = TestFns.wellKnownData.keyNames.customer;
+
+    em.metadataStore.registerEntityTypeCtor("Customer", null, function (entity: any) {
+      const a = 1;
+    });
+
+    const m1 = em.createEmptyCopy();
+    const customerType = m1.metadataStore.getEntityType("Customer");
+    const cfg = {};
+    cfg[customerKeyName] = breeze.core.getUuid();
+    const customer = m1.createEntity("Customer", cfg);
+    const exported = m1.exportEntities([customer]);
+    const m2 = em.createEmptyCopy();
+
+    m2.importEntities(exported);
+    expect(m2.getEntities().length).toBe(1);
+  });
+
+
+  // See https://github.com/Breeze/breeze-client/issues/83
+  test("bug updating keys with many-to-many no payload", async () => {
+    const em1 = TestFns.newEntityManager();
+
+    const employee = em1.createEntity('Employee', {
+      lastName: 'Doe',
+      firstName: 'John',
+      title: 'VP',
+      hireDate: new Date(1974,1,1),
+      reportsToEmployeeID: 4, // known existing value
+    }) as any;
+
+    const empter = em1.createEntity('EmployeeTerritory', {
+      employeeID: employee.employeeID,
+      territoryID: 3049 // known existing value
+    }) as any;
+
+    expect(employee.employeeID).toBeLessThan(0);
+
+    const sr = await em1.saveChanges();
+
+    expect(employee.employeeID).toBeGreaterThan(0);
+
+    expect(empter.employeeID).toEqual(employee.employeeID);
+
+  });
+
+  // Test for https://github.com/Breeze/breeze.server.net/issues/198
+  test("querying with guid array", async () => {
+    const em1 = TestFns.newEntityManager();
+    const query = new EntityQuery()
+      .from("Customers")
+      .where({ customerID: { "in": ["729DE505-EA6D-4CDF-89F6-0360AD37BDE7","CD98057F-B5C2-49F4-A235-05D155E636DF"]}});
+
+    const qr1 = await em1.executeQuery(query);
+    expect (qr1.results.length).toEqual(2);
+
+    const cust1 = qr1.results[0];
+    const id1 = cust1.getProperty("customerID");
+    expect(id1).toEqualCaseInsensitive("729DE505-EA6D-4CDF-89F6-0360AD37BDE7");
+
+  });
+
+  test("executeQuery returns before in-cache entities are all attached", async function () {
+    // unable to reproduce the behavior found in Angular application.
+    // maybe it has something do to with the app clearing entities?
+    expect.hasAssertions();
+    const em = TestFns.newEntityManager();
+    // lookup queries
+    const lq1 = EntityQuery.from("Regions").where("regionID", "lt", 100); 
+    const lq2 = EntityQuery.from("Categories"); 
+    const [lr1, lr2] = await Promise.all([em.executeQuery(lq1), em.executeQuery(lq2)]);
+    expect(lr1.results).toHaveLength(4);
+    expect(lr2.results).toHaveLength(8);
+
+    const q2 = EntityQuery.from("Employees").where("employeeID", "lt", 100)
+        .expand(["employeeTerritories.territory","manager"]);
+    const q3 = EntityQuery.from("Orders").expand(["orderDetails.product.supplier"]);
+    const q4 = EntityQuery.from("Customers").expand(["orders.orderDetails.product"]);
+
+    // const [qr2, qr3] = await Promise.all([em.executeQuery(q2), em.executeQuery(q3), em.executeQuery(q4)]);
+    const [qr4, qr3, qr2] = await Promise.all([em.executeQuery(q4), em.executeQuery(q3), em.executeQuery(q2)]);
+
+    expect(qr2.results).toHaveLength(9);
+
+    const empsWithTerr = qr2.results.filter((e: any) => e.employeeTerritories.length > 0);
+    expect(empsWithTerr.length).toBeGreaterThan(7);
+
+    for (const emp of empsWithTerr) {
+      expect(emp.employeeTerritories.length).toBeGreaterThan(0);
+      for (const etr of emp.employeeTerritories) {
+        const region = etr.territory.region;
+        expect(region).not.toBeNull();
+      }
+    }
+
+    expect(qr3.results.length).toBeGreaterThan(70);
+
+    for (const order of qr3.results) {
+      for (const det of order.orderDetails) {
+        expect(det.product).not.toBeNull();
+        if (det.product.categoryId) {
+          expect(det.product.category).not.toBeNull();
+        }
+      }
+    }
+  });
+
+  test.skip("executeQuery returns before in-cache entities are all attached - with separate EM to load lookups", async function () {
+
+    expect.hasAssertions();
+    // lookup entitymanager
+    const lem = TestFns.newEntityManager();
+    // lookup queries
+    const lq1 = EntityQuery.from("Regions").where("regionID", "lt", 100); 
+    const lq2 = EntityQuery.from("Categories"); 
+    const [lr1, lr2] = await Promise.all([lem.executeQuery(lq1), lem.executeQuery(lq2)]);
+    expect(lr1.results).toHaveLength(4);
+    expect(lr2.results).toHaveLength(8);
+
+    const em = TestFns.newEntityManager();
+
+    const q2 = EntityQuery.from("Employees").where("employeeID", "lt", 100)
+        .expand(["employeeTerritories.territory","manager"]);
+    const q3 = EntityQuery.from("Orders").expand(["orderDetails.product.supplier","orderDetails.product"]);
+
+    const [qr2, qr3] = await Promise.all([em.executeQuery(q2), em.executeQuery(q3)]);
+
+    expect(qr2.results).toHaveLength(9);
+    expect(qr3.results.length).toBeGreaterThan(70);
+
+    const empsWithTerr = qr2.results.filter((e: any) => e.employeeTerritories.length > 0);
+    expect(empsWithTerr.length).toBeGreaterThan(7);
+
+    for (const emp of empsWithTerr) {
+      expect(emp.employeeTerritories.length).toBeGreaterThan(0);
+      for (const etr of emp.employeeTerritories) {
+        const region = etr.territory.region;
+        expect(region).not.toBeNull();
+      }
+    }
+
+    for (const order of qr3.results) {
+      for (const det of order.orderDetails) {
+        expect(det.product).not.toBeNull();
+        if (det.product.categoryId) {
+          expect(det.product.category).not.toBeNull();
+        }
+      }
+    }
+  });
+
+  // const Customer = function () {
+  //   this.miscData = "asdf";
+  //   this.getNameLength = function () {
+  //     return (this.getProperty("companyName") || "").length;
+  //   };
+  // };
+
+  class Customer {
+    miscData: string;
+    constructor() {
+      this.miscData = "asdf";
+    }
+
+    getNameLength() {
+      return ((this as any).getProperty("companyName") || "").length;
+    }
+  }
+
+});

@@ -1,0 +1,46 @@
+{
+  "name": "breeze-client",
+  "version": "3.0.0",
+  "description": "Breeze data management for JavaScript clients",
+  "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Breeze/breeze-client-v3.git"
+  },
+  "homepage": "https://github.com/Breeze/breeze-client-v3#readme",
+  "bugs": { "url": "https://github.com/Breeze/breeze-client-v3/issues" },
+  "author": { "name": "IdeaBlade", "url": "https://www.ideablade.com/" },
+  "contributors": ["Jay Traband", "Steve Schmitt", "Marcel Good", "Ward Bell"],
+  "engines": { "node": ">=20" },
+  "//sideEffects": "MUST stay true. Modules brand prototypes with _$typeName, resolve BreezeEnum symbols, and bubble events at import time. Marking this false lets a bundler drop those and breaks serialization.",
+  "sideEffects": true,
+  "exports": {
+    ".": { "types": "./dist/breeze.d.ts", "default": "./dist/breeze.js" },
+    "./adapter-ajax-fetch": { "types": "./dist/adapter-ajax-fetch.d.ts", "default": "./dist/adapter-ajax-fetch.js" },
+    "./adapter-ajax-post": { "types": "./dist/adapter-ajax-post.d.ts", "default": "./dist/adapter-ajax-post.js" },
+    "./adapter-data-service-webapi": { "types": "./dist/adapter-data-service-webapi.d.ts", "default": "./dist/adapter-data-service-webapi.js" },
+    "./adapter-model-library-backing-store": { "types": "./dist/adapter-model-library-backing-store.d.ts", "default": "./dist/adapter-model-library-backing-store.js" },
+    "./adapter-uri-builder-json": { "types": "./dist/adapter-uri-builder-json.d.ts", "default": "./dist/adapter-uri-builder-json.js" },
+    "./mixin-get-entity-graph": { "types": "./dist/mixin-get-entity-graph.d.ts", "default": "./dist/mixin-get-entity-graph.js" },
+    "./mixin-save-queuing": { "types": "./dist/mixin-save-queuing.d.ts", "default": "./dist/mixin-save-queuing.js" },
+    "./package.json": "./package.json"
+  },
+  "files": ["dist", "README.md", "LICENSE"],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "clean": "rimraf dist",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "rimraf": "^6.0.1",
+    "typescript": "~5.8.0"
+  },
+  "keywords": [
+    "breeze", "breezejs", "spa", "data binding", "change tracking", "query",
+    "linq", "cache", "graph", "relational", "orm", "entity", "model",
+    "typescript", "esm"
+  ]
+}
