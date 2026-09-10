@@ -8,6 +8,8 @@ export default defineConfig({
     environment: 'node',
     include: ['test/**/*.spec.ts'],
     setupFiles: ['./test/setup.ts'],
+    // Rebuilds BreezeTestDb once per run. See test/global-setup.ts.
+    globalSetup: ['./test/global-setup.ts'],
     // The integration tier shares one database and one server. Until the suite
     // is split and each file resets its own state, it must stay serial.
     fileParallelism: false,

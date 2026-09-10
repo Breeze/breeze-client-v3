@@ -34,7 +34,8 @@ Companion repo: **`breeze-server-v3`** (the .NET server the integration tests ru
 
 ## Vitest port — DONE (node environment)
 
-`npm test` runs the suite. **621 passing, 5 failing, 7 skipped of 633.**
+`npm test` runs the suite. **622 passing, 4 failing, 7 skipped of 633 - and it is
+deterministic**: two consecutive runs produced an identical pass/fail list.
 
 That is parity with the 2.x Jest baseline of 623–624 of 636 — the totals differ because
 `odata-specific.spec.ts` and its 3 tests were dropped with OData.
@@ -90,9 +91,8 @@ wrapper can make the constructors callable again if that turns out to matter.
 
 ## Next steps, in order
 
-1. **Reset the database per run in the integration tier.** Re-apply
-   `tests/Databases/BreezeTestDb.sql` from the server repo; it is fast and proven. Until
-   this lands there is no stable pass/fail list to hold the rewrite to.
+1. Fix the last 4 failures - see "Remaining failures" above. Three are server-side data
+   gaps; one is a cross-file dependency in the tests.
 2. Add CORS to the test server, then switch Vitest to browser mode.
 3. Split the suite into unit and integration tiers.
 4. **Then** do the ajax → injectable-fetch refactor. It rewrites the request path that all
@@ -151,3 +151,24 @@ npm run build          # -> dist/
 
 Integration tests need the server from `breeze-server-v3` on `http://localhost:34377`;
 see that repo's `STATUS.md`.
+
+## Database reset
+
+`test/global-setup.ts` rebuilds `BreezeTestDb` once per run, before any test executes:
+it drops and recreates the database from `BreezeTestDb.sql` in the server repo (about
+1.6s), then POSTs to `/breeze/Inheritance/Seed`, because the inheritance tables carry no
+data in the script and the server otherwise only seeds them at startup.
+
+This is what makes the pass/fail list stable. Environment overrides:
+
+| variable | default |
+|---|---|
+| `BREEZE_TEST_SERVER` | `http://localhost:34377` |
+| `BREEZE_TEST_DB` | `BreezeTestDb` |
+| `BREEZE_SQL_INSTANCE` | `.` |
+| `BREEZE_TEST_DB_SCRIPT` | `../breeze-server-v3/tests/Databases/BreezeTestDb.sql` |
+| `BREEZE_SKIP_DB_RESET` | unset; set to `1` to skip |
+
+It runs in Node even when the tests themselves run in a browser, so it will keep working
+in browser mode. If the script is missing it warns and continues rather than failing, so
+a no-server unit run is unaffected.
