@@ -9,9 +9,9 @@
     "removeComments": false,
     "stripInternal": true,
     "verbatimModuleSyntax": false,
-    // STAGED: 106 TS7053 index-signature errors across 20 files. The 2.x build hid
-    // these with suppressImplicitAnyIndexErrors, which TypeScript removed in 5.5, so
-    // they must be fixed properly. Re-enable per module during the modernization pass.
+    // STAGED. The 2.x build hid these behind suppressImplicitAnyIndexErrors, which
+    // TypeScript removed in 5.5. Started at 105 errors across 19 files; core.ts is done,
+    // 82 remain. Flip to true once the rest are fixed - `npm run typecheck:strict` lists them.
     "noImplicitAny": false,
     "strictNullChecks": false,
     "experimentalDecorators": true,

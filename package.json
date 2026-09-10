@@ -70,6 +70,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
+    "typecheck:strict": "tsc -p tsconfig.strict.json --noEmit",
     "clean": "rimraf dist",
     "test": "vitest run",
     "test:browser": "vitest run --config vitest.browser.config.ts",

@@ -24,35 +24,42 @@ let isES5Supported: boolean = function () {
     }
 } ();
 
+/** An object being deliberately indexed by arbitrary string key.
+    The exported signatures below keep `Object` on purpose: narrowing them to this type
+    would reject the class instances callers pass, because class types have no index
+    signature. The cast is confined to the one line that needs it. */
+type Indexed = Record<string, any>;
+
+// NOTE: the `|| {}` on every Object.keys call below is load-bearing. These helpers are
+// called with null and undefined by design; the `for...in` loops they replaced treated
+// that as a no-op, whereas Object.keys(null) throws.
+
 // iterate over object
 function objectForEach(obj: Object, kvFn: (key: string, val: any) => any) {
-    for (let key in obj) {
-        if (hasOwnProperty(obj, key)) {
-            kvFn(key, obj[key]);
-        }
+    const rec = obj as Indexed;
+    for (const key of Object.keys(rec || {})) {
+        kvFn(key, rec[key]);
     }
 }
 
 function objectMap(obj: Object, kvFn?: (key: string, val: any) => any): any[] {
+    const rec = obj as Indexed;
     let results: any[] = [];
-    for (let key in obj) {
-        if (hasOwnProperty(obj, key)) {
-            let result = kvFn ? kvFn(key, obj[key]) : obj[key];
-            if (result !== undefined) {
-                results.push(result);
-            }
+    for (const key of Object.keys(rec || {})) {
+        let result = kvFn ? kvFn(key, rec[key]) : rec[key];
+        if (result !== undefined) {
+            results.push(result);
         }
     }
     return results;
 }
 
 function objectFirst(obj: Object, kvPredicate: (key: string, val: any) => boolean): { key: string, value: any } | null {
-    for (let key in obj) {
-        if (hasOwnProperty(obj, key)) {
-            let value = obj[key];
-            if (kvPredicate(key, value)) {
-                return { key: key, value: value };
-            }
+    const rec = obj as Indexed;
+    for (const key of Object.keys(rec || {})) {
+        let value = rec[key];
+        if (kvPredicate(key, value)) {
+            return { key: key, value: value };
         }
     }
     return null;
@@ -107,11 +114,10 @@ function pluck(propertyName: any): (obj: Object) => any {
 
 /** Return an array of property values from source */
 function getOwnPropertyValues(source: Object): any[] {
+    const rec = source as Indexed;
     let result: any[] = [];
-    for (let name in source) {
-        if (hasOwnProperty(source, name)) {
-            result.push(source[name]);
-        }
+    for (const name of Object.keys(rec || {})) {
+        result.push(rec[name]);
     }
     return result;
 }
@@ -119,15 +125,14 @@ function getOwnPropertyValues(source: Object): any[] {
 /** Copy properties from source to target. Returns target. */
 function extend(target: Object, source: Object, propNames?: string[]): Object {
     if (!source) return target;
+    const tgt = target as Indexed, src = source as Indexed;
     if (propNames) {
         propNames.forEach(function (propName) {
-            target[propName] = source[propName];
+            tgt[propName] = src[propName];
         });
     } else {
-        for (let propName in source) {
-            if (hasOwnProperty(source, propName)) {
-                target[propName] = source[propName];
-            }
+        for (const propName of Object.keys(src || {})) {
+            tgt[propName] = src[propName];
         }
     }
     return target;
@@ -135,9 +140,10 @@ function extend(target: Object, source: Object, propNames?: string[]): Object {
 
 /** Copy properties from defaults iff undefined on target.  Returns target. */
 function updateWithDefaults(target: Object, defaults: Object): any {
-    for (let name in defaults) {
-        if (target[name] === undefined) {
-            target[name] = defaults[name];
+    const tgt = target as Indexed, def = defaults as Indexed;
+    for (const name of Object.keys(def || {})) {
+        if (tgt[name] === undefined) {
+            tgt[name] = def[name];
         }
     }
     return target;
@@ -174,13 +180,14 @@ function setAsDefault(target: Object, ctor: { new (...args: any[]): any, default
 */
 function toJson(source: Object, template: Object, target: Object = {}): Object {
 
-    for (let key in template) {
+    const src = source as Indexed, tmpl = template as Indexed, tgt = target as Indexed;
+    for (const key of Object.keys(tmpl || {})) {
         let aliases = key.split(",");
-        let defaultValue = template[key];
+        let defaultValue = tmpl[key];
         // using some as a forEach with a 'break'
         aliases.some(function (propName) {
             if (!(propName in source)) return false;
-            let value = source[propName];
+            let value = src[propName];
             // there is a functional property defined with this alias ( not what we want to replace).
             if (typeof value === 'function') return false;
             // '==' is deliberate here - idea is that null or undefined values will never get serialized
@@ -196,7 +203,7 @@ function toJson(source: Object, template: Object, target: Object = {}): Object {
                 }
             }
             if (value === undefined) return true;
-            target[aliases[0]] = value;
+            tgt[aliases[0]] = value;
             return true;
         });
     }
@@ -250,11 +257,11 @@ function toJSONSafe(obj: any, replacer?: (prop: string, value: any) => any): any
 
 /** Resolves the values of a list of properties by checking each property in multiple sources until a value is found. */
 function resolveProperties(sources: Object[], propertyNames: string[]): any {
-    let r = {};
+    let r: Indexed = {};
     let length = sources.length;
     propertyNames.forEach(function (pn) {
         for (let i = 0; i < length; i++) {
-            let src = sources[i];
+            let src = sources[i] as Indexed;
             if (src) {
                 let val = src[pn];
                 if (val !== undefined) {
@@ -411,10 +418,11 @@ function arrayEquals(a1: any[], a2: any[], equalsFn?: (x1: any, x2: any) => bool
 
 /** Returns an array for a source and a prop, and creates the prop if needed. */
 function getArray(source: Object, propName: string): any[] {
-    let arr = source[propName];
+    const rec = source as Indexed;
+    let arr = rec[propName];
     if (!arr) {
         arr = [];
-        source[propName] = arr;
+        rec[propName] = arr;
     }
     return arr;
 }
@@ -472,18 +480,19 @@ function using(obj: Object, property: string, tempValue: any, fn: () => any) {
     if (!obj) {
         return fn();
     }
-    let originalValue = obj[property];
+    const rec = obj as Indexed;
+    let originalValue = rec[property];
     if (tempValue === originalValue) {
         return fn();
     }
-    obj[property] = tempValue;
+    rec[property] = tempValue;
     try {
         return fn();
     } finally {
         if (originalValue === undefined) {
-            delete obj[property];
+            delete rec[property];
         } else {
-            obj[property] = originalValue;
+            rec[property] = originalValue;
         }
     }
 }
