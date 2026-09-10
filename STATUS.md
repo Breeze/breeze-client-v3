@@ -91,8 +91,11 @@ wrapper can make the constructors callable again if that turns out to matter.
 
 ## Next steps, in order
 
-1. Fix the last 4 failures - see "Remaining failures" above. Three are server-side data
-   gaps; one is a cross-file dependency in the tests.
+1. Fix the last 4 failures. One is a genuine data gap (`UnusualDate.DateOnly`/`TimeOnly`
+   were never populated). The other three are cross-file dependencies: they assert on rows
+   that exist only because *another* spec file created them — employees with a null
+   birthDate, orders with a null customerID, and an exact employee count. Each needs to
+   create the data it asserts on.
 2. Add CORS to the test server, then switch Vitest to browser mode.
 3. Split the suite into unit and integration tiers.
 4. Retire the `AjaxAdapter` class and the `"ajax"` registry slot in favour of `BreezeFetch`
