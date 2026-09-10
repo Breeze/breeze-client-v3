@@ -13,8 +13,8 @@ Companion repo: **`breeze-server-v3`** (the .NET server the integration tests ru
 | Output | **ESM only**, one package, subpath `exports`. No CJS, no UMD, no dist-tags |
 | Removed | **Knockout, jQuery, AngularJS, OData** — including CSDL/EDMX metadata parsing |
 | Angular | deferred to its own package later; the adapter is parked in `deferred/` |
-| Ajax layer | `AjaxAdapter` class + registry slot to be replaced by an injectable `(input, init?) => Promise<Response>` defaulting to `globalThis.fetch` — **not done yet, see below** |
-| Config API | new typed setup + `@deprecated` shim so 2.x startup code still runs — **not done yet** |
+| Ajax layer | `AjaxAdapter` class + registry slot replaced by an injectable `BreezeFetch` — **transport injection done**; retiring the class and registry slot still to do |
+| Config API | `configureBreeze` **done**; the string-based API still works, not yet marked `@deprecated` |
 | Tests | full rewrite onto **Vitest**, eventually **browser mode**; split into unit (no server) and integration (server-backed) |
 
 ## Done
@@ -95,10 +95,11 @@ wrapper can make the constructors callable again if that turns out to matter.
    gaps; one is a cross-file dependency in the tests.
 2. Add CORS to the test server, then switch Vitest to browser mode.
 3. Split the suite into unit and integration tiers.
-4. **Then** do the ajax → injectable-fetch refactor. It rewrites the request path that all
-   27 server-backed spec files exercise, so it must not happen before there is a working
-   suite to verify it.
-5. Then the `configureBreeze` typed config API + deprecated shim.
+4. Retire the `AjaxAdapter` class and the `"ajax"` registry slot in favour of `BreezeFetch`
+   alone, and replace the callback-shaped `AjaxConfig` with a promise. This rewrites the
+   request path all 27 server-backed spec files exercise.
+5. Mark the string-based config API `@deprecated`, and make adapter registration explicit
+   so that importing a module no longer registers it.
 6. Then the module-by-module TypeScript modernization (see Known issues).
 7. Regroup `src/` by concern (`core/`, `metadata/`, `entity/`, `query/`, `manager/`,
    `validation/`, `config/`, `adapters/`, `mixins/`). Deliberately deferred — moving 42

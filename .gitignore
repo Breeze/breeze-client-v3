@@ -7,3 +7,5 @@ coverage/
 # test run logs
 vitest-run*.txt
 vq.txt
+vc.txt
+vr.txt
