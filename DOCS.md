@@ -131,7 +131,7 @@ signature that mentions a type which is neither exported nor listed in
 
 ## Troubleshooting
 
-**`Cannot find module '../api/typedoc-sidebar.json'`**
+**The site fails to start with an error about `typedoc-sidebar.json`**
 You ran `vitepress dev docs` (or `build`) directly, before TypeDoc had generated the API
 reference. Use the `npm run docs:*` scripts, or run `npm run docs:api` once first.
 
