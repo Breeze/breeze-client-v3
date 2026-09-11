@@ -1,7 +1,7 @@
 ﻿import { core } from './core';
 import { config } from './config';
 import { EntityQuery } from './entity-query';
-import { DataServiceAdapter, AjaxAdapter, ChangeRequestInterceptorCtor, ChangeRequestInterceptor } from './interface-registry';
+import { DataServiceAdapter, AjaxAdapter, AjaxConfig, ChangeRequestInterceptorCtor, ChangeRequestInterceptor } from './interface-registry';
 import { Entity } from './entity-aspect';
 import { MappingContext } from './mapping-context';
 import { DataService, JsonResultsAdapter } from './data-service';
@@ -37,83 +37,90 @@ export abstract class AbstractDataServiceAdapter implements DataServiceAdapter {
     throw new Error("Unable to find ajax adapter for dataservice adapter '" + (this.name || '') + "'.");
   }
 
-  fetchMetadata(metadataStore: MetadataStore, dataService: DataService) {
-    let serviceName = dataService.serviceName;
-    let url = dataService.qualifyUrl("Metadata");
-
-    let promise = new Promise((resolve, reject) => {
-
+  /**
+   * Promise wrapper over the callback-shaped AjaxAdapter contract.
+   *
+   * This is the only place in the class that deals in success/error callbacks; every
+   * caller above works with promises. When AjaxAdapter is eventually replaced by a
+   * plain BreezeFetch, this method is the single seam that changes.
+   */
+  protected _ajax(
+      config: Omit<AjaxConfig, 'success' | 'error'>,
+      errorMessagePrefix?: string,
+      prepareResponse?: (httpResponse: HttpResponse) => void): Promise<HttpResponse> {
+    return new Promise<HttpResponse>((resolve, reject) => {
       this.ajaxImpl.ajax({
-        type: "GET",
-        url: url,
-        dataType: 'json',
+        ...config,
         success: (httpResponse: HttpResponse) => {
-
-          // might have been fetched by another query
-          if (metadataStore.hasMetadataFor(serviceName)) {
-            return resolve("already fetched");
-          }
-          let data = httpResponse.data;
-          let metadata: any;
-          try {
-            metadata = typeof (data) === "string" ? JSON.parse(data) : data;
-            metadataStore.importMetadata(metadata);
-          } catch (e) {
-            let errMsg = "Unable to either parse or import metadata: " + e.message;
-            handleHttpError(reject, httpResponse, "Metadata query failed for: " + url + ". " + errMsg);
-          }
-
-          // import may have brought in the service.
-          if (!metadataStore.hasMetadataFor(serviceName)) {
-            metadataStore.addDataService(dataService);
-          }
-
-          resolve(metadata);
-
+          prepareResponse && prepareResponse(httpResponse);
+          resolve(httpResponse);
         },
         error: (httpResponse: HttpResponse) => {
-          handleHttpError(reject, httpResponse, "Metadata query failed for: " + url);
-        }
-      });
+          // must run before makeHttpError: createError reads httpResponse.saveContext
+          // to attach per-entity validation errors.
+          prepareResponse && prepareResponse(httpResponse);
+          reject(makeHttpError(httpResponse, errorMessagePrefix));
+        },
+      } as AjaxConfig);
     });
-    return promise;
+  }
+
+  async fetchMetadata(metadataStore: MetadataStore, dataService: DataService) {
+    const serviceName = dataService.serviceName;
+    const url = dataService.qualifyUrl("Metadata");
+
+    const httpResponse = await this._ajax(
+      { type: "GET", url: url, dataType: 'json' },
+      "Metadata query failed for: " + url);
+
+    // might have been fetched by another query
+    if (metadataStore.hasMetadataFor(serviceName)) {
+      return "already fetched";
+    }
+
+    const data = httpResponse.data;
+    let metadata: any;
+    try {
+      metadata = typeof (data) === "string" ? JSON.parse(data) : data;
+      metadataStore.importMetadata(metadata);
+    } catch (e) {
+      const errMsg = "Unable to either parse or import metadata: " + (e as Error).message;
+      throw makeHttpError(httpResponse, "Metadata query failed for: " + url + ". " + errMsg);
+    }
+
+    // import may have brought in the service.
+    if (!metadataStore.hasMetadataFor(serviceName)) {
+      metadataStore.addDataService(dataService);
+    }
+
+    return metadata;
   }
 
   /** Execute the query in the mappingContext using the ajaxImpl. */
-  executeQuery(mappingContext: MappingContext) {
+  async executeQuery(mappingContext: MappingContext): Promise<QueryResult> {
     mappingContext.adapter = this;
 
     const usePost = (mappingContext.query as EntityQuery).usePostEnabled;
     const params = usePost ? this._makeQueryPostParams(mappingContext) : this._makeQueryGetParams(mappingContext) as any;
 
-    let promise = new Promise<QueryResult>((resolve, reject) => {
-      params.success = function (httpResponse: HttpResponse) {
-        let data = httpResponse.data;
-        try {
-          let rData: QueryResult;
-          let results = data && (data.results || data.Results);
-          if (results) {
-            rData = { results: results, inlineCount: data.inlineCount || data.InlineCount, 
-              httpResponse: httpResponse, query: mappingContext.query };
-          } else {
-            rData = { results: data, httpResponse: httpResponse, query: mappingContext.query };
-          }
+    const httpResponse = await this._ajax(params);
 
-          resolve(rData);
-        } catch (e) {
-          if (e instanceof Error) {
-            reject(e);
-          } else {
-            handleHttpError(reject, httpResponse);
-          }
-        }
-      };
-      params.error = function (httpResponse: HttpResponse) {
-        handleHttpError(reject, httpResponse);
-      };
-      this.ajaxImpl.ajax(params);
-    });
-    return promise;
+    const data = httpResponse.data;
+    try {
+      const results = data && (data.results || data.Results);
+      if (results) {
+        return {
+          results: results,
+          inlineCount: data.inlineCount || data.InlineCount,
+          httpResponse: httpResponse,
+          query: mappingContext.query
+        } as QueryResult;
+      }
+      return { results: data, httpResponse: httpResponse, query: mappingContext.query } as QueryResult;
+    } catch (e) {
+      if (e instanceof Error) { throw e; }
+      throw makeHttpError(httpResponse);
+    }
   }
 
   /** Set up ajax parameters for query GET.  This puts the query into the request querystring, in whatever syntax the UriBuilder produces. */
@@ -159,39 +166,34 @@ export abstract class AbstractDataServiceAdapter implements DataServiceAdapter {
     return params;
   }
 
-  saveChanges(saveContext: SaveContext, saveBundle: SaveBundle) {
+  async saveChanges(saveContext: SaveContext, saveBundle: SaveBundle): Promise<SaveResult> {
     let adapter = saveContext.adapter = this;
 
     let saveBundleSer = adapter._prepareSaveBundle(saveContext, saveBundle);
     let bundle = JSON.stringify(saveBundleSer);
 
-    let url = saveContext.dataService.qualifyUrl(saveContext.resourceName);
-    let promise = new Promise<SaveResult>((resolve, reject) => {
-      this.ajaxImpl.ajax({
+    const url = saveContext.dataService.qualifyUrl(saveContext.resourceName);
+
+    // saveContext must be on the response before any error is built from it
+    const httpResponse = await this._ajax(
+      {
         type: "POST",
         url: url,
         dataType: 'json',
         contentType: "application/json",
         data: bundle,
-        success: function (httpResponse: HttpResponse) {
-          httpResponse.saveContext = saveContext;
-          let data = httpResponse.data;
-          if (data.Errors || data.errors) {
-            handleHttpError(reject, httpResponse);
-          } else {
-            let saveResult = adapter._prepareSaveResult(saveContext, data);
-            saveResult.httpResponse = httpResponse;
-            resolve(saveResult);
-          }
-        },
-        error: function (httpResponse: HttpResponse) {
-          httpResponse.saveContext = saveContext;
-          handleHttpError(reject, httpResponse);
-        }
-      });
-    });
+      },
+      undefined,
+      (r) => { r.saveContext = saveContext; });
 
-    return promise;
+    const data = httpResponse.data;
+    if (data.Errors || data.errors) {
+      throw makeHttpError(httpResponse);
+    }
+
+    const saveResult = adapter._prepareSaveResult(saveContext, data);
+    saveResult.httpResponse = httpResponse;
+    return saveResult;
   }
 
   /** Abstract method that needs to be overwritten in any concrete DataServiceAdapter subclass. 
@@ -280,13 +282,19 @@ export abstract class AbstractDataServiceAdapter implements DataServiceAdapter {
   });
 }
 
-function handleHttpError(reject: (reason?: any) => void, httpResponse: HttpResponse, messagePrefix?: string) {
+/** Builds the Error for a failed http response. */
+function makeHttpError(httpResponse: HttpResponse, messagePrefix?: string): ServerError {
   let err = createError(httpResponse);
   AbstractDataServiceAdapter._catchNoConnectionError(err);
   if (messagePrefix) {
     err.message = messagePrefix + "; " + err.message;
   }
-  reject(err);
+  return err;
+}
+
+/** @deprecated Use makeHttpError and throw/reject at the call site. */
+function handleHttpError(reject: (reason?: any) => void, httpResponse: HttpResponse, messagePrefix?: string) {
+  reject(makeHttpError(httpResponse, messagePrefix));
 }
 
 function createError(httpResponse: HttpResponse) {

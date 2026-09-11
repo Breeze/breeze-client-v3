@@ -208,3 +208,38 @@ Both times this bit, the cause was the same shape: **the object-based helper tol
 
 When converting one of these, check whether the call site can pass `undefined` — the old
 code very often relied on it silently.
+
+## The request path is promise-based
+
+`AbstractDataServiceAdapter`'s three entry points — `fetchMetadata`, `executeQuery` and
+`saveChanges` — were each a `new Promise((resolve, reject) => ...)` wrapped around an
+`ajaxImpl.ajax({ ..., success, error })` call, with error handling duplicated in six
+callbacks. They are now `async` methods with linear bodies.
+
+All the callback plumbing collapsed into **one** method:
+
+```ts
+protected _ajax(config, errorMessagePrefix?, prepareResponse?): Promise<HttpResponse>
+```
+
+This is deliberately the single seam. When `AjaxAdapter` is eventually replaced by a plain
+`BreezeFetch`, `_ajax` is the only method that has to change — the three callers already
+speak promises.
+
+`handleHttpError(reject, response, prefix)` split into `makeHttpError(response, prefix)`,
+which *builds* the error, plus a thin deprecated `handleHttpError` that rejects with it.
+Separating construction from rejection is what let the callers use `throw`.
+
+### Two things this exposed
+
+**`saveContext` must be attached before the error is built.** `createError` reads
+`httpResponse.saveContext` to attach per-entity validation errors. The first version of
+this refactor set it *after* building the error and broke two save-error tests — hence
+the `prepareResponse` hook, which runs on both the success and error paths before any
+error is constructed.
+
+**A latent bug in `fetchMetadata`.** Its old catch block called `handleHttpError(reject,
+...)` and then *carried on* to `metadataStore.addDataService(dataService)`. The promise
+was already rejected, so the only effect was registering a data service whose metadata had
+just failed to import. The `async` version throws, so that line no longer runs. This is a
+behaviour change, and an intended one.
