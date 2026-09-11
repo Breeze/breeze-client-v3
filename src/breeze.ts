@@ -42,9 +42,6 @@ import { makeRelationArray, makePrimitiveArray, makeComplexArray } from './array
 import type { RelationArray } from './relation-array.js';
 import type { ArrayChangedArgs } from './observable-array.js';
 
-// Fills the fallback table, so that Breeze works with no adapter registration. It registers
-// nothing itself: see default-adapters.ts.
-import './default-adapters.js';
 export { BreezeConfig };
 export type { ComplexArray, RelationArray };
 
@@ -228,6 +225,9 @@ declare var window: any;
 /** @hidden @internal */
 declare var global: any;
 
+// The 2.x global. Unbundled, this always runs. Under "sideEffects": false a bundler keeps it only
+// when the bundle uses the `breeze` object above - which holds every class, so keeping it for
+// every bundle would defeat tree-shaking. See CHANGES-DEV.md.
 /** @hidden @internal */
 let win: any;
 try {

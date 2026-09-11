@@ -1,4 +1,4 @@
-import { defineConfig } from 'vitest/config';
+import { configDefaults, defineConfig } from 'vitest/config';
 import { playwright } from '@vitest/browser-playwright';
 
 /**
@@ -20,6 +20,9 @@ export default defineConfig({
   test: {
     globals: true,
     include: ['test/**/*.spec.ts'],
+    // side-effects.spec.ts reads src/ off disk and parses it with the TypeScript API. That is
+    // a check on the source tree, not on runtime behaviour, and there is no fs in Chromium.
+    exclude: [...configDefaults.exclude, 'test/unit/side-effects.spec.ts'],
     setupFiles: ['./test/setup.ts', './test/integration-setup.ts'],
     globalSetup: ['./test/global-setup.ts'],
     fileParallelism: false,

@@ -1,13 +1,15 @@
-import { core } from './core.js';
-import { assertConfig } from './assert-param.js';
-import { config, InterfaceDef, BaseAdapter } from './config.js';
-import type { AdapterType } from './config.js';
+import type { BaseAdapter } from './config.js';
 import { MappingContext } from './mapping-context.js';
 import { EntityQuery } from './entity-query.js';
 import { MetadataStore } from './entity-metadata.js';
 import { JsonResultsAdapter, DataService } from './data-service.js';
 import { Entity } from './entity-aspect.js';
 import { SaveContext, SaveBundle, QueryResult, SaveResult, HttpResponse } from './entity-manager.js';
+
+// InterfaceRegistry - and config.interfaceRegistry and config.initializeAdapterInstances with it -
+// is defined in config.ts: every adapter lookup needs it, and a bundler may drop this module,
+// which holds only types. See "sideEffects" in CHANGES-DEV.md.
+export { InterfaceRegistry } from './config.js';
 
 /** Adapter names for the deprecated `config.initializeAdapterInstances`. Each is the name of a previously registered adapter. */
 export interface InterfaceRegistryConfig {
@@ -20,64 +22,6 @@ export interface InterfaceRegistryConfig {
     /** e.g. `'json'` */
     uriBuilder?: string;
 }
-
-/** Registers adapters used by Breeze */
-export class InterfaceRegistry {
-    ajax = new InterfaceDef<AjaxAdapter>("ajax");
-    modelLibrary = new InterfaceDef<ModelLibraryAdapter>("modelLibrary");
-    dataService = new InterfaceDef<DataServiceAdapter>("dataService");
-    uriBuilder = new InterfaceDef<UriBuilderAdapter>("uriBuilder");
-}
-
-// This module describes the interfaceRegistry by extending config
-/** @hidden @internal */
-declare module "./config.js" {
-    interface BreezeConfig {
-        /**
-        Initializes a collection of adapter implementations and makes each one the default for its corresponding interface.
-        @deprecated Use `configureBreeze({ ... })` instead. Still works; not scheduled for removal.
-        @param irConfig - The name of a previously registered adapter for each interface to initialize,
-        e.g. `{ ajax: 'fetch', dataService: 'webApi' }`. Interfaces not named are left as they are.
-        **/
-        initializeAdapterInstances(irConfig: InterfaceRegistryConfig): void;
-
-        // strongly typed version
-        interfaceRegistry: InterfaceRegistry;
-    }
-}
-
-config.interfaceRegistry = new InterfaceRegistry();
-config._interfaceRegistry = config.interfaceRegistry;
-config.interfaceRegistry.modelLibrary.getDefaultInstance = function() {
-    // Falls back to the default model library (backingStore) when none is registered.
-    const instance = this.defaultInstance || config.getAdapterInstance<ModelLibraryAdapter>("modelLibrary");
-    if (!instance) {
-        throw new Error("Unable to locate the default implementation of the '" + this.name +
-            "' interface. Register one with configureBreeze({ modelLibrary: ... }).");
-    }
-    return instance;
-};
-
-// The data service adapter resolves the ajax adapter when it initializes, so ajax has to
-// come first. Same order as configureBreeze.
-const initOrder: AdapterType[] = ['modelLibrary', 'uriBuilder', 'ajax', 'dataService'];
-
-/** @deprecated Use `configureBreeze({ ... })` instead. Still works; not scheduled for removal. */
-config.initializeAdapterInstances = function (irConfig: InterfaceRegistryConfig) {
-    // Validate only - rejects unknown keys. This used to apply irConfig onto the global
-    // config and then walk every property of *config*, passing things like functionRegistry
-    // to initializeAdapterInstance as adapter names, so it always threw. Nothing tested it.
-    assertConfig(irConfig)
-        .whereParam("dataService").isOptional()
-        .whereParam("modelLibrary").isOptional()
-        .whereParam("ajax").isOptional()
-        .whereParam("uriBuilder").isOptional()
-        .applyAll(irConfig, true);
-    initOrder.forEach(name => {
-        const adapterName = irConfig[name];
-        if (adapterName) this.initializeAdapterInstance(name, adapterName, true);
-    });
-};
 
 /** DataServiceAdapter Ajax request configuration */
 export interface AjaxConfig {

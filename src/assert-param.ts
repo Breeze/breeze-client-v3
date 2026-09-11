@@ -67,6 +67,22 @@ export class Param {
         return this.isTypeOf('function');
     }
 
+    /** @hidden @internal */
+    isEntity(): Param {
+        return addContext(this, {
+            fn: isEntity,
+            msg: " must be an entity"
+        });
+    }
+
+    /** @hidden @internal */
+    isEntityProperty(): Param {
+        return addContext(this, {
+            fn: isEntityProperty,
+            msg: " must be either a DataProperty or a NavigationProperty"
+        });
+    }
+
     isNonEmptyString(): Param {
         return addContext(this, {
             fn: isNonEmptyString,
@@ -383,6 +399,18 @@ export let assertConfig = function (config: Object) {
     return new ConfigParam(config) as IConfigParam;
 };
 
+
+// Duck-typed, so this module needs nothing from the metadata classes. These used to be patched
+// onto Param.prototype by entity-metadata.ts at import time.
+function isEntity(context: any, v: any) {
+    if (v == null) return false;
+    return (v.entityType !== undefined);
+}
+
+function isEntityProperty(context: any, v: any) {
+    if (v == null) return false;
+    return (v.isDataProperty || v.isNavigationProperty);
+}
 
 // Param is exposed so that additional 'is' methods can be added to the prototype.
 (core as any).Param = Param;

@@ -55,25 +55,49 @@ they surface now and need real fixes. Re-enable per module as each is modernized
 modernization pass. Note the deliberate `p2?: Entity` (not `| null`) parameter convention
 documented in the old `BUILD.md` — that is intentional API design, keep it.
 
-## `sideEffects` must stay `true`
+## `sideEffects`
 
-This is the most dangerous thing in the codebase for an ESM rewrite. The obvious move for a
-modern library — `"sideEffects": false` — would silently break serialization.
+`package.json` names exactly one module:
 
-At import time the modules:
+```json
+"sideEffects": ["./dist/mixin-get-entity-graph.js"]
+```
 
-- brand `_$typeName` onto **25 class prototypes** (`DataService`, `EntityType`,
-  `EntityQuery`, `Validator`, …). `config.registerType` and import/export depend on it.
-- run ten `Error['x'] = <Enum>.resolveSymbols()` statements. The `Error['x'] =` prefix is
-  not meaningful — it is an idiom to stop Terser treating the call as dead code. See the
-  comment at `src/enum.ts:47`.
-- call `BreezeEvent.bubbleEvent(EntityManager.prototype)` and the same for
-  `MetadataStore.prototype`, and apply the entity-graph mixin.
-- (Adapters used to register themselves at import time as well. They no longer do:
-  registration is explicit, through `configureBreeze` or an adapter's `register()`.)
+Everything else is side-effect free, so a bundler may drop any module whose exports the
+application never uses. That was **not** true when the port started, and what made it true
+is worth knowing before adding any top-level code.
 
-The three remaining side effects keep the flag `true`. Replacing them with explicit
-initialization is on the list in STATUS.md.
+**Import-time code that is safe** acts only on the module's own declarations: branding
+`_$typeName` onto a class declared there, `resolveSymbols()` on its own enum,
+`BreezeEvent.bubbleEvent(EntityManager.prototype)`. Whoever needs the result uses one of
+that module's exports, which is exactly what keeps the module in the bundle. (The
+`Error['x'] =` prefix on the ten `resolveSymbols` calls is not meaningful - it is an idiom
+that stops Terser treating the call as dead code. See `src/enum.ts`.)
+
+**What is not safe** is a statement that reaches into *another* module, because the bundler
+may drop the module that holds it while keeping the one that needs the effect:
+
+- `config.interfaceRegistry` and `config.initializeAdapterInstances` were installed by
+  `interface-registry.ts`, which otherwise holds only types. Nothing imports a value from
+  it, so it was dropped - and every adapter lookup failed. Both now live in `config.ts`;
+  `interface-registry.ts` re-exports `InterfaceRegistry`, so importers see no change.
+- `default-adapters.ts` called `setDefaultAdapters(...)` at import time, and the barrel
+  imported it for that effect alone - the first thing a bundler removes. It now exports
+  `serverDefaultAdapters`, which `entity-manager.ts` installs, and the model-library
+  default moved to `entity-metadata.ts`, because a `MetadataStore` needs one even in a
+  bundle with no `EntityManager`. *Using a value* is what keeps a module.
+- `mixin-get-entity-graph.ts` patches `EntityManager.prototype` and exports nothing that
+  anyone imports. It is a genuine side effect, and the reason the array is not empty.
+
+Adapters no longer register themselves at import time either: registration is explicit,
+through `configureBreeze` or an adapter's `register()`.
+
+`test/unit/side-effects.spec.ts` holds the line. It parses every module in `src/` with the
+TypeScript API and fails on any top-level statement that acts on an import unless that
+statement is listed there with a reason, it checks `package.json` still lists only the
+mixin, and it loads each module first, on its own, to catch import cycles. New top-level
+code that touches an import means a new entry in that list - or, better, an explicit call
+from the code that needs it.
 
 ## Public API surface
 
