@@ -98,7 +98,8 @@ EntityQuery.from('Employees')
   .where('notes', 'contains', { value: 'firstName', isProperty: true });
 ```
 
-A value object with `isProperty: true` is a property. Any other value object is a literal.
+A value object with `isProperty: true` or `isLiteral: false` is a property. Any other value
+object, including one with `isLiteral: true`, is a literal.
 
 A value object can also fix the data type of a literal, as a `DataType` or its name:
 

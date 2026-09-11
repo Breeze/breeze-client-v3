@@ -103,3 +103,48 @@ describe("FilterQueryOp.IsTypeOf is gone", () => {
     });
   });
 });
+
+describe("a where-value object honours isLiteral", () => {
+  function managerWithEmployees() {
+    const em = newManager();
+    em.createEntity("Employee", { employeeID: 1, firstName: "Pat", lastName: "Pat" }, EntityState.Unchanged);
+    em.createEntity("Employee", { employeeID: 2, firstName: "lastName", lastName: "Smith" }, EntityState.Unchanged);
+    em.createEntity("Employee", { employeeID: 3, firstName: "Ann", lastName: "Lee" }, EntityState.Unchanged);
+    return em;
+  }
+  function ids(results: any[]) {
+    return results.map(e => e.getProperty("employeeID")).sort();
+  }
+
+  test("isLiteral: false forces a property expression", () => {
+    const em = managerWithEmployees();
+    const q = EntityQuery.from("Employees").where("firstName", "==", { value: "lastName", isLiteral: false });
+    expect(ids(em.executeQueryLocally(q))).toEqual([1]);
+  });
+
+  test("isLiteral: true forces a literal", () => {
+    const em = managerWithEmployees();
+    const q = EntityQuery.from("Employees").where("firstName", "==", { value: "lastName", isLiteral: true });
+    expect(ids(em.executeQueryLocally(q))).toEqual([2]);
+  });
+
+  test("the server receives a property for isLiteral: false and a literal for isLiteral: true", async () => {
+    const em = newManager();
+    const empType = em.metadataStore.getAsEntityType("Employee");
+    const sv = (name: string) => empType.clientPropertyPathToServer(name);
+    // the where clause as it goes over the wire, in the URL
+    const sentWhere = async (value: any) => {
+      calls.length = 0;
+      await em.executeQuery(EntityQuery.from("Employees").where("firstName", "==", value));
+      const url = decodeURIComponent(calls[0].url);
+      return JSON.parse(url.slice(url.indexOf("?") + 1)).where;
+    };
+
+    expect(await sentWhere({ value: "lastName", isLiteral: false }))
+      .toEqual({ [sv("firstName")]: { value: sv("lastName"), isProperty: true } });
+
+    const litJson = JSON.stringify(await sentWhere({ value: "lastName", isLiteral: true }));
+    expect(litJson).toContain('"lastName"');
+    expect(litJson).not.toContain("isProperty");
+  });
+});

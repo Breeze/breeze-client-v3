@@ -940,7 +940,9 @@ function createExpr(source: any, exprContext: ExpressionContext) {
       if (source.value === undefined) {
         throw new Error("Unable to resolve an expression for: " + source + " on entityType: " + (entityType ? entityType.name : 'null'));
       }
-      if (source.isProperty) {
+      // { value, isProperty: true } or { value, isLiteral: false } forces a property;
+      // anything else (including { value, isLiteral: true }) is a literal.
+      if (source.isProperty || source.isLiteral === false) {
         return new PropExpr(source.value);
       } else {
         // we want to insure that any LitExpr created this way is tagged with 'hasExplicitDataType: true'
