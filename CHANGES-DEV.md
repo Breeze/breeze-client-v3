@@ -312,6 +312,52 @@ on them.
 Verified: typecheck clean for both source and tests, unit 328, integration 450 + 7 skipped,
 browser 727 + 7 skipped.
 
+## The backing store
+
+`ModelLibraryBackingStoreAdapter` is how a plain object becomes a tracked entity: every mapped
+property becomes an accessor **on the prototype** - defined once per type - and the values live in
+a `_backingStore` object on the instance. A get reads the store; a set hands the property, the new
+value and an accessor for the old one to the entity's `_$interceptor`, which is where change
+tracking happens.
+
+**The file looked expensive and is not.** Measured, of the time spent setting a tracked property:
+
+| | share |
+|---|---|
+| change tracking in the interceptor | **96%** (validation alone ~63%) |
+| the plumbing in this adapter | ~2% |
+| the raw store write | ~1% |
+
+So the reason to touch it was that it was *complicated*, not slow. What went:
+
+- **The IE9 workarounds.** `_pendingBackingStores`, `getPendingBackingStore` - which did a linear
+  scan of a per-prototype array on every set while an instance's store was "pending" - and
+  `processPendingStores`, plus the two-phase dance they forced on `getBackingStore`. IE9 cannot
+  load an ES2022 package; this was about fifty lines and a branch on every get and set, kept for a
+  browser that cannot run the library.
+- **A concatenated array per instance.** Both passes over an entity's properties called
+  `getProperties()`, which returns `dataProperties.concat(navigationProperties)` - a fresh array
+  each time, twice per entity created. They now walk the two arrays directly.
+- **Two bound functions per access.** `wrapPropDescription` - the path for a custom constructor
+  that defines its own accessors - used `descr.get.bind(this)()`; it uses `.call` now.
+
+What deliberately stayed: the accessor closure allocated per set. `(property, newValue,
+rawAccessorFn)` is the interceptor contract and `MetadataStore.trackUnmappedType` lets an
+application supply its own interceptor, so the contract is worth more than the ~2%.
+
+**Measured effect:** creating a detached entity went from 1.70 to 1.45 µs (median of four
+alternating runs in fresh processes) - about 14% off that path, and about 2% of a full
+`em.createEntity`. Property get and set are unchanged within run-to-run noise. That is the
+expected result, not a disappointment: the file was never where the time went.
+
+**Where the time actually goes**, for anyone who comes looking: attaching an entity to an
+`EntityManager` costs ~11 µs against ~2 µs to build it, and `validateOnAttach` is 38% of that;
+96% of a property set is change tracking, 63% of it validation. The new
+[Performance](./docs/guide/performance.md) guide page documents this, with the two validation
+options as the levers that actually matter.
+
+Verified: typecheck clean, unit 328, integration 450 + 7 skipped, browser 727 + 7 skipped.
+
 ## Object-as-map to Map
 
 Where a structure is keyed by *data* rather than by fixed property names, it is now a real

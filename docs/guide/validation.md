@@ -69,6 +69,14 @@ em.setProperties({ validationOptions: valOpts });
 
 `valOpts.setAsDefault()` makes the same settings the default for managers created later.
 
+### What automatic validation costs
+
+Automatic validation is the largest single cost in Breeze's change tracking:
+`validateOnPropertyChange` is roughly 63% of setting a tracked property, and
+`validateOnAttach` roughly 38% of attaching an entity. That is a good trade for ordinary
+screens and the wrong one for a bulk loop — see [Performance](/guide/performance#automatic-validation)
+for the numbers and for how to turn it off for the duration.
+
 Breeze only validates automatically when the entity is in a manager. This matters for
 new entities. `createEntity` attaches immediately, so it validates before you have set any
 values:

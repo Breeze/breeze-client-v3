@@ -468,6 +468,14 @@ went from 63.4 ms to 6.4 ms and `forEach` from 14.4 ms to 6.6 ms, with creation 
 better too. A subclass and a `Proxy` were both measured and rejected - see *The observable arrays*
 in CHANGES-DEV.md for the numbers and for what moved off the array.
 
+## Backing store (done)
+
+The change-tracking adapter lost its IE9 machinery (pending backing stores and the linear scan
+that came with them), the per-instance `getProperties()` concat, and the bind-per-access in the
+custom-accessor path. Creating a detached entity went 1.70 -> 1.45 µs; everything else is flat,
+because the adapter is only ~2% of a property set. The measurements that say so, and the levers
+that do matter (validation), are in docs/guide/performance.md - a new page.
+
 ## Packaging check (done)
 
 Installing the packed tarball into a fresh Vite + TypeScript app found what the suite could

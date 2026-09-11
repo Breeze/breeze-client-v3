@@ -1,0 +1,98 @@
+# Performance
+
+Breeze does a lot per entity: change tracking, validation, relationship fixup, key management,
+events. Most applications never need to think about it. When you do — a grid over thousands of
+rows, a bulk import, a generated data set — it helps to know which parts are expensive, because
+the answers are not where people usually look.
+
+Everything below is measured, not estimated. See [How these were measured](#how-these-were-measured).
+
+## What an operation costs
+
+Per entity, using the Northwind `Order` type (14 data properties, 4 navigation properties):
+
+| operation | cost | made up of |
+|---|---|---|
+| `em.createEntity('Order')` | ~13 µs | building it ~2 µs, **attaching it to the manager ~11 µs** |
+| the same entity from a query | ~6 µs | queries skip validation and batch their events |
+| setting a tracked property | ~0.7 µs | **96% change tracking**, ~2% the backing store |
+| reading a tracked property | ~9 ns | an accessor over a plain object |
+
+Two things follow. Attaching to an `EntityManager` costs several times more than creating the
+object, and setting a property is almost entirely change tracking — the property accessors
+themselves barely register.
+
+## Automatic validation
+
+Validation is the largest single cost in change tracking:
+
+| option | default | share of the operation |
+|---|---|---|
+| `validateOnPropertyChange` | `true` | about **63%** of setting a tracked property |
+| `validateOnAttach` | `true` | about **38%** of attaching an entity |
+
+For ordinary screens that is a good trade and you should leave it alone. For a loop over
+thousands of entities it is the first thing to turn off — then validate deliberately at the end:
+
+```ts
+const saved = em.validationOptions;
+em.setProperties({
+  validationOptions: saved.using({ validateOnPropertyChange: false, validateOnAttach: false }),
+});
+try {
+  // ... build or edit many entities ...
+} finally {
+  em.setProperties({ validationOptions: saved });
+}
+em.getEntities().forEach(e => e.entityAspect.validateEntity());   // once, at the end
+```
+
+`validateOnSave` is different: it runs once per changed entity at save time, and turning it off
+means sending data the server may reject. Leave it on. See [Validation](/guide/validation).
+
+## Let queries build entities
+
+An entity that arrives from a query costs about half what the same entity costs through
+`createEntity`, because the loading path suppresses per-property events and does not validate
+(unless you turn on `validateOnQuery`). If you have a choice between querying data and
+constructing the equivalent entities in a loop, query.
+
+## Collections are created eagerly
+
+Every collection navigation property gets its array as soon as the entity is created — about
+**0.5 µs** each, including the array's `arrayChanged` event. A type with three collection
+navigations spends more than half its build time on arrays that the code may never touch. There
+is nothing to configure here; it is worth knowing when a wide type is created in bulk.
+
+## Reads are cheap
+
+Reading a tracked property goes through an accessor on the prototype to a plain backing object:
+about 9 ns, or 1.7× a direct property read. Iterating results, reading properties in a template
+or a grid cell renderer — none of that needs avoiding.
+
+The collections are real arrays, so `forEach`, `map`, indexing and spreading are the engine's
+native operations rather than anything Breeze interposes on.
+
+## Bundle size
+
+The package is side-effect free apart from the entity-graph mixin, so a bundler drops what you
+do not use. Bundled with Vite from the published package, unminified:
+
+| the app imports | bundle |
+|---|---|
+| `MetadataStore` only | 330 KB |
+| `EntityManager` | 455 KB |
+| `EntityManager` + `breeze-client/mixin-get-entity-graph` | 460 KB |
+
+Minified, a typical application — core plus the three standard adapters — is about 168 KB, or
+46 KB gzipped. Import the [adapter subpaths](/guide/configuration) you use rather than pulling
+in ones you do not.
+
+## How these were measured
+
+Node 24, 20,000 entities per run, each variant in its own process so that one shape does not
+pollute another's inline caches. Ratios are more durable than absolute figures: your engine,
+your metadata and the number of validators on your properties all move the numbers, and a
+micro-benchmark never matches an application exactly. Measure your own workload before
+optimising it — and be prepared for the answer to be somewhere other than where you expected,
+which is how this page came about.

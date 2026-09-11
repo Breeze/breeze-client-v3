@@ -24,6 +24,9 @@ A tracked change can:
 - validate the new value, if `validateOnPropertyChange` is on (it is by default)
 - raise `entityAspect.propertyChanged` and `EntityManager.entityChanged`
 
+Validation is much the most expensive of these — see
+[Performance](/guide/performance#automatic-validation) if you are setting properties in bulk.
+
 Breeze tracks only the properties in the metadata, and those include any unmapped
 properties you register. A property you add to an entity yourself (`order.note = 'x'`) is
 an ordinary JavaScript property, and Breeze ignores it. Changing an **unmapped** property
