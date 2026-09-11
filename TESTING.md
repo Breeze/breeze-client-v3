@@ -356,6 +356,13 @@ tables at startup — restart it, or `POST http://localhost:34377/breeze/Inherit
 The server predates the `BreezeTestCors` policy. Pull the latest `breeze-server-v3` and
 rebuild.
 
+**A tier printed nothing and exited 1**
+Read `%TEMP%reeze-vitest-<tier>.log`: the script keeps every tier's full output there.
+Vitest writes its warnings to stderr, and in Windows PowerShell a native command's stderr
+arrives as an error record; under `$ErrorActionPreference = 'Stop'` that used to abort the
+script mid-tier, which looked exactly like a failing tier. The script now merges stderr
+into the log and lets the exit code decide.
+
 **A test fails once and passes on re-run**
 The file order is shuffled on every run, so check whether it depends on the order: re-run
 with the seed printed at the top of the failing run (`--sequence.seed=<seed>`), then run
