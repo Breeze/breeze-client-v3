@@ -18,7 +18,9 @@ export interface DataServiceConfig {
   hasServerMetadata?: boolean;
   /** The {@link JsonResultsAdapter} used to process the results of any query against this DataService.  **/
   jsonResultsAdapter?: JsonResultsAdapter;
-  /** Whether to use JSONP when performing a 'GET' request against this service.  **/
+  /** Whether to use JSONP when performing a 'GET' request against this service.
+  @deprecated Has no effect: Breeze's transport has no JSONP support. Kept because it is part of
+  a serialized DataService. **/
   useJsonp?: boolean;
 }
 /**
@@ -52,7 +54,9 @@ export class DataService {
   declare hasServerMetadata: boolean;
   /** The {@link JsonResultsAdapter} used to process the results of any query against this DataService. __Read Only__ **/
   declare jsonResultsAdapter: JsonResultsAdapter;
-  /** Whether to use JSONP when performing a 'GET' request against this service. __Read Only__  **/
+  /** Whether to use JSONP when performing a 'GET' request against this service. __Read Only__
+  @deprecated Has no effect: Breeze's transport has no JSONP support. Kept because it is part of
+  a serialized DataService. **/
   declare useJsonp: boolean;
 
   /**   DataService constructor
@@ -185,6 +189,8 @@ export interface NodeMeta {
   ignore?: boolean;
   passThru?: boolean;
   extraMetadata?: any;
+  /** Use this object in place of the node that was visited. */
+  node?: any;
 }
 
 export interface NodeContext {
@@ -210,8 +216,9 @@ export interface JsonResultsAdapterConfig {
   /** A function that is called once per save operation to extract any deleted keys from any json received over the wire.  Must return an array.
   This method has a default implementation which simply returns an empty array. */
   extractDeletedKeys?: (data: {}) => any[]; // TODO: refine
-  /** A visitor method that will be called on each node of the returned payload. */
-  visitNode?: (v: any, mc?: MappingContext, nodeContext?: NodeContext) => NodeMeta;
+  /** A visitor method that will be called on each node of the returned payload. Required.
+  Breeze always passes all three arguments. Returning nothing is the same as returning `{}`. */
+  visitNode: (node: any, mappingContext: MappingContext, nodeContext: NodeContext) => NodeMeta | null | void;
 
 }
 

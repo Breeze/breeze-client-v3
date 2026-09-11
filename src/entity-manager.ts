@@ -26,6 +26,9 @@ export interface HttpResponse {
   error?: any;
   saveContext?: any;
   status: number;
+  /** The HTTP status text, such as "Not Found". Empty when the server sent none (HTTP/2 never does), and set to
+  the transport's error message when the request failed before any response arrived. May be absent with a custom ajax adapter. */
+  statusText?: string;
   getHeaders(headerName: string): string;
 }
 
@@ -41,8 +44,12 @@ export interface ServerError extends Error {
   httpResponse: HttpResponse;
   status: number;
   message: string;
+  /** The status text of the failed response - see {@link HttpResponse.statusText}. */
   statusText?: string;
+  /** The body of the failed response, as the adapter received it (`httpResponse.data`); null if there was none. */
   body?: any;
+  /** The URL the request was sent to (`httpResponse.config.url`). Query parameters added with
+  `EntityQuery.withParameters` are not included. */
   url?: string;
 }
 
@@ -175,9 +182,8 @@ export interface EntityManagerConfig {
   saveOptions?: SaveOptions;
   /** The {@link ValidationOptions} associated with this EntityManager.  **/
   validationOptions?: ValidationOptions;
-  /** The {@link KeyGenerator} associated with this EntityManager. **/
-  keyGenerator?: KeyGenerator;
-  /** The {@link KeyGenerator} constructor associated with this EntityManager. **/
+  /** The {@link KeyGenerator} constructor associated with this EntityManager. The manager creates its own
+  instance, and a new one whenever it is cleared, so a generator cannot be passed in as an instance. **/
   keyGeneratorCtor?: { new (): KeyGenerator }; // TODO: review this
   /** The {@link MetadataStore} associated with this EntityManager. **/
   metadataStore?: MetadataStore;
@@ -2238,12 +2244,9 @@ function executeQueryCore(em: EntityManager, query: EntityQuery | string, queryO
         // // HACK for GC
         // query = undefined;
         mappingContext = undefined;
-        // HACK: some errors thrown in next function do not propogate properly - this catches them.
-
-        if (state.error) {
-          return Promise.reject(state.error);
-        }
-
+        // A materialization error thrown below needs no help here: wrapExecution rethrows it,
+        // which rejects this promise. This cleanup used to return Promise.reject(state.error)
+        // as well; nothing received that second promise, so it was an unhandled rejection.
       }, function () {
         let nodes = dataService.jsonResultsAdapter.extractResults(data);
         nodes = core.toArray(nodes);

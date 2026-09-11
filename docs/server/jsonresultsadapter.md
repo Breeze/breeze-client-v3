@@ -62,17 +62,17 @@ import type { MappingContext, NodeContext } from 'breeze-client';
 
 const webApiLike = new JsonResultsAdapter({
   name: 'webApiLike',
-  visitNode: (node: any, mappingContext?: MappingContext, nodeContext?: NodeContext) => {
+  visitNode: (node: any, mappingContext: MappingContext, nodeContext: NodeContext) => {
     if (node == null) return {};
     const typeName = node.$type && MetadataStore.normalizeTypeName(node.$type);
     const entityType = typeName
-      ? mappingContext!.entityManager.metadataStore.getEntityType(typeName, true) as EntityType
+      ? mappingContext.entityManager.metadataStore.getEntityType(typeName, true) as EntityType
       : undefined;
     return {
       entityType,
       nodeId: node.$id,
       nodeRefId: node.$ref,
-      ignore: !!nodeContext!.propertyName?.startsWith('$'),
+      ignore: !!nodeContext.propertyName?.startsWith('$'),
     };
   },
 });
@@ -115,7 +115,7 @@ build, a `JsonResultsAdapter` lost its type brand, and `using` did not recognise
 const adapter = new JsonResultsAdapter({
   name: 'myAdapter',
   extractResults: (data: any) => data.results,
-  visitNode: (node: any, mappingContext?: MappingContext, nodeContext?: NodeContext) => ({ /* ... */ }),
+  visitNode: (node: any, mappingContext: MappingContext, nodeContext: NodeContext) => ({ /* ... */ }),
 });
 ```
 
@@ -131,13 +131,6 @@ const adapter = new JsonResultsAdapter({
 All four `extract*` functions return an empty array when there is nothing to find. A
 custom data service adapter may ignore the three save extractors — its own
 `_prepareSaveResult` reads the response.
-
-::: warning Typing quirks
-The configuration type marks `visitNode` optional, but the constructor throws without
-it. It also declares `mappingContext` and `nodeContext` optional, though Breeze always
-passes both. Under `strict`, declare those two parameters optional and use `!`, as the
-examples on this page do.
-:::
 
 ### extractResults
 
@@ -190,7 +183,7 @@ then once per item. Guard against values that are not objects.
 | `nodeRefId` | The node is a reference to the node with this id, such as `$ref`. A reference may appear before its target; Breeze resolves it after the walk. |
 | `ignore` | Skip this node and everything beneath it. |
 | `passThru` | Return this anonymous node exactly as it is, with no name translation and no recursion. Ignored for entity nodes. |
-| `node` | Use this object in place of the node. Not declared in the `NodeMeta` type, but honoured. |
+| `node` | Use this object in place of the node. |
 | `extraMetadata` | Stored on the entity as `entityAspect.extraMetadata`. |
 
 Working out `entityType` is the adapter's most important job. It is easy when the node
@@ -202,8 +195,8 @@ property. If `visitNode` returns no `entityType` for one, the query fails. When 
 carries no type information, use the property's:
 
 ```ts
-if (nodeContext!.navigationProperty) {
-  return { entityType: nodeContext!.navigationProperty.entityType };
+if (nodeContext.navigationProperty) {
+  return { entityType: nodeContext.navigationProperty.entityType };
 }
 ```
 :::
@@ -270,9 +263,9 @@ import type { MappingContext, NodeContext } from 'breeze-client';
 const searchResultsAdapter = new JsonResultsAdapter({
   name: 'search',
   extractResults: (data: any) => data.results.items,
-  visitNode: (node: any, mappingContext?: MappingContext, nodeContext?: NodeContext) => {
-    if (nodeContext!.nodeType !== 'root') return {};
-    const metadataStore = mappingContext!.entityManager.metadataStore;
+  visitNode: (node: any, mappingContext: MappingContext, nodeContext: NodeContext) => {
+    if (nodeContext.nodeType !== 'root') return {};
+    const metadataStore = mappingContext.entityManager.metadataStore;
     const entityType = metadataStore.getEntityType(node.kind, true) as EntityType | null;
     return entityType ? { entityType } : { passThru: true };
   },

@@ -150,6 +150,7 @@ deleted.
 A failed request rejects with an `Error` carrying:
 - `status`
 - `message`
+- `statusText`, `url` and `body` (the response body, as received)
 - `httpResponse`
 - `entityErrors`, for a failed save that reported per-entity validation errors
 
@@ -159,11 +160,17 @@ names in `entityErrors` are translated with the store's `NamingConvention`. Bree
 those errors to the matching entities' validation errors — see
 [Saving changes](/guide/saving-changes).
 
-When the status is 0 and there is no message, the static helper
-`AbstractDataServiceAdapter._catchNoConnectionError(err)` fills one in: "HTTP response
-status 0 and no message. Likely did not or could not reach server. Is the server
-running?" The abstract adapter applies it to every error it builds. Call it yourself only
-if you build errors some other way.
+A status of 0 means the request got no response at all. The static helper
+`AbstractDataServiceAdapter._catchNoConnectionError(err)` then adds to the message, keeping
+what the transport said: "HTTP response status 0: TypeError: fetch failed. Likely did not
+or could not reach server. Is the server running?" It leaves an aborted request alone.
+
+The abstract adapter builds every error with the static
+`AbstractDataServiceAdapter.makeHttpError(httpResponse, messagePrefix?)`, which does all of
+the above. If your adapter makes a request some other way, build its error with the same
+method and throw it. To get `entityErrors` for a save, set `httpResponse.saveContext` first.
+
+A save whose response has no body rejects with an error that says so.
 
 ## Writing an adapter
 
@@ -267,7 +274,7 @@ export class ChangeSetAdapter extends AbstractDataServiceAdapter {
 
   // Entities to save  ->  request body
   _prepareSaveBundle(saveContext: SaveContext, saveBundle: SaveBundle) {
-    const interceptor = new this.changeRequestInterceptor(saveContext, saveBundle);
+    const interceptor = this._createChangeRequestInterceptor(saveContext, saveBundle);
 
     const changes = saveBundle.entities.map((entity, index) => {
       const values: Record<string, unknown> = {};
@@ -300,9 +307,9 @@ export class ChangeSetAdapter extends AbstractDataServiceAdapter {
   // Query and save results carry their type in a 'type' property.
   jsonResultsAdapter = new JsonResultsAdapter({
     name: 'changeSet',
-    visitNode: (node: any, mappingContext?: MappingContext) => {
+    visitNode: (node: any, mappingContext: MappingContext) => {
       const entityType = node?.type
-        ? mappingContext!.entityManager.metadataStore.getEntityType(node.type, true) as EntityType
+        ? mappingContext.entityManager.metadataStore.getEntityType(node.type, true) as EntityType
         : undefined;
       return { entityType };
     },
@@ -331,10 +338,10 @@ A few details of the example:
   send server names.
 - After a save, Breeze uses `keyMap` to replace the temporary `OrderID` with 10248. It
   then merges the `saved` data into the cache, and the order becomes `Unchanged`.
-- The adapter creates the change request interceptor itself. The built-in adapter uses an
-  internal helper, `_createChangeRequestInterceptor`, which also falls back to a no-op
-  when `changeRequestInterceptor` is `null`. That helper is not in the published type
-  declarations.
+- `_createChangeRequestInterceptor` is the protected helper the built-in adapter uses too.
+  It checks that the interceptor has `getRequest` and `done`, falls back to a no-op when
+  `changeRequestInterceptor` is `null`, and honours `oneTime` (see
+  [Adjusting save requests](#adjusting-save-requests)).
 
 ### Deriving from the Web API adapter
 
@@ -414,6 +421,9 @@ plus an `entityAspect` holding:
 
 Setting `changeRequestInterceptor` to `null` restores the default, which changes nothing.
 An interceptor without `getRequest` or `done` makes the save throw.
+
+To intercept only the next save, give the class a `oneTime = true` property. After that
+save, the adapter goes back to the default interceptor.
 
 ### Which interceptor?
 
