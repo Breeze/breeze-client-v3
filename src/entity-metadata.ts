@@ -210,8 +210,9 @@ export class MetadataStore {
   }
 
   /**
-  Adds an EntityType to this MetadataStore.  No additional properties may be added to the EntityType after its has
-  been added to the MetadataStore.
+  Adds an EntityType or ComplexType to this MetadataStore. Properties can still be added to the
+  type afterwards, until the first entity of that type is attached to an EntityManager - after
+  that the type is frozen.
   @param stype - The EntityType or ComplexType to add
   **/
   addEntityType(stype: StructuralType | EntityTypeConfig | ComplexTypeConfig) {

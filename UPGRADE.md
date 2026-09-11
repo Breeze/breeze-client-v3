@@ -47,7 +47,8 @@ npm install breeze-client        # 3.0.0
 
 `MetadataStore.importMetadata()` used to detect a `schema` property and parse CSDL
 (the OData / EDMX metadata format). That path is removed, along with
-`DataType.fromEdmDataType`.
+`DataType.fromEdmDataType`. Passing CSDL to `importMetadata()` now throws a
+clear error rather than silently importing nothing.
 
 This matters if you fetch metadata from an **OData `$metadata` endpoint**, or from an
 older Breeze **WebApi2 + EF6** server. Breeze .NET Core servers emit Breeze JSON metadata
@@ -223,6 +224,26 @@ Small pre-existing defects corrected in v3:
   callbacks, `SaveError`, `ImportResult` and the types adapter authors implement against
   were used in public signatures but could not be imported by name. They can now. Type-only;
   nothing changes at runtime.
+- **The fetch adapter could leave a query pending for ever.** A 200 response whose body
+  was not JSON (an HTML login page from a proxy, say) failed inside the adapter without
+  reaching either callback. Every path now settles, and an unreadable body reports the
+  real HTTP status. A throw inside a data service adapter callback now rejects the
+  promise too.
+- **Calling `enableSaveQueuing` twice hung `saveChanges`**, including turning it off with
+  `enableSaveQueuing(em, false)`. It looked up a misspelled property, so each call wrapped
+  `saveChanges` again.
+- **`removeValidationError(validator)` removed nothing.** It now removes every error that
+  validator produced on the entity.
+- **`BreezeEvent.isEnabled` ignored its object argument**, and
+  **`EntityState.isDeletedOrDetached()` returned false for `Deleted`.**
+- **Local projections of nested paths replaced only the first dot:**
+  `order.customer.companyName` came back as `order_customer.companyName`. It is now
+  `order_customer_companyName`.
+- **A string assigned to a `DateOnly` property stayed a string.** It is now parsed as a
+  local date.
+- **`config.getAdapterInstance` was missing from the published type declarations.** It was
+  tagged `@internal` and the build strips internal members, so TypeScript code calling it
+  needed a cast. It is now public.
 - `breeze.version` reported `"2.1.5"` in the 2.2.2 release. It will report the real
   version. *(planned)*
 - `breeze.assertConfig` and `breeze.assertParam` were `null` on the `breeze` object

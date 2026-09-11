@@ -51,12 +51,11 @@ Instances of the Validator class provide the logic to validate another object an
 encountered during the validation process.  They are typically associated with a 'validators' property on the following types: {@link EntityType},
 {@link DataProperty} or {@link NavigationProperty}.
 
-A number of property level validators are registered automatically, i.e added to each DataProperty.validators property
-based on {@link DataProperty} metadata.  For example,
-
-- DataProperty.dataType -> one of the 'dataType' validator methods such as Validator.int64, Validator.date, Validator.bool etc.
-- DataProperty.maxLength -> Validator.maxLength
-- DataProperty.isNullable -> Validator.required (if not nullable)
+Property-level validators normally arrive with the metadata. The Breeze server sends a
+`validators` array for each data property - for example `required` for a non-nullable
+property, `maxLength` for a string with a maximum length, and a data-type validator such as
+`int32` or `date`. They are not inferred on the client, so metadata written by hand has
+none unless you add them.
 
 **/
 

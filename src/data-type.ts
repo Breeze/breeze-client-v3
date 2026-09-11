@@ -387,7 +387,7 @@ function coerceToDateOnly(source: any, sourceTypeName: string) {
   let val: any;
   if (sourceTypeName === "string") {
     if (!source || !source.trim()) { return null; }
-    val = DataType.parseDateAsLocal(val);
+    val = DataType.parseDateAsLocal(source);
     return core.isDate(val) ? val : source;
   } else if (sourceTypeName === "number") {
     val = new Date(source);

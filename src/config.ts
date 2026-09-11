@@ -154,7 +154,6 @@ export class BreezeConfig {
     omitted then the default implementation of the specified interface is returned. If there is
     no defaultInstance of this interface, then the first registered instance of this interface is returned.
     @returns {an instance of the specified adapter}
-    @internal
     **/
     getAdapterInstance<T extends BaseAdapter>(interfaceName: AdapterType, adapterName?: string) {
         let idef = this.getInterfaceDef<T>(interfaceName);
