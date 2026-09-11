@@ -23,7 +23,7 @@ export default defineConfig({
         text: 'Server',
         items: [
           { text: '.NET server docs', link: 'https://github.com/Breeze/breeze-server-v3' },
-          { text: '.NET API reference', link: 'https://breeze.github.io/doc-net/' },
+          { text: '.NET API reference', link: 'https://github.com/Breeze/breeze-server-v3/blob/master/DOCS.md' },
         ],
       },
     ],
