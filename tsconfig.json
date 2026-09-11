@@ -10,7 +10,7 @@
     "stripInternal": true,
     "verbatimModuleSyntax": false,
     "noImplicitAny": true,
-    "strictNullChecks": false,
+    "strictNullChecks": true,
     "experimentalDecorators": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,

@@ -131,7 +131,7 @@ export class AjaxFetchAdapter implements AjaxAdapter {
       config.success(httpResponse);
     }
 
-    function errorFn(status: number, statusText: string, body: string, response: Response, errorThrown: any) {
+    function errorFn(status: number, statusText: string, body: string | null, response: Response | null, errorThrown: any) {
       let httpResponse = {
         config: config,
         data: body,
@@ -147,7 +147,9 @@ export class AjaxFetchAdapter implements AjaxAdapter {
 
 config.registerAdapter("ajax", AjaxFetchAdapter);
 
-function getHeadersFn(response: Response): any {
+// response is null when the transport itself failed, before any response existed;
+// the body below already branches on that.
+function getHeadersFn(response: Response | null): any {
   if (!response || response.status === 0) { // timeout or abort; no headers
     return function (headerName: string) {
       return (headerName && headerName.length > 0) ? "" : {};

@@ -683,6 +683,9 @@ export class PredicateExpression {
 */
 export class LitExpr extends PredicateExpression {
   value: any;
+  /** Narrows the optional dataType on PredicateExpression: a LitExpr always has one,
+      because the constructor falls back to DataType.fromValue when none is supplied. */
+  declare dataType: DataType;
   hasExplicitDataType: boolean;
   // 2 public props: value, dataType
   constructor(value: any, dataType: string | DataType | undefined, hasExplicitDataType?: boolean) {

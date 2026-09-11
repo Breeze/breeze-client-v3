@@ -79,7 +79,7 @@ function getEntityGraph(roots: Entity | Array<Entity> | EntityQuery, expand: str
   }
 }
 
-function getEntityGraphCore(root: Entity | Array<Entity>, expand: string | Array<string> | ExpandClause) {
+function getEntityGraphCore(root: Entity | Array<Entity>, expand?: string | Array<string> | ExpandClause) {
   let entityGroupMap: Map<string, EntityGroup>;
   let graph = [] as Array<Entity>;
   let rootType: EntityType;
@@ -102,7 +102,7 @@ function getEntityGraphCore(root: Entity | Array<Entity>, expand: string | Array
   }
 
   function getRootInfo() {
-    let compatTypes: Array<EntityType>;
+    let compatTypes: Array<EntityType> | null;
 
     roots.forEach(function (root, ix) {
       let aspect;
@@ -113,7 +113,8 @@ function getEntityGraphCore(root: Entity | Array<Entity>, expand: string | Array
         throw getRootErr(ix, 'is a detached entity');
       }
 
-      let em = aspect.entityManager;
+      // roots are rejected above if Detached, so an attached root always has a manager
+      let em = aspect.entityManager!;
       if (entityGroupMap) {
         if (entityGroupMap !== em._entityGroupMap) {
           throw getRootErr(ix, "has a different 'EntityManager' than other roots");
@@ -171,7 +172,7 @@ function getEntityGraphCore(root: Entity | Array<Entity>, expand: string | Array
         expand = [];
       } else if (typeof expand === 'string') {
         // tricky because Breeze expandClause not exposed publically
-        expand = new EntityQuery().expand(expand).expandClause;
+        expand = new EntityQuery().expand(expand).expandClause!;
       }
       if (expand instanceof ExpandClause && expand.propertyPaths) { // expand clause
         expand = expand.propertyPaths;
@@ -279,8 +280,8 @@ function getEntityGraphCore(root: Entity | Array<Entity>, expand: string | Array
           try {
             let keyValue = entity.entityAspect.getKey().values[0];
             grps.forEach(function (grp) {
-              vals = vals.concat(grp._entities.filter(function (en) {
-                return en && en.getProperty(fkName) === keyValue;
+              vals = vals.concat(grp._entities.filter(function (en): en is Entity {
+                return !!en && en.getProperty(fkName) === keyValue;
               }));
             });
           } catch (e) { rethrow(e); }
@@ -291,7 +292,8 @@ function getEntityGraphCore(root: Entity | Array<Entity>, expand: string | Array
       (fn as any).path = segment;
 
     } catch (err) { rethrow(err); }
-    return fn;
+    // every path above either assigns fn or rethrows
+    return fn!;
 
     function rethrow(e: Error) {
       let typeName = baseTypeName || baseType;

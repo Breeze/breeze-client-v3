@@ -136,7 +136,7 @@ function setDpValueSimple(context: IContext, rawAccessorFn: any) {
       throw new Error("An entity with this key is already in the cache: " + newKey.toString());
     }
     let oldKey = (parent as Entity).entityAspect.getKey();
-    let eg = entityManager._findEntityGroup(entityType);
+    let eg = entityManager._findEntityGroup(entityType)!; // parent is attached, so its group exists
     eg._replaceKey(oldKey, newKey);
   }
 
@@ -156,8 +156,8 @@ function setDpValueSimple(context: IContext, rawAccessorFn: any) {
     //    ==> (see set navProp above)
 
     if (newValue != null) {
-      let relatedEntity: Entity;
-      let key: EntityKey;
+      let relatedEntity: Entity | null = null;
+      let key: EntityKey | undefined;
       if (relatedNavProp.invForeignKeyNames.length) {
         // property is related by field which is not the PK
         const query = new EntityQuery(relatedNavProp.entityType.defaultResourceName).where(relatedNavProp.invForeignKeyNames[0], 'eq', newValue);

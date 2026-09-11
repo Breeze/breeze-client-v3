@@ -138,7 +138,7 @@ export abstract class AbstractDataServiceAdapter implements DataServiceAdapter {
   _makeQueryPostParams(mappingContext: MappingContext) {
     const entityQuery = mappingContext.query as EntityQuery;
     const metadataStore = mappingContext.entityManager.metadataStore;
-    const url = mappingContext.dataService.qualifyUrl(entityQuery.resourceName);
+    const url = mappingContext.dataService.qualifyUrl(entityQuery.resourceName!);
 
     let entityType = entityQuery._getFromEntityType(metadataStore, false);
     if (!entityType) { entityType = new EntityType(metadataStore); }

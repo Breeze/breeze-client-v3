@@ -616,7 +616,7 @@ export class MetadataStore {
   /** @hidden @internal */
   _getStructuralType(typeName: string, okIfNotFound: boolean = false) {
     let qualTypeName = getQualifiedTypeName(this, typeName, false);
-    let type = this._structuralTypeMap[qualTypeName];
+    let type = qualTypeName ? this._structuralTypeMap[qualTypeName] : undefined;
     if (!type) {
       if (okIfNotFound) return null;
       let msg = core.formatString("Unable to locate a 'Type' by the name: '%1'. Be sure to execute a query or call fetchMetadata first.", typeName);
@@ -665,7 +665,7 @@ export class MetadataStore {
     if (entityTypeOrName instanceof EntityType) {
       entityTypeName = entityTypeOrName.name;
     } else {
-      entityTypeName = getQualifiedTypeName(this, entityTypeOrName, true);
+      entityTypeName = getQualifiedTypeName(this, entityTypeOrName, true)!;
     }
 
     this._resourceEntityTypeMap[resourceName] = entityTypeName;
@@ -945,8 +945,8 @@ export class EntityType {
   validators: Validator[];
 
   warnings: any[];
-  initFn: Function | string;
-  noTrackingFn: Function;
+  initFn?: Function | string;
+  noTrackingFn?: Function;
 
   /** @hidden @internal */
   _extra: any;

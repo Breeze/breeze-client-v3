@@ -1614,7 +1614,7 @@ export class EntityManager {
           const query = new EntityQuery(np.entityType.defaultResourceName).where(np.invForeignKeyNames[0], 'eq', akValue);
           const qresult = em.executeQueryLocally(query);
           qresult.forEach((child: Entity) => {
-            child.setProperty(np.inverse.name, entity);
+            child.setProperty(np.inverse!.name, entity);
           });
         }
       });
@@ -1717,7 +1717,7 @@ function processServerErrors(saveContext: SaveContext, saveError: SaveErrorFromS
       let context = serr.propertyName ?
         {
           propertyName: serr.propertyName,
-          property: entityType.getProperty(serr.propertyName)
+          property: entityType.getProperty(serr.propertyName) || undefined
         } : {
         };
       let key = ValidationError.getKey(serr.errorName || serr.errorMessage, serr.propertyName);
@@ -1852,7 +1852,7 @@ function markIsBeingSaved(entities: Entity[], flag: boolean) {
   });
 }
 
-function exportEntityGroups(em: EntityManager, entitiesOrEntityTypes: Entity[] | EntityType[] | string[]) {
+function exportEntityGroups(em: EntityManager, entitiesOrEntityTypes?: Entity[] | EntityType[] | string[]) {
   let entityGroupMap: Map<string, EntityGroup>;
   let first = entitiesOrEntityTypes && entitiesOrEntityTypes[0];
   // check if array

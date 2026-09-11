@@ -325,3 +325,35 @@ passing on re-run.
 This is independent of the database reset and the file sequencer; both are deterministic.
 The fix is for the test to pick a customer it knows has orders, or for the endpoint to
 order its results.
+
+## strictNullChecks (done)
+
+`tsconfig.json` has `strictNullChecks: true`, along with `noImplicitAny`. 166 errors
+fixed, none suppressed.
+
+**113 of the 166 came from one modelling error.** `Entity` and `ComplexObject` declared
+`getProperty?` and `setProperty?` as optional. They are not: every Breeze entity has them,
+installed by the model-library adapter when the type is created. Making them required —
+a types-only change — cleared 82 "cannot invoke possibly undefined" plus a long tail.
+Safe because nothing declares `implements Entity`; custom constructors go through
+`registerEntityTypeCtor`, which takes a `Function`.
+
+The rest fell into three kinds, in descending order of preference:
+
+1. **The signature lied about what the code already did.** `core.extend` opens with
+   `if (!source) return target;`; `getHeadersFn` opens with `if (!response ...)`;
+   `AjaxRequest.error` is handed nulls for body and response when the transport fails
+   before a response exists; `_updateWithConfig` guards with `if (config)`. Fixing the
+   signature usually cleared several call sites at once.
+2. **The field really is nullable.** `SaveQueuing`'s four deferred/memo fields are reset
+   to `null` between saves; `EntityQuery.wherePredicate` was the only clause field not
+   marked optional, and carried a `// TODO` saying so; `EntityAspect.hasTempKey` is
+   deleted to clear it, which only type-checks when optional.
+3. **A guard exists but TypeScript cannot see it.** Narrowing lost inside a callback,
+   or a `throwIfNotFound: true` argument that guarantees a result. These use `!`, each
+   with a comment naming the reason. `LitExpr.dataType` instead re-declares the inherited
+   optional field as required, since the constructor always resolves one.
+
+Two runtime behaviours changed, both deliberate and both covered by the suite:
+`AbstractDataServiceAdapter.initialize` dropped an always-true `&& this.ajaxImpl.ajax`,
+and `core.ts`'s ES5 probe dropped an always-true `Object.getPrototypeOf &&`.
