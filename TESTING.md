@@ -34,6 +34,26 @@ npm test               # 652 tests
 
 ---
 
+## One command
+
+`scripts/test-with-server.ps1` does the whole server-backed loop: it creates `BreezeTestDb` if
+it does not exist, starts the test server unless one is already running, runs the tests,
+and stops the server again. From this repo:
+
+```powershell
+.\scripts\test-with-server.ps1                 # integration tier
+.\scripts\test-with-server.ps1 -Tier all       # integration, then browser
+.\scripts\test-with-server.ps1 -Filter "nullable dateTime" -KeepServer -SkipDbReset
+```
+
+From `cmd`, or if PowerShell refuses to run scripts (the default execution policy), use
+`scripts\test-with-server.cmd` with the same arguments. `-KeepServer` leaves the server
+running for quicker re-runs; `-ServerRepo` and `-SqlInstance` cover a non-sibling
+checkout or a named SQL Server instance. `Get-Help .\scripts\test-with-server.ps1 -Full`
+lists everything. The sections below are the same steps done by hand.
+
+---
+
 ## Prerequisites
 
 | | version used | notes |
