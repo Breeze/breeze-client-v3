@@ -115,6 +115,10 @@ order.entityAspect.hasTempKey;      // true
 Temporary integer keys are negative (-1, -2, -3, …), so they can't collide with real
 database keys. Temporary `Guid` keys are new GUIDs.
 
+The integer sequence is shared by every entity type and every manager in the app, so the
+first `Order` you create may get -3 if two other entities got temporary keys before it.
+That keeps temporary keys unique across types; don't rely on the particular number.
+
 You can ask for a temporary key explicitly with `em.generateTempKeyValue(entity)`, which
 sets the key and returns it. Temporary keys only work for single-part keys.
 

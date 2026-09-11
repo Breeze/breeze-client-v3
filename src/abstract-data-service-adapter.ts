@@ -69,7 +69,7 @@ export abstract class AbstractDataServiceAdapter implements DataServiceAdapter {
             // must run before makeHttpError: createError reads httpResponse.saveContext
             // to attach per-entity validation errors.
             prepareResponse && prepareResponse(httpResponse);
-            reject(makeHttpError(httpResponse, errorMessagePrefix));
+            reject(AbstractDataServiceAdapter.makeHttpError(httpResponse, errorMessagePrefix));
           } catch (e) {
             reject(e);
           }
@@ -98,7 +98,7 @@ export abstract class AbstractDataServiceAdapter implements DataServiceAdapter {
       metadataStore.importMetadata(metadata);
     } catch (e) {
       const errMsg = "Unable to either parse or import metadata: " + (e as Error).message;
-      throw makeHttpError(httpResponse, "Metadata query failed for: " + url + ". " + errMsg);
+      throw AbstractDataServiceAdapter.makeHttpError(httpResponse, "Metadata query failed for: " + url + ". " + errMsg);
     }
 
     // import may have brought in the service.
@@ -132,7 +132,7 @@ export abstract class AbstractDataServiceAdapter implements DataServiceAdapter {
       return { results: data, httpResponse: httpResponse, query: mappingContext.query } as QueryResult;
     } catch (e) {
       if (e instanceof Error) { throw e; }
-      throw makeHttpError(httpResponse);
+      throw AbstractDataServiceAdapter.makeHttpError(httpResponse);
     }
   }
 
@@ -147,6 +147,8 @@ export abstract class AbstractDataServiceAdapter implements DataServiceAdapter {
       dataType: 'json',
       crossDomain: false,
     };
+    // useJsonp is deprecated. Breeze's own transport ignores dataType and crossDomain; this
+    // stays only because a registered (deprecated) ajax adapter could still act on them.
     if (mappingContext.dataService.useJsonp) {
       params.dataType = 'jsonp';
       params.crossDomain = true;
@@ -200,8 +202,14 @@ export abstract class AbstractDataServiceAdapter implements DataServiceAdapter {
       (r) => { r.saveContext = saveContext; });
 
     const data = httpResponse.data;
+    if (data == null || data === "") {
+      const err = AbstractDataServiceAdapter.makeHttpError(httpResponse);
+      err.message = "The response to the save request to " + url + " (HTTP status " + httpResponse.status +
+        ") had no body. Breeze needs the saved entities and any key mappings to complete the save.";
+      throw err;
+    }
     if (data.Errors || data.errors) {
-      throw makeHttpError(httpResponse);
+      throw AbstractDataServiceAdapter.makeHttpError(httpResponse);
     }
 
     const saveResult = adapter._prepareSaveResult(saveContext, data);
@@ -245,8 +253,17 @@ export abstract class AbstractDataServiceAdapter implements DataServiceAdapter {
   **/
   changeRequestInterceptor: ChangeRequestInterceptorCtor = DefaultChangeRequestInterceptor;
 
-  /** @hidden @internal */
-  _createChangeRequestInterceptor(saveContext: SaveContext, saveBundle: SaveBundle) {
+  /**
+   * Creates the change request interceptor for one save, from `changeRequestInterceptor`.
+   * Call it at the start of `_prepareSaveBundle`, pass each entity's request through its
+   * `getRequest`, and pass the finished array to its `done`.
+   *
+   * Falls back to a no-op interceptor when `changeRequestInterceptor` is not set. If the
+   * interceptor it creates has `oneTime` set, the adapter goes back to the no-op
+   * interceptor afterwards, so only this save is intercepted.
+   * @throws if the interceptor has no `getRequest` or `done` method.
+   */
+  protected _createChangeRequestInterceptor(saveContext: SaveContext, saveBundle: SaveBundle): ChangeRequestInterceptor {
     let adapter = saveContext.adapter!;
     let cri = adapter.changeRequestInterceptor;
     let isFn = core.isFunction;
@@ -260,6 +277,9 @@ export abstract class AbstractDataServiceAdapter implements DataServiceAdapter {
       }
       if (!isFn(interceptor.done)) {
         throw new Error(pre + '.done' + post);
+      }
+      if (interceptor.oneTime) {
+        adapter.changeRequestInterceptor = DefaultChangeRequestInterceptor;
       }
       return interceptor;
     } else {
@@ -276,14 +296,40 @@ export abstract class AbstractDataServiceAdapter implements DataServiceAdapter {
 
 
   /** Utility method that may be used in any concrete DataServiceAdapter sublclass to handle any 
-  http connection issues. 
+  http connection issues. For an error with status 0 - the request got no response - it says in
+  the message that the server could not be reached, keeping any message the transport gave.
+  An aborted request is left alone. `makeHttpError` already applies it.
   */
   // Put this at the bottom of your http error analysis
   static _catchNoConnectionError(err: ServerError) {
-    if (err.status === 0 && err.message == null) {
-      err.message = "HTTP response status 0 and no message.  " +
-        "Likely did not or could not reach server. Is the server running?";
+    if (err.status !== 0) return;
+    const cause = err.httpResponse && err.httpResponse.error;
+    if (cause && cause.name === "AbortError") return; // the app cancelled it; the server is irrelevant
+    const hint = "Likely did not or could not reach server. Is the server running?";
+    if (err.message && err.message.includes(hint)) return; // already applied
+    err.message = err.message
+      ? "HTTP response status 0: " + err.message + ". " + hint
+      : "HTTP response status 0 and no message.  " + hint;
+  }
+
+  /**
+   * Builds the Breeze error for a failed HTTP response: an `Error` carrying `status`,
+   * `statusText`, `url`, `body` and `httpResponse`, whose message comes from the response
+   * body (a .NET exception, or `{ message, errors }`). For a save, it also carries the
+   * server's per-entity `entityErrors`, if `httpResponse.saveContext` is set.
+   *
+   * `_ajax` uses it for every failed request. Call it when your adapter makes a request some
+   * other way, then throw or reject with the result.
+   * @param httpResponse - The failed response.
+   * @param messagePrefix - Put at the start of the message, followed by "; ".
+   */
+  static makeHttpError(httpResponse: HttpResponse, messagePrefix?: string): ServerError {
+    const err = createError(httpResponse);
+    AbstractDataServiceAdapter._catchNoConnectionError(err);
+    if (messagePrefix) {
+      err.message = messagePrefix + "; " + err.message;
     }
+    return err;
   }
 
   jsonResultsAdapter = new JsonResultsAdapter({
@@ -295,25 +341,13 @@ export abstract class AbstractDataServiceAdapter implements DataServiceAdapter {
   });
 }
 
-/** Builds the Error for a failed http response. */
-function makeHttpError(httpResponse: HttpResponse, messagePrefix?: string): ServerError {
-  let err = createError(httpResponse);
-  AbstractDataServiceAdapter._catchNoConnectionError(err);
-  if (messagePrefix) {
-    err.message = messagePrefix + "; " + err.message;
-  }
-  return err;
-}
-
-/** @deprecated Use makeHttpError and throw/reject at the call site. */
-function handleHttpError(reject: (reason?: any) => void, httpResponse: HttpResponse, messagePrefix?: string) {
-  reject(makeHttpError(httpResponse, messagePrefix));
-}
-
 function createError(httpResponse: HttpResponse) {
   let err = new Error() as ServerError;
   err.httpResponse = httpResponse;
   err.status = httpResponse.status;
+  err.statusText = httpResponse.statusText;
+  err.body = httpResponse.data;
+  err.url = httpResponse.config && httpResponse.config.url;
 
   let errObj = httpResponse.data;
 

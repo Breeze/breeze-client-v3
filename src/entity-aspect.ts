@@ -16,8 +16,15 @@ export interface Entity {
   entityType: EntityType;
   /** Get the property with the given name */
   getProperty(prop: string): any;
-  /** Set the property with the given name */
-  setProperty(prop: any, value: any): void;
+  /** Set the property with the given name, exactly as assigning it would.
+
+  With the backing-store model library it returns the object itself, so calls can be chained.
+  The return type is `any` rather than `this` so that a class declaring `setProperty` as returning
+  `void` still implements this interface.
+
+  A name that is not a property of the type is not an error: like an assignment, it creates an
+  ordinary property, which Breeze does not track. */
+  setProperty(prop: any, value: any): any;
   /** @hidden @internal */
   prototype?: { _$typeName: string };
   /** @hidden @internal */
@@ -27,8 +34,11 @@ export interface Entity {
 export interface ComplexObject {
   complexAspect: ComplexAspect;
   complexType: ComplexType;
+  /** Get the property with the given name */
   getProperty(prop: string): any;
-  setProperty(prop: any, value: any): void;
+  /** Set the property with the given name, exactly as assigning it would. Returns the object
+  itself with the backing-store model library - see {@link Entity.setProperty}. */
+  setProperty(prop: any, value: any): any;
   /** @hidden @internal */
   prototype?: { _$typeName: string };
 }

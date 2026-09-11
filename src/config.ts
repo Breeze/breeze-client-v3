@@ -261,7 +261,7 @@ export class BreezeConfig {
         }
 
         // recomposition of other impls will occur here.
-        this.interfaceInitialized.publish({ interfaceName: interfaceDef.name, instance: instance, isDefault: true });
+        this.interfaceInitialized.publish({ interfaceName: interfaceDef.name, instance: instance, isDefault: isDefault });
 
         if (instance.checkForRecomposition != null) {
             // now register for own dependencies.
