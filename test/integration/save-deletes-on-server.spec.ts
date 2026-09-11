@@ -8,7 +8,7 @@ beforeAll(async () => {
 
 });
 
-skipDescribeIf(TestFns.isSequelizeServer || TestFns.isODataServer,
+skipDescribeIf(TestFns.isODataServer,
   "Saves with deletions on the server", function () {
 
 

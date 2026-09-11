@@ -120,8 +120,8 @@ describe("Query Misc", () => {
     expect(successCount).toBe(2);
   });
 
-  // testFns.skipIf("odata,sequelize,hibernate", "does not have any server unmapped properties").
-  skipTestIf(TestFns.isSequelizeServer || TestFns.isHibernateServer || TestFns.isODataServer,
+  // testFns.skipIf("odata,hibernate", "does not have any server unmapped properties").
+  skipTestIf(TestFns.isHibernateServer || TestFns.isODataServer,
     "querying server unmapped property", async function() {
     expect.hasAssertions();
     
@@ -201,8 +201,8 @@ describe("Query Misc", () => {
     expect(data.results.length).toBe(0);
   });
 
-  //"odata,sequelize,hibernate", "is N/A for this EF specific test").
-  skipTestIf(TestFns.isSequelizeServer || TestFns.isHibernateServer || TestFns.isODataServer, "query involving multiple entities on the server", async function () {
+  //"odata,hibernate", "is N/A for this EF specific test").
+  skipTestIf(TestFns.isHibernateServer || TestFns.isODataServer, "query involving multiple entities on the server", async function () {
     expect.hasAssertions();
 
     const em = TestFns.newEntityManager();

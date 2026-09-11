@@ -1,5 +1,5 @@
 import { breeze, EntityManager, EntityQuery, NamingConvention, Predicate, EntityType, EntityState, EntityKey, Entity, MergeStrategy, RelationArray, core, QueryOptions, FetchStrategy, FilterQueryOp } from '../../src/breeze';
-import { skipTestIf, TestFns, expectPass } from '../test-fns';
+import { TestFns, expectPass } from '../test-fns';
 
 TestFns.initServerEnv();
 
@@ -981,9 +981,7 @@ describe("Query Basics", () => {
   });
 
 
-  // BUG: with Sequelize that causes node to run out of memory.
-  skipTestIf(TestFns.isSequelizeServer, 
-    "take, skip, orderby and expand", async () => {
+  test("take, skip, orderby and expand", async () => {
     expect.hasAssertions();
     const em1 = TestFns.newEntityManager();
     const q1 = EntityQuery.from("Products")

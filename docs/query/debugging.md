@@ -18,7 +18,6 @@ from code, or outside a browser, pass a logging `fetch` to `configureBreeze`:
 
 ```ts
 import { configureBreeze, BreezeFetch } from 'breeze-client';
-import { AjaxFetchAdapter } from 'breeze-client/adapter-ajax-fetch';
 
 const loggingFetch: BreezeFetch = async (input, init) => {
   const url = String(input);
@@ -32,7 +31,7 @@ const loggingFetch: BreezeFetch = async (input, init) => {
   return res;
 };
 
-configureBreeze({ ajax: AjaxFetchAdapter, fetch: loggingFetch, /* ...the rest */ });
+configureBreeze({ fetch: loggingFetch, /* ...the rest */ });
 ```
 
 It is a plain function, so you can wrap your auth or retry transport in it the same way.

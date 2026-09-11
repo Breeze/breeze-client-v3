@@ -93,12 +93,10 @@ wrapper can make the constructors callable again if that turns out to matter.
 Items 1-5 of the previous list (last 4 failures, CORS + browser mode, unit/integration
 split, explicit registration + `@deprecated` string API) are done — see the sections below.
 
-1. **User docs** — the ~28 stub pages are being written from breeze.github.io/doc-js,
-   every API checked against `src/`. The five pages already written are the style
-   reference.
-2. **Retire `AjaxAdapter` and the `"ajax"` registry slot** in favour of `BreezeFetch`
-   alone. `AbstractDataServiceAdapter._ajax` is now the single place requests are made, so
-   the change is contained there plus a deprecation shim.
+1. ~~User docs~~ **done** — every page written from breeze.github.io/doc-js and checked
+   against `src/`. What that turned up is logged at the end of this file.
+2. ~~Retire `AjaxAdapter`~~ **done** — an ajax adapter is optional and requests go
+   through `config.fetch`. See CHANGES-DEV.md, *The ajax adapter is optional*.
 3. **Per-file isolation for the integration tier.** Needs a server-side reset endpoint so
    browser mode can use it too.
 4. **Explicit initialization instead of import-time side effects** (prototype branding,
@@ -474,7 +472,6 @@ mentions one as a caution, it says so.
 - `ServerError` declares `statusText`, `body` and `url`, which are never set;
   `HttpResponse` lacks the `statusText` the adapter does set.
 - `KeyGenerator.generateTempKeyValue(valueIfAvail?: boolean)` is used as a key value.
-- The fetch adapter sends `Content-Type: application/json` on GETs.
 - Temp integer keys share one counter across all types and managers (-1, -2, … overall).
   Probably intended; worth a sentence in the docs either way.
 
@@ -489,8 +486,7 @@ mentions one as a caution, it says so.
   the published `.d.ts`, though subclasses are told to call it. (`config.getAdapterInstance`
   had the same problem and is fixed; the transport page depends on it.)
 - `makeHttpError` is not exported; the deprecated `handleHttpError` is now unused.
-- The fetch adapter ignores `AjaxConfig.headers` (commented out), and has no JSONP, so
-  `DataService.useJsonp` does nothing.
+- There is no JSONP, so `DataService.useJsonp` does nothing.
 - `JsonResultsAdapterConfig` typing: `visitNode` is optional but the constructor requires
   it; `mappingContext` / `nodeContext` are typed optional but always passed; `NodeMeta`
   lacks the `node` member the runtime honours.

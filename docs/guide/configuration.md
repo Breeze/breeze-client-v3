@@ -1,25 +1,23 @@
 # Configuration
 
-Breeze delegates four jobs to adapters. You choose one implementation of each at startup.
+Breeze delegates three jobs to adapters, and makes its HTTP requests through a `fetch`
+function. You choose each of them at startup.
 
 | Adapter | Job | Ships with Breeze |
 |---|---|---|
 | `modelLibrary` | how entities track changes | `ModelLibraryBackingStoreAdapter` |
 | `dataService` | how to talk to the server | `DataServiceWebApiAdapter` |
 | `uriBuilder` | how a query becomes a URL | `UriBuilderJsonAdapter` |
-| `ajax` | how an HTTP request is made | `AjaxFetchAdapter` |
 
 ## configureBreeze
 
 ```ts
 import { configureBreeze, NamingConvention } from 'breeze-client';
-import { AjaxFetchAdapter } from 'breeze-client/adapter-ajax-fetch';
 import { DataServiceWebApiAdapter } from 'breeze-client/adapter-data-service-webapi';
 import { UriBuilderJsonAdapter } from 'breeze-client/adapter-uri-builder-json';
 import { ModelLibraryBackingStoreAdapter } from 'breeze-client/adapter-model-library-backing-store';
 
 configureBreeze({
-  ajax: AjaxFetchAdapter,
   dataService: DataServiceWebApiAdapter,
   uriBuilder: UriBuilderJsonAdapter,
   modelLibrary: ModelLibraryBackingStoreAdapter,
@@ -33,9 +31,9 @@ configureBreeze({
 |---|---|---|
 | `modelLibrary` | adapter class | |
 | `uriBuilder` | adapter class | |
-| `ajax` | adapter class | |
+| `ajax` | adapter class | deprecated — see [below](#ajax-deprecated) |
 | `dataService` | adapter class | |
-| `fetch` | `BreezeFetch` | custom transport, handed to the ajax adapter — see [Supplying your own transport](/server/transport) |
+| `fetch` | `BreezeFetch` | the function every HTTP request goes through; defaults to `globalThis.fetch`. See [Supplying your own transport](/server/transport) |
 | `namingConvention` | `NamingConvention` | sets the default |
 | `noEval` | `boolean` | forbid `eval`/`Function`, for strict CSP environments |
 | `config` | `BreezeConfig` | target a non-global config; rarely needed |
@@ -46,19 +44,22 @@ You can call it more than once and pass only what you want to change:
 configureBreeze({ namingConvention: NamingConvention.none });
 ```
 
-### Order matters, and configureBreeze handles it
+### Registration order does not matter
 
-The data service adapter resolves the ajax adapter when it initializes, so ajax has to be
-registered first. Calling the individual `register()` methods in the wrong order throws:
+You can call the individual `register()` methods instead of `configureBreeze`, in any
+order:
 
 ```ts
-DataServiceWebApiAdapter.register();   // resolves 'ajax' — not registered yet
-AjaxFetchAdapter.register();
-// Error: Unable to find ajax adapter for dataservice adapter 'webApi'
+DataServiceWebApiAdapter.register();
+UriBuilderJsonAdapter.register();
+ModelLibraryBackingStoreAdapter.register();
 ```
 
-`configureBreeze` registers in dependency order, so this cannot happen. That is the main
-practical reason to prefer it over the individual calls.
+::: tip Changed in 3.0
+In 2.x the data service adapter needed an ajax adapter registered before it, and threw
+`Unable to find ajax adapter for dataservice adapter 'webApi'` otherwise. Breeze 3 needs
+no ajax adapter, so there is nothing to get out of order.
+:::
 
 ## Importing does not register
 
@@ -79,8 +80,8 @@ see [Migrating from 2.x](/guide/migrating-from-2x).
 ## The older API still works
 
 ```ts
-config.registerAdapter('ajax', AjaxFetchAdapter);
-config.initializeAdapterInstance('ajax', 'fetch', true);
+config.registerAdapter('dataService', DataServiceWebApiAdapter);
+config.initializeAdapterInstance('dataService', 'webApi', true);
 ```
 
 `registerAdapter`, `initializeAdapterInstance` and `initializeAdapterInstances` are all
@@ -108,11 +109,15 @@ The OData data service adapter was removed in 3.0.
 `UriBuilderJsonAdapter` encodes the query as Breeze JSON in the query string. It is the
 only one shipped; the OData URI builder was removed in 3.0.
 
-### ajax
+### ajax (deprecated)
 
-`AjaxFetchAdapter` uses `globalThis.fetch`. To add auth headers, retry, or route requests
-through a framework HTTP client, supply a `fetch` function rather than writing a new
-adapter — see [Supplying your own transport](/server/transport).
+Breeze 3 does not need an ajax adapter. Every request goes through `config.fetch`, which
+defaults to `globalThis.fetch`. To add auth headers, retry or logging, supply your own
+`fetch` — see [Supplying your own transport](/server/transport).
+
+`AjaxFetchAdapter` and the `ajax` option are kept so that 2.x startup code keeps working.
+If you register an ajax adapter, Breeze uses it instead of `config.fetch`. There is no
+reason to in new code.
 
 ## Naming conventions
 

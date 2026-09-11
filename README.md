@@ -47,7 +47,6 @@ npm install breeze-client
 
 ```ts
 import { EntityManager, EntityQuery } from 'breeze-client';
-import { AjaxFetchAdapter } from 'breeze-client/adapter-ajax-fetch';
 import { DataServiceWebApiAdapter } from 'breeze-client/adapter-data-service-webapi';
 import { UriBuilderJsonAdapter } from 'breeze-client/adapter-uri-builder-json';
 import { ModelLibraryBackingStoreAdapter } from 'breeze-client/adapter-model-library-backing-store';

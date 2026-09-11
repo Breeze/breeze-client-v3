@@ -1,7 +1,6 @@
 import { EntityManager, NamingConvention, MetadataStore, DataType, breeze, core, Entity, config } from '../src/breeze';
 import { ModelLibraryBackingStoreAdapter } from '../src/adapter-model-library-backing-store';
 import { UriBuilderJsonAdapter } from '../src/adapter-uri-builder-json';
-import { AjaxFetchAdapter } from '../src/adapter-ajax-fetch';
 import { DataServiceWebApiAdapter } from '../src/adapter-data-service-webapi';
 import { UtilFns } from './util-fns';
 
@@ -13,7 +12,6 @@ export class TestFns extends UtilFns {
   // Uncomment just one
   static defaultServerEnvName = "ASPCORE";
   // static defaultServerEnvName = "ASPWEBAPI";
-  // static defaultServerEnvName = "SEQUELIZE";
   // static defaultServerEnvName = "HIBERNATE";
 
   static serverEnvName: string;
@@ -29,7 +27,6 @@ export class TestFns extends UtilFns {
   
   static isODataServer: boolean;
   static isMongoServer: boolean;
-  static isSequelizeServer: boolean;
   static isAspCoreServer: boolean;
   static isAspWebApiServer: boolean;
   static isHibernateServer: boolean;
@@ -71,8 +68,6 @@ export class TestFns extends UtilFns {
 
     if (TestFns.isAspCoreServer) {
       TestFns.defaultServiceName = 'http://localhost:34377/breeze/NorthwindIBModel';
-    } else if (TestFns.isSequelizeServer) {
-      TestFns.defaultServiceName = 'http://localhost:3000/breeze/NorthwindIBModel';
     } else if (TestFns.isAspWebApiServer) {
       TestFns.defaultServiceName = 'http://localhost:7149/breeze/NorthwindIBModel';
       
@@ -83,7 +78,6 @@ export class TestFns extends UtilFns {
   private static calcServerTypes(serverEnvName: string) {
     TestFns.isODataServer = serverEnvName === 'ODATA';
     TestFns.isMongoServer = serverEnvName === 'MONGO';
-    TestFns.isSequelizeServer = serverEnvName === 'SEQUELIZE';
     TestFns.isAspCoreServer = serverEnvName === 'ASPCORE';
     TestFns.isAspWebApiServer = serverEnvName === 'ASPWEBAPI';
     TestFns.isHibernateServer = serverEnvName === 'HIBERNATE';
@@ -96,18 +90,16 @@ export class TestFns extends UtilFns {
     // Breeze JSON is the only supported query syntax; the OData uri builder was removed in v3.
     UriBuilderJsonAdapter.register();
 
-    AjaxFetchAdapter.register();
+    // No ajax adapter: requests go through config.fetch, globalThis.fetch by default. The
+    // integration and browser tiers therefore exercise the default path.
     DataServiceWebApiAdapter.register();
     
     // DataServiceWebApiAdapter.register();
     // UriBuilderJsonAdapter.register();
-    // AjaxFetchAdapter.register();
     // ModelLibraryBackingStoreAdapter.register();
 
     if (TestFns.isAspCoreServer || TestFns.isAspWebApiServer || TestFns.isODataServer) {
       NamingConvention.camelCase.setAsDefault();
-    } else if (TestFns.isSequelizeServer) {
-      NamingConvention.none.setAsDefault();
     } else {
       NamingConvention.camelCase.setAsDefault();
     }

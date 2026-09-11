@@ -91,9 +91,12 @@ describe("configureBreeze", () => {
     configureBreeze({ ajax: AjaxFetchAdapter });
   });
 
-  test("rejects a fetch supplied without an ajax adapter", () => {
+  test("a fetch supplied without an ajax adapter becomes config.fetch", () => {
+    // This used to throw: Breeze needed an ajax adapter to hand the function to.
     const fn: BreezeFetch = async () => new Response("{}");
-    expect(() => configureBreeze({ fetch: fn })).toThrow(/without an 'ajax' adapter/);
+    configureBreeze({ fetch: fn });
+    expect(config.fetch).toBe(fn);
+    config.fetch = undefined;
   });
 
   test("the deprecated string-based API still works alongside it", () => {

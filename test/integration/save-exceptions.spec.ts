@@ -400,9 +400,9 @@ describe("Save exception handling", () => {
       }
     });
 
-  //TestFns.skipIf("sequelize,hibernate", " is unsupported because MySQL does not support millisecond resolution").
+  //TestFns.skipIf("hibernate", " is unsupported because MySQL does not support millisecond resolution").
   // ASP Core is skipped because it does not do server validations 
-  skipTestIf(TestFns.isAspCoreServer || TestFns.isSequelizeServer || TestFns.isHibernateServer,
+  skipTestIf(TestFns.isAspCoreServer || TestFns.isHibernateServer,
   "custom data annotation validation", async function () {
     expect.hasAssertions();
 
@@ -453,9 +453,7 @@ describe("Save exception handling", () => {
       expect(em2.hasChanges()).toBeTrue();
 
       let frag;
-      if (TestFns.isSequelizeServer) {
-        frag = "SequelizeUniqueConstraintError".toLowerCase();
-      } else if (TestFns.isHibernateServer) {
+      if (TestFns.isHibernateServer) {
         frag = "duplicate entry";
       } else {
         frag = "primary key constraint";
@@ -493,8 +491,6 @@ describe("Save exception handling", () => {
       expect(em.hasChanges()).toBeTrue();
       if (TestFns.isAspCoreServer) {
         expect(error.message).toMatch(/optimistic concurrency/);
-      } else if (TestFns.isSequelizeServer) {
-        expect(error.message).toMatch(/concurrency violation/);
       } else {
         expect(error.message).toMatch('need to determine correct error message for this server type');
       }

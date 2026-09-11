@@ -28,8 +28,7 @@ npm install breeze-client        # 3.0.0
 - Subpath imports are unchanged in spelling:
   ```ts
   import { EntityManager } from 'breeze-client';
-  import { AjaxFetchAdapter } from 'breeze-client/adapter-ajax-fetch';
-  ```
+    ```
 
 ## 2. Removed: Knockout, jQuery, AngularJS and OData
 
@@ -62,37 +61,49 @@ If you need CSDL, stay on 2.x or export your metadata to Breeze JSON once and ch
 separate `breeze-client-angular` package so that Angular and RxJS are not dependencies of
 the core library. Until it ships, Angular users should stay on 2.x.
 
-## 3. Supplying your own transport
+## 3. No ajax adapter — supply a `fetch` function instead
 
-**Done, in part.** The `AjaxAdapter` interface, `AjaxConfig` and
-`config.registerAdapter("ajax", ...)` are all unchanged, so nothing you have breaks.
-
-What is new is that the fetch adapter now takes an injectable transport:
+**Done.** Breeze 3 makes every HTTP request through a single function:
 
 ```ts
 type BreezeFetch = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 ```
 
-Pass one to `configureBreeze` (see below) or to `AjaxFetchAdapter.register`:
+It defaults to `globalThis.fetch`. Supply your own with `configureBreeze`; no ajax adapter
+is needed:
 
 ```ts
 configureBreeze({
-  ajax: AjaxFetchAdapter,
-  fetch: async (input, init) => {
-    const res = await fetch(input, { ...init, headers: { ...init?.headers, Authorization: token } });
-    return res;
-  },
+  dataService: DataServiceWebApiAdapter,
+  uriBuilder: UriBuilderJsonAdapter,
+  modelLibrary: ModelLibraryBackingStoreAdapter,
+  fetch: (input, init) =>
+    fetch(input, { ...init, headers: { ...init?.headers, Authorization: token } }),
 });
 ```
 
-Use it for auth headers, retry, request signing, stubbing in tests, or to route requests
-through a framework HTTP client such as Angular's `HttpClient` so they pass through its
-interceptors. It defaults to `globalThis.fetch`.
+Use it for auth headers, retry, request signing, logging, stubbing in tests, or to route
+requests through a framework HTTP client such as Angular's `HttpClient`. It is stored as
+`config.fetch` and read on every request.
 
-***Still planned:*** retiring the `AjaxAdapter` class and the `"ajax"` registry slot
-altogether in favour of just this function, and replacing the callback-shaped `AjaxConfig`
-(`success` / `error`) with a promise. That is a larger change and will come with its own
-deprecation shim. Nothing you write against `BreezeFetch` today will be affected by it.
+**Nothing you have breaks.** The ajax adapter layer is deprecated, not removed:
+
+- `AjaxFetchAdapter`, `configureBreeze({ ajax })`, `config.registerAdapter("ajax", ...)` and
+  `initializeAdapterInstance("ajax", ...)` still work. A registered ajax adapter is used in
+  preference to `config.fetch`, and receives `fetch` as its transport if you pass both.
+- Its `defaultSettings` and `requestInterceptor` still work.
+- A custom `AjaxAdapter` still works.
+- A data service adapter that calls `this.ajaxImpl.ajax(...)` still works: with no ajax
+  adapter registered, `ajaxImpl` is a built-in one that uses `config.fetch`. New code
+  should call the promise-based `_ajax()` instead.
+
+**Registration order no longer matters.** The data service adapter used to resolve the
+ajax adapter when it initialized, so registering it first threw `Unable to find ajax
+adapter for dataservice adapter 'webApi'`. There is no longer anything to resolve.
+
+Two small changes in how requests are built, on either path: `headers` on a request's
+`AjaxConfig` are now sent (the fetch adapter used to ignore them), and a `GET` no longer
+carries a `Content-Type` header, which lets browsers skip the CORS preflight for queries.
 
 ## 4. Typed configuration
 
@@ -100,13 +111,11 @@ deprecation shim. Nothing you write against `BreezeFetch` today will be affected
 
 ```ts
 import { configureBreeze, NamingConvention } from 'breeze-client';
-import { AjaxFetchAdapter } from 'breeze-client/adapter-ajax-fetch';
 import { DataServiceWebApiAdapter } from 'breeze-client/adapter-data-service-webapi';
 import { UriBuilderJsonAdapter } from 'breeze-client/adapter-uri-builder-json';
 import { ModelLibraryBackingStoreAdapter } from 'breeze-client/adapter-model-library-backing-store';
 
 configureBreeze({
-  ajax: AjaxFetchAdapter,
   dataService: DataServiceWebApiAdapter,
   uriBuilder: UriBuilderJsonAdapter,
   modelLibrary: ModelLibraryBackingStoreAdapter,
@@ -117,14 +126,13 @@ configureBreeze({
 instead of the stringly-typed pairs:
 
 ```ts
-config.registerAdapter("ajax", AjaxFetchAdapter);
-config.initializeAdapterInstance("ajax", "fetch", true);
+config.registerAdapter("dataService", DataServiceWebApiAdapter);
+config.initializeAdapterInstance("dataService", "webApi", true);
 ```
 
 Misspell an adapter name in the old form and you get a runtime error; in the new form it
 does not compile. `configureBreeze` also takes `fetch`, `noEval`, and a `config` for
-targeting a non-global `BreezeConfig`, and it registers adapters in dependency order so
-the data service adapter can resolve the ajax adapter when it initializes.
+targeting a non-global `BreezeConfig`.
 
 **`config.registerAdapter`, `initializeAdapterInstance` and `initializeAdapterInstances`
 still work.** They are the compatibility path; existing 2.x startup code runs as-is. They
@@ -142,29 +150,17 @@ a side effect:
 
 ```ts
 // 2.x: this import alone was enough - the module called config.registerAdapter itself
-import 'breeze-client/adapter-ajax-fetch';
+import 'breeze-client/adapter-data-service-webapi';
 ```
 
 v3 modules do not touch global state on import. Registration is explicit: pass the
 adapter to `configureBreeze`, or call its `register()`.
 
-**If your startup relied on the import side effect, adapters will appear unregistered**
-and you will see errors like `Unable to find ajax adapter for dataservice adapter
-'webApi'`.
+**If your startup relied on the import side effect, adapters will appear unregistered**,
+and queries fail for want of a data service adapter.
 
-There is a second-order effect worth knowing about. Because registration used to happen
-at import time, it always happened *before* any of your `register()` calls - which
-hid ordering bugs. The data service adapter resolves the ajax adapter when it
-initializes, so this now throws:
-
-```ts
-DataServiceWebApiAdapter.register();   // resolves 'ajax' -> not registered yet
-AjaxFetchAdapter.register();
-```
-
-`configureBreeze` registers in dependency order, so it cannot go wrong that way. Two
-spec files in this repo had exactly that latent ordering bug, and only surfaced it when
-the import side effect was removed.
+In 2.x the import side effect also hid an ordering requirement: the data service adapter
+needed the ajax adapter registered before it. That no longer applies — see section 3.
 
 ## 5. Class constructors require `new`
 

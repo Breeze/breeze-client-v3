@@ -259,9 +259,7 @@ describe("Save Basics", () => {
     expect(true).toBe(true);
   }
 
-  // Unable to negate an expression that requires a Sequelize 'include'
-  skipTestIf(TestFns.isSequelizeServer, 
-    "add entity with enum and related - UserRole", async function () {
+  test("add entity with enum and related - UserRole", async function () {
     expect.hasAssertions();
 
     const em = TestFns.newEntityManager();
@@ -293,7 +291,7 @@ describe("Save Basics", () => {
   });
 
   // don't yet support enums
-  skipTestIf(TestFns.isSequelizeServer || TestFns.isODataServer,
+  skipTestIf(TestFns.isODataServer,
     "new entity with enum", async function () {
     expect.hasAssertions();
 
@@ -581,7 +579,7 @@ describe("Save Basics", () => {
   });
 
   // does not yet support computed properties
-  skipTestIf(TestFns.isSequelizeServer || TestFns.isHibernateServer,
+  skipTestIf(TestFns.isHibernateServer,
    "computed update", async function () {
     expect.hasAssertions();
 
@@ -605,7 +603,7 @@ describe("Save Basics", () => {
   });
 
   // does not yet support computed properties
-  skipTestIf(TestFns.isSequelizeServer || TestFns.isHibernateServer,
+  skipTestIf(TestFns.isHibernateServer,
     "computed update - mod computed", async function () {
     expect.hasAssertions();
 
@@ -630,7 +628,7 @@ describe("Save Basics", () => {
   });
 
   // does not yet support computed properties
-  skipTestIf(TestFns.isSequelizeServer || TestFns.isHibernateServer,
+  skipTestIf(TestFns.isHibernateServer,
     "computed insert", async function () {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
@@ -762,8 +760,7 @@ describe("Save Basics", () => {
   });
 
   //TestFns.skipIf("odata", "does not support server interception or alt resources").
-  // Sequelize server has not yet impl SaveWithAuditXXX
-  skipTestIf(TestFns.isSequelizeServer || TestFns.isODataServer, 
+  skipTestIf(TestFns.isODataServer, 
     "set audit field on user create", async function () {
     expect.hasAssertions();
 
@@ -805,8 +802,7 @@ describe("Save Basics", () => {
 
 
   //TestFns.skipIf("odata", "does not support server interception or alt resources").
-  // Sequelize server has not yet impl SaveWithAuditXXX
-  skipTestIf(TestFns.isSequelizeServer || TestFns.isODataServer, 
+  skipTestIf(TestFns.isODataServer, 
     "set audit field on user update", async function () {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
@@ -824,7 +820,6 @@ describe("Save Basics", () => {
   });
 
   //TestFns.skipIf("odata", "does not support server interception or alt resources").
-  // TODO: may fail in Sequelize because of side effect with other tests - not sure why
   test("with alt resource and server side add", async function () {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
@@ -999,7 +994,7 @@ describe("Save Basics", () => {
   });
 
   // is unsupported because MySQL does not support millisecond resolution").
-  skipTestIf(TestFns.isSequelizeServer || TestFns.isHibernateServer, 
+  skipTestIf(TestFns.isHibernateServer, 
     "data with millseconds - UTC time - IE bug", async function () {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
@@ -1030,7 +1025,7 @@ describe("Save Basics", () => {
   });
 
   // is unsupported because MySQL does not support millisecond resolution").
-  skipTestIf(TestFns.isSequelizeServer || TestFns.isHibernateServer, 
+  skipTestIf(TestFns.isHibernateServer, 
     "data with millseconds - local time", async function () {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
@@ -1192,8 +1187,6 @@ describe("Save Basics", () => {
       } else if (TestFns.isHibernateServer) {
         expect(msg).toMatch(/Row was updated or deleted by another transaction/);
         
-      } else if (TestFns.isSequelizeServer) {
-        expect(msg).toMatch(/concurrency violation/);
       } else {
         throw new Error('unknown server');
       }
@@ -1201,10 +1194,7 @@ describe("Save Basics", () => {
 
   });
 
-  // Issue with Sequelize on this one because Sequelize seems to run both under
-  // same trx... not sure... but it might have to do with Isolation levels ...
-  skipTestIf(TestFns.isSequelizeServer,
-    "allow concurrent saves with NO concurrency column", async function () {
+  test("allow concurrent saves with NO concurrency column", async function () {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
     em.saveOptions = new SaveOptions({ allowConcurrentSaves: true });
@@ -1454,9 +1444,9 @@ describe("Save Basics", () => {
   });
 
 
-  // hibernate,sequelize: do not have a TimeGroup table
+  // hibernate: do not have a TimeGroup table
   // odata: does not support this feature
-  skipTestIf(TestFns.isSequelizeServer || TestFns.isHibernateServer || TestFns.isODataServer, 
+  skipTestIf(TestFns.isHibernateServer || TestFns.isODataServer, 
    "insert using existing entity re-attached", async function () {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();

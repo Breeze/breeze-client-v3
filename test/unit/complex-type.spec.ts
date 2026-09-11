@@ -13,7 +13,7 @@ import { UriBuilderJsonAdapter } from '../../src/adapter-uri-builder-json';
 import { DataServiceWebApiAdapter } from '../../src/adapter-data-service-webapi';
 // import { AjaxFakeAdapter } from '../support/adapter-ajax-fake';  // OK
 import { AjaxFakeAdapter } from '../support/adapter-ajax-fake';    // OK
-import { TestFns, skipDescribeIf } from '../test-fns';
+import '../test-fns'; // loaded for its side effects (adapter registration, sample metadata)
 // import { AjaxFakeAdapter } from '../../src/adapter-ajax-fake'; // BAD
 
 // configureBreeze registers in dependency order: the data service adapter resolves
@@ -28,8 +28,7 @@ configureBreeze({
 
 import metadata from '../support/ComplexTypeMetadata.json';
 
-// Sequelize does not support complex types.
-skipDescribeIf(TestFns.isSequelizeServer, 'ComplexType', () => {
+describe('ComplexType', () => {
   beforeEach(() => { 
     
   });

@@ -1,5 +1,5 @@
 import { Entity, EntityQuery, EntityType, MetadataStore, Predicate, breeze, MergeStrategy, DataProperty, NavigationProperty, core, QueryOptions, EntityManager, EntityKey, FetchStrategy, EntityState, FilterQueryOp } from '../../src/breeze';
-import { TestFns, skipTestIf, skipDescribeIf } from '../test-fns';
+import { TestFns, skipDescribeIf } from '../test-fns';
 
 TestFns.initServerEnv();
 
@@ -27,9 +27,7 @@ describe("Query Select clause", () => {
 
   });
 
-  // testFns.skipIf("sequelize", "does not yet support complex types").
-  skipTestIf(TestFns.isSequelizeServer ,
-    "complex type", async function () {
+  test("complex type", async function () {
     expect.hasAssertions();
 
     const em = TestFns.newEntityManager();
@@ -59,26 +57,14 @@ describe("Query Select clause", () => {
       name: "foo",
 
       visitNode: function (node) {
-        if (TestFns.isSequelizeServer) {
-          // no casing change and no node.$id
-          if (node.creationDate) { // node.$id doesn't exist on Sequelize
-            node.creationDate = breeze.DataType.parseDateFromServer(node.creationDate);
-            const dt = breeze.DataType.parseDateFromServer(node.modificationDate);
-            if (!isNaN(dt.getTime())) {
-              node.modificationDate = dt;
-            }
+        if (node.$id) {
+          node.CreationDate = breeze.DataType.parseDateFromServer(node.CreationDate);
+          const dt = breeze.DataType.parseDateFromServer(node.ModificationDate);
+          if (!isNaN(dt.getTime())) {
+            node.ModificationDate = dt;
           }
-          return null;
-        } else {
-          if (node.$id) { // node.$id doesn't exist on Sequelize
-            node.CreationDate = breeze.DataType.parseDateFromServer(node.CreationDate);
-            const dt = breeze.DataType.parseDateFromServer(node.ModificationDate);
-            if (!isNaN(dt.getTime())) {
-              node.ModificationDate = dt;
-            }
-          }
-          return null;
         }
+        return null;
       }
     });
     const query = new EntityQuery()
@@ -207,9 +193,7 @@ describe("Query Select clause", () => {
         if (TestFns.isAspCoreServer || TestFns.isAspWebApiServer) {
           expect(typeof (a.customer_CompanyName)).toBe('string');
         }
-        else if (TestFns.isSequelizeServer) {
-          expect(typeof (a["customer.companyName"])).toBe('string');
-        } else {
+        else {
           expect(typeof (a["customer.companyName"])).toBe('string');
         }
       }
@@ -233,7 +217,6 @@ describe("Query Select clause", () => {
   });
 
 
-  // TODO: this should fail on Sequelize but doesn't but the category returned may not be correct...
   test("with expand should fail with good msg", async function () {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();

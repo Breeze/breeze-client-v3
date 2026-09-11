@@ -13,7 +13,6 @@ signing, logging, or to route requests through a framework's HTTP client.
 
 ```ts
 import { configureBreeze, BreezeFetch } from 'breeze-client';
-import { AjaxFetchAdapter } from 'breeze-client/adapter-ajax-fetch';
 
 const authFetch: BreezeFetch = (input, init) =>
   fetch(input, {
@@ -21,7 +20,7 @@ const authFetch: BreezeFetch = (input, init) =>
     headers: { ...init?.headers, Authorization: `Bearer ${getToken()}` },
   });
 
-configureBreeze({ ajax: AjaxFetchAdapter, fetch: authFetch, /* ...the rest */ });
+configureBreeze({ fetch: authFetch, /* ...the rest */ });
 ```
 
 Because the token is read inside the function, it picks up refreshes without
@@ -53,7 +52,7 @@ const fakeFetch: BreezeFetch = async (input) => {
   });
 };
 
-configureBreeze({ ajax: AjaxFetchAdapter, fetch: fakeFetch });
+configureBreeze({ fetch: fakeFetch });
 ```
 
 ## Angular's HttpClient
@@ -79,27 +78,29 @@ This is deliberately a sketch rather than a supported adapter — the response m
 depends on what your interceptors do. A supported `breeze-client-angular` package is
 planned.
 
-## Setting it directly on the adapter
+## Setting it directly
 
-`configureBreeze({ fetch })` hands the function to the ajax adapter. You can also pass it
-to `register()`:
+`configureBreeze({ fetch })` stores the function as `config.fetch`. Breeze reads it on
+every request, so assigning it later works too:
 
 ```ts
-AjaxFetchAdapter.register(undefined, myFetch);
+import { config } from 'breeze-client';
+
+config.fetch = myFetch;
 ```
 
-or set it on an instance:
+## The deprecated ajax adapter
+
+Breeze 2.x routed requests through an *ajax adapter*. Breeze 3 does not need one, but
+`AjaxFetchAdapter` is still there so that 2.x startup code keeps working. If you register
+it — `configureBreeze({ ajax: AjaxFetchAdapter })`, `AjaxFetchAdapter.register()` or
+`config.initializeAdapterInstance('ajax', 'fetch')` — Breeze uses it instead of
+`config.fetch`, and its two older hooks still work:
 
 ```ts
-const adapter = config.getAdapterInstance<AjaxAdapter>('ajax') as AjaxFetchAdapter;
-adapter.fetchFn = myFetch;
-```
+import { config, type AjaxAdapter } from 'breeze-client';
+import { AjaxFetchAdapter } from 'breeze-client/adapter-ajax-fetch';
 
-## Default headers and request interception
-
-Two older hooks remain on the adapter and still work:
-
-```ts
 const adapter = config.getAdapterInstance<AjaxAdapter>('ajax') as AjaxFetchAdapter;
 
 // merged into every request
@@ -114,12 +115,5 @@ adapter.requestInterceptor = (requestInfo) => {
 `requestInterceptor` can also cancel a request by setting `requestInfo.config` to null,
 and setting `oneTime` on it makes Breeze discard it after a single use.
 
-For new code prefer a custom `fetch` — it is one plain function, easier to test, and does
-not depend on adapter internals.
-
-## What is planned
-
-The `AjaxAdapter` class and the `"ajax"` registry slot will eventually be retired in
-favour of `BreezeFetch` alone, and the callback-shaped `AjaxConfig` replaced by a promise.
-Anything written against `BreezeFetch` today is unaffected by that change; anything
-implementing `AjaxAdapter` directly will need migrating, with a deprecation shim provided.
+Both hooks are deprecated. A `fetch` function does either job in one plain function —
+add the header, or change the init, before calling through — and is easier to test.

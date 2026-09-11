@@ -1,4 +1,5 @@
-﻿import { core } from './core';
+﻿import type { BreezeFetch } from './interface-registry';
+import { core } from './core';
 import { assertParam  } from './assert-param';
 import { BreezeEvent } from './event';
 
@@ -61,6 +62,11 @@ export class BreezeConfig {
     stringifyPad = '';
     /** whether to prohibit eval() and Function() in breeze code */
     noEval: boolean;
+    /**
+     * The function Breeze makes HTTP requests with, unless a (deprecated) ajax adapter is
+     * registered. Set it with `configureBreeze({ fetch })`. When unset, `globalThis.fetch`.
+     */
+    fetch?: BreezeFetch;
     /** @hidden @internal */
     _interfaceRegistry: any;  // will be set in adapter-interfaces. untyped here to avoid circularity issues.
 

@@ -11,7 +11,7 @@ The suite lives in this repo. Most of it also needs the **.NET test server** and
 ## TL;DR
 
 ```bash
-npm run test:unit      # 196 tests, ~3s, needs nothing at all
+npm run test:unit      # 204 tests, ~3s, needs nothing at all
 ```
 
 That is the loop to work in. For the rest you need the database and server running:
@@ -29,7 +29,7 @@ dotnet run --project tests/Test.AspNetCore.EFCore/Test.AspNetCore.EFCore.csproj 
 then, from this repo:
 
 ```bash
-npm test               # 644 tests
+npm test               # 652 tests
 ```
 
 ---
@@ -142,18 +142,21 @@ recreating the database by hand** — otherwise those tables are empty.
 
 | command | tests | needs a server? | time |
 |---|---|---|---|
-| `npm run test:unit` | 196 | **no** | ~3s |
+| `npm run test:unit` | 204 | **no** | ~3s |
 | `npm run test:integration` | 455 | yes | ~25s |
-| `npm test` | 651 | yes | ~28s |
-| `npm run test:browser` | 651 | yes | ~30s |
-| `npm run test:watch` | 196 | no | watch mode |
+| `npm test` | 659 | yes | ~28s |
+| `npm run test:browser` | 659 | yes | ~30s |
+| `npm run test:watch` | 204 | no | watch mode |
 
-7 tests are skipped by design — they target server backends (Sequelize, NHibernate) that
-this configuration does not run.
+7 tests are skipped by design. Five are skipped on the ASP.NET Core server: three need
+server-side validation, which that server does not perform; one needs a named-query endpoint
+it does not implement; one checks the handling of a bad-parameter error that is not finished
+yet. The other two are always skipped: one is awaiting review, and one covers a known bug
+(`bugs.spec.ts`).
 
 ### The unit tier
 
-`test/unit/` — 16 files that need nothing. They work against checked-in metadata fixtures,
+`test/unit/` — 17 files that need nothing. They work against checked-in metadata fixtures,
 or against `AjaxFakeAdapter` where a response is required. No database, no server, files
 run in parallel. **This is the tier to iterate against.**
 
@@ -209,11 +212,6 @@ the previous run left behind.
 ---
 
 ## Troubleshooting
-
-**`Unable to find ajax adapter for dataservice adapter 'webApi'`**
-Registration order. The data service adapter resolves the ajax adapter when it
-initializes, so ajax must be registered first. Use `configureBreeze`, which orders them
-correctly by construction. In v3, importing an adapter module no longer registers it.
 
 **Every integration test fails to reach the server**
 The server is not running, or not on 34377. Check

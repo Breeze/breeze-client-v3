@@ -15,17 +15,15 @@ esbuild, Rollup) or native `import`. There is no UMD bundle and no `<script>` ta
 
 ## Configure
 
-Breeze needs four adapters wired up before you use it. Do this once, at startup:
+Breeze needs three adapters wired up before you use it. Do this once, at startup:
 
 ```ts
 import { configureBreeze, NamingConvention } from 'breeze-client';
-import { AjaxFetchAdapter } from 'breeze-client/adapter-ajax-fetch';
 import { DataServiceWebApiAdapter } from 'breeze-client/adapter-data-service-webapi';
 import { UriBuilderJsonAdapter } from 'breeze-client/adapter-uri-builder-json';
 import { ModelLibraryBackingStoreAdapter } from 'breeze-client/adapter-model-library-backing-store';
 
 configureBreeze({
-  ajax: AjaxFetchAdapter,
   dataService: DataServiceWebApiAdapter,
   uriBuilder: UriBuilderJsonAdapter,
   modelLibrary: ModelLibraryBackingStoreAdapter,
@@ -33,8 +31,10 @@ configureBreeze({
 });
 ```
 
-Those four choices mean, respectively: use `fetch` for HTTP, talk to a Breeze .NET
-server, encode queries as Breeze JSON, and track changes with plain properties.
+Those three choices mean, respectively: talk to a Breeze .NET server, encode queries as
+Breeze JSON, and track changes with plain properties. HTTP requests go through the
+platform's `fetch`; to add auth headers or logging, see
+[Supplying your own transport](/server/transport).
 
 `namingConvention: NamingConvention.camelCase` translates `CompanyName` on the server to
 `companyName` on the client. Use it with a .NET server; omit it if your server already

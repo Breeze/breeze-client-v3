@@ -24,13 +24,11 @@ The examples use [Vitest](https://vitest.dev) and the Northwind model.
 ```ts
 // test/breeze-setup.ts
 import { configureBreeze, NamingConvention } from 'breeze-client';
-import { AjaxFetchAdapter } from 'breeze-client/adapter-ajax-fetch';
 import { DataServiceWebApiAdapter } from 'breeze-client/adapter-data-service-webapi';
 import { UriBuilderJsonAdapter } from 'breeze-client/adapter-uri-builder-json';
 import { ModelLibraryBackingStoreAdapter } from 'breeze-client/adapter-model-library-backing-store';
 
 configureBreeze({
-  ajax: AjaxFetchAdapter,
   dataService: DataServiceWebApiAdapter,
   uriBuilder: UriBuilderJsonAdapter,
   modelLibrary: ModelLibraryBackingStoreAdapter,
@@ -212,7 +210,6 @@ when the stub has to return entities:
 ```ts
 import { beforeAll, expect, test } from 'vitest';
 import { configureBreeze, BreezeFetch, EntityQuery } from 'breeze-client';
-import { AjaxFetchAdapter } from 'breeze-client/adapter-ajax-fetch';
 import { newEntityManager } from './breeze-helpers';
 
 const requests: string[] = [];
@@ -234,7 +231,7 @@ const fakeFetch: BreezeFetch = async (input) => {
 };
 
 beforeAll(() => {
-  configureBreeze({ ajax: AjaxFetchAdapter, fetch: fakeFetch });
+  configureBreeze({ fetch: fakeFetch });
 });
 
 test('customer search', async () => {
@@ -260,8 +257,8 @@ realistic save *result* means reproducing your server's response JSON, so captur
 one from your browser's network tab and use it as a fixture.
 
 ::: tip Changed in 3.0
-Breeze does not export a fake ajax adapter. A `fetch` function passed to `configureBreeze`
-does the same job and doesn't depend on adapter internals.
+Breeze 3 needs no ajax adapter at all, so there is no fake one to register. A `fetch`
+function passed to `configureBreeze` stands in for the server.
 :::
 
 ## Breeze's own tests

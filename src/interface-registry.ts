@@ -93,7 +93,8 @@ export interface AjaxConfig {
     error: (res: (HttpResponse | Error)) => void;
 }
 
-/** Request sent by AjaxAdapter */
+/** Request sent by AjaxAdapter.
+    @deprecated Part of the ajax adapter contract, which Breeze 3 no longer needs. */
 export interface AjaxRequest {
     /** AjaxAdapter that initiated the request */
     adapter: AjaxAdapter;
@@ -115,7 +116,9 @@ export interface AjaxRequest {
  */
 export type BreezeFetch = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 
-/** Handles AJAX requests to server */
+/** Handles AJAX requests to server.
+    @deprecated Breeze 3 needs no ajax adapter: requests go through `config.fetch`. Set it with
+    `configureBreeze({ fetch })`. */
 export interface AjaxAdapter extends BaseAdapter {
     /** Function that performs the ajax request and calls the success or error function */
     ajax(config: AjaxConfig): void;
@@ -142,7 +145,8 @@ export interface DataServiceAdapter extends BaseAdapter {
     jsonResultsAdapter: JsonResultsAdapter;
 }
 
-/** Function called by AjaxAdapter before sending request */
+/** Function called by AjaxAdapter before sending request.
+    @deprecated Wrap the fetch function instead - see `configureBreeze({ fetch })`. */
 export interface AjaxRequestInterceptor {
     (req: AjaxRequest) : void;
     /** Whether to remove the interceptor after it is called */

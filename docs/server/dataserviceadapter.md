@@ -27,19 +27,16 @@ return a native one.
 
 ```ts
 import { configureBreeze } from 'breeze-client';
-import { AjaxFetchAdapter } from 'breeze-client/adapter-ajax-fetch';
 import { DataServiceWebApiAdapter } from 'breeze-client/adapter-data-service-webapi';
 
 configureBreeze({
-  ajax: AjaxFetchAdapter,
   dataService: DataServiceWebApiAdapter,
   /* ...uriBuilder, modelLibrary */
 });
 ```
 
-A data service adapter looks up the ajax adapter when it initializes, so ajax has to be
-registered first. `configureBreeze` does that for you — see
-[Configuration](/guide/configuration).
+Requests go through `config.fetch`, so there is no ajax adapter to register first. See
+[Supplying your own transport](/server/transport).
 
 `configureBreeze` makes the adapter the default for every `DataService`. To use a second
 adapter for one service only, register it without making it the default, and name it in
@@ -66,7 +63,7 @@ adapter that is not the default.
 | Member | Purpose |
 |---|---|
 | `name` | The adapter's name, used in registration and in `DataService.adapterName`. Set it in the constructor: registration creates a throwaway instance just to read it. |
-| `initialize()` | Called when Breeze creates the instance. `AbstractDataServiceAdapter` looks up the default ajax adapter here, and throws `Unable to find ajax adapter for dataservice adapter '<name>'` if there isn't one. |
+| `initialize()` | Called when Breeze creates the instance. `AbstractDataServiceAdapter` picks up a registered (deprecated) ajax adapter here if there is one; otherwise requests go through `config.fetch`. |
 | `checkForRecomposition(args)` | Optional. Called whenever any adapter is initialized. `AbstractDataServiceAdapter` runs `initialize()` again when a new default ajax adapter is registered. |
 | `fetchMetadata(metadataStore, dataService)` | Returns a promise for the raw metadata. |
 | `executeQuery(mappingContext)` | Returns a promise for a query result. |
@@ -200,9 +197,9 @@ protected _ajax(
 ): Promise<HttpResponse>
 ```
 
-- `config` takes `url`, `type` (the HTTP method), `data`, `contentType` and `params`. The
-  fetch adapter ignores `headers`, `dataType` and `crossDomain`. To add headers, supply a
-  custom [transport](/server/transport).
+- `config` takes `url`, `type` (the HTTP method), `data`, `contentType` and `params`, and
+  `headers`, which are sent with that one request. `dataType` and `crossDomain` are
+  ignored. For headers on every request, supply a custom [transport](/server/transport).
 - `errorMessagePrefix` goes at the start of the error message if the request fails.
 - `prepareResponse` runs on the response before the promise settles, on success or
   failure. `saveChanges` uses it to attach the `saveContext`, so that errors can report
@@ -316,7 +313,6 @@ Register it like any other adapter:
 
 ```ts
 configureBreeze({
-  ajax: AjaxFetchAdapter,
   dataService: ChangeSetAdapter,
   uriBuilder: UriBuilderJsonAdapter,
   modelLibrary: ModelLibraryBackingStoreAdapter,
@@ -395,12 +391,10 @@ class ClearOriginalNotes implements ChangeRequestInterceptor {
 ```
 
 To install it, you need the adapter instance, which `register()` returns. Leave
-`dataService` out of `configureBreeze`, and register the adapter yourself afterwards, once
-ajax is registered:
+`dataService` out of `configureBreeze`, and register the adapter yourself:
 
 ```ts
 configureBreeze({
-  ajax: AjaxFetchAdapter,
   uriBuilder: UriBuilderJsonAdapter,
   modelLibrary: ModelLibraryBackingStoreAdapter,
 });
@@ -422,8 +416,7 @@ An interceptor without `getRequest` or `done` makes the save throw.
 
 ### Which interceptor?
 
-You can also change requests at the transport level, with a custom `fetch` or the ajax
-adapter's `requestInterceptor` — see [Supplying your own transport](/server/transport).
+You can also change requests at the transport level, with a custom `fetch` — see [Supplying your own transport](/server/transport).
 That sees every request, including metadata and queries, but only as a URL and a body,
 with no context.
 

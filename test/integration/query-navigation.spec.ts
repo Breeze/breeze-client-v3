@@ -1,4 +1,4 @@
-import { Entity, EntityQuery, EntityType, MetadataStore, Predicate, breeze, MergeStrategy, DataProperty, NavigationProperty, NamingConvention } from '../../src/breeze';
+import { Entity, EntityQuery, EntityType, MetadataStore, Predicate, breeze, MergeStrategy, DataProperty, NavigationProperty } from '../../src/breeze';
 import { TestFns, skipTestIf } from '../test-fns';
 
 function ok(a: any, b?: any) {
@@ -233,9 +233,6 @@ describe("Query Navigation", () => {
 
 function buildUnidirectionalMetadataStore(isBossVersion: boolean) {
   const ms = new MetadataStore();
-  if (TestFns.isSequelizeServer) {
-    ms.namingConvention = NamingConvention.none;
-  }
   ms.addEntityType({
     shortName: "Employee",
     namespace: "Foo",

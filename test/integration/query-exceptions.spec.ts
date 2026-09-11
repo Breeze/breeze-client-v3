@@ -140,8 +140,6 @@ describe("Entity Query Exceptions", () => {
         expect(msg).toMatch(/unable to locate/);
       } else if (TestFns.isODataServer) {
         expect(msg).toMatch(/not found/);
-      } else if (TestFns.isSequelizeServer) {
-        expect(msg).toMatch(/cannot find an entitytype/);
       } else if (TestFns.isHibernateServer) {
         expect(msg).toMatch(/no entitytype name registered/);
       } else if (TestFns.isAspCoreServer) {

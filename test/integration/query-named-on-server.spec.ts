@@ -150,8 +150,8 @@ describe("Queries with named endpoints on the server", function () {
   });
 
   // endpoint has not yet been implemented
-  // testFns.skipIf("mongo,sequelize,hibernate", " endpoint has not yet been implemented").
-  skipTestIf(TestFns.isSequelizeServer || TestFns.isHibernateServer,
+  // testFns.skipIf("mongo,hibernate", " endpoint has not yet been implemented").
+  skipTestIf(TestFns.isHibernateServer,
     "with parameter and count", async function () {
       expect.hasAssertions();
       const em = TestFns.newEntityManager();
@@ -256,7 +256,7 @@ describe("Queries with named endpoints on the server", function () {
         await em.executeQuery(q);
         throw new Error("should not get here");
       } catch (e) {
-        if (TestFns.isSequelizeServer || TestFns.isHibernateServer) {
+        if (TestFns.isHibernateServer) {
           expect(e.message).toMatch(/companyName/);
         } else {
           expect(e.message).toMatch(/foo/);
@@ -290,7 +290,7 @@ describe("Queries with named endpoints on the server", function () {
     const data = await query.execute();
     const names = data.results;
     expect(names.length).toBeGreaterThan(0);
-    if (TestFns.isSequelizeServer || TestFns.isHibernateServer) {
+    if (TestFns.isHibernateServer) {
       const cname = names[0].companyName;
       expect(typeof cname).toBe("string");
     } else {
@@ -329,7 +329,7 @@ describe("Queries with named endpoints on the server", function () {
   });
 
   // This is a .NET only test
-  skipTestIf(TestFns.isSequelizeServer || TestFns.isHibernateServer,
+  skipTestIf(TestFns.isHibernateServer,
     "project enumerables", async function () {
       expect.hasAssertions();
 
@@ -347,7 +347,7 @@ describe("Queries with named endpoints on the server", function () {
     });
 
   // This is a .NET only test
-  skipTestIf(TestFns.isSequelizeServer || TestFns.isHibernateServer,
+  skipTestIf(TestFns.isHibernateServer,
     "project enumerables with filter", async function () {
       expect.hasAssertions();
       const em = TestFns.newEntityManager();

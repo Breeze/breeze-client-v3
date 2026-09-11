@@ -1,5 +1,5 @@
 import { Entity, EntityQuery, Predicate } from '../../src/breeze';
-import { TestFns, skipDescribeIf, skipTestIf } from '../test-fns';
+import { TestFns, skipDescribeIf } from '../test-fns';
 import { UtilFns } from '../util-fns';
 import { skip } from 'rxjs/operators';
 
@@ -28,9 +28,7 @@ describe( "Query Any/All predicates", () => {
     expect(emps.length >= 1 && emps.length <= 10).toBe(true);
   });
 
-  // The 'all' predicate is not currently supported for Sequelize
-  skipTestIf(TestFns.isSequelizeServer, 
-    "any can be expressed as not all", async function () {
+  test("any can be expressed as not all", async function () {
     expect.hasAssertions();
     const maxFreight = 800;
     const em = TestFns.newEntityManager();
@@ -60,9 +58,7 @@ describe( "Query Any/All predicates", () => {
     expect(isOk).toBe(true);
   });
 
-  // The 'all' predicate is not currently supported for Sequelize
-  skipTestIf(TestFns.isSequelizeServer, 
-    "any with territories/regions and inverse with all", async function () {
+  test("any with territories/regions and inverse with all", async function () {
     expect.hasAssertions();
     const maxFreight = 800;
     const em = TestFns.newEntityManager();
@@ -111,9 +107,7 @@ describe( "Query Any/All predicates", () => {
 
   });
 
-// The 'all' predicate is not currently supported for Sequelize
-  skipTestIf(TestFns.isSequelizeServer, 
-  "all with composite predicates ", async function () {
+  test("all with composite predicates ", async function () {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
     const p2 = Predicate.create("freight", ">", 10);
@@ -135,9 +129,7 @@ describe( "Query Any/All predicates", () => {
 
   });
 
-  // Unable to negate an expression that requires a Sequelize 'include'
-  skipTestIf(TestFns.isSequelizeServer, 
-    "any with not", async function () {
+  test("any with not", async function () {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
     // customers with no orders
@@ -155,9 +147,7 @@ describe( "Query Any/All predicates", () => {
     expect(isOk).toBe(true); //, "arrays should have the same contents");
   });
 
-  // The 'all' predicate is not currently supported for Sequelize
-  skipTestIf(TestFns.isSequelizeServer, 
-    "any with != null", async function () {
+  test("any with != null", async function () {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
     // customers with no orders

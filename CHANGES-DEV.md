@@ -231,9 +231,8 @@ All the callback plumbing collapsed into **one** method:
 protected _ajax(config, errorMessagePrefix?, prepareResponse?): Promise<HttpResponse>
 ```
 
-This is deliberately the single seam. When `AjaxAdapter` is eventually replaced by a plain
-`BreezeFetch`, `_ajax` is the only method that has to change — the three callers already
-speak promises.
+This is deliberately the single seam: the only method that deals in callbacks. See
+[The ajax adapter is optional](#the-ajax-adapter-is-optional).
 
 `handleHttpError(reject, response, prefix)` split into `makeHttpError(response, prefix)`,
 which *builds* the error, plus a thin deprecated `handleHttpError` that rejects with it.
@@ -252,3 +251,30 @@ error is constructed.
 was already rejected, so the only effect was registering a data service whose metadata had
 just failed to import. The `async` version throws, so that line no longer runs. This is a
 behaviour change, and an intended one.
+
+## The ajax adapter is optional
+
+`src/http.ts` is now the one implementation of an HTTP request. `toFetchArgs` turns
+Breeze's request description (`AjaxConfig` without the callbacks) into a fetch call, and
+`sendFetch` reads the response into an `HttpResponse`, resolving with an outcome rather
+than ever rejecting. `AjaxFetchAdapter` moved there and is built on those two functions;
+`adapter-ajax-fetch.ts` is a re-export, kept for the published subpath.
+
+`AbstractDataServiceAdapter.initialize()` takes the registered default ajax adapter if
+there is one, and otherwise `builtinAjax`: an `AjaxFetchAdapter` whose transport reads
+`config.fetch` on each call. It no longer throws, which removes the registration-order
+trap. `_ajax` still reaches the network through `ajaxImpl` and its callbacks. That is now
+only a compatibility layer, and keeping it is what lets a custom ajax adapter,
+`AjaxPostWrapper`, and subclasses that call `this.ajaxImpl.ajax` directly keep working.
+
+Not done, deliberately: the `"ajax"` registry slot, `AjaxAdapter` and
+`AjaxRequestInterceptor` remain, marked `@deprecated`. Removing them would break 2.x
+startup code for no runtime gain.
+
+`http.ts` imports `./config` and `./core` directly, never the `./breeze` barrel: the
+abstract data service adapter depends on it, and the barrel depends on that.
+
+The test suite no longer registers an ajax adapter (`test/test-fns.ts`), so the
+integration and browser tiers exercise the default path. `fetch-transport.spec.ts` covers
+it without a server; the specs that use `AjaxFakeAdapter` keep covering the deprecated
+slot.

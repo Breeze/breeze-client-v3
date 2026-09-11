@@ -31,7 +31,7 @@ parsing. See [Migrating from 2.x](/guide/migrating-from-2x).
 | `DataService` | which service: its URL, which adapter talks to it, whether it serves metadata | created for you from the service name | [below](#dataservice) |
 | data service adapter | what requests look like and how responses are read | `DataServiceWebApiAdapter` (`'webApi'`) | [DataServiceAdapter](/server/dataserviceadapter) |
 | URI builder | turns an `EntityQuery` into a URL | `UriBuilderJsonAdapter` (`'json'`) | [Configuration](/guide/configuration) |
-| ajax adapter | makes the HTTP request | `AjaxFetchAdapter` (`'fetch'`) | [Supplying your own transport](/server/transport) |
+| `fetch` function | makes the HTTP request | `globalThis.fetch`, or yours via `configureBreeze({ fetch })` | [Supplying your own transport](/server/transport) |
 | `JsonResultsAdapter` | finds the entities in the JSON, and their types | supplied by the data service adapter | [Transforming JSON results](/server/jsonresultsadapter) |
 | `NamingConvention` | translates property names between server and client | `none`, `camelCase` | [Naming conventions](/server/namingconvention) |
 
@@ -51,7 +51,8 @@ const { results } = await em.executeQuery(EntityQuery.from('Customers').take(10)
 3. The data service adapter builds the request. Normally the URI builder puts the query
    in the URL: `GET {serviceName}/Customers?{...}`. With `query.usePost()` the query goes
    in a POST body instead.
-4. The ajax adapter sends the request, through your `BreezeFetch` if you supplied one.
+4. The request goes out through `config.fetch`: `globalThis.fetch`, unless you supplied
+   your own.
 5. The `JsonResultsAdapter` picks the results out of the response and identifies which
    nodes are entities. Breeze creates or updates those entities in the cache, reading
    property names through the `NamingConvention`.
@@ -195,7 +196,7 @@ packages, building, and upgrading from the 7.x server.
 
 ## Other servers
 
-Breeze 2.x also had Node.js (Sequelize) and Java (Hibernate) servers. They are not covered
+Breeze 2.x also had Node.js and Java servers. They are not covered
 here, and have not been verified with Breeze 3.
 
 `DataServiceWebApiAdapter` works with any server that speaks the same JSON as the Breeze

@@ -1,5 +1,6 @@
 ﻿import { core } from './core';
 import { config } from './config';
+import { builtinAjax } from './http';
 import { EntityQuery } from './entity-query';
 import { DataServiceAdapter, AjaxAdapter, AjaxConfig, ChangeRequestInterceptorCtor, ChangeRequestInterceptor } from './interface-registry';
 import { Entity } from './entity-aspect';
@@ -17,7 +18,12 @@ export abstract class AbstractDataServiceAdapter implements DataServiceAdapter {
   declare _$impl?: any;
   /** The name of this adapter. */
   declare name: string;
-  /** The {@link AjaxAdapter} used by this {@link DataServiceAdapter}. */
+  /**
+   * The ajax adapter requests go through: the registered default if there is one, otherwise
+   * a built-in one that uses `config.fetch`.
+   * @deprecated Make requests with `_ajax`, and supply the transport with
+   * `configureBreeze({ fetch })`.
+   */
   declare ajaxImpl: AjaxAdapter;
 
   // TODO use interface
@@ -28,21 +34,18 @@ export abstract class AbstractDataServiceAdapter implements DataServiceAdapter {
   }
 
   initialize() {
-    this.ajaxImpl = config.getAdapterInstance<AjaxAdapter>("ajax") !;
-
-    // don't cache 'ajax' because then we would need to ".bind" it, and don't want to because of brower support issues.
-    if (this.ajaxImpl) {
-      return;
-    }
-    throw new Error("Unable to find ajax adapter for dataservice adapter '" + (this.name || '') + "'.");
+    // An ajax adapter is optional. A registered one (deprecated) is used if there is one;
+    // otherwise requests go through config.fetch, which defaults to globalThis.fetch. This
+    // is also why registration order no longer matters: there is nothing to resolve.
+    this.ajaxImpl = config.getAdapterInstance<AjaxAdapter>("ajax") || builtinAjax;
   }
 
   /**
-   * Promise wrapper over the callback-shaped AjaxAdapter contract.
+   * Sends one request. Resolves with the response, or rejects with a `ServerError`.
    *
-   * This is the only place in the class that deals in success/error callbacks; every
-   * caller above works with promises. When AjaxAdapter is eventually replaced by a
-   * plain BreezeFetch, this method is the single seam that changes.
+   * Subclasses should make their requests through this method rather than through
+   * `ajaxImpl`, whose callback-shaped contract is kept only for compatibility. This is the
+   * only place in the class that deals in success/error callbacks.
    */
   protected _ajax(
       config: Omit<AjaxConfig, 'success' | 'error'>,
@@ -106,7 +109,7 @@ export abstract class AbstractDataServiceAdapter implements DataServiceAdapter {
     return metadata;
   }
 
-  /** Execute the query in the mappingContext using the ajaxImpl. */
+  /** Execute the query in the mappingContext. */
   async executeQuery(mappingContext: MappingContext): Promise<QueryResult> {
     mappingContext.adapter = this;
 

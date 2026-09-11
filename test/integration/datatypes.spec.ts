@@ -170,8 +170,8 @@ describe("Unusual Datatypes", () => {
     }
   });
 
-  // sequelize,hibernate,odata", "does not have these datatypes").
-  skipTestIf(TestFns.isSequelizeServer || TestFns.isHibernateServer || TestFns.isODataServer,
+  // hibernate,odata", "does not have these datatypes").
+  skipTestIf(TestFns.isHibernateServer || TestFns.isODataServer,
     "dateTimeOffset & dateTime2 w/save", async function () {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
@@ -213,8 +213,8 @@ describe("Unusual Datatypes", () => {
 
   });
 
-  // sequelize,hibernate,odata", "does not have these datatypes").
-  skipTestIf(TestFns.isSequelizeServer || TestFns.isHibernateServer || TestFns.isODataServer,
+  // hibernate,odata", "does not have these datatypes").
+  skipTestIf(TestFns.isHibernateServer || TestFns.isODataServer,
     "dateOnly & timeOnly w/save", async function () {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
@@ -256,8 +256,8 @@ describe("Unusual Datatypes", () => {
 
   });
 
-  // sequelize,hibernate,odata: "does not have these datatypes").
-  skipTestIf(TestFns.isSequelizeServer || TestFns.isHibernateServer || TestFns.isODataServer,
+  // hibernate,odata: "does not have these datatypes").
+  skipTestIf(TestFns.isHibernateServer || TestFns.isODataServer,
     "where dateTimeOffset & dateTime2", async function () {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
@@ -268,8 +268,8 @@ describe("Unusual Datatypes", () => {
     expect(qr1.results.length).toBeGreaterThan(0);
   });
 
-  // sequelize,hibernate,odata: "does not have these datatypes").
-  skipTestIf(TestFns.isSequelizeServer || TestFns.isHibernateServer || TestFns.isODataServer,
+  // hibernate,odata: "does not have these datatypes").
+  skipTestIf(TestFns.isHibernateServer || TestFns.isODataServer,
     "where dateOnly & timeOnly", async function () {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
@@ -281,8 +281,8 @@ describe("Unusual Datatypes", () => {
     expect(qr1.results.length).toBeGreaterThan(0);
   });
 
-  // testFns.skipIf("mongo,sequelize,hibernate,odata", "does not have these datatypes").
-  skipTestIf(TestFns.isSequelizeServer || TestFns.isHibernateServer || TestFns.isODataServer,
+  // testFns.skipIf("mongo,hibernate,odata", "does not have these datatypes").
+  skipTestIf(TestFns.isHibernateServer || TestFns.isODataServer,
     "export/import dateTimeOffset with nulls", async function () {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
@@ -302,9 +302,9 @@ describe("Unusual Datatypes", () => {
     expect(isOk).toBe(true);
   });
 
-  // testFns.skipIf("mongo,sequelize", "does not have this datatype").
+  // testFns.skipIf("mongo", "does not have this datatype").
   // skipIf("hibernate","requires the TimeLimits table which has not yet been created").
-  skipTestIf(TestFns.isSequelizeServer || TestFns.isHibernateServer,
+  skipTestIf(TestFns.isHibernateServer,
     "time w/save", async function () {
     expect.hasAssertions();
     const duration = "PT7H17M40S";
@@ -355,9 +355,9 @@ describe("Unusual Datatypes", () => {
 
   });
 
-  // testFns.skipIf("mongo,sequelize", "does not have this datatype").
+  // testFns.skipIf("mongo", "does not have this datatype").
   // skipIf("hibernate","requires the TimeLimits table which has not yet been created").
-  skipTestIf(TestFns.isSequelizeServer || TestFns.isHibernateServer ,
+  skipTestIf(TestFns.isHibernateServer ,
     "time 2", async function () {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
@@ -373,9 +373,9 @@ describe("Unusual Datatypes", () => {
     });
   });
 
-  // testFns.skipIf("mongo,sequelize", "does not have this datatype").
+  // testFns.skipIf("mongo", "does not have this datatype").
   // skipIf("hibernate","requires the TimeLimits table which has not yet been created").
-  skipTestIf(TestFns.isSequelizeServer || TestFns.isHibernateServer ,
+  skipTestIf(TestFns.isHibernateServer ,
     "time not null", async function () {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
@@ -389,7 +389,7 @@ describe("Unusual Datatypes", () => {
     });
   });
 
-  // testFns.skipIf("mongo,sequelize", "does not have this datatype").
+  // testFns.skipIf("mongo", "does not have this datatype").
   // skipIf("hibernate","requires the TimeLimits table which has not yet been created").
   test("bad time", function () {
 
@@ -407,8 +407,8 @@ describe("Unusual Datatypes", () => {
     expect(valErrs.length).toBe(0);
   });
 
-  // testFns.skipIf("mongo,sequelize,hibernate", "do not update the ts file (varbinary(8)) on the server. This is SQLServer specific").
-  skipTestIf(TestFns.isSequelizeServer || TestFns.isHibernateServer,
+  // testFns.skipIf("mongo,hibernate", "do not update the ts file (varbinary(8)) on the server. This is SQLServer specific").
+  skipTestIf(TestFns.isHibernateServer,
     "timestamp w/save", async function () {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
@@ -429,8 +429,8 @@ describe("Unusual Datatypes", () => {
     expect(ts).toBeTruthy();
   });
 
-  // testFns.skipIf("mongo,sequelize,odata", "does not have enum support").
-  skipTestIf(TestFns.isSequelizeServer || TestFns.isODataServer,
+  // testFns.skipIf("mongo,odata", "does not have enum support").
+  skipTestIf(TestFns.isODataServer,
     "enum query on Role", async function () {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
@@ -445,8 +445,8 @@ describe("Unusual Datatypes", () => {
     expect(isOk).toBe(true);
   });
 
-  // testFns.skipIf("mongo,sequelize,odata", "does not have enum support").
-  skipTestIf(TestFns.isSequelizeServer  || TestFns.isODataServer,
+  // testFns.skipIf("mongo,odata", "does not have enum support").
+  skipTestIf(TestFns.isODataServer,
     "enum query filter on Role", async function () {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
@@ -459,8 +459,8 @@ describe("Unusual Datatypes", () => {
     expect(isOk).toBe(true);
   });
 
-  // testFns.skipIf("mongo,sequelize,odata", "does not have enum support").
-  skipTestIf(TestFns.isSequelizeServer || TestFns.isODataServer,
+  // testFns.skipIf("mongo,odata", "does not have enum support").
+  skipTestIf(TestFns.isODataServer,
     "enums w/save", async function () {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
@@ -490,8 +490,8 @@ describe("Unusual Datatypes", () => {
     expect(rt).toBe('Standard');
   });
 
-  // testFns.skipIf("mongo,sequelize,odata", "does not yet support enums").
-  skipTestIf(TestFns.isSequelizeServer ||  TestFns.isODataServer,
+  // testFns.skipIf("mongo,odata", "does not yet support enums").
+  skipTestIf(TestFns.isODataServer,
     "enums null - w/save", async function () {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
@@ -521,8 +521,8 @@ describe("Unusual Datatypes", () => {
     expect(rt == null).toBeTruthy();
   });
 
-  // testFns.skipIf("mongo,sequelize,odata", "does not yet support enums").
-  skipTestIf(TestFns.isSequelizeServer || TestFns.isODataServer,
+  // testFns.skipIf("mongo,odata", "does not yet support enums").
+  skipTestIf(TestFns.isODataServer,
     "enums change value, detect on server", async function () {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
@@ -614,7 +614,6 @@ describe("Unusual Datatypes", () => {
   test("bool", async function () {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
-    // const discPropName = (TestFns.isSequelizeServer) ? "discontinued" : "isDiscontinued";
     const discPropName = "discontinued";
     const query = new EntityQuery("Products")
       .where(discPropName, "==", true)
@@ -629,7 +628,6 @@ describe("Unusual Datatypes", () => {
   test("nonnullable bool == null", async function () {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
-    // const discPropName = TestFns.isSequelizeServer ? "discontinued" : "isDiscontinued";
     const discPropName = "discontinued";
     const query = new EntityQuery("Products")
       .where(discPropName, "==", null)

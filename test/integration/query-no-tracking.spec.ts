@@ -1,5 +1,5 @@
 import { Entity, EntityQuery, Predicate, EntityState, MergeStrategy, MetadataStore, EntityType } from '../../src/breeze';
-import { TestFns, skipTestIf } from '../test-fns';
+import { TestFns } from '../test-fns';
 import { UtilFns } from '../util-fns';
 
 TestFns.initServerEnv();
@@ -25,8 +25,6 @@ describe("Query wih noTracking", () => {
       .where(predicate1);
     if (TestFns.isHibernateServer || TestFns.isNHibernateServer) {
       q = q.expand("directReports");
-    } else if (TestFns.isSequelizeServer) {
-      q = q.expand(["manager", "directReports"]);
     } else {
       // q = q.expand("directReports");
     }
@@ -83,8 +81,7 @@ describe("Query wih noTracking", () => {
     expect(r2.length).toBe(0);
   });
 
-  // "sequelize", "does not yet support complex types"
-  skipTestIf(TestFns.isSequelizeServer, "query with complex type", async function () {
+  test("query with complex type", async function () {
       expect.hasAssertions();
       const em = TestFns.newEntityManager();
 
