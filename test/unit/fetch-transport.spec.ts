@@ -114,3 +114,48 @@ describe("requests without an ajax adapter", () => {
   });
 
 });
+
+describe("a manager built from a serviceName and a MetadataStore", () => {
+
+  const serviceName = 'http://example.invalid/breeze/Northwind';
+
+  test("uses the store's DataService for that service, and requests no /Metadata", async () => {
+    // The manager used to build a DataService of its own, ignoring the store's settings.
+    const ms = new MetadataStore();
+    ms.importMetadata(metadata);
+    const ds = new DataService({ serviceName, hasServerMetadata: false });
+    ms.addDataService(ds);
+
+    const em = new EntityManager({ serviceName, metadataStore: ms });
+
+    expect(em.dataService).toBe(ds);
+    expect(em.dataService.hasServerMetadata).toBe(false);
+    await em.executeQuery(EntityQuery.from("Customers"));
+    expect(calls).toHaveLength(1);
+    expect(calls[0].url).not.toContain("/Metadata");
+  });
+
+  test("uses the DataService that exported metadata carried, and requests no /Metadata", async () => {
+    const source = new MetadataStore();
+    source.importMetadata(metadata);
+    source.addDataService(new DataService({ serviceName, hasServerMetadata: false }));
+    const ms = MetadataStore.importMetadata(source.exportMetadata());
+
+    const em = new EntityManager({ serviceName, metadataStore: ms });
+
+    expect(em.dataService).toBe(ms.getDataService(serviceName));
+    expect(em.dataService.hasServerMetadata).toBe(false);
+    await em.executeQuery(EntityQuery.from("Customers"));
+    expect(calls).toHaveLength(1);
+    expect(calls[0].url).not.toContain("/Metadata");
+  });
+
+  test("builds its own DataService when the store has none for that service", () => {
+    const ms = new MetadataStore();
+    ms.importMetadata(metadata);
+    const em = new EntityManager({ serviceName, metadataStore: ms });
+    expect(em.dataService.serviceName).toBe(serviceName + '/');
+    expect(ms.getDataService(serviceName)).toBeFalsy();
+  });
+
+});

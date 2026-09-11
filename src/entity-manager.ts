@@ -408,7 +408,9 @@ export class EntityManager {
     core.updateWithDefaults(em.validationOptions, defaultValidationOptions);
 
     if (config.serviceName) {
-      em.dataService = new DataService({
+      // Use the store's DataService for this service when it has one (added with addDataService, by fetchMetadata or
+      // from imported metadata), so that its settings - hasServerMetadata among them - apply to this manager.
+      em.dataService = em.metadataStore.getDataService(em.serviceName) || new DataService({
         serviceName: em.serviceName
       });
     }

@@ -4,6 +4,20 @@ import { Validator } from './validate';
 
 let _localTimeRegex = /.\d{3}$/;
 
+// Names the .NET servers can write in metadata for types the client knows by another name.
+// EF Core writes the CLR type name (MetadataBuilder.NormalizeDataTypeName); NHibernate its own type names.
+const _dataTypeAliases: Record<string, string> = {
+  TimeSpan: "Time",
+  Char: "String",
+  SByte: "Int16",
+  UInt16: "Int32",
+  UInt32: "Int64",
+  UInt64: "Int64",
+  AnsiString: "String",  // NHibernate
+  AnsiChar: "String",    // NHibernate
+  StringClob: "String",  // NHibernate
+};
+
 /**  
 DataType is an 'Enum' containing all of the supported data types.
 **/
@@ -118,7 +132,7 @@ export class DataType extends BreezeEnum {
     isDate: true,
     parse: coerceToDateOnly,
     parseRawValue: parseRawDateOnly,
-    normalize: function (value: any) { return value && value.getTime && (new Date(value.getYear(), value.getMonth(), value.getDate())).getTime(); }, // dates don't perform equality comparisons properly
+    normalize: normalizeDateOnly, // dates don't perform equality comparisons properly
     getNext: getNextDateTime,
     getConcurrencyValue: getConcurrencyDateTime
   });
@@ -146,6 +160,11 @@ export class DataType extends BreezeEnum {
   static Time = new DataType({
     defaultValue: "PT0S",
     parseRawValue: DataType.parseTimeFromServer
+  });
+
+  /** A time of day (.NET `TimeOnly`), held as the string the server sends: "14:30:00" or "01:23:45.678". */
+  static TimeOnly = new DataType({
+    defaultValue: "00:00:00"
   });
 
   static Boolean = new DataType({
@@ -184,6 +203,15 @@ export class DataType extends BreezeEnum {
         return value;
       };
     }
+  }
+
+  /**
+  Returns the DataType with the specified name, or undefined if there is none. Also accepts the names the .NET
+  servers use for some types, such as 'TimeSpan' for {@link DataType.Time}.
+  **/
+  static fromName(name: string): DataType | undefined {
+    const dt = super.fromName(name) || super.fromName(_dataTypeAliases[name]);
+    return dt instanceof DataType ? dt : undefined;
   }
 
   /** Returns the DataType for a specified input. */
@@ -290,6 +318,8 @@ function getValidatorCtor(dataType: DataType) {
       return Validator.date;
     case DataType.DateTimeOffset:
       return Validator.date;
+    case DataType.DateOnly:
+      return Validator.date;
     case DataType.Boolean:
       return Validator.bool;
     case DataType.Guid:
@@ -301,9 +331,24 @@ function getValidatorCtor(dataType: DataType) {
       return Validator.none;
     case DataType.Time:
       return Validator.duration;
+    case DataType.TimeOnly:
+      return timeOnlyValidator;
     case DataType.Undefined:
       return Validator.none;
   }
+}
+
+/** A .NET TimeOnly as the server writes and reads it: "HH:mm", "HH:mm:ss" or "HH:mm:ss.fffffff". */
+function timeOnlyValidator(context?: any) {
+  return Validator.regularExpression({ ...context, expression: "^([01]\\d|2[0-3]):[0-5]\\d(:[0-5]\\d(\\.\\d{1,7})?)?$" });
+}
+
+/** Local midnight on the day of a DateOnly value, so that values on the same day compare equal and order correctly. */
+function normalizeDateOnly(value: any) {
+  if (!(value && value.getTime)) return value;
+  const day = new Date(value.getTime());
+  day.setHours(0, 0, 0, 0);
+  return day.getTime();
 }
 
 function getNextString() {

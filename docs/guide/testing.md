@@ -81,8 +81,11 @@ export function newEntityManager() {
 
 - The metadata is parsed once for the whole file.
 - Each test gets a fresh cache, so no test sees another's entities.
-- `addDataService` tells the store it already has metadata for `serviceName`. Without it,
-  Breeze would try `GET <serviceName>/Metadata` before the first remote query.
+- `addDataService` tells the store it already has metadata for `serviceName`, and a
+  manager created with that `serviceName` uses this `DataService`. Without it, Breeze
+  would try `GET <serviceName>/Metadata` before the first remote query, because a file
+  saved from `/Metadata` names no service. A file from `exportMetadata()` carries the
+  exporting store's data services, so importing it is enough.
 
 If your application registers entity classes with `registerEntityTypeCtor`, register them
 on this shared store, once. A class can only be registered with one `MetadataStore`. See

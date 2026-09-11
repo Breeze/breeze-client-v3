@@ -129,10 +129,11 @@ naming convention. So create the store with the right convention first. With
 ### DataService
 
 The `DataService` identifies the server. `hasServerMetadata: false` stops Breeze from
-requesting `<serviceName>/Metadata`. Pass the same `DataService` to the `EntityManager`.
-If you pass only a `serviceName`, the manager creates a new `DataService` that does
-expect server metadata. Adding the service to the store with `addDataService` also marks
-its metadata as present (`store.hasMetadataFor('breeze/Northwind')` is `true`).
+requesting `<serviceName>/Metadata`. Pass the same `DataService` to the `EntityManager`,
+or add it to the store with `addDataService`: a manager given only a `serviceName` uses
+the store's `DataService` for that service. Only if the store has none does it create a
+new one, which expects server metadata. Adding the service to the store also marks its
+metadata as present (`store.hasMetadataFor('breeze/Northwind')` is `true`).
 
 ### Types
 

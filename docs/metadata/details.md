@@ -30,7 +30,7 @@ The excerpts below come from the Northwind metadata fixtures in the Breeze test 
 |---|---|
 | `metadataVersion` | Format version. If present, it must equal `MetadataStore.metadataVersion` (`"1.0.5"`), or `importMetadata` throws. |
 | `namingConvention` | Name of a registered `NamingConvention`: `"camelCase"` or `"noChange"`. An empty store adopts it. A store that already has types throws if it differs from its own. |
-| `localQueryComparisonOptions` | Name of a registered [`LocalQueryComparisonOptions`](/api/classes/LocalQueryComparisonOptions). `"caseInsensitiveSQL"` is the default. Same rule as `namingConvention`. |
+| `localQueryComparisonOptions` | Name of a registered [`LocalQueryComparisonOptions`](/api/classes/LocalQueryComparisonOptions). `"caseInsensitiveSQL"` is the default. Ignored if the store's own were chosen on the client, passed to its constructor or made the default with `setAsDefault()`: those win. Otherwise the same rule as `namingConvention`. |
 | `dataServices` | Serialized `DataService` objects (`serviceName`, `hasServerMetadata`, `adapterName`, `uriBuilderName`, `jsonResultsAdapter`, `useJsonp`). Each is added to the store, replacing any with the same `serviceName`. |
 | `structuralTypes` | The entity and complex types. |
 | `resourceEntityTypeMap` | Resource name to qualified entity type name. Merged into the store's map. |
@@ -125,13 +125,21 @@ is abstract. `importMetadata` throws otherwise.
 | `validators` | `[]` | See [Validators](#validators). |
 | `displayName` | | Label for the property, used in validation messages. |
 | `enumType` | | Qualified name of the server-side enum type, for enum properties. |
-| `rawTypeName` | | Server type name, present when `dataType` is `"Undefined"`. |
+| `rawTypeName` | | Server type name, present when `dataType` is `"Undefined"`. Also set on import when the server's `dataType` is a name Breeze does not know. |
 | `custom` | | See [Custom metadata](/metadata/custom). |
 
 The data type names are `String`, `Int64`, `Int32`, `Int16`, `Byte`, `Decimal`,
-`Double`, `Single`, `DateOnly`, `DateTime`, `DateTimeOffset`, `Time`, `Boolean`, `Guid`,
-`Binary` and `Undefined`. See [Date and time](/guide/date-and-time) for how the date types
-behave.
+`Double`, `Single`, `DateOnly`, `DateTime`, `DateTimeOffset`, `Time`, `TimeOnly`,
+`Boolean`, `Guid`, `Binary` and `Undefined`. See [Date and time](/guide/date-and-time) for
+how the date and time types behave.
+
+Some .NET type names are accepted too, and read as the nearest client type: `TimeSpan` as
+`Time`; `Char`, and NHibernate's `AnsiString`, `AnsiChar` and `StringClob`, as `String`;
+`SByte` as `Int16`; `UInt16` as `Int32`; `UInt32` and `UInt64` as `Int64`.
+
+A name Breeze does not know is imported as `Undefined`, with the name in `rawTypeName`, and
+Breeze logs a warning once per name. The property's values are passed through unconverted.
+The `DataProperty` constructor, by contrast, throws for a name it does not know.
 
 A concurrency property looks like this:
 
@@ -259,9 +267,11 @@ const store2 = MetadataStore.importMetadata(jsonString);   // a new store
 ```
 
 - The input is not modified.
-- A type that is already in the store is skipped silently. With the second argument,
-  `allowMerge`, set to `true`, only its `custom` values are merged in. See
-  [Custom metadata](/metadata/custom).
+- A type that is already in the store is left as it is, so importing the same metadata
+  twice is harmless. With the second argument, `allowMerge`, set to `true`, only its
+  `custom` values are merged in. See [Custom metadata](/metadata/custom).
+- A type that is not in the store is created, with or without `allowMerge`, so it needs
+  `dataProperties`. Without them `importMetadata` throws `Unable to import type '…'`.
 - A derived type may appear before its base type.
 - The method returns the store, so calls can be chained.
 

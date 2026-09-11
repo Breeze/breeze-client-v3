@@ -112,6 +112,8 @@ export class MetadataStore {
   _deferredTypes: Map<string, any[]>;
   /** @hidden @internal **/
   _id: number;
+  /** @hidden @internal Whether the comparison options were chosen on the client; they then win over imported metadata. **/
+  _hasClientLqco: boolean;
 
   /**
   Constructs a new MetadataStore.
@@ -132,7 +134,8 @@ export class MetadataStore {
     - namingConvention - (default=NamingConvention.defaultInstance) NamingConvention to be used in mapping property names
   between client and server. Uses the NamingConvention.defaultInstance if not specified.
     - localQueryComparisonOptions - (default=LocalQueryComparisonOptions.defaultInstance) The LocalQueryComparisonOptions to be
-  used when performing "local queries" in order to match the semantics of queries against a remote service.
+  used when performing "local queries" in order to match the semantics of queries against a remote service. Options passed
+  here, or made the default with setAsDefault(), win over any that imported metadata names.
     - serializerFn - A function that is used to mediate the serialization of instances of this type.
   **/
   constructor(config?: MetadataStoreConfig) {
@@ -152,6 +155,10 @@ export class MetadataStore {
     this._incompleteComplexTypeMap = new Map(); // key is complexTypeName; value is array of complexType props
     this._id = MetadataStore.__id++;
     this.metadataFetched = new BreezeEvent("metadataFetched", this);
+    // Comparison options passed here, or made the default with setAsDefault(), are a client-side choice:
+    // importMetadata keeps them rather than adopting the ones the metadata names.
+    this._hasClientLqco = config.localQueryComparisonOptions != null ||
+      LocalQueryComparisonOptions.defaultInstance.name !== LocalQueryComparisonOptions.caseInsensitiveSQL.name;
 
   }
 
@@ -307,6 +314,11 @@ export class MetadataStore {
   >      let metadataFromStorage = window.localStorage.getItem("metadata");
   >      let newMetadataStore = new MetadataStore();
   >      newMetadataStore.importMetadata(metadataFromStorage);
+
+  A type that is already in this store is left as it is unless 'allowMerge' is set, so importing the same metadata
+  twice is harmless. A type that is not in the store is created, with or without 'allowMerge', and its metadata must
+  include 'dataProperties'. The 'localQueryComparisonOptions' the metadata names are adopted only by an empty store
+  whose own options were not chosen on the client (see the constructor).
   @param exportedMetadata - A previously exported MetadataStore.
   @param allowMerge -  Allows custom metadata to be merged into existing metadata types.
   @returns This MetadataStore.
@@ -334,10 +346,11 @@ export class MetadataStore {
     }
 
     let ncName = json.namingConvention;
-    let lqcoName = json.localQueryComparisonOptions;
+    // Comparison options chosen on the client win; the metadata's apply only to a store without its own.
+    let lqcoName = this._hasClientLqco ? undefined : json.localQueryComparisonOptions;
     if (this.isEmpty()) {
       this.namingConvention = config._fetchObject(NamingConvention, ncName) || this.namingConvention;
-      this.localQueryComparisonOptions = config._fetchObject(LocalQueryComparisonOptions, lqcoName) || this.localQueryComparisonOptions;
+      this.localQueryComparisonOptions = (lqcoName && config._fetchObject(LocalQueryComparisonOptions, lqcoName)) || this.localQueryComparisonOptions;
     } else {
       if (ncName && this.namingConvention.name !== ncName) {
         throw new Error("Cannot import metadata with a different 'namingConvention' from the current MetadataStore");
@@ -762,6 +775,12 @@ function structuralTypeFromJson(metadataStore: MetadataStore, json: any, allowMe
       // allow it but don't replace anything.
       return stype;
     }
+  }
+  if (!json.dataProperties) {
+    // Creating the type needs its properties. A cut-down custom-metadata object for a type that is not in the store
+    // used to fail here with a TypeError.
+    const hint = allowMerge ? " allowMerge only merges into types that are already in the store." : "";
+    throw new Error("Unable to import type '" + typeName + "': it is not in this MetadataStore and its metadata has no 'dataProperties'." + hint);
   }
   let config = {
     shortName: json.shortName,
@@ -2229,7 +2248,15 @@ export class DataProperty {
   }
 
   static fromJSON(json: any) {
-    json.dataType = DataType.fromName(json.dataType);
+    const typeName = json.dataType;
+    json.dataType = DataType.fromName(typeName);
+    if (typeName && !json.dataType) {
+      // A type the client does not know, from a newer server say. Keep the property, as 'Undefined' with the server's
+      // name in 'rawTypeName' - the way the server itself sends spatial types - rather than pass it off as a String.
+      json.dataType = DataType.Undefined;
+      json.rawTypeName = json.rawTypeName || typeName;
+      warnUnknownDataType(typeName);
+    }
     // Parse default value into correct data type. (dateTime instances require extra work to deserialize properly.)
     if (json.defaultValue && json.dataType && json.dataType.parse) {
       json.defaultValue = json.dataType.parse(json.defaultValue, typeof json.defaultValue);
@@ -2244,6 +2271,14 @@ export class DataProperty {
 
 }
 DataProperty.prototype._$typeName = "DataProperty";
+
+const _unknownDataTypeNames = new Set<string>();
+function warnUnknownDataType(typeName: string) {
+  if (_unknownDataTypeNames.has(typeName)) return;
+  _unknownDataTypeNames.add(typeName);
+  console.warn("Metadata names a data type the client does not know: '" + typeName +
+    "'. Its properties are imported as DataType.Undefined, with the name in 'rawTypeName'.");
+}
 
 export interface NavigationPropertyConfig {
   name?: string;
