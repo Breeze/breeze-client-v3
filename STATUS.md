@@ -113,8 +113,8 @@ wrapper can make the constructors callable again if that turns out to matter.
 - ~~`noImplicitAny`~~ **done** - see the section below. It is on, and the 105
   index-signature errors the 2.x build hid behind `suppressImplicitAnyIndexErrors`
   are fixed rather than re-suppressed.
-- **`strictNullChecks` is `false`**, as in 2.x. Turning it on is the single largest chunk
-  of the modernization pass.
+- ~~`strictNullChecks`~~ **done** - see the section below. It is on, and all 166
+  errors are fixed rather than suppressed.
 - **`"sideEffects": true` in `package.json` must stay true.** 25 classes brand
   `_$typeName` onto their prototypes at import time, ten `Error['x'] = <Enum>.resolveSymbols()`
   calls exist purely to stop a minifier dropping them, and `bubbleEvent` mutates
@@ -312,7 +312,8 @@ equivalent for own enumerable properties — except that **`Object.keys(null)` t
 design. That broke 572 of 639 tests on the first attempt. Every `Object.keys` call in
 `core.ts` now carries a `|| {}` guard and a comment saying it is load-bearing.
 
-`strictNullChecks` is still off and is the remaining piece of the modernization.
+`strictNullChecks` and `noImplicitAny` are both on; the modernization of the type layer
+is complete.
 
 ## Known flaky test
 
