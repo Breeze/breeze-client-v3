@@ -97,10 +97,11 @@ split, explicit registration + `@deprecated` string API) are done — see the se
    against `src/`. What that turned up is logged at the end of this file.
 2. ~~Retire `AjaxAdapter`~~ **done** — an ajax adapter is optional and requests go
    through `config.fetch`. See CHANGES-DEV.md, *The ajax adapter is optional*.
-3. **Per-file isolation for the integration tier.** Needs a server-side reset endpoint so
-   browser mode can use it too.
-4. **Explicit initialization instead of import-time side effects** (prototype branding,
-   `Error['x'] = …`), so `"sideEffects"` can become `false`. See Known issues.
+3. ~~Per-file isolation for the integration tier~~ **done** — the test host takes a SQL
+   Server database snapshot per run and every integration file reverts to it over HTTP, so
+   it works in browser mode too. See *Per-file isolation* below.
+4. ~~Explicit initialization instead of import-time side effects~~ **done** — the package is
+   side-effect free apart from the entity-graph mixin. See *sideEffects* below.
 5. `breeze.version` and the `null` `breeze.assertConfig` / `assertParam` — see Known issues.
 6. **GitHub Actions**: typecheck + unit tier + docs build on every push; the integration
    tier separately, since it needs SQL Server and the .NET server. *Deferred for now at the
@@ -117,12 +118,10 @@ split, explicit registration + `@deprecated` string API) are done — see the se
   are fixed rather than re-suppressed.
 - ~~`strictNullChecks`~~ **done** - see the section below. It is on, and all 166
   errors are fixed rather than suppressed.
-- **`"sideEffects": true` in `package.json` must stay true.** 25 classes brand
-  `_$typeName` onto their prototypes at import time, ten `Error['x'] = <Enum>.resolveSymbols()`
-  calls exist purely to stop a minifier dropping them, and `bubbleEvent` mutates
-  `EntityManager.prototype` and `MetadataStore.prototype` on load. Marking the package
-  side-effect-free lets a bundler delete all of it and silently breaks serialization.
-  The `configureBreeze` work should replace these with explicit initialization.
+- ~~`"sideEffects": true` must stay true~~ **done** — see *sideEffects* below. Branding a
+  prototype or resolving an enum inside the module that declares it was never the problem:
+  a bundler keeps that module as soon as anything uses one of its exports. What did break
+  tree-shaking was code reaching into *other* modules, and that is gone.
 - `breeze.version` was hardcoded `"2.1.5"` in 2.2.2, and `breeze.assertConfig` /
   `breeze.assertParam` are `null as any` on the `breeze` object literal (the fix is
   sitting commented out at `src/breeze.ts:172-173`). Both carried over — fix during the
@@ -475,6 +474,19 @@ not, since the suite imports `src/` directly:
 
 Tree-shaking works: an unimported subpath is dropped. Core plus three adapters is about
 168 KB minified, 46 KB gzip.
+
+Measured again after the `sideEffects` work, bundling the packed tarball with Vite into an
+app that imports `breeze-client` by name (unminified, so the numbers compare with each
+other, not with the figures above):
+
+| the app imports | bundle | what is dropped |
+|---|---|---|
+| `MetadataStore` | 329.5 KB | `EntityManager`, every server adapter, `AbstractDataServiceAdapter` |
+| `EntityManager` | 454.7 KB | the entity-graph mixin, the ajax-post adapter |
+| `EntityManager` + the mixin subpath | 460.1 KB | nothing it uses — `"sideEffects"` keeps the mixin |
+
+The mixin is a separate entry point, never part of the barrel, so a bundle that does not
+import `breeze-client/mixin-get-entity-graph` is *supposed* to lack `getEntityGraph`.
 
 ## Test script (done)
 
