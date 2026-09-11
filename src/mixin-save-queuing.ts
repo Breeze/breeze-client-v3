@@ -60,7 +60,7 @@
  * touch them at your own risk.
  */
 //#endregion
-import { Entity, EntityManager, KeyMapping, EntityState, SaveResult, breeze } from './breeze.js';
+import { Entity, EntityManager, KeyMapping, EntityState, SaveResult, BreezeEvent } from './breeze.js';
 
 
 export function enableSaveQueuing(em: EntityManager, enable: boolean = true) {
@@ -320,7 +320,7 @@ class SaveMemo {
   }
 
   private disableManagerPublishing(manager: EntityManager) {
-    let Event = breeze.Event;
+    let Event = BreezeEvent;
     Event.enable('entityChanged', manager, false);
     Event.enable('hasChangesChanged', manager, false);
 

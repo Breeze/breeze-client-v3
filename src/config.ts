@@ -1,6 +1,6 @@
-﻿import type { BreezeFetch } from './interface-registry.js';
+﻿import type { AjaxAdapter, BreezeFetch, DataServiceAdapter, InterfaceRegistryConfig, ModelLibraryAdapter, UriBuilderAdapter } from './interface-registry.js';
 import { core } from './core.js';
-import { assertParam  } from './assert-param.js';
+import { assertParam, assertConfig } from './assert-param.js';
 import { BreezeEvent } from './event.js';
 
 /** @hidden */
@@ -44,6 +44,18 @@ export class InterfaceDef<T extends BaseAdapter> {
         return this.defaultInstance as T;
     }
 }
+
+/** Registers adapters used by Breeze */
+export class InterfaceRegistry {
+    ajax = new InterfaceDef<AjaxAdapter>("ajax");
+    modelLibrary = new InterfaceDef<ModelLibraryAdapter>("modelLibrary");
+    dataService = new InterfaceDef<DataServiceAdapter>("dataService");
+    uriBuilder = new InterfaceDef<UriBuilderAdapter>("uriBuilder");
+}
+
+// The data service adapter resolves the ajax adapter when it initializes, so ajax has to
+// come first. Same order as configureBreeze.
+const initOrder: AdapterType[] = ['modelLibrary', 'uriBuilder', 'ajax', 'dataService'];
 
 export interface BaseAdapter {
     /** @hidden @internal */
@@ -89,7 +101,17 @@ export class BreezeConfig {
      */
     fetch?: BreezeFetch;
     /** @hidden @internal */
-    _interfaceRegistry: any;  // will be set in adapter-interfaces. untyped here to avoid circularity issues.
+    _interfaceRegistry: any;  // set below, on the global config. Untyped: getInterfaceDef looks interfaces up by name.
+    /** @hidden @internal The adapter interfaces, strongly typed. Set below, on the global config. */
+    declare interfaceRegistry: InterfaceRegistry;
+    /**
+    Initializes a collection of adapter implementations and makes each one the default for its corresponding interface.
+    @deprecated Use `configureBreeze({ ... })` instead. Still works; not scheduled for removal.
+    @param irConfig - The name of a previously registered adapter for each interface to initialize,
+    e.g. `{ ajax: 'fetch', dataService: 'webApi' }`. Interfaces not named are left as they are.
+    @hidden @internal
+    **/
+    declare initializeAdapterInstances: (irConfig: InterfaceRegistryConfig) => void;
 
     constructor() {
         this.interfaceInitialized = new BreezeEvent("interfaceInitialized", this);
@@ -317,6 +339,39 @@ export class BreezeConfig {
 }
 
 export const config = new BreezeConfig();
+
+// The adapter interfaces. They are set here rather than in interface-registry.ts because every
+// adapter lookup needs them, and under "sideEffects": false a bundler drops a module that nothing
+// uses a value from - such as interface-registry.ts, which only the barrel imports. See
+// CHANGES-DEV.md.
+config.interfaceRegistry = new InterfaceRegistry();
+config._interfaceRegistry = config.interfaceRegistry;
+config.interfaceRegistry.modelLibrary.getDefaultInstance = function() {
+    // Falls back to the default model library (backingStore) when none is registered.
+    const instance = this.defaultInstance || config.getAdapterInstance<ModelLibraryAdapter>("modelLibrary");
+    if (!instance) {
+        throw new Error("Unable to locate the default implementation of the '" + this.name +
+            "' interface. Register one with configureBreeze({ modelLibrary: ... }).");
+    }
+    return instance;
+};
+
+/** @deprecated Use `configureBreeze({ ... })` instead. Still works; not scheduled for removal. */
+config.initializeAdapterInstances = function (irConfig: InterfaceRegistryConfig) {
+    // Validate only - rejects unknown keys. This used to apply irConfig onto the global
+    // config and then walk every property of *config*, passing things like functionRegistry
+    // to initializeAdapterInstance as adapter names, so it always threw. Nothing tested it.
+    assertConfig(irConfig)
+        .whereParam("dataService").isOptional()
+        .whereParam("modelLibrary").isOptional()
+        .whereParam("ajax").isOptional()
+        .whereParam("uriBuilder").isOptional()
+        .applyAll(irConfig, true);
+    initOrder.forEach(name => {
+        const adapterName = irConfig[name];
+        if (adapterName) this.initializeAdapterInstance(name, adapterName, true);
+    });
+};
 
 // legacy
 (core as any).config = config;

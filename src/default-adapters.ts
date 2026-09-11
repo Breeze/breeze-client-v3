@@ -1,6 +1,6 @@
-import { config, setDefaultAdapters } from './config.js';
+import { config } from './config.js';
+import type { AdapterType, DefaultAdapter } from './config.js';
 import { AjaxFetchAdapter, defaultFetch } from './http.js';
-import { ModelLibraryBackingStoreAdapter } from './adapter-model-library-backing-store.js';
 import { UriBuilderJsonAdapter } from './adapter-uri-builder-json.js';
 import { DataServiceWebApiAdapter } from './adapter-data-service-webapi.js';
 
@@ -10,12 +10,19 @@ import { DataServiceWebApiAdapter } from './adapter-data-service-webapi.js';
  * builds Breeze JSON query URLs, talks to a Breeze .NET server, and sends its requests through
  * `config.fetch` (globalThis.fetch unless set).
  *
- * Nothing is registered here. This fills a fallback table; config.ts registers a default only
+ * Nothing is registered here. These fill a fallback table; config.ts registers a default only
  * when an interface is first asked for and nothing has been registered for it, so anything an
  * application registers - before or after - wins.
  *
- * Only the root barrel imports this module. The adapter modules must not import the barrel,
- * or this becomes an import cycle that fails at load time: DataServiceWebApiAdapter extends
+ * entity-manager.ts installs them, when it loads, by passing `serverDefaultAdapters` to
+ * setDefaultAdapters. Using a value from this module is what keeps it in a bundle: an import
+ * for effect alone would be dropped under "sideEffects": false (see CHANGES-DEV.md). The model
+ * library default is installed by entity-metadata.ts instead, because a MetadataStore needs one
+ * even in a bundle with no EntityManager.
+ *
+ * Only entity-manager.ts imports this module, and nothing this module depends on may import it -
+ * entity-metadata.ts, say, or the barrel. That is an import cycle that fails at load time whenever
+ * abstract-data-service-adapter.ts loads first: DataServiceWebApiAdapter extends
  * AbstractDataServiceAdapter while its module loads.
  */
 
@@ -27,10 +34,10 @@ class ConfiguredFetchAjaxAdapter extends AjaxFetchAdapter {
   }
 }
 
-setDefaultAdapters({
-  modelLibrary: { ctor: ModelLibraryBackingStoreAdapter },
+/** The defaults for the server-facing interfaces. @hidden @internal */
+export const serverDefaultAdapters: Partial<Record<AdapterType, DefaultAdapter>> = {
   uriBuilder: { ctor: UriBuilderJsonAdapter },
   dataService: { ctor: DataServiceWebApiAdapter },
   // Never the unnamed default: with no ajax adapter, requests already go through config.fetch.
   ajax: { ctor: ConfiguredFetchAjaxAdapter, namedOnly: true },
-});
+};
