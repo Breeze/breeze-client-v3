@@ -123,7 +123,7 @@ function getOwnPropertyValues(source: Object): any[] {
 }
 
 /** Copy properties from source to target. Returns target. */
-function extend(target: Object, source: Object, propNames?: string[]): Object {
+function extend(target: Object, source?: Object, propNames?: string[]): Object {
     if (!source) return target;
     const tgt = target as Indexed, src = source as Indexed;
     if (propNames) {

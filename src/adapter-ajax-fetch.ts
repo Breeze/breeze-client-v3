@@ -77,7 +77,7 @@ export class AjaxFetchAdapter implements AjaxAdapter {
     if (!core.isEmpty(config.params)) {
       // Hack: Not sure how Fetch handles writing 'search' parameters to the url.
       // so this approach takes over the url param writing completely.
-      url = appendQueryStringParameter(url, encodeParams(config.params));
+      url = appendQueryStringParameter(url, encodeParams(config.params!));
     }
 
     if (!core.isEmpty(this.defaultSettings)) {

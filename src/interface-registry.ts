@@ -99,7 +99,7 @@ export interface AjaxRequest {
     /** config from the DataServiceAdapter that called the AjaxAdapter */
     dsaConfig: AjaxConfig;
     /** Function called on response error */
-    error: (status: number, statusText: string, body: string, response: Response, errorThrown: any) => void;
+    error: (status: number, statusText: string, body: string | null, response: Response | null, errorThrown: any) => void;
     /** Function called on response success */
     success: (data: any, statusText: string, response: Response) => void;
 }

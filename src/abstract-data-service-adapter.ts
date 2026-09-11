@@ -31,7 +31,7 @@ export abstract class AbstractDataServiceAdapter implements DataServiceAdapter {
     this.ajaxImpl = config.getAdapterInstance<AjaxAdapter>("ajax") !;
 
     // don't cache 'ajax' because then we would need to ".bind" it, and don't want to because of brower support issues.
-    if (this.ajaxImpl && this.ajaxImpl.ajax) {
+    if (this.ajaxImpl) {
       return;
     }
     throw new Error("Unable to find ajax adapter for dataservice adapter '" + (this.name || '') + "'.");
