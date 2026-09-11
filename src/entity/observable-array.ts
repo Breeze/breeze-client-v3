@@ -20,7 +20,7 @@ import type { DataProperty } from '../metadata/entity-metadata.js';
  * `test/unit/observable-array.spec.ts` pins the count so this cannot drift back.
  */
 
-/** The argument to an {@link ObservableArray}'s `arrayChanged` event. */
+/** The argument to the `arrayChanged` event of a relation, complex or primitive array. */
 export interface ArrayChangedArgs {
   array: any[];
   added?: any[];
