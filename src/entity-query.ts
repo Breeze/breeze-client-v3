@@ -934,8 +934,6 @@ export class FilterQueryOp extends BreezeEnum implements QueryOp {
   static All = new FilterQueryOp({ operator: "all" });
   /** No aliases */
   static In = new FilterQueryOp({ operator: "in" });
-  /** No aliases */
-  static IsTypeOf = new FilterQueryOp({ operator: "isof" });
 }
 FilterQueryOp.prototype._$typeName = "FilterQueryOp";
 (Error as any)['x'] = FilterQueryOp.resolveSymbols();

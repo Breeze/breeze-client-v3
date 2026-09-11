@@ -55,9 +55,6 @@ sees an alias.
 
 `In` requires an array on the right-hand side and throws if it gets anything else.
 
-`FilterQueryOp` also defines `IsTypeOf`, but the predicate parser does not accept it. Don't
-use it.
-
 An unknown operator throws as soon as you call `where`:
 
 ```

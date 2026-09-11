@@ -1,5 +1,6 @@
 import {
-  configureBreeze, EntityManager, EntityQuery, EntityState, MetadataStore, DataService, NamingConvention,
+  configureBreeze, EntityManager, EntityQuery, EntityState, FilterQueryOp, MetadataStore, DataService, NamingConvention,
+  Predicate,
 } from '../../src/breeze';
 import { DataServiceWebApiAdapter } from '../../src/adapter-data-service-webapi';
 import { UriBuilderJsonAdapter } from '../../src/adapter-uri-builder-json';
@@ -75,5 +76,30 @@ describe("local substring matches the server", () => {
     // "Around the Horn".substring(7, 7 + 3) === "the"; JS substring(7, 3) would give "und t"
     const q = EntityQuery.from("Customers").where("substring(companyName, 7, 3)", "==", "the");
     expect(companyNames(em.executeQueryLocally(q))).toEqual(["Around the Horn"]);
+  });
+});
+
+describe("FilterQueryOp.IsTypeOf is gone", () => {
+  // It was defined, but no parser (client or server) knows 'isof', so using it always threw
+  // "Unable to resolve predicate". It was removed rather than half-supported.
+  test("IsTypeOf is not defined", () => {
+    expect((FilterQueryOp as any).IsTypeOf).toBeUndefined();
+    expect(FilterQueryOp.getSymbols().map(op => op.operator)).not.toContain("isof");
+  });
+
+  test("every FilterQueryOp that is defined can be used in a predicate", () => {
+    const em = newManager();
+    const custType = em.metadataStore.getAsEntityType("Customer");
+    FilterQueryOp.getSymbols().forEach(op => {
+      let pred: Predicate;
+      if (op === FilterQueryOp.Any || op === FilterQueryOp.All) {
+        pred = Predicate.create("orders", op, "freight", ">", 100);
+      } else if (op === FilterQueryOp.In) {
+        pred = Predicate.create("companyName", op, ["A", "B"]);
+      } else {
+        pred = Predicate.create("companyName", op, "A");
+      }
+      expect(() => pred._validate(custType)).not.toThrow();
+    });
   });
 });
