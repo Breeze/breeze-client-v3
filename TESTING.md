@@ -11,7 +11,7 @@ The suite lives in this repo. Most of it also needs the **.NET test server** and
 ## TL;DR
 
 ```bash
-npm run test:unit      # 184 tests, ~3s, needs nothing at all
+npm run test:unit      # 196 tests, ~3s, needs nothing at all
 ```
 
 That is the loop to work in. For the rest you need the database and server running:
@@ -29,7 +29,7 @@ dotnet run --project tests/Test.AspNetCore.EFCore/Test.AspNetCore.EFCore.csproj 
 then, from this repo:
 
 ```bash
-npm test               # 632 tests
+npm test               # 644 tests
 ```
 
 ---
@@ -142,18 +142,18 @@ recreating the database by hand** — otherwise those tables are empty.
 
 | command | tests | needs a server? | time |
 |---|---|---|---|
-| `npm run test:unit` | 184 | **no** | ~3s |
+| `npm run test:unit` | 196 | **no** | ~3s |
 | `npm run test:integration` | 455 | yes | ~25s |
-| `npm test` | 639 | yes | ~28s |
-| `npm run test:browser` | 639 | yes | ~30s |
-| `npm run test:watch` | 184 | no | watch mode |
+| `npm test` | 651 | yes | ~28s |
+| `npm run test:browser` | 651 | yes | ~30s |
+| `npm run test:watch` | 196 | no | watch mode |
 
 7 tests are skipped by design — they target server backends (Sequelize, NHibernate) that
 this configuration does not run.
 
 ### The unit tier
 
-`test/unit/` — 14 files that need nothing. They work against checked-in metadata fixtures,
+`test/unit/` — 16 files that need nothing. They work against checked-in metadata fixtures,
 or against `AjaxFakeAdapter` where a response is required. No database, no server, files
 run in parallel. **This is the tier to iterate against.**
 

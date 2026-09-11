@@ -420,7 +420,8 @@ It iterated every property of the global `config` instead of its argument, and s
 `functionRegistry` and friends to `initializeAdapterInstance` as adapter names. The code
 is identical in 2.x, so this is not a v3 regression — just a deprecated path nobody tested.
 Fixed, typed (`InterfaceRegistryConfig` now takes adapter names, as it always should
-have), and covered by two new tests in `configure-ns.spec.ts`. Unit tier: 186.
+have), and covered by two new tests in `configure-ns.spec.ts`. With every fix from this round in: unit
+196, integration 448 + 7 skipped, browser 644 + 7 skipped. All green.
 
 ## Found while writing the user docs — not yet fixed
 
