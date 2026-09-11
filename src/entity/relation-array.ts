@@ -1,92 +1,87 @@
-import { core } from '../core/core.js';
-import { Entity } from './entity-aspect.js';
-import { QueryErrorCallback, QueryResult, QuerySuccessCallback } from '../manager/entity-manager.js';
-import { DataProperty, NavigationProperty } from '../metadata/entity-metadata.js';
-import { EntityQuery } from '../query/entity-query.js';
-import { EntityState } from './entity-state.js';
 import { BreezeEvent } from '../core/event.js';
-import { ObservableArray, observableArray } from './observable-array.js';
+import { ObservableArray, ObservableArrayOps, observableArray } from './observable-array.js';
+import { EntityState } from './entity-state.js';
+import { EntityQuery } from '../query/entity-query.js';
+import type { Entity } from './entity-aspect.js';
+import type { QueryErrorCallback, QueryResult, QuerySuccessCallback } from '../manager/entity-manager.js';
+import type { DataProperty, NavigationProperty } from '../metadata/entity-metadata.js';
 
-// TODO: mixin impl is not very typesafe
-
-export interface RelationArray extends ObservableArray {
-  [index: number]: Entity;
+export interface RelationArray extends ObservableArray<Entity> {
   parentEntity: Entity;
   parentProperty?: DataProperty;
   navigationProperty: NavigationProperty;
-  _inProgress?: boolean;
-  _addsInProcess: Entity[];
-  load(querySuccessCallback?: QuerySuccessCallback, queryErrorCallback?: QueryErrorCallback): Promise<QueryResult>; 
+  load(querySuccessCallback?: QuerySuccessCallback, queryErrorCallback?: QueryErrorCallback): Promise<QueryResult>;
 }
 
-let relationArrayMixin = {
+/**
+ Relation arrays are not a class: they are real arrays whose mutating methods are replaced, so that
+ changing one updates both ends of the relationship. A relation array is a collection of entities
+ associated with a navigation property on a single entity, i.e. customer.orders or
+ order.orderDetails.
+ @class {relationArray}
+ **/
 
-  /**
-  Relation arrays are not actually classes, they are objects that mimic arrays. A relation array is collection of
-  entities associated with a navigation property on a single entity. i.e. customer.orders or order.orderDetails.
-  This collection looks like an array in that the basic methods on arrays such as 'push', 'pop', 'shift', 'unshift', 'splice'
-  are all provided as well as several special purpose methods.
-  @class {relationArray}
-  **/
+/**
+An {@link BreezeEvent} that fires whenever the contents of this array changed.  This event
+is fired any time a new entity is attached or added to the EntityManager and happens to belong to this collection.
+Adds that occur as a result of query or import operations are batched so that all of the adds or removes to any individual
+collections are collected into a single notification event for each relation array.
+@example
+    // assume order is an order entity attached to an EntityManager.
+    orders.arrayChanged.subscribe(
+    function (arrayChangedArgs) {
+        let addedEntities = arrayChangedArgs.added;
+        let removedEntities = arrayChanged.removed;
+    });
+@event arrayChanged
+@param added {Array of Entity} An array of all of the entities added to this collection.
+@param removed {Array of Entity} An array of all of the removed from this collection.
+@readOnly
+**/
 
-  /**
-  An {@link BreezeEvent} that fires whenever the contents of this array changed.  This event
-  is fired any time a new entity is attached or added to the EntityManager and happens to belong to this collection.
-  Adds that occur as a result of query or import operations are batched so that all of the adds or removes to any individual
-  collections are collected into a single notification event for each relation array.
-  @example
-      // assume order is an order entity attached to an EntityManager.
-      orders.arrayChanged.subscribe(
-      function (arrayChangedArgs) {
-          let addedEntities = arrayChangedArgs.added;
-          let removedEntities = arrayChanged.removed;
-      });
-  @event arrayChanged
-  @param added {Array of Entity} An array of all of the entities added to this collection.
-  @param removed {Array of Entity} An array of all of the removed from this collection.
-  @readOnly
-  **/
+/**
+Performs an asynchronous load of all other the entities associated with this relationArray.
+@example
+    // assume orders is an empty, as yet unpopulated, relation array of orders
+    // associated with a specific customer.
+    orders.load().then(...)
+@param [callback] {Function}
+@param [errorCallback] {Function}
+@returns {Promise}
+**/
+function load(this: RelationArray, callback?: QuerySuccessCallback, errorCallback?: QueryErrorCallback): Promise<QueryResult> {
+  const parent = this.parentEntity;
+  const query = EntityQuery.fromEntityNavigation(this.parentEntity, this.navigationProperty);
+  const em = parent.entityAspect.entityManager!;
+  return em.executeQuery(query, callback, errorCallback);
+}
 
+const relationArrayOps: ObservableArrayOps = {
 
-  /**
-  Performs an asynchronous load of all other the entities associated with this relationArray.
-  @example
-      // assume orders is an empty, as yet unpopulated, relation array of orders
-      // associated with a specific customer.
-      orders.load().then(...)
-  @param [callback] {Function}
-  @param [errorCallback] {Function}
-  @returns {Promise}
-  **/
-  load: function(callback?: QuerySuccessCallback, errorCallback?: QueryErrorCallback): Promise<QueryResult> {
-    let parent = this.parentEntity;
-    let query = EntityQuery.fromEntityNavigation(this.parentEntity, this.navigationProperty);
-    let em = parent.entityAspect.entityManager;
-    return em.executeQuery(query, callback, errorCallback);
+  getGoodAdds: function (arr: RelationArray, adds: Entity[]) {
+    return getGoodAdds(arr, adds);
   },
 
-  _getEventParent: function() {
-    return this.parentEntity.entityAspect;
+  beforeChange: function (arr: RelationArray) {
+    // a relation array does not change the state of the entity that owns it
   },
 
-  _getPendingPubs: function() {
-    let em = this.parentEntity.entityAspect.entityManager;
-    return em && em._pendingPubs;
+  processAdds: function (arr: RelationArray, adds: Entity[]) {
+    processAdds(arr, adds);
   },
 
-  // virtual impls
-  _getGoodAdds: function(adds: Entity[]) {
-    return getGoodAdds(this, adds);
+  processRemoves: function (arr: RelationArray, removes: Entity[]) {
+    processRemoves(arr, removes);
   },
 
-  _processAdds: function(adds: Entity[]) {
-    processAdds(this, adds);
+  getEventParent: function (arr: RelationArray) {
+    return arr.parentEntity.entityAspect;
   },
 
-  _processRemoves: function(removes: Entity[]) {
-    processRemoves(this, removes);
+  getPendingPubs: function (arr: RelationArray) {
+    const em = arr.parentEntity.entityAspect.entityManager;
+    return em && (em as any)._pendingPubs;
   }
-
 };
 
 function getGoodAdds(relationArray: RelationArray, adds: Entity[]) {
@@ -101,11 +96,11 @@ function getGoodAdds(relationArray: RelationArray, adds: Entity[]) {
   if (entityManager && !entityManager.isLoading) {
     goodAdds.forEach(function (add) {
       if (add.entityAspect.entityState.isDetached()) {
-        relationArray._inProgress = true;
+        relationArray._obs.inProgress = true;
         try {
           entityManager!.attachEntity(add, EntityState.Added);
         } finally {
-          relationArray._inProgress = false;
+          relationArray._obs.inProgress = false;
         }
       }
     });
@@ -116,7 +111,7 @@ function getGoodAdds(relationArray: RelationArray, adds: Entity[]) {
 function processAdds(relationArray: RelationArray, adds: Entity[]) {
   let parentEntity = relationArray.parentEntity;
   let np = relationArray.navigationProperty;
-  let addsInProcess = relationArray._addsInProcess;
+  let addsInProcess = relationArray._obs.addsInProcess!;
 
   let invNp = np.inverse;
   let startIx = addsInProcess.length;
@@ -154,10 +149,11 @@ function checkForDups(relationArray: RelationArray, adds: Entity[]) {
   let parentEntity = relationArray.parentEntity;
   let navProp = relationArray.navigationProperty;
   let inverseProp = navProp.inverse;
+  let addsInProcess = relationArray._obs.addsInProcess!;
   let goodAdds: Entity[];
   if (inverseProp) {
     goodAdds = adds.filter(function (a) {
-      if (relationArray._addsInProcess.indexOf(a) >= 0) {
+      if (addsInProcess.indexOf(a) >= 0) {
         return false;
       }
       let inverseValue = a.getProperty(inverseProp!.name);
@@ -169,7 +165,7 @@ function checkForDups(relationArray: RelationArray, adds: Entity[]) {
     let fkPropNames = navProp.invForeignKeyNames;
     let keyProps = parentEntity.entityType.keyProperties;
     goodAdds = adds.filter(function (a) {
-      if (relationArray._addsInProcess.indexOf(a) >= 0) {
+      if (addsInProcess.indexOf(a) >= 0) {
         return false;
       }
       return fkPropNames.some(function (fk, i) {
@@ -183,18 +179,18 @@ function checkForDups(relationArray: RelationArray, adds: Entity[]) {
   return goodAdds;
 }
 
-/** For use by breeze plugin authors only. The class is for use in building a {@link ModelLibraryAdapter} implementation. 
-@adapter (see {@link ModelLibraryAdapter})    
-@hidden 
+/** For use by breeze plugin authors only. The class is for use in building a {@link ModelLibraryAdapter} implementation.
+@adapter (see {@link ModelLibraryAdapter})
+@hidden
 */
 export function makeRelationArray(arr: any[], parentEntity: Entity, navigationProperty: NavigationProperty): RelationArray {
-  let arrX = arr as any;
+  const arrX = arr as any;
   arrX.parentEntity = parentEntity;
   arrX.navigationProperty = navigationProperty;
   arrX.arrayChanged = new BreezeEvent("arrayChanged", arrX);
-  // array of pushes currently in process on this relation array - used to prevent recursion.
-  arrX._addsInProcess = [];
-  // need to use mixins here instead of inheritance because we are starting from an existing array object.
-  core.extend(arrX, observableArray.mixin);
-  return core.extend(arrX, relationArrayMixin) as RelationArray;
+  arrX.load = load;
+  // addsInProcess: the pushes currently being processed on this array, which is what stops the
+  // relationship fixup from recursing back into it.
+  observableArray.initialize(arrX, relationArrayOps, { addsInProcess: [] });
+  return arrX as RelationArray;
 }

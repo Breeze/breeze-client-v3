@@ -238,6 +238,27 @@ startup camel-cases property names unless told otherwise: `CompanyName` on the s
 names a naming convention still sets it when imported into an empty store. A store
 loaded from an `exportMetadata()` file therefore keeps the convention it was exported with.
 
+### The observable arrays keep their public surface
+
+`relationArray`, `complexArray` and `primitiveArray` are still real arrays, and everything an
+application uses is unchanged: `push`, `pop`, `shift`, `unshift`, `splice`, `arrayChanged`,
+`load()`, `parentEntity`, `navigationProperty`, `parent`, `parentProperty`, and every native array
+method.
+
+What moved is the internal machinery. It used to be copied onto each array instance and now sits
+behind a single `_obs` property: `_push`, `_processAdds`, `_processRemoves`, `_getGoodAdds`,
+`_beforeChange`, `_getPendingPubs`, `_rejectChanges`, `_acceptChanges`, `_origValues`,
+`_addsInProcess`, `_inProgress` and `getEntityAspect()`. Those were `@hidden` internals rather than
+documented API, so this reaches only a plugin or a custom `ModelLibraryAdapter` that called them
+directly.
+
+Moving them was the point of the change rather than a side effect of it: the number of properties
+on each array instance was what pushed these collections onto a slow path, and removing them made
+indexed reads about ten times faster. *The observable arrays* in CHANGES-DEV.md has the
+measurements and the alternatives that were tried.
+
+---
+
 ## 7. What has *not* changed
 
 The public API is otherwise intended to be source-compatible with 2.x. `EntityManager`,

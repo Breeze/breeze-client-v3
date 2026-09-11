@@ -1,101 +1,88 @@
-import { core  } from '../core/core.js';
-import { observableArray } from './observable-array.js';
 import { BreezeEvent } from '../core/event.js';
-import { StructuralObject } from './entity-aspect.js';
-import { DataProperty } from '../metadata/entity-metadata.js';
+import { ObservableArray, ObservableArrayOps, observableArray } from './observable-array.js';
+import type { StructuralObject } from './entity-aspect.js';
+import type { DataProperty } from '../metadata/entity-metadata.js';
 
-// TODO: mixin impl is not very typesafe
+export interface PrimitiveArray extends ObservableArray<any> {
+  parent?: StructuralObject;
+  parentProperty?: DataProperty;
+}
 
-// Not needed
-// interface IPrimitiveArray extends IObservableArray {
-//   [index: number]: any;
-//   parent?: IStructuralObject;
-//   parentProperty?: DataProperty;
-// }
+/**
+ Primitive arrays are not a class: they are real arrays whose mutating methods are replaced, so
+ that changing one updates the entity that owns it. A primitive array is a collection of primitive
+ values associated with a data property on a single entity or complex object, i.e.
+ customer.invoiceNumbers.
+ @class {primitiveArray}
+ **/
 
-let primitiveArrayMixin = {
+/**
+An {@link BreezeEvent} that fires whenever the contents of this array changed.  This event
+is fired any time a new entity is attached or added to the EntityManager and happens to belong to this collection.
+Adds that occur as a result of query or import operations are batched so that all of the adds or removes to any individual
+collections are collected into a single notification event for each relation array.
+@example
+    // assume order is an order entity attached to an EntityManager.
+    orders.arrayChanged.subscribe(
+    function (arrayChangedArgs) {
+        let addedEntities = arrayChangedArgs.added;
+        let removedEntities = arrayChanged.removed;
+    });
+@event arrayChanged
+@param added {Array of Primitives} An array of all of the items added to this collection.
+@param removed {Array of Primitives} An array of all of the items removed from this collection.
+@readOnly
+**/
 
-  // complexArray will have the following props
-  //    parent
-  //    propertyPath
-  //    parentProperty
-  //    addedItems  - only if modified
-  //    removedItems  - only if modified
-  //  each complexAspect of any entity within a complexArray
-  //  will have its own _complexState = "A/M";
+const primitiveArrayOps: ObservableArrayOps = {
 
-  /**
-  Primitive arrays are not actually classes, they are objects that mimic arrays. A primitive array is collection of
-  primitive types associated with a data property on a single entity or complex object. i.e. customer.invoiceNumbers.
-  This collection looks like an array in that the basic methods on arrays such as 'push', 'pop', 'shift', 'unshift', 'splice'
-  are all provided as well as several special purpose methods.
-  @class {primitiveArray}
-  **/
-
-  /**
-  An {@link BreezeEvent} that fires whenever the contents of this array changed.  This event
-  is fired any time a new entity is attached or added to the EntityManager and happens to belong to this collection.
-  Adds that occur as a result of query or import operations are batched so that all of the adds or removes to any individual
-  collections are collected into a single notification event for each relation array.
-  @example
-      // assume order is an order entity attached to an EntityManager.
-      orders.arrayChanged.subscribe(
-      function (arrayChangedArgs) {
-          let addedEntities = arrayChangedArgs.added;
-          let removedEntities = arrayChanged.removed;
-      });
-  @event arrayChanged
-  @param added {Array of Primitives} An array of all of the items added to this collection.
-  @param removed {Array of Primitives} An array of all of the items removed from this collection.
-  @readOnly
-  **/
-
-    // virtual impls
-  _getGoodAdds:  function(adds: any[]) {
+  // every value is welcome: there is nothing to attach, and no duplicate to guard against
+  getGoodAdds: function (arr: PrimitiveArray, adds: any[]) {
     return adds;
   },
 
-  _beforeChange: function() {
-    let entityAspect = this.getEntityAspect();
-    if (entityAspect.entityState.isUnchanged()) {
-      entityAspect.setModified();
-    }
-    if (entityAspect.entityState.isModified() && !this._origValues) {
-      this._origValues = this.slice(0);
-    }
+  beforeChange: function (arr: PrimitiveArray) {
+    observableArray.updateEntityState(arr);
   },
 
-  _processAdds: function(adds: any[]) {
+  processAdds: function (arr: PrimitiveArray, adds: any[]) {
     // nothing needed
   },
 
-  _processRemoves: function(removes: any[]) {
-    // nothing needed;
+  processRemoves: function (arr: PrimitiveArray, removes: any[]) {
+    // nothing needed
   },
 
-
-  _rejectChanges: function() {
-    if (!this._origValues) return;
-    this.length = 0;
-    Array.prototype.push.apply(this, this._origValues);
+  getEventParent: function (arr: PrimitiveArray) {
+    return observableArray.getEntityAspect(arr);
   },
 
-  _acceptChanges: function() {
-    this._origValues = null;
+  getPendingPubs: function (arr: PrimitiveArray) {
+    const em = observableArray.getEntityAspect(arr).entityManager;
+    return em && (em as any)._pendingPubs;
+  },
+
+  rejectChanges: function (arr: PrimitiveArray) {
+    const origValues = arr._obs.origValues;
+    if (!origValues) return;
+    arr.length = 0;
+    Array.prototype.push.apply(arr, origValues);
+  },
+
+  acceptChanges: function (arr: PrimitiveArray) {
+    arr._obs.origValues = null;
   }
 };
-  // local functions
 
-/** For use by breeze plugin authors only. The class is for use in building a {@link ModelLibraryAdapter} implementation. 
-@adapter (see {@link ModelLibraryAdapter})    
-@hidden 
+/** For use by breeze plugin authors only. The class is for use in building a {@link ModelLibraryAdapter} implementation.
+@adapter (see {@link ModelLibraryAdapter})
+@hidden
 */
-export function makePrimitiveArray(arr: any[], parent: StructuralObject, parentProperty: DataProperty) {
-  let arrX = arr as any;
-  observableArray.initializeParent(arrX, parent, parentProperty);
+export function makePrimitiveArray(arr: any[], parent: StructuralObject, parentProperty: DataProperty): PrimitiveArray {
+  const arrX = arr as any;
+  arrX.parent = parent;
+  arrX.parentProperty = parentProperty;
   arrX.arrayChanged = new BreezeEvent("arrayChanged", arrX);
-  core.extend(arrX, observableArray.mixin);
-  return core.extend(arrX, primitiveArrayMixin);
+  observableArray.initialize(arrX, primitiveArrayOps);
+  return arrX as PrimitiveArray;
 }
-
-

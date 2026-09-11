@@ -1,114 +1,94 @@
-import { core  } from '../core/core.js';
-import { ObservableArray, observableArray } from './observable-array.js';
 import { BreezeEvent } from '../core/event.js';
-import { ComplexObject, StructuralObject } from './entity-aspect.js';
-import { DataProperty } from '../metadata/entity-metadata.js';
+import { ObservableArray, ObservableArrayOps, observableArray } from './observable-array.js';
+import type { ComplexObject, StructuralObject } from './entity-aspect.js';
+import type { DataProperty } from '../metadata/entity-metadata.js';
 
-// TODO: mixin impl is not very typesafe
-
-export interface ComplexArray extends ObservableArray {
-  [index: number]: ComplexObject;
+export interface ComplexArray extends ObservableArray<ComplexObject> {
   parent?: StructuralObject;
   parentProperty?: DataProperty;
 }
 
-let complexArrayMixin = {
+/**
+ Complex arrays are not a class: they are real arrays whose mutating methods are replaced, so that
+ changing one updates the entity that owns it. A complex array is a collection of complexTypes
+ associated with a data property on a single entity or other complex object, i.e. customer.orders
+ or order.orderDetails.
+ @class {complexArray}
+ **/
 
-  // complexArray will have the following props
-  //    parent
-  //    propertyPath
-  //    parentProperty
-  //    addedItems  - only if modified
-  //    removedItems  - only if modified
-  //  each complexAspect of any entity within a complexArray
-  //  will have its own _complexState = "A/M";
-
-  /**
-   Complex arrays are not actually classes, they are objects that mimic arrays. A complex array is collection of
-   complexTypes associated with a data property on a single entity or other complex object. i.e. customer.orders or order.orderDetails.
-   This collection looks like an array in that the basic methods on arrays such as 'push', 'pop', 'shift', 'unshift', 'splice'
-   are all provided as well as several special purpose methods.
-   @class {complexArray}
-   **/
-
-  /**
-  An {@link BreezeEvent} that fires whenever the contents of this array changed.  This event
-  is fired any time a new entity is attached or added to the EntityManager and happens to belong to this collection.
-  Adds that occur as a result of query or import operations are batched so that all of the adds or removes to any individual
-  collections are collected into a single notification event for each relation array.
-  @example
-      // assume order is an order entity attached to an EntityManager.
-      orders.arrayChanged.subscribe(
-      function (arrayChangedArgs) {
-          var addedEntities = arrayChangedArgs.added;
-          var removedEntities = arrayChanged.removed;
-      });
-  @event arrayChanged
-  @param added {Array of Entity} An array of all of the entities added to this collection.
-  @param removed {Array of Entity} An array of all of the removed from this collection.
-  @readOnly
-  **/
-
-    // virtual impls
-  _getGoodAdds: function(adds: any[]) {
-    return getGoodAdds(this, adds);
-  },
-
-  _beforeChange: function() {
-    observableArray.updateEntityState(this);
-  },
-
-  _processAdds: function(adds: any[]) {
-    processAdds(this, adds);
-  },
-
-  _processRemoves: function(removes: any[]) {
-    processRemoves(this, removes);
-  },
-
-  _rejectChanges: function() {
-    if (!this._origValues) return;
-    let that = this;
-    this.forEach(function (co: ComplexObject) {
-      clearAspect(co, that);
+/**
+An {@link BreezeEvent} that fires whenever the contents of this array changed.  This event
+is fired any time a new entity is attached or added to the EntityManager and happens to belong to this collection.
+Adds that occur as a result of query or import operations are batched so that all of the adds or removes to any individual
+collections are collected into a single notification event for each relation array.
+@example
+    // assume order is an order entity attached to an EntityManager.
+    orders.arrayChanged.subscribe(
+    function (arrayChangedArgs) {
+        var addedEntities = arrayChangedArgs.added;
+        var removedEntities = arrayChanged.removed;
     });
-    this.length = 0;
-    this._origValues.forEach(function (co: ComplexObject) {
-      that.push(co);
+@event arrayChanged
+@param added {Array of Entity} An array of all of the entities added to this collection.
+@param removed {Array of Entity} An array of all of the removed from this collection.
+@readOnly
+**/
+
+const complexArrayOps: ObservableArrayOps = {
+
+  // skip any that are already attached to this same parent
+  getGoodAdds: function (arr: ComplexArray, adds: ComplexObject[]) {
+    return adds.filter(function (a) {
+      return a.complexAspect == null || a.complexAspect.parent !== arr.parent;
     });
   },
 
-  _acceptChanges: function() {
-    this._origValues = null;
+  beforeChange: function (arr: ComplexArray) {
+    observableArray.updateEntityState(arr);
+  },
+
+  processAdds: function (arr: ComplexArray, adds: ComplexObject[]) {
+    adds.forEach(function (a) {
+      if (a.complexAspect && a.complexAspect.parent != null) {
+        throw new Error("The complexObject is already attached. Either clone it or remove it from its current owner");
+      }
+      setAspect(a, arr);
+    });
+  },
+
+  processRemoves: function (arr: ComplexArray, removes: ComplexObject[]) {
+    removes.forEach(function (a) {
+      clearAspect(a, arr);
+    });
+  },
+
+  getEventParent: function (arr: ComplexArray) {
+    return observableArray.getEntityAspect(arr);
+  },
+
+  getPendingPubs: function (arr: ComplexArray) {
+    const em = observableArray.getEntityAspect(arr).entityManager;
+    return em && (em as any)._pendingPubs;
+  },
+
+  rejectChanges: function (arr: ComplexArray) {
+    const origValues = arr._obs.origValues;
+    if (!origValues) return;
+    arr.forEach(function (co: ComplexObject) {
+      clearAspect(co, arr);
+    });
+    arr.length = 0;
+    origValues.forEach(function (co: ComplexObject) {
+      arr.push(co);
+    });
+  },
+
+  acceptChanges: function (arr: ComplexArray) {
+    arr._obs.origValues = null;
   }
 };
 
 // local functions
-
-
-function getGoodAdds(complexArray: ComplexArray, adds: ComplexObject[]) {
-  // remove any that are already added here
-  return adds.filter(function (a) {
-    // return a.parent !== complexArray.parent;  // TODO: check if this is actually a bug in original breezejs ???
-    return a.complexAspect == null || a.complexAspect.parent !== complexArray.parent;
-  });
-}
-
-function processAdds(complexArray: ComplexArray, adds: ComplexObject[]) {
-  adds.forEach(function (a) {
-    // if (a.parent != null) { // TODO: check if this is actually a bug in original breezejs ???
-    if (a.complexAspect && a.complexAspect.parent != null) {
-      throw new Error("The complexObject is already attached. Either clone it or remove it from its current owner");
-    }
-    setAspect(a, complexArray);
-  });
-}
-
-function processRemoves(complexArray: ComplexArray, removes: ComplexObject[]) {
-  removes.forEach(function (a) {
-    clearAspect(a, complexArray);
-  });
-}
 
 function clearAspect(co: ComplexObject, arr: ComplexArray) {
   let coAspect = co.complexAspect;
@@ -130,16 +110,15 @@ function setAspect(co: ComplexObject, arr: ComplexArray) {
   return coAspect;
 }
 
-
-/** For use by breeze plugin authors only. The class is for use in building a {@link ModelLibraryAdapter} implementation. 
-@adapter (see {@link ModelLibraryAdapter})    
-@hidden 
+/** For use by breeze plugin authors only. The class is for use in building a {@link ModelLibraryAdapter} implementation.
+@adapter (see {@link ModelLibraryAdapter})
+@hidden
 */
-export function makeComplexArray(arr: any[], parent: StructuralObject, parentProperty: DataProperty) {
-  let arrX = arr as any;
-  observableArray.initializeParent(arrX, parent, parentProperty);
+export function makeComplexArray(arr: any[], parent: StructuralObject, parentProperty: DataProperty): ComplexArray {
+  const arrX = arr as any;
+  arrX.parent = parent;
+  arrX.parentProperty = parentProperty;
   arrX.arrayChanged = new BreezeEvent("arrayChanged", arrX);
-  core.extend(arrX, observableArray.mixin);
-  return core.extend(arrX, complexArrayMixin) as ComplexArray;
+  observableArray.initialize(arrX, complexArrayOps);
+  return arrX as ComplexArray;
 }
-

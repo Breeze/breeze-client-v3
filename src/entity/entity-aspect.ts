@@ -5,6 +5,7 @@ import { assertParam } from '../core/assert-param.js';
 import { EntityState  } from './entity-state.js';
 import { EntityAction } from './entity-action.js';
 import { EntityType, ComplexType, DataProperty, NavigationProperty, EntityProperty } from '../metadata/entity-metadata.js';
+import { observableArray } from './observable-array.js';
 import { EntityKey } from './entity-key.js';
 import { EntityGroup } from './entity-group.js';
 import { EntityManager, QueryResult, QueryErrorCallback, QuerySuccessCallback, ValidationErrorsChangedEventArgs } from '../manager/entity-manager.js';
@@ -789,7 +790,7 @@ function rejectChangesCore(target: any) {
     if (cp.isScalar) {
       rejectChangesCore(cos);
     } else {
-      cos._rejectChanges();
+      observableArray.rejectChanges(cos);
       cos.forEach(rejectChangesCore);
     }
   });
@@ -998,7 +999,7 @@ function clearOriginalValues(target: any) {
     if (cp.isScalar) {
       clearOriginalValues(cos);
     } else {
-      cos._acceptChanges();
+      observableArray.acceptChanges(cos);
       cos.forEach(clearOriginalValues);
     }
   });

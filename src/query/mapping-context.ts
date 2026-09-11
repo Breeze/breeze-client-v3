@@ -8,6 +8,7 @@ import { MetadataStore, EntityType, StructuralType, DataProperty, NavigationProp
 import { EntityManager } from '../manager/entity-manager.js';
 import { MergeStrategy } from './query-options.js';
 import { Entity } from '../entity/entity-aspect.js';
+import { observableArray } from '../entity/observable-array.js';
 import { EntityQuery } from './entity-query.js';
 
 
@@ -330,7 +331,7 @@ function clearOriginalValues(target: any) {
     if (cp.isScalar) {
       clearOriginalValues(cos);
     } else {
-      cos._acceptChanges();
+      observableArray.acceptChanges(cos);
       cos.forEach(clearOriginalValues);
     }
   });

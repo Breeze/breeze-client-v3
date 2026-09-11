@@ -211,6 +211,61 @@ every published subpath resolving and loading, with bundle sizes unchanged: 329.
 app using only `MetadataStore`, 455.0 KB with `EntityManager`, 460.4 KB adding the mixin
 subpath.
 
+## The observable arrays
+
+`relationArray`, `complexArray` and `primitiveArray` are the collections that hang off an entity -
+`order.orderDetails`, `customer.invoiceNumbers`. They have to notify when they change, and they
+have to be *real* arrays, because applications index them, iterate them, spread them and
+`JSON.stringify` them.
+
+**Was:** `core.extend` copied a mixin onto each array **instance** - ten shared functions, four or
+five more per kind, plus the data properties: **18 own properties on every array**. That is what
+made them observable, and it is also what made them slow. Past roughly a dozen own properties V8
+moves an array to dictionary properties, and indexed reads fall off a cliff.
+
+**Now:** only the five mutators sit on the instance - they have to, to be intercepted - plus
+`_getEventParent`, which `BreezeEvent` looks for on the publisher itself. The per-kind behaviour is
+one shared `ops` object and the bookkeeping is one state object, both reached through a single
+`_obs` property: **11 own properties for a relation array, 10 for the other two.**
+
+Measured on real entities (2,000 employees with 20 orders each, Node 24, same checksum both sides):
+
+| | own props | create | push | indexed read | forEach |
+|---|---|---|---|---|---|
+| before | 18 | 66.4 ms | 604.3 ms | 63.4 ms | 14.4 ms |
+| after | 11 | 58.1 ms | 559.5 ms | **6.4 ms** | **6.6 ms** |
+
+**Why not the tidier-looking options.** Both were measured, one variant per process so that
+inline caches stay honest:
+
+- `class extends Array`, or swapping the prototype with `setPrototypeOf`: indexed reads are fine,
+  but `forEach`/`map`/`filter` become about 20x slower (197-240 ms against 10 ms), because the
+  built-ins lose their fast path as soon as the receiver's prototype is not `Array.prototype`.
+  Iterating these collections is the common case, so that trade is the wrong way round.
+- `Proxy`: about 400x on reads, and it would quietly change behaviour - it would start firing
+  `arrayChanged` on `arr.length = 0` and `arr[i] = x`, which `entity-aspect.ts` and
+  `entity-metadata.ts` do deliberately, and which the suite asserts exact event counts around.
+
+**What moved.** The application-facing surface is unchanged: `push`/`pop`/`shift`/`unshift`/`splice`,
+`arrayChanged`, `load()`, `parentEntity`, `navigationProperty`, `parent`, `parentProperty`, and every
+native array method. What is no longer *on the array* is the internal machinery - `_push`,
+`_processAdds`, `_processRemoves`, `_getGoodAdds`, `_beforeChange`, `_getPendingPubs`,
+`_rejectChanges`, `_acceptChanges`, `_origValues`, `_addsInProcess`, `_inProgress` and
+`getEntityAspect()`. Breeze reaches them through helpers on the internal `observableArray` object;
+a plugin that called them directly needs those helpers instead. Removing them from the instance
+is not incidental - it is the whole point, since the cost was the property count itself.
+
+The typing improved with it: `ObservableArray<T>` now extends `Array<T>`, so `arr.forEach` is typed
+rather than reachable only through an untyped `this`, the hand-written index signatures are gone,
+and the three "mixin impl is not very typesafe" TODOs with them. The six mutators also lose the
+`Object.getPrototypeOf(this).push ? ... : Array.prototype.push` branch they each carried, which was
+dead on a plain array.
+
+`test/unit/observable-array.spec.ts` pins the own-property count, the prototype, the sharing of the
+ops and mutator objects, and the notification behaviour, so this cannot drift back over the cliff.
+
+Verified: typecheck clean, unit 328, integration 450 + 7 skipped, browser 727 + 7 skipped.
+
 ## Object-as-map to Map
 
 Where a structure is keyed by *data* rather than by fixed property names, it is now a real

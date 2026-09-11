@@ -459,6 +459,15 @@ Still open:
 - A query rebuilt by `EntityQuery.fromJSON` without `usePost` has `usePostEnabled`
   `undefined` rather than `false`.
 
+## Observable arrays (done)
+
+The three observable collection types are still plain arrays, but the mixin that used to be copied
+onto every instance is gone: 18 own properties became 11 (relation) and 10 (complex, primitive),
+which is what keeps them out of V8's dictionary-properties mode. On real entities indexed reads
+went from 63.4 ms to 6.4 ms and `forEach` from 14.4 ms to 6.6 ms, with creation and push slightly
+better too. A subclass and a `Proxy` were both measured and rejected - see *The observable arrays*
+in CHANGES-DEV.md for the numbers and for what moved off the array.
+
 ## Packaging check (done)
 
 Installing the packed tarball into a fresh Vite + TypeScript app found what the suite could
