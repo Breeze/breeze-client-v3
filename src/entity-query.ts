@@ -1132,12 +1132,27 @@ export class SelectClause {
     });
   }
 
-  toFunction(/* config */) {
+  /** @hidden @internal
+  The property names of a projected result. Given the queried type, they are the names a
+  remote query's results get: the server names each path by joining the server names of
+  its properties (the ones sent in the select clause) with '_', and the client passes that
+  name through the naming convention, as it does every key of an anonymous result. */
+  _resultNames(entityType?: EntityType) {
+    if (entityType == null || entityType.isAnonymous) return this._pathNames;
+    const et: EntityType = entityType;
+    const toClient = et.metadataStore.namingConvention.serverPropertyNameToClient;
+    return this.propertyPaths.map(function (pp) {
+      return toClient(et.clientPropertyPathToServer(pp, "_"));
+    });
+  }
+
+  toFunction(config?: { entityType?: EntityType }) {
     let that = this;
+    let names = this._resultNames(config && config.entityType);
     return function (entity: Entity) {
       let result = {};
       that.propertyPaths.forEach(function (path, i) {
-        (result as Record<string, any>)[that._pathNames[i]] = EntityAspect.getPropertyPathValue(entity, path);
+        (result as Record<string, any>)[names[i]] = EntityAspect.getPropertyPathValue(entity, path);
       });
       return result;
     };

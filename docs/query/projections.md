@@ -89,16 +89,14 @@ const query = EntityQuery.from('Orders')
   .orderBy('customer.companyName');
 ```
 
-The dot becomes an underscore in the result's property name.
+The dot becomes an underscore in the result's property name. The name is built from the
+server's property names and then passed through the
+[naming convention](/server/namingconvention), like every property of a projection. A
+Breeze ASP.NET Core server names this one `Customer_CompanyName`; the camelCase convention
+lowercases only the first letter, so the client sees `customer_CompanyName`.
 
-::: warning Remote and local names differ
-When a Breeze ASP.NET Core server runs this query, it names the property
-`Customer_CompanyName`. The camelCase convention lowercases only the first letter, so
-the client sees `customer_CompanyName`. When the same query runs
-[against the cache](/query/locally), the result is named `customer_companyName`. If a
-projection has to work both ways, read the property by its exact name, or map the
-results to your own shape.
-:::
+The same query run [against the cache](/query/locally) produces the same names, so a
+projection reads the same whether it came from the server or from the cache.
 
 ## Navigation property projections
 

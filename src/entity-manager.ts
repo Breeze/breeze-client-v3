@@ -2510,7 +2510,8 @@ function executeQueryLocallyCore(em: EntityManager, query: EntityQuery) {
 
   let selectClause = query.selectClause;
   if (selectClause) {
-    let selectFn = selectClause.toFunction();
+    // named as a remote query's results are named
+    let selectFn = selectClause.toFunction({ entityType: entityType });
     result = result.map(selectFn);
   }
   return { results: result, inlineCount: inlineCount };

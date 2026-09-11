@@ -1,6 +1,6 @@
 import {
   configureBreeze, EntityManager, EntityQuery, EntityState, FilterQueryOp, MetadataStore, DataService, NamingConvention,
-  Predicate,
+  Predicate, SelectClause,
 } from '../../src/breeze';
 import { DataServiceWebApiAdapter } from '../../src/adapter-data-service-webapi';
 import { UriBuilderJsonAdapter } from '../../src/adapter-uri-builder-json';
@@ -253,5 +253,39 @@ describe("untyped query results fall back to the resource's entity type", () => 
     const em = newManager();
     const qr = await em.executeQuery(EntityQuery.from("CustomersStartingWith").toType("Customer"));
     expect(qr.results[0].entityType).toBe(em.metadataStore.getAsEntityType("Customer"));
+  });
+});
+
+describe("local and remote projections name nested paths alike", () => {
+  test("a nested path gets the same name from the cache as from the server", async () => {
+    const em = newManager();
+    const custID = "00000000-0000-0000-0000-000000000009";
+    em.createEntity("Customer", { customerID: custID, companyName: "Acme" }, EntityState.Unchanged);
+    em.createEntity("Order", { orderID: 1, customerID: custID, freight: 10 }, EntityState.Unchanged);
+
+    // A fake server that names each projected property as the Breeze .NET server does
+    // (PropertySignature.Name): the path it was sent, with '.' replaced by '_'.
+    respond = (url) => {
+      const u = decodeURIComponent(url);
+      const sent = JSON.parse(u.slice(u.indexOf("?") + 1));
+      const paths: string[] = Array.isArray(sent.select) ? sent.select : sent.select.split(",");
+      const row: Record<string, any> = {};
+      paths.forEach(p => { row[p.trim().split(".").join("_")] = p.includes("CompanyName") ? "Acme" : 10; });
+      return json([row]);
+    };
+
+    const q = EntityQuery.from("Orders").select("customer.companyName, freight");
+    const remote = (await em.executeQuery(q)).results[0];
+    const local = em.executeQueryLocally(q)[0];
+
+    expect(local).toEqual(remote);
+    // with camelCase only the first letter is lowercased, locally as well as remotely
+    expect(local).toEqual({ customer_CompanyName: "Acme", freight: 10 });
+  });
+
+  test("without a known type the client path is used", () => {
+    // unchanged: a SelectClause on its own still names paths from the client names
+    const sc = new SelectClause(["order.customer.companyName"]);
+    expect(sc._resultNames()).toEqual(["order_customer_companyName"]);
   });
 });

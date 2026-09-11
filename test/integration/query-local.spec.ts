@@ -237,7 +237,8 @@ describe("Query Local", () => {
     expect(r.length).toBe(r2.length);
     const rx = r2[0];
     expect(rx.entityAspect).toBeUndefined();
-    expect(rx["customer_companyName"]).not.toBeNull();
+    // named as the server names it: Customer_CompanyName through the camelCase convention
+    expect(rx["customer_CompanyName"]).toBe(rx["customer"].getProperty("companyName"));
     expect(rx["customer"].entityAspect).not.toBeNull();
     expect(rx["orderDate"]).not.toBeNull();
   });
