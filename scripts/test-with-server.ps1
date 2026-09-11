@@ -193,7 +193,7 @@ try {
         # Vitest exits 0 when -t matches nothing - every test is simply skipped - so a
         # mistyped filter would look like a pass. Keep a copy of the output to check.
         $out = Join-Path ([IO.Path]::GetTempPath()) "breeze-vitest-$t.log"
-        $env:FORCE_COLOR = '1'   # keep colours although the output is piped
+        if (-not $env:NO_COLOR) { $env:FORCE_COLOR = '1' }   # keep colours when piped, unless the user opted out
         & node @vitestArgs | Tee-Object -FilePath $out
         $code = $LASTEXITCODE
         $esc = [char]27
