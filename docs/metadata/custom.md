@@ -63,15 +63,17 @@ store.importMetadata({
 }, true);
 ```
 
-- A type is matched by `shortName` and `namespace`, and must already be in the store.
+- A type is matched by `shortName` and `namespace`, and must already be in the store. If
+  it isn't, `importMetadata` reads your object as a new type and throws.
 - A property is matched by `name`, or by `nameOnServer` translated with the store's
   naming convention. A property that isn't found throws `unable to locate property`.
 - Only `custom` is merged. Anything else in the object is ignored, so you can't use this
   to change a data type or add a property.
 
 ::: warning allowMerge is required
-Without `allowMerge`, `importMetadata` skips any type already in the store, silently. Your
-custom values are dropped and no error is raised.
+Without `allowMerge`, `importMetadata` leaves any type already in the store as it is and
+raises no error. That is deliberate, so that importing the same metadata twice is
+harmless, but your custom values are dropped.
 :::
 
 You can also keep the custom metadata in its own JSON file and import it the same way.

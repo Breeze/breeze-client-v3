@@ -12,14 +12,14 @@ time zones come in, and the `Date` pitfalls that affect change tracking.
 | `DateTimeOffset` | `DateTimeOffset` | `Date` | ISO 8601 in UTC |
 | `DateOnly` | `DateOnly` | `Date` at local midnight | `2024-03-15` |
 | `Time` | `TimeSpan` | ISO 8601 duration string: `PT4H30M` | unchanged |
+| `TimeOnly` | `TimeOnly` | string: `14:30:00`, `01:23:45.678` | unchanged |
 
 This applies to saves and to values in query predicates alike. A `Date` has no offset, so
 the offset of a `DateTimeOffset` value is lost on the client. It goes back to the server in
 UTC.
 
-Breeze has no `TimeOnly` data type. A property whose metadata says `TimeOnly` is imported
-as `DataType.String`: you get the server's value as a string, which Breeze does not parse
-or validate.
+The EF Core server writes `TimeSpan` as the data type of a `TimeSpan` property. Breeze
+reads that as `DataType.Time`.
 
 ## From server to client
 
@@ -67,6 +67,7 @@ A `DateOnly` value is a calendar date with no time.
   year, month and day.
 - **Change tracking** compares only the date. Assigning a different time on the same day
   is not a change.
+- **Validation:** the data type's validator is the `date` validator, as for `DateTime`.
 
 ```ts
 // Suppose Task.dueDate is a DateOnly property.
@@ -86,6 +87,18 @@ becomes midnight local time on that day. Assigning a `Date` is still the clearer
 - Query with duration strings: `.where('maxTime', '>', 'PT4H')`.
 - For arithmetic, `core.durationToSeconds(value)` converts a duration to a number of
   seconds.
+
+## TimeOnly
+
+`DataType.TimeOnly` holds a time of day as the string the server sends: `HH:mm:ss`, with
+fractional seconds when there are any (`01:23:45.678`). It is not converted to a `Date`.
+
+- The default for a non-nullable property is `00:00:00`.
+- The data type's validator accepts `HH:mm`, `HH:mm:ss` and `HH:mm:ss.fffffff`. The server
+  lists no validator for `TimeOnly` in its metadata, so add it yourself if you want it:
+  `prop.validators.push(DataType.TimeOnly.validatorCtor!())`.
+- Query with the same strings: `.where('timeOnly', '==', '01:23:45.678')`. Zero-padded
+  strings like these sort in time order, so local `orderBy` works.
 
 ## New entities
 

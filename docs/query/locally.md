@@ -303,11 +303,12 @@ const metadataStore = new MetadataStore({ localQueryComparisonOptions: caseSensi
 const em = new EntityManager({ serviceName: '/breeze/NorthwindIBModel', metadataStore });
 ```
 
-Always pass `usesSql92CompliantStringComparison`: the constructor throws if it is missing.
+A property you leave out takes the default in the table above.
 
-If imported metadata names a comparison options set, the import applies that set to an
-empty store, replacing yours. Metadata exported by Breeze does this. To force your own,
-assign `metadataStore.localQueryComparisonOptions` after the import.
+Options you choose on the client win over metadata. Metadata exported by Breeze names the
+exporting store's comparison options, and `importMetadata` applies them only to an empty
+store that has none of its own: not to a store created with `localQueryComparisonOptions`,
+and not to one created after `setAsDefault()`.
 
 ## See also
 
