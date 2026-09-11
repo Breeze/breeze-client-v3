@@ -8,8 +8,8 @@ import { DataService, JsonResultsAdapter } from './data-service';
 import { HttpResponse, SaveContext, SaveBundle, ServerError, SaveResult, SaveErrorFromServer, QueryResult } from './entity-manager';
 import { EntityType, MetadataStore } from './entity-metadata';
 
-/** For use by breeze plugin authors only.  The class is used as the base class for most [[IDataServiceAdapter]] implementations
-@adapter (see [[IDataServiceAdapter]])    
+/** For use by breeze plugin authors only.  The class is used as the base class for most {@link DataServiceAdapter} implementations
+@adapter (see {@link DataServiceAdapter})    
 @hidden
 */
 export abstract class AbstractDataServiceAdapter implements DataServiceAdapter {
@@ -17,7 +17,7 @@ export abstract class AbstractDataServiceAdapter implements DataServiceAdapter {
   declare _$impl?: any;
   /** The name of this adapter. */
   declare name: string;
-  /** The [[IAjaxAdapter]] used by this [[IDataServiceAdapter]]. */
+  /** The {@link AjaxAdapter} used by this {@link DataServiceAdapter}. */
   declare ajaxImpl: AjaxAdapter;
 
   // TODO use interface
@@ -228,7 +228,7 @@ export abstract class AbstractDataServiceAdapter implements DataServiceAdapter {
 
   @param saveContext - The BreezeJS "context" for the save operation.
   @param saveBundle - Contains the array of entities-to-be-saved (AKA, the entity change-set).
-  @return Constructor for a "ChangeRequestInterceptor".
+  @returns Constructor for a "ChangeRequestInterceptor".
   **/
   changeRequestInterceptor: ChangeRequestInterceptorCtor = DefaultChangeRequestInterceptor;
 

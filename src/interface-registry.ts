@@ -29,13 +29,12 @@ declare module "./config" {
     interface BreezeConfig {
         /**
         Initializes a collection of adapter implementations and makes each one the default for its corresponding interface.
-        @method initializeAdapterInstances
         @param config {Object}
         @param [config.ajax] {String} - the name of a previously registered "ajax" adapter
         @param [config.dataService] {String} - the name of a previously registered "dataService" adapter
         @param [config.modelLibrary] {String} - the name of a previously registered "modelLibrary" adapter
         @param [config.uriBuilder] {String} - the name of a previously registered "uriBuilder" adapter
-        @return [array of instances]
+        @returns [array of instances]
         **/
         initializeAdapterInstances(irConfig: InterfaceRegistryConfig): void;
 
@@ -56,13 +55,12 @@ config.interfaceRegistry.modelLibrary.getDefaultInstance = function() {
 
 /**
 Initializes a collection of adapter implementations and makes each one the default for its corresponding interface.
-@method initializeAdapterInstances
 @param config {Object}
 @param [config.ajax] {String} - the name of a previously registered "ajax" adapter
 @param [config.dataService] {String} - the name of a previously registered "dataService" adapter
 @param [config.modelLibrary] {String} - the name of a previously registered "modelLibrary" adapter
 @param [config.uriBuilder] {String} - the name of a previously registered "uriBuilder" adapter
-@return [array of instances]
+@returns [array of instances]
 **/
 /** @deprecated Use `configureBreeze({ ... })` instead. Still works; not scheduled for removal. */
 config.initializeAdapterInstances = function (irConfig: InterfaceRegistryConfig) {
@@ -175,11 +173,10 @@ export interface ChangeRequestInterceptor {
             // e.g., add a custom header or prune the originalValuesMap
             return request;
         };
-     @method getRequest
      @param request {Object} The object representing the adapter's request to save this entity.
      @param entity {Entity} The entity-to-be-save as it is in cache
      @param index {Integer} The zero-based index of this entity in the change-set array
-     @return {Function} The potentially revised request.
+     @returns {Function} The potentially revised request.
      **/
     getRequest(request: any, entity: Entity, index: number): any;
 
@@ -198,7 +195,6 @@ export interface ChangeRequestInterceptor {
             // alter the array of requests representing the entire change-set
             // based on the saveContext and saveBundle
         };
-     @method done
      @param requests {Array of Object} The adapter's array of request for this changeset.
      **/
     done(requests: Object[]): void;

@@ -3,7 +3,7 @@ import { assertConfig } from './assert-param';
 import { config } from './config';
 
 
-/** Configuration info to be passed to the [[LocalQueryComparisonOptions]] constructor. */
+/** Configuration info to be passed to the {@link LocalQueryComparisonOptions} constructor. */
 export interface LocalQueryComparisonOptionsConfig {
   /** The name of this collection of configuration settings. */
   name?: string;

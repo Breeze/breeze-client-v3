@@ -28,7 +28,7 @@ export class KeyGenerator {
 
 
   /*
-  Returns a unique 'temporary' id for the specified [[EntityType]].
+  Returns a unique 'temporary' id for the specified {@link EntityType}.
   Uniqueness is defined for this purpose as being unique within each instance of a KeyGenerator. This is sufficient
   because each EntityManager will have its own instance of a KeyGenerator and any entities imported into
   the EntityManager with temporary keys will have them regenerated and remapped on import.
@@ -49,7 +49,6 @@ export class KeyGenerator {
         // and the client will have been updated with this
         // new id.
       });
-  @method generateTempKeyValue
   @param entityType {EntityType}
   */
   generateTempKeyValue(entityType: EntityType, valueIfAvail?: boolean) {

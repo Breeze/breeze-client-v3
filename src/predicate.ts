@@ -16,16 +16,16 @@ export interface OpMap {
   [key: string]: Op;
 }
 
-/** For use by breeze plugin authors only. The class is for use in building a [[IUriBuilderAdapter]] implementation. 
-@adapter (see [[IUriBuilderAdapter]])    
+/** For use by breeze plugin authors only. The class is for use in building a {@link UriBuilderAdapter} implementation. 
+@adapter (see {@link UriBuilderAdapter})    
 @hidden 
 */
 export interface Visitor {
 
 }
 
-/** For use by breeze plugin authors only. The class is for use in building a [[IUriBuilderAdapter]] implementation. 
-@adapter (see [[IUriBuilderAdapter]])    
+/** For use by breeze plugin authors only. The class is for use in building a {@link UriBuilderAdapter} implementation. 
+@adapter (see {@link UriBuilderAdapter})    
 @hidden 
 */
 export interface VisitContext {
@@ -36,8 +36,8 @@ export interface VisitContext {
   visitor?: Visitor;
 }
 
-/** For use by breeze plugin authors only. The class is for use in building a [[IUriBuilderAdapter]] implementation. 
-@adapter (see [[IUriBuilderAdapter]])    
+/** For use by breeze plugin authors only. The class is for use in building a {@link UriBuilderAdapter} implementation. 
+@adapter (see {@link UriBuilderAdapter})    
 @hidden 
 */
 export interface ExpressionContext {
@@ -49,7 +49,7 @@ export interface ExpressionContext {
 }
 
 /**
-Used to define a 'where' predicate for an [[EntityQuery]].  Predicates are immutable, which means that any
+Used to define a 'where' predicate for an {@link EntityQuery}.  Predicates are immutable, which means that any
 method that would modify a Predicate actually returns a new Predicate.
 **/
 export class Predicate {
@@ -292,16 +292,16 @@ export class Predicate {
     return this.toJSONExt({ entityType: this._entityType });
   }
 
-  /** For use by breeze plugin authors only. The class is for use in building a [[IUriBuilderAdapter]] implementation. 
-  @adapter (see [[IUriBuilderAdapter]])    
+  /** For use by breeze plugin authors only. The class is for use in building a {@link UriBuilderAdapter} implementation. 
+  @adapter (see {@link UriBuilderAdapter})    
   @hidden @internal 
   */
   toJSONExt(context: VisitContext) {
     return this.visit(context, toJSONVisitor);
   }
 
-  /** For use by breeze plugin authors only. The class is for use in building a [[IUriBuilderAdapter]] implementation. 
-  @adapter (see [[IUriBuilderAdapter]])    
+  /** For use by breeze plugin authors only. The class is for use in building a {@link UriBuilderAdapter} implementation. 
+  @adapter (see {@link UriBuilderAdapter})    
   @hidden @internal 
   */
   toFunction(context: VisitContext) {
@@ -312,8 +312,8 @@ export class Predicate {
     return JSON.stringify(this);
   }
 
-  /** For use by breeze plugin authors only. The class is for use in building a [[IUriBuilderAdapter]] implementation. 
-  @adapter (see [[IUriBuilderAdapter]])    
+  /** For use by breeze plugin authors only. The class is for use in building a {@link UriBuilderAdapter} implementation. 
+  @adapter (see {@link UriBuilderAdapter})    
   @hidden @internal 
   */
   visit(context: VisitContext, visitor?: Visitor) {
@@ -469,8 +469,8 @@ function updateAliasMap(aliasMap: OpMap, opStr: string, op: Op) {
   });
 }
 
-/** For use by breeze plugin authors only. The class is for use in building a [[IUriBuilderAdapter]] implementation. 
-@adapter (see [[IUriBuilderAdapter]])    
+/** For use by breeze plugin authors only. The class is for use in building a {@link UriBuilderAdapter} implementation. 
+@adapter (see {@link UriBuilderAdapter})    
 @hidden @internal 
 */
 class PassthruPredicate extends Predicate {
@@ -484,8 +484,8 @@ class PassthruPredicate extends Predicate {
 }
 (Error as any)['x'] = PassthruPredicate.prototype._initialize('passthruPredicate');
 
-/** For use by breeze plugin authors only. The class is for use in building a [[IUriBuilderAdapter]] implementation. 
-@adapter (see [[IUriBuilderAdapter]])    
+/** For use by breeze plugin authors only. The class is for use in building a {@link UriBuilderAdapter} implementation. 
+@adapter (see {@link UriBuilderAdapter})    
 @hidden 
 */
 export class UnaryPredicate extends Predicate {
@@ -505,8 +505,8 @@ export class UnaryPredicate extends Predicate {
   'not': { aliases: ['!', '~'] },
 });
 
-/** For use by breeze plugin authors only. The class is for use in building a [[IUriBuilderAdapter]] implementation. 
-@adapter (see [[IUriBuilderAdapter]])    
+/** For use by breeze plugin authors only. The class is for use in building a {@link UriBuilderAdapter} implementation. 
+@adapter (see {@link UriBuilderAdapter})    
 @hidden 
 */
 export class BinaryPredicate extends Predicate {
@@ -587,8 +587,8 @@ export class BinaryPredicate extends Predicate {
   }
 });
 
-/** For use by breeze plugin authors only. The class is for use in building a [[IUriBuilderAdapter]] implementation. 
-@adapter (see [[IUriBuilderAdapter]])    
+/** For use by breeze plugin authors only. The class is for use in building a {@link UriBuilderAdapter} implementation. 
+@adapter (see {@link UriBuilderAdapter})    
 @hidden
 */
 export class AndOrPredicate extends Predicate {
@@ -626,8 +626,8 @@ export class AndOrPredicate extends Predicate {
   'or': { aliases: ['||'] }
 } );
 
-/** For use by breeze plugin authors only. The class is for use in building a [[IUriBuilderAdapter]] implementation. 
-@adapter (see [[IUriBuilderAdapter]])    
+/** For use by breeze plugin authors only. The class is for use in building a {@link UriBuilderAdapter} implementation. 
+@adapter (see {@link UriBuilderAdapter})    
 @hidden 
 */
 export class AnyAllPredicate extends Predicate {
@@ -677,8 +677,8 @@ export class PredicateExpression {
   }
 }
 
-/** For use by breeze plugin authors only. The class is for use in building a [[IUriBuilderAdapter]] implementation. 
-@adapter (see [[IUriBuilderAdapter]])    
+/** For use by breeze plugin authors only. The class is for use in building a {@link UriBuilderAdapter} implementation. 
+@adapter (see {@link UriBuilderAdapter})    
 @hidden 
 */
 export class LitExpr extends PredicateExpression {
@@ -732,8 +732,8 @@ function resolveDataType(dataType?: DataType | string) {
   throw new Error("The dataType parameter passed into this literal expression is not a 'DataType'" + dataType);
 }
 
-/** For use by breeze plugin authors only. The class is for use in building a [[IUriBuilderAdapter]] implementation. 
-@adapter (see [[IUriBuilderAdapter]])    
+/** For use by breeze plugin authors only. The class is for use in building a {@link UriBuilderAdapter} implementation. 
+@adapter (see {@link UriBuilderAdapter})    
 @hidden 
 */
 export class PropExpr extends PredicateExpression {
@@ -770,9 +770,9 @@ export class PropExpr extends PredicateExpression {
 
 }
 
-/** For use by breeze plugin authors only. The class is for use in building a [[IUriBuilderAdapter]] implementation. 
-@adapter (see [[IUriBuilderAdapter]])    
-@hidden @dynamic
+/** For use by breeze plugin authors only. The class is for use in building a {@link UriBuilderAdapter} implementation. 
+@adapter (see {@link UriBuilderAdapter})    
+@hidden
 */
 export class FnExpr extends PredicateExpression {
   fnName: string;

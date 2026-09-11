@@ -45,7 +45,6 @@ Unlike enums in some other environments, each 'symbol' can have both methods and
 >       });
 >   });
 Note that we have (Error as any)['x'] = ... in some places in the code to prevent Terser from optimizing out some important calls.
-@dynamic
 */
 export class BreezeEnum {
   // // TODO: think about CompositeEnum (flags impl).
@@ -67,7 +66,7 @@ export class BreezeEnum {
   /**
   Returns all of the symbols contained within this Enum.
   >     let symbols = DayOfWeek.getSymbols();
-  @return All of the symbols contained within this Enum.
+  @returns All of the symbols contained within this Enum.
   **/
   static getSymbols() {
     return this.resolveSymbols().map(ks => ks.symbol);
@@ -76,7 +75,7 @@ export class BreezeEnum {
   /**
   Returns the names of all of the symbols contained within this Enum.
   >     let symbols = DayOfWeek.getNames();
-  @return  All of the names of the symbols contained within this Enum.
+  @returns  All of the names of the symbols contained within this Enum.
   **/
   static getNames() {
     return this.resolveSymbols().map(ks => ks.name);
@@ -87,7 +86,7 @@ export class BreezeEnum {
   >     let dayOfWeek = DayOfWeek.from("Thursday");
   >     // nowdayOfWeek === DayOfWeek.Thursday
   @param name - Name for which an enum symbol should be returned.
-  @return The symbol that matches the name or 'undefined' if not found.
+  @returns The symbol that matches the name or 'undefined' if not found.
   **/
   static fromName(name: string) {
     return (this as Record<string, any>)[name];
@@ -124,7 +123,7 @@ export class BreezeEnum {
   >         // do something
   >     }
   @param sym - Object or symbol to test.
-  @return Whether this Enum contains the specified symbol.
+  @returns Whether this Enum contains the specified symbol.
   **/
   static contains(sym: BreezeEnum) {
     if (!(sym instanceof BreezeEnum)) {

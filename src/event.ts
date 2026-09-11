@@ -35,7 +35,6 @@ export interface Subscription {
 
 /**
 Class to support basic event publication and subscription semantics.
-@dynamic
 **/
 export class BreezeEvent<T> {
   /** @hidden @internal */
@@ -91,7 +90,7 @@ export class BreezeEvent<T> {
   @param publishAsync - (default=false) Whether to publish asynchonously or not.
   @param errorCallback - Function to be called for any errors that occur during publication. If omitted,
   errors will be eaten.
-  @return false if event is disabled; true otherwise.
+  @returns false if event is disabled; true otherwise.
   **/
   publish(data: T, publishAsync: boolean = false, errorCallback?: (e: Error) => any) {
 
@@ -131,7 +130,7 @@ export class BreezeEvent<T> {
   >          }
   >      });
 
-  There are several built in Breeze events, such as [[EntityAspect.propertyChanged]], [[EntityAspect.validationErrorsChanged]] as well.
+  There are several built in Breeze events, such as {@link EntityAspect.propertyChanged}, {@link EntityAspect.validationErrorsChanged} as well.
   >      // Assume order is a preexisting 'order' entity
   >      order.entityAspect.propertyChanged.subscribe(function (pcEvent) {
   >          if ( pcEvent.propertyName === "OrderDate") {
@@ -140,7 +139,7 @@ export class BreezeEvent<T> {
   >      });
   @param callback- Function to be called whenever 'data' is published for this event.
   @param callback.data - {Object} Whatever 'data' was published.  This should be documented on the specific event.
-  @return This is a key for 'unsubscription'.  It can be passed to the 'unsubscribe' method.
+  @returns This is a key for 'unsubscription'.  It can be passed to the 'unsubscribe' method.
   **/
   subscribe(callback: (data: T) => any) {
     if (!this._subscribers) {
@@ -162,7 +161,7 @@ export class BreezeEvent<T> {
   >      // sometime later
   >      order.entityAspect.propertyChanged.unsubscribe(token);
   @param unsubKey - The value returned from the 'subscribe' method may be used to unsubscribe here.
-  @return Whether unsubscription occured. This will return false if already unsubscribed or if the key simply
+  @returns Whether unsubscription occured. This will return false if already unsubscribed or if the key simply
   cannot be found.
   **/
   unsubscribe = function (unsubKey: number) {
@@ -238,7 +237,7 @@ export class BreezeEvent<T> {
   > 
   @param eventName - The name of the event.
   @param target - The object for which we want to know if notifications are enabled.
-  @return A null is returned if this value has not been set.
+  @returns A null is returned if this value has not been set.
   **/
   static isEnabled(eventName: string, obj: Object) {
     assertParam(eventName, "eventName").isNonEmptyString().check();

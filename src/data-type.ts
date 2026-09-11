@@ -6,7 +6,6 @@ let _localTimeRegex = /.\d{3}$/;
 
 /**  
 DataType is an 'Enum' containing all of the supported data types.
-@dynamic
 **/
 export class DataType extends BreezeEnum {
   /** The default value of this DataType. __Read Only__ **/
@@ -16,33 +15,33 @@ export class DataType extends BreezeEnum {
   /** Whether this is an 'integer' DataType. __Read Only__ **/
   declare isInteger?: boolean;
 
-  /** The constructor function to create a [[Validator]] to be used in validating instances of this DataType. */
+  /** The constructor function to create a {@link Validator} to be used in validating instances of this DataType. */
   validatorCtor?(context?: any): Validator;
   /** 
   Optional function to normalize a data value for comparison, if its value cannot be used directly. 
   Note that this will be called each time a property is changed, so make it fast.
-  @return value appropriate for this DataType
+  @returns value appropriate for this DataType
   **/
   normalize?(value: any): any;
   /**
   Optional function to convert a raw (server) value from string to this DataType.
-  @return value appropriate for this DataType
+  @returns value appropriate for this DataType
   **/
   parseRawValue?(value: any): any;
   /**
   Optional function to convert a value from string to this DataType.  Note that this will be called each time a property is changed, so make it fast.
-  @return value appropriate for this DataType 
+  @returns value appropriate for this DataType 
   **/
   parse?(source: any, sourceTypeName: string): any;
   /** 
   Optional function to get the next value for key generation, if this datatype is used as a key.  Uses an internal table of previous values.
-  @return value appropriate for this DataType 
+  @returns value appropriate for this DataType 
   **/
   getNext?(): any;
   /**
   Optional function to get the next value when the datatype is used as a concurrency property.
   @param previousValue
-  @return the next concurrency value, which may be a function of the previousValue.
+  @returns the next concurrency value, which may be a function of the previousValue.
   **/
   getConcurrencyValue?(previousValue?: any): any;
 

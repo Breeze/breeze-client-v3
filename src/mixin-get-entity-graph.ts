@@ -35,10 +35,9 @@ export interface HasEntityGraph extends EntityManager {
   @example
       var graph = breeze.EntityManager.getEntityGraph(customer, 'Orders.OrderDetails');
       // graph will be the customer, all of its orders and their details even if deleted.
-  @method getEntityGraph
   @param roots {Entity|Array of Entity} The root entity or root entities.
   @param expand {String|Array of String|Object} an expand string, a query expand clause, or array of string paths
-  @return {Array of Entity} root entities and their related entities, including deleted entities. Duplicates are removed and entity order is indeterminate.
+  @returns {Array of Entity} root entities and their related entities, including deleted entities. Duplicates are removed and entity order is indeterminate.
   **/
   getEntityGraph(roots: Entity | Array<Entity>, expand: string | Array<string> | ExpandClause): Array<Entity>;
 
@@ -50,10 +49,9 @@ export interface HasEntityGraph extends EntityManager {
                   .expand('Orders.OrderDetails');
       var graph = manager.getEntityGraph(query);
       // graph will be the 'Alfred' customers, their orders and their details even if deleted.
-  @method getEntityGraph
   @param query {EntityQuery} A query to be executed against the manager's local cache.
   @param [expand] {String|Array of String|Object} an expand string, a query expand clause, or array of string paths
-  @return {Array of Entity} local queried root entities and their related entities, including deleted entities. Duplicates are removed and entity order is indeterminate.
+  @returns {Array of Entity} local queried root entities and their related entities, including deleted entities. Duplicates are removed and entity order is indeterminate.
   **/
   getEntityGraph(query: EntityQuery, expand: string | Array<string> | ExpandClause): Array<Entity>;
 

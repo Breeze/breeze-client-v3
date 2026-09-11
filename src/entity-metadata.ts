@@ -39,11 +39,11 @@ export interface IMetadataJson {
   incompleteTypeMap: Object[];
 }
 
-/** Configuration info to be passed to the [[MetadataStore]] constructor */
+/** Configuration info to be passed to the {@link MetadataStore} constructor */
 export interface MetadataStoreConfig {
-  /** The  [[NamingConvention]] associated with this MetadataStore. */
+  /** The  {@link NamingConvention} associated with this MetadataStore. */
   namingConvention?: NamingConvention;
-  /** The  [[LocalQueryComparisonOptions]] associated with this MetadataStore. */
+  /** The  {@link LocalQueryComparisonOptions} associated with this MetadataStore. */
   localQueryComparisonOptions?: LocalQueryComparisonOptions;
   serializerFn?: (prop: EntityProperty, val: any) => any;
   name?: string;
@@ -56,10 +56,9 @@ export interface MetadataFetchedEventArgs {
 }
 
 /**
-An instance of the MetadataStore contains all of the metadata about a collection of [[EntityType]]'s.
-MetadataStores may be shared across [[EntityManager]]'s.  If an EntityManager is created without an
+An instance of the MetadataStore contains all of the metadata about a collection of {@link EntityType}'s.
+MetadataStores may be shared across {@link EntityManager}'s.  If an EntityManager is created without an
 explicit MetadataStore, the MetadataStore from the MetadataStore.defaultInstance property will be used.
-@dynamic
 **/
 export class MetadataStore {
   /** @hidden @internal */
@@ -75,17 +74,17 @@ export class MetadataStore {
   name: string;
   dataServices: DataService[];
 
-  /** The  [[NamingConvention]] associated with this MetadataStore. __Read Only__ */
+  /** The  {@link NamingConvention} associated with this MetadataStore. __Read Only__ */
   namingConvention: NamingConvention;
-  /** The  [[LocalQueryComparisonOptions]] associated with this MetadataStore. __Read Only__ */
+  /** The  {@link LocalQueryComparisonOptions} associated with this MetadataStore. __Read Only__ */
   localQueryComparisonOptions: LocalQueryComparisonOptions;
   serializerFn?: (prop: EntityProperty, val: any) => any;
   /**
-  An [[BreezeEvent]] that fires after a MetadataStore has completed fetching metadata from a remote service.
+  An {@link BreezeEvent} that fires after a MetadataStore has completed fetching metadata from a remote service.
   
   @eventArgs -
     - metadataStore - The MetadataStore into which the metadata was fetched.
-    - dataService - The [[DataService]] that metadata was fetched from.
+    - dataService - The {@link DataService} that metadata was fetched from.
     - rawMetadata - {Object} The raw metadata returned from the service. (It will have already been processed by this point).
   >      let ms = myEntityManager.metadataStore;
   >      ms.metadataFetched.subscribe(function(args) {
@@ -185,7 +184,7 @@ export class MetadataStore {
   /**
   Adds a DataService to this MetadataStore. If a DataService with the same serviceName is already
   in the MetadataStore an exception will be thrown.
-  @param dataService - The [[DataService]] to add
+  @param dataService - The {@link DataService} to add
   @param shouldOverwrite - (default=false) Permit overwrite of existing DataService rather than throw exception
   **/
   addDataService(dataService: DataService, shouldOverwrite?: boolean) {
@@ -282,7 +281,7 @@ export class MetadataStore {
   >      let metadataFromStorage = window.localStorage.getItem("metadata");
   >      let newMetadataStore = new MetadataStore();
   >      newMetadataStore.importMetadata(metadataFromStorage);
-  @return A serialized version of this MetadataStore that may be stored locally and later restored.
+  @returns A serialized version of this MetadataStore that may be stored locally and later restored.
   **/
   exportMetadata() {
     let result = JSON.stringify({
@@ -309,7 +308,7 @@ export class MetadataStore {
   >      newMetadataStore.importMetadata(metadataFromStorage);
   @param exportedMetadata - A previously exported MetadataStore.
   @param allowMerge -  Allows custom metadata to be merged into existing metadata types.
-  @return This MetadataStore.
+  @returns This MetadataStore.
   @chainable
   **/
   importMetadata(exportedMetadata: string | Object, allowMerge: boolean = false) {
@@ -368,7 +367,7 @@ export class MetadataStore {
   >      let metadataFromStorage = window.localStorage.getItem("metadata");
   >      let newMetadataStore = MetadataStore.importMetadata(metadataFromStorage);
   @param exportedString - A previously exported MetadataStore.
-  @return A new MetadataStore.
+  @returns A new MetadataStore.
   **/
   static importMetadata(exportedString: string) {
     let ms = new MetadataStore();
@@ -383,7 +382,7 @@ export class MetadataStore {
   >          // do something interesting
   >      }
   @param serviceName - The service name.
-  @return Whether metadata has already been retrieved for the specified service name.
+  @returns Whether metadata has already been retrieved for the specified service name.
   **/
   hasMetadataFor(serviceName: string) {
     return !!this.getDataService(serviceName);
@@ -395,7 +394,7 @@ export class MetadataStore {
   >      let ds = em1.metadataStore.getDataService("breeze/NorthwindIBModel");
   >      let adapterName = ds.adapterName; // may be null
   @param serviceName - The service name.
-  @return The DataService with the specified name.
+  @returns The DataService with the specified name.
   **/
   getDataService(serviceName: string) {
     assertParam(serviceName, "serviceName").isString().check();
@@ -423,7 +422,7 @@ export class MetadataStore {
   @param dataService -  Either a DataService or just the name of the DataService to fetch metadata for.
   @param callback - Function called on success.
   @param errorCallback - Function called on failure.
-  @return Promise
+  @returns Promise
   **/
   fetchMetadata(dataService: string | DataService, callback?: (schema: any) => void, errorCallback?: ErrorCallback) {
     try {
@@ -531,7 +530,7 @@ export class MetadataStore {
   }
 
   /**
-  Returns an [[EntityType]] or null given its name.
+  Returns an {@link EntityType} or null given its name.
   >      // assume em1 is a preexisting EntityManager
   >      let odType = em1.metadataStore.getAsEntityType("OrderDetail");
 
@@ -541,7 +540,7 @@ export class MetadataStore {
   @param structuralTypeName - Either the fully qualified name or a short name may be used. If a short name is specified and multiple types share
   that same short name an exception will be thrown.
   @param okIfNotFound - (default=false) Whether to throw an error if the specified EntityType is not found.
-  @return The EntityType. ComplexType or 'null' if not not found.
+  @returns The EntityType. ComplexType or 'null' if not not found.
   **/
   getAsEntityType(typeName: string, okIfNotFound: boolean = false) {
     const st = this.getStructuralType(typeName, okIfNotFound);
@@ -556,7 +555,7 @@ export class MetadataStore {
   }
 
   /**
-  Returns an [[EntityType]] or null given its name.
+  Returns an {@link EntityType} or null given its name.
   >      // assume em1 is a preexisting EntityManager
   >      let locType = em1.metadataStore.getAsComplexType("Location");
 
@@ -566,7 +565,7 @@ export class MetadataStore {
   @param structuralTypeName - Either the fully qualified name or a short name may be used. If a short name is specified and multiple types share
   that same short name an exception will be thrown.
   @param okIfNotFound - (default=false) Whether to throw an error if the specified EntityType is not found.
-  @return The EntityType. ComplexType or 'null' if not not found.
+  @returns The EntityType. ComplexType or 'null' if not not found.
   **/
  getAsComplexType(typeName: string, okIfNotFound: boolean = false) {
   const st = this.getStructuralType(typeName, okIfNotFound);
@@ -582,19 +581,19 @@ export class MetadataStore {
 
 
   /**
-  Returns an [[EntityType]] or a [[ComplexType]] given its name.
+  Returns an {@link EntityType} or a {@link ComplexType} given its name.
   @deprecated Replaced by getStructuralType but ... it is probably more usefull to call either getAsEntityType or getAsComplexType instead
   @param typeName - Either the fully qualified name or a short name may be used. If a short name is specified and multiple types share
   that same short name an exception will be thrown.
   @param okIfNotFound - (default=false) Whether to throw an error if the specified EntityType is not found.
-  @return The EntityType. ComplexType or 'null' if not not found.
+  @returns The EntityType. ComplexType or 'null' if not not found.
   **/
   getEntityType(typeName: string, okIfNotFound: boolean = false) {
     return this.getStructuralType(typeName, okIfNotFound);
   }
 
   /**
-  Returns an [[EntityType]] or a [[ComplexType]] given its name.
+  Returns an {@link EntityType} or a {@link ComplexType} given its name.
   >      // assume em1 is a preexisting EntityManager
   >      let odType = em1.metadataStore.getStructuralType("OrderDetail");
 
@@ -605,7 +604,7 @@ export class MetadataStore {
   @param typeName - Either the fully qualified name or a short name may be used. If a short name is specified and multiple types share
   that same short name an exception will be thrown.
   @param okIfNotFound - (default=false) Whether to throw an error if the specified EntityType is not found.
-  @return The EntityType. ComplexType or 'null' if not not found.
+  @returns The EntityType. ComplexType or 'null' if not not found.
   **/
   getStructuralType(typeName: string, okIfNotFound: boolean = false) {
     assertParam(typeName, "typeName").isString().check();
@@ -626,7 +625,7 @@ export class MetadataStore {
   }
 
   /**
-  Returns an array containing all of the [[EntityType]]s or [[ComplexType]]s in this MetadataStore.
+  Returns an array containing all of the {@link EntityType}s or {@link ComplexType}s in this MetadataStore.
   >      // assume em1 is a preexisting EntityManager
   >      let allTypes = em1.metadataStore.getEntityTypes();
   **/
@@ -640,7 +639,7 @@ export class MetadataStore {
 
   /**
   Returns a fully qualified entityTypeName for a specified resource name.  The reverse of this operation
-  can be obtained via the  [[EntityType.defaultResourceName]] property
+  can be obtained via the  {@link EntityType.defaultResourceName} property
   **/
   getEntityTypeNameForResourceName(resourceName: string) {
     assertParam(resourceName, "resourceName").isString().check();
@@ -858,7 +857,7 @@ function getQualifiedTypeName(metadataStore: MetadataStore, structTypeName: stri
   return result;
 }
 
-/** Configuration info to be passed to the [[EntityType]] constructor */
+/** Configuration info to be passed to the {@link EntityType} constructor */
 export interface EntityTypeConfig {
   shortName?: string;
   namespace?: string;
@@ -872,7 +871,7 @@ export interface EntityTypeConfig {
   custom?: any;
 }
 
-/** Configuration info to be passed to the [[EntityType.setProperties]] method */
+/** Configuration info to be passed to the {@link EntityType.setProperties} method */
 export interface EntityTypeSetConfig {
   autoGeneratedKeyType?: AutoGeneratedKeyType;
   defaultResourceName?: string;
@@ -889,21 +888,21 @@ export class EntityType {
   static __nextAnonIx = 0;
   /** Always false for an EntityType. **/
   isComplexType = false;
-  /** The [[MetadataStore]] that contains this EntityType. __Read Only__ **/
+  /** The {@link MetadataStore} that contains this EntityType. __Read Only__ **/
   metadataStore: MetadataStore;
-  /** The DataProperties (see [[DataProperty]] associated with this EntityType. __Read Only__  **/
+  /** The DataProperties (see {@link DataProperty} associated with this EntityType. __Read Only__  **/
   dataProperties: DataProperty[];
-  /**  The NavigationProperties (see [[NavigationProperty]] associated with this EntityType. __Read Only__  **/
+  /**  The NavigationProperties (see {@link NavigationProperty} associated with this EntityType. __Read Only__  **/
   navigationProperties: NavigationProperty[];
   /**
-  The DataProperties associated with this EntityType that make up it's [[EntityKey]]. __Read Only__ **/
+  The DataProperties associated with this EntityType that make up it's {@link EntityKey}. __Read Only__ **/
   keyProperties: DataProperty[];
   /** The DataProperties associated with this EntityType that are foreign key properties. __Read Only__ **/
   foreignKeyProperties: DataProperty[];
   inverseForeignKeyProperties: DataProperty[];
   /**  The DataProperties associated with this EntityType that are concurrency properties. __Read Only__ **/
   concurrencyProperties: DataProperty[];
-  /** The DataProperties for this EntityType that contain instances of a [[ComplexType]]. __Read Only__   **/
+  /** The DataProperties for this EntityType that contain instances of a {@link ComplexType}. __Read Only__   **/
   complexProperties: DataProperty[];
   /** The DataProperties associated with this EntityType that are not mapped to any backend datastore. These are effectively free standing
   properties. __Read Only__ **/
@@ -930,11 +929,11 @@ export class EntityType {
   of that type has been created and attached to an EntityManager. */
   isFrozen: boolean;
 
-  /** The [[AutoGeneratedKeyType]] for this EntityType. __Read Only__ **/
+  /** The {@link AutoGeneratedKeyType} for this EntityType. __Read Only__ **/
   autoGeneratedKeyType: AutoGeneratedKeyType;
   /**   The default resource name associated with this EntityType.  An EntityType may be queried via a variety of 'resource names' but this one
-  is used as the default when no resource name is provided.  This will occur when calling [[EntityAspect.loadNavigationProperty]]
-  or when executing any [[EntityQuery]] that was created via an [[EntityKey]]. __Read Only__ **/
+  is used as the default when no resource name is provided.  This will occur when calling {@link EntityAspect.loadNavigationProperty}
+  or when executing any {@link EntityQuery} that was created via an {@link EntityKey}. __Read Only__ **/
   defaultResourceName: string;
   /** A function that is used to customize the serialization of any EntityProperties of this type. */
   serializerFn?: (prop: EntityProperty, val: any) => any;
@@ -956,7 +955,7 @@ export class EntityType {
   _mappedPropertiesCount: number;
 
   /** 
-  @deprecated Use [[getCtor]] instead.   
+  @deprecated Use {@link EntityType.getCtor} instead.   
   */
   getEntityCtor = this.getCtor;
 
@@ -1084,7 +1083,7 @@ export class EntityType {
   }
 
   /**
-  Adds a  [[DataProperty]] or a [[NavigationProperty]] to this EntityType.
+  Adds a  {@link DataProperty} or a {@link NavigationProperty} to this EntityType.
   >      // assume myEntityType is a newly constructed EntityType.
   >      myEntityType.addProperty(dataProperty1);
   >      myEntityType.addProperty(dataProperty2);
@@ -1181,7 +1180,7 @@ export class EntityType {
   >      let cust1 = custType.createEntity();
   >      em1.addEntity(cust1);
   @param initialValues- Configuration object of the properties to set immediately after creation.
-  @return The new entity.
+  @returns The new entity.
   **/
   createEntity(initialValues?: any): any {
     // ignore the _$eref once the entity is attached to an entityManager.
@@ -1260,7 +1259,7 @@ export class EntityType {
   /**
   Returns the constructor for this EntityType.
   @param forceRefresh - Whether to ignore any cached version of this constructor. (default == false)
-  @return The constructor for this EntityType.
+  @returns The constructor for this EntityType.
   **/
   getCtor(forceRefresh: boolean = false): { new (): StructuralObject } {
     if (this._ctor && !forceRefresh) return this._ctor;
@@ -1361,7 +1360,7 @@ export class EntityType {
   >      // assume em1 is an EntityManager containing a number of existing entities.
   >      let custType = em1.metadataStore.getEntityType("Customer");
   >      let arrayOfProps = custType.getProperties();
-  @return An array of Data and Navigation properties.
+  @returns An array of Data and Navigation properties.
   **/
   getProperties(): EntityProperty[] {
     return (this.dataProperties as EntityProperty[]).concat(this.navigationProperties);
@@ -1382,7 +1381,7 @@ export class EntityType {
   >      // assume em1 is an EntityManager containing a number of existing entities.
   >      let custType = em1.metadataStore.getEntityType("Customer");
   >      let customerNameDataProp = custType.getDataProperty("CustomerName");
-  @return A DataProperty or null if not found.
+  @returns A DataProperty or null if not found.
   **/
   getDataProperty(propertyName: string) {
     return core.arrayFirst(this.dataProperties, core.propEq('name', propertyName));
@@ -1393,7 +1392,7 @@ export class EntityType {
   >      // assume em1 is an EntityManager containing a number of existing entities.
   >      let custType = em1.metadataStore.getEntityType("Customer");
   >      let customerOrdersNavProp = custType.getDataProperty("Orders");
-  @return A NavigationProperty or null if not found.
+  @returns A NavigationProperty or null if not found.
   **/
   getNavigationProperty(propertyName: string) {
     return core.arrayFirst(this.navigationProperties, core.propEq('name', propertyName));
@@ -1412,7 +1411,7 @@ export class EntityType {
   >      let companyNameProp2 = orderDetailType.getProperty("Order.Customer.CompanyName");
   >      // companyNameProp === companyNameProp2
   @param [throwIfNotFound=false] {Boolean} Whether to throw an exception if not found.
-  @return A DataProperty or NavigationProperty or null if not found.
+  @returns A DataProperty or NavigationProperty or null if not found.
   **/
   getProperty(propertyPath: string, throwIfNotFound: boolean = false) {
     let props = this.getPropertiesOnPath(propertyPath, false, throwIfNotFound);
@@ -1829,7 +1828,7 @@ export class ComplexType {
   /** For polymorphic purpose only - always true here */
   isComplexType = true;
 
-  /** The [[MetadataStore]] containing this ComplexType. */
+  /** The {@link MetadataStore} containing this ComplexType. */
   metadataStore: MetadataStore;
 
   /**  The fully qualifed name of this ComplexType. __Read Only__  **/
@@ -1839,9 +1838,9 @@ export class ComplexType {
 
   /** The namespace for this ComplexType. __Read Only__ **/
   namespace: string;
-  /** The DataProperties (see [[DataProperty]] associated with this ComplexType. __Read Only__ */
+  /** The DataProperties (see {@link DataProperty} associated with this ComplexType. __Read Only__ */
   dataProperties: DataProperty[];
-  /** The DataProperties for this ComplexType that contain instances of a [[ComplexType]]. __Read Only__ */
+  /** The DataProperties for this ComplexType that contain instances of a {@link ComplexType}. __Read Only__ */
   complexProperties: DataProperty[];
 
   /**
@@ -1869,7 +1868,7 @@ export class ComplexType {
   _extra?: any;
 
   // copy entityType methods onto complexType
-  /** See [[EntityType.getCtor]] */
+  /** See {@link EntityType.getCtor} */
   getCtor = EntityType.prototype.getCtor;
   // note the name change.
   createInstance = EntityType.prototype.createEntity;
@@ -2000,7 +1999,7 @@ export interface DataPropertyConfig {
 }
 
 /**
-A DataProperty describes the metadata for a single property of an  [[EntityType]] that contains simple data.
+A DataProperty describes the metadata for a single property of an  {@link EntityType} that contains simple data.
 
 Instances of the DataProperty class are constructed automatically during Metadata retrieval. However it is also possible to construct them
 directly via the constructor.
@@ -2016,13 +2015,13 @@ export class DataProperty {
   declare name: string;
   /** The name of this property on the server. __Read Only__ **/
   declare nameOnServer: string;
-  /** The [[DataType]] of this property. __Read Only__ */
+  /** The {@link DataType} of this property. __Read Only__ */
   declare dataType: DataType | ComplexType; // this will be a complexType when dp is a complexProperty
-  /** The name of the [[ComplexType]] associated with this property; may be null. __Read Only__ */
+  /** The name of the {@link ComplexType} associated with this property; may be null. __Read Only__ */
   declare complexTypeName: string;
-  /** The [[ComplexType]] associated with this property; may be undefined. __Read Only__ */
+  /** The {@link ComplexType} associated with this property; may be undefined. __Read Only__ */
   declare complexType?: ComplexType;
-  /**  Whether the contents of this property is an instance of a [[ComplexType]]. __Read Only__ */
+  /**  Whether the contents of this property is an instance of a {@link ComplexType}. __Read Only__ */
   declare isComplexProperty: boolean;
   /** Whether this property is nullable. __Read Only__ */
   declare isNullable: boolean;
@@ -2040,7 +2039,7 @@ export class DataProperty {
   declare concurrencyMode: string;
   /**  The maximum length for the value of this property. Only meaningful for strings. __Read Only__ */
   declare maxLength?: number;
-  /** The [[Validator]] instances that are associated with this property. Validators can be added and
+  /** The {@link Validator} instances that are associated with this property. Validators can be added and
   removed from this collection. __Read Only__ */
   declare validators: Validator[];
   /** The display name of this property. __Read Only__ */
@@ -2056,7 +2055,7 @@ export class DataProperty {
   /**
   The navigation property related to this property.  Will only be set if this is a foreign key property. __Read Only__ */
   declare relatedNavigationProperty?: NavigationProperty;
-  /** The parent type that this property belongs to - will be either a [[EntityType]] or a [[ComplexType]]. __Read Only__ */
+  /** The parent type that this property belongs to - will be either a {@link EntityType} or a {@link ComplexType}. __Read Only__ */
   declare parentType: StructuralType;
   /** Property on the base type that this property is inherited from. Will be null if the property is not on the base type. __Read Only__ */
   declare baseProperty?: DataProperty;
@@ -2254,7 +2253,7 @@ export interface NavigationPropertyConfig {
   custom?: any;
 }
 
-/**   A NavigationProperty describes the metadata for a single property of an [[EntityType]] that return instances of other EntityTypes.
+/**   A NavigationProperty describes the metadata for a single property of an {@link EntityType} that return instances of other EntityTypes.
 
 Instances of the NavigationProperty class are constructed automatically during Metadata retrieval.   However it is also possible to construct them
 directly via the constructor.
@@ -2273,13 +2272,13 @@ export class NavigationProperty {
   getAllValidators = DataProperty.prototype.getAllValidators;
   resolveProperty = DataProperty.prototype.resolveProperty;
 
-  /** The [[EntityType]] returned by this property. __Read Only__ */
+  /** The {@link EntityType} returned by this property. __Read Only__ */
   declare entityType: EntityType;
-  /** The name of the [[EntityType]] returned by this property. __Read Only__ */
+  /** The name of the {@link EntityType} returned by this property. __Read Only__ */
   declare entityTypeName: string;
-  /** The [[EntityType]] that this property belongs to. ( same as entityType). __Read Only__ */
+  /** The {@link EntityType} that this property belongs to. ( same as entityType). __Read Only__ */
   declare parentType: EntityType; // ?? same as entityType
-  /** The [[EntityType]] that this property belongs to. ( same as entityType). __Read Only__ */
+  /** The {@link EntityType} that this property belongs to. ( same as entityType). __Read Only__ */
   declare parentEntityType: EntityType; // ?? same as above
   /** Property on the base type that this property is inherited from. Will be null if the property is not on the base type. __Read Only__ */
   declare baseProperty?: NavigationProperty;
@@ -2309,7 +2308,7 @@ export class NavigationProperty {
   /** The 'foreign key' DataProperties associated with this NavigationProperty. There will usually only be a single DataProperty associated
   with a Navigation property except in the case of entities with multipart keys. __Read Only__ */
   declare relatedDataProperties: DataProperty[];
-  /** The [[Validator]] instances that are associated with this property. Validators can be added and
+  /** The {@link Validator} instances that are associated with this property. Validators can be added and
   removed from this collection. __Read Only__ */
   declare validators: Validator[];
   /** The display name of this property. __Read Only__ */

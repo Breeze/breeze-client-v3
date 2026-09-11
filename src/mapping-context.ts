@@ -12,8 +12,8 @@ import { EntityQuery } from './entity-query';
 
 
 /**
-For use by breeze plugin authors only. The class is for use in building a [[IDataServiceAdapter]] implementation. 
-@adapter (see [[IDataServiceAdapter]])    
+For use by breeze plugin authors only. The class is for use in building a {@link DataServiceAdapter} implementation. 
+@adapter (see {@link DataServiceAdapter})    
 @hidden 
 */
 export interface MergeOptions {
@@ -31,8 +31,8 @@ export interface MappingContextConfig {
 }
 
 /**
-For use by breeze plugin authors only. The class is for use in building a [[IDataServiceAdapter]] implementation. 
-@adapter (see [[IDataServiceAdapter]])    
+For use by breeze plugin authors only. The class is for use in building a {@link DataServiceAdapter} implementation. 
+@adapter (see {@link DataServiceAdapter})    
 @hidden 
 */
 export class MappingContext {

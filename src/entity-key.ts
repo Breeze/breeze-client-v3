@@ -38,7 +38,7 @@ export class EntityKey {
   >     var empTerrKey = new EntityKey(empTerrType, [ 1, 77]);
   >     // The order of the properties in the 'keyValues' array must be the same as that
   >     // returned by empTerrType.keyProperties
-  @param entityType - The [[EntityType]] of the entity.
+  @param entityType - The {@link EntityType} of the entity.
   @param keyValues - A single value or an array of values. 
   */
   constructor(entityType: EntityType, keyValues: any) {

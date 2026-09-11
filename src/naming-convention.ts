@@ -4,7 +4,7 @@ import { config } from './config';
 
 // TODO: strongly type context object passed to naming convention converter fns.
 
-/** Configuration info to be passed to the [[NamingConvention]] constructor */
+/** Configuration info to be passed to the {@link NamingConvention} constructor */
 export interface NamingConventionConfig {
   /** The name of this NamingConvention */
   name?: string;
@@ -19,7 +19,6 @@ A NamingConvention instance is used to specify the naming conventions under whic
 will translate property names between the server and the javascript client.
 
 The default NamingConvention does not perform any translation, it simply passes property names thru unchanged.
-@dynamic
 **/
 export class NamingConvention {
   /** @hidden @internal */

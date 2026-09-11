@@ -1,7 +1,7 @@
 ﻿import { core  } from './core';
 import { assertConfig } from './assert-param';
 
-/** Configuration info to be passed to the [[ValidationOptions]] constructor */
+/** Configuration info to be passed to the {@link ValidationOptions} constructor */
 export interface ValidationOptionsConfig {
   /** Whether entity and property level validation should occur when entities are attached to the EntityManager 
   other than via a query. (default = true) */
@@ -56,7 +56,7 @@ export class ValidationOptions implements ValidationOptionsConfig {
   >     var validationOptions = new ValidationOptions();
   >     var newOptions = validationOptions.using( { validateOnQuery: true, validateOnSave: false} );
   @param config - A configuration object
-  @return A new ValidationOptions instance.
+  @returns A new ValidationOptions instance.
   **/
   using(config: ValidationOptionsConfig) {
     if (!config) return this;

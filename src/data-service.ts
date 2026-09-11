@@ -6,17 +6,17 @@ import { assertConfig } from './assert-param';
 import { config } from './config';
 import { core } from './core';
 
-/** Configuration info to be passed to the [[DataService]] constructor */
+/** Configuration info to be passed to the {@link DataService} constructor */
 export interface DataServiceConfig {
   /** The serviceName for this DataService.  **/
   serviceName?: string;
-  /** The adapter name for the [[IDataServiceAdapter]] to be used with this service.  **/
+  /** The adapter name for the {@link DataServiceAdapter} to be used with this service.  **/
   adapterName?: string;
-  /** The adapter name for the [[IUriBuilderAdapter]] to be used with this service.  **/
+  /** The adapter name for the {@link UriBuilderAdapter} to be used with this service.  **/
   uriBuilderName?: string;
   /** Whether the server can provide metadata for this service.  **/
   hasServerMetadata?: boolean;
-  /** The [[JsonResultsAdapter]] used to process the results of any query against this DataService.  **/
+  /** The {@link JsonResultsAdapter} used to process the results of any query against this DataService.  **/
   jsonResultsAdapter?: JsonResultsAdapter;
   /** Whether to use JSONP when performing a 'GET' request against this service.  **/
   useJsonp?: boolean;
@@ -40,17 +40,17 @@ export class DataService {
   declare _$typeName: string; // actually put on prototype.
   /** The serviceName for this DataService. __Read Only__ **/
   declare serviceName: string;
-  /** The adapter name for the [[IDataServiceAdapter]] to be used with this service. __Read Only__  **/
+  /** The adapter name for the {@link DataServiceAdapter} to be used with this service. __Read Only__  **/
   declare adapterName: string;
-  /**  The [[IDataServiceAdapter]] implementation instance associated with this EntityManager. __Read Only__  **/
+  /**  The {@link DataServiceAdapter} implementation instance associated with this EntityManager. __Read Only__  **/
   declare adapterInstance?: DataServiceAdapter;
-  /** The adapter name for the [[IUriBuilderAdapter]] to be used with this service. __Read Only__  **/
+  /** The adapter name for the {@link UriBuilderAdapter} to be used with this service. __Read Only__  **/
   declare uriBuilderName: string;
-  /**  The [[IUriBuilderAdapter]] implementation instance associated with this EntityManager. __Read Only__  **/
+  /**  The {@link UriBuilderAdapter} implementation instance associated with this EntityManager. __Read Only__  **/
   declare uriBuilder?: UriBuilderAdapter;
   /** Whether the server can provide metadata for this service. __Read Only__   **/
   declare hasServerMetadata: boolean;
-  /** The [[JsonResultsAdapter]] used to process the results of any query against this DataService. __Read Only__ **/
+  /** The {@link JsonResultsAdapter} used to process the results of any query against this DataService. __Read Only__ **/
   declare jsonResultsAdapter: JsonResultsAdapter;
   /** Whether to use JSONP when performing a 'GET' request against this service. __Read Only__  **/
   declare useJsonp: boolean;
@@ -138,9 +138,8 @@ export class DataService {
   /**
    Returns a url for this dataService with the specified suffix. This method handles dataService names either
    with or without trailing '/'s.  If the suffix starts with "http" then it will be returned as-is.
-   @method qualifyUrl
    @param suffix {String} The resulting url.
-   @return {a Url string}
+   @returns {a Url string}
    **/
   qualifyUrl(suffix: string) {
     if (suffix && suffix.startsWith("http")) {
@@ -194,7 +193,7 @@ export interface NodeContext {
   navigationProperty?: NavigationProperty;
 }
 
-/** Configuration info to be passed to the [[JsonResultsAdapter]] constructor */
+/** Configuration info to be passed to the {@link JsonResultsAdapter} constructor */
 export interface JsonResultsAdapterConfig {
   /** The name of this adapter.  This name is used to uniquely identify and locate this instance when an 'exported' JsonResultsAdapter is later imported. */
   name: string;

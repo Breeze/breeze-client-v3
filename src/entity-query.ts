@@ -20,11 +20,10 @@ export interface EntityQueryJsonContext {
   toNameOnServer?: boolean;
 }
 /**
-An EntityQuery instance is used to query entities either from a remote datasource or from a local [[EntityManager]].
+An EntityQuery instance is used to query entities either from a remote datasource or from a local {@link EntityManager}.
 
 EntityQueries are immutable - this means that all EntityQuery methods that return an EntityQuery actually create a new EntityQuery.  This means that
 EntityQueries can be 'modified' without affecting any current instances.
-@dynamic
 **/
 export class EntityQuery {
   /** @hidden @internal */
@@ -32,17 +31,17 @@ export class EntityQuery {
   // top = this.take; // TODO: consider
   /** The resource name used by this query. __Read Only__ */
   declare resourceName?: string;
-  /** The [[EntityType]] that is associated with the 'from' clause ( resourceName) of the query.  This is only guaranteed to be be set AFTER the query
-  has been executed because it depends on the [[MetadataStore]] associated with the [[EntityManager]] that the query was executed against.
+  /** The {@link EntityType} that is associated with the 'from' clause ( resourceName) of the query.  This is only guaranteed to be be set AFTER the query
+  has been executed because it depends on the {@link MetadataStore} associated with the {@link EntityManager} that the query was executed against.
   This value may be null if the entityType cannot be associated with a resourceName. __Read Only__ */
   declare fromEntityType?: EntityType;
-  /** The 'where' [[Predicate]] used by this query. __Read Only__ */
+  /** The 'where' {@link Predicate} used by this query. __Read Only__ */
   declare wherePredicate?: Predicate;
-  /** The [[OrderByClause]] used by this query. __Read Only__ */
+  /** The {@link OrderByClause} used by this query. __Read Only__ */
   declare orderByClause?: OrderByClause;
-  /** The [[ExpandClause]] used by this query. __Read Only__ */
+  /** The {@link ExpandClause} used by this query. __Read Only__ */
   declare expandClause?: ExpandClause;
-  /** The [[SelectClause]] used by this query. __Read Only__ */
+  /** The {@link SelectClause} used by this query. __Read Only__ */
   declare selectClause?: SelectClause;
   /** The number of entities to 'skip' for this query. __Read Only__ */
   declare skipCount?: number;
@@ -56,12 +55,12 @@ export class EntityQuery {
   declare noTrackingEnabled: boolean;
   /** Whether to send query as the body of a POST request.  (Server needs to accomodate POST). __Read Only__ */
   declare usePostEnabled: boolean;
-  /** The [[QueryOptions]] for this query. __Read Only__  **/
+  /** The {@link QueryOptions} for this query. __Read Only__  **/
   // default is to get queryOptions and dataService from the entityManager.
   declare queryOptions?: QueryOptions;
-  /** The [[DataService]] for this query. __Read Only__  **/
+  /** The {@link DataService} for this query. __Read Only__  **/
   declare dataService?: DataService;
-  /** The [[EntityManager]] for this query. This may be null and can be set via the 'using' method.  **/
+  /** The {@link EntityManager} for this query. This may be null and can be set via the 'using' method.  **/
   declare entityManager?: EntityManager;
   /**  The entityType that will be returned by this query. 
   This property will only be set if the 'toType' method was called. __Read Only__ */
@@ -75,7 +74,7 @@ export class EntityQuery {
   >      let query = new EntityQuery("Customers")
   >        .where("CompanyName", "startsWith", "C")
   >        .orderBy("Region");
-  @param resourceName - either a resource name or a serialized EntityQuery ( created by [[EntityQuery.toJSON]])
+  @param resourceName - either a resource name or a serialized EntityQuery ( created by {@link EntityQuery.toJSON})
   **/
   constructor(resourceName?: string | Object) {
     if (resourceName != null && (typeof resourceName !== 'string')) {
@@ -137,7 +136,7 @@ export class EntityQuery {
   >        .from("MyCustomMethod")
   >        .toType("Customer")
   @param entityType - The top level EntityType that this query will return.
-  @summary If the json result consists of more than a simple entity or array of entities, consider using a [[JsonResultsAdapter]] instead.
+  @summary If the json result consists of more than a simple entity or array of entities, consider using a {@link JsonResultsAdapter} instead.
   **/
   toType(entityType: string | EntityType) {
     assertParam(entityType, "entityType").isString().or().isInstanceOf(EntityType).check();
@@ -159,11 +158,11 @@ export class EntityQuery {
   >      let query = new EntityQuery("Customers")
   >          .where("CompanyName", "startsWith", "C");
 
-  This can also be expressed using an explicit [[FilterQueryOp]] as
+  This can also be expressed using an explicit {@link FilterQueryOp} as
   >      let query = new EntityQuery("Customers")
   >          .where("CompanyName", FilterQueryOp.StartsWith, "C");
 
-  or a preconstructed [[Predicate]] may be used
+  or a preconstructed {@link Predicate} may be used
   >      let pred = new Predicate("CompanyName", FilterQueryOp.StartsWith, "C");
   >      let query = new EntityQuery("Customers").where(pred);
 
@@ -176,7 +175,7 @@ export class EntityQuery {
   >      let query = new EntityQuery("Products")
   >          .where("Category.CategoryName", "startswith", "S");
 
-  or query functions - A list of valid functions can be found within the [[Predicate]] documentation.
+  or query functions - A list of valid functions can be found within the {@link Predicate} documentation.
   
   >      let query = new EntityQuery("Customers")
   >          .where("toLower(CompanyName)", "startsWith", "c");
@@ -185,11 +184,11 @@ export class EntityQuery {
   >      let query = new EntityQuery("Customers")
   >          .where("toUpper(substring(CompanyName, 1, 2))", FilterQueryOp.Equals, "OM");
   @param predicate -  Can be either
-    - a single [[Predicate]]
+    - a single {@link Predicate}
 
     - the parameters to create a 'simple' Predicate
     - -  a property name, a property path with '.' as path seperators or a property expression {String}
-    - -  an operator - [[FilterQueryOp]] or it's string representation. Case is ignored
+    - -  an operator - {@link FilterQueryOp} or it's string representation. Case is ignored
     when if a string is provided and any string that matches one of the FilterQueryOp aliases will be accepted.
     - -  a value {Object} - This will be treated as either a property expression or a literal depending on context.  
     In general, if the value can be interpreted as a property expression it will be, otherwise it will be treated as a literal.
@@ -454,19 +453,19 @@ export class EntityQuery {
   using(obj: MergeStrategy): EntityQuery;
   using(obj: FetchStrategy): EntityQuery;
   /**
-  Returns a copy of this EntityQuery with the specified [[EntityManager]], [[DataService]],
-  [[JsonResultsAdapter]], [[MergeStrategy]] or [[FetchStrategy]] applied.
+  Returns a copy of this EntityQuery with the specified {@link EntityManager}, {@link DataService},
+  {@link JsonResultsAdapter}, {@link MergeStrategy} or {@link FetchStrategy} applied.
   >      // 'using' can be used to return a new query with a specified EntityManager.
   >      let em = new EntityManager(serviceName);
   >      let query = new EntityQuery("Orders")
   >        .using(em);
 
-  or with a specified [[MergeStrategy]]
+  or with a specified {@link MergeStrategy}
   >      let em = new EntityManager(serviceName);
   >      let query = new EntityQuery("Orders")
   >        .using(MergeStrategy.PreserveChanges);
 
-  or with a specified [[FetchStrategy]]
+  or with a specified {@link FetchStrategy}
   >      let em = new EntityManager(serviceName);
   >      let query = new EntityQuery("Orders")
   >        .using(FetchStrategy.FromLocalCache);
@@ -528,7 +527,7 @@ export class EntityQuery {
 
   @param callback -  Function called on success.
   @param errorCallback - Function called on failure.
-  @return Promise
+  @returns Promise
   **/
   execute(callback?: Callback, errorCallback?: ErrorCallback): Promise<QueryResult> {
     if (!this.entityManager) {
@@ -543,7 +542,7 @@ export class EntityQuery {
   >      let query = new EntityQuery("Orders").using(em);
   >      let orders = query.executeLocally();
 
-  Note that calling this method is the same as calling [[EntityManager.executeQueryLocally]].
+  Note that calling this method is the same as calling {@link EntityManager.executeQueryLocally}.
   **/
   executeLocally() {
     if (!this.entityManager) {
@@ -638,7 +637,7 @@ export class EntityQuery {
   }
 
   /**
-  Creates an EntityQuery for the specified [[EntityKey]].
+  Creates an EntityQuery for the specified {@link EntityKey}.
   >      let empType = metadataStore.getEntityType("Employee");
   >      let entityKey = new EntityKey(empType, 1);
   >      let query = EntityQuery.fromEntityKey(entityKey);
@@ -647,7 +646,7 @@ export class EntityQuery {
   >      // 'employee' is a previously queried employee
   >      let entityKey = employee.entityAspect.getKey();
   >      let query = EntityQuery.fromEntityKey(entityKey);
-  @param entityKey - The [[EntityKey]] for which a query will be created.
+  @param entityKey - The {@link EntityKey} for which a query will be created.
   **/
   static fromEntityKey(entityKey: EntityKey) {
     assertParam(entityKey, "entityKey").isInstanceOf(EntityKey).check();
@@ -658,14 +657,14 @@ export class EntityQuery {
   }
 
   /**
-  Creates an EntityQuery for the specified entity and [[NavigationProperty]].
+  Creates an EntityQuery for the specified entity and {@link NavigationProperty}.
   >      // 'employee' is a previously queried employee
   >      let ordersNavProp = employee.entityType.getProperty("Orders");
   >      let query = EntityQuery.fromEntityNavigation(employee, ordersNavProp);
 
   will return a query for the "Orders" of the specified 'employee'.
   @param entity - The Entity whose navigation property will be queried.
-  @param navigationProperty - The [[NavigationProperty]] or name of the NavigationProperty to be queried.
+  @param navigationProperty - The {@link NavigationProperty} or name of the NavigationProperty to be queried.
   **/
   static fromEntityNavigation = function (entity: Entity, navigationProperty: NavigationProperty | string) {
     assertParam(entity, "entity").isEntity().check();
@@ -904,8 +903,8 @@ export interface QueryOp {
 
 
 /**
-FilterQueryOp is an 'Enum' containing all of the valid  [[Predicate]]
-filter operators for an [[EntityQuery]].
+FilterQueryOp is an 'Enum' containing all of the valid  {@link Predicate}
+filter operators for an {@link EntityQuery}.
 **/
 export class FilterQueryOp extends BreezeEnum implements QueryOp {
   /** The operator for this enum. */
@@ -944,7 +943,7 @@ FilterQueryOp.prototype._$typeName = "FilterQueryOp";
 
 /**
  BooleanQueryOp is an 'Enum' containing all of the valid  boolean
-operators for an [[EntityQuery]].
+operators for an {@link EntityQuery}.
 **/
 export class BooleanQueryOp extends BreezeEnum implements QueryOp {
   /** The operator for this enum. */
@@ -959,8 +958,8 @@ BooleanQueryOp.prototype._$typeName = "BooleanQueryOp";
 (Error as any)['x'] = BooleanQueryOp.resolveSymbols();
 
 
-/** For use by breeze plugin authors only.  The class is used in most [[IUriBuilderAdapter]] implementations
-@adapter (see [[IUriBuilderAdapter]])    
+/** For use by breeze plugin authors only.  The class is used in most {@link UriBuilderAdapter} implementations
+@adapter (see {@link UriBuilderAdapter})    
 @hidden
 
 An OrderByClause is a description of the properties and direction that the result
@@ -1106,8 +1105,8 @@ export class OrderByItem {
   }
 }
 
-/** For use by breeze plugin authors only.  The class is used in most [[IUriBuilderAdapter]] implementations
-@adapter (see [[IUriBuilderAdapter]])    
+/** For use by breeze plugin authors only.  The class is used in most {@link UriBuilderAdapter} implementations
+@adapter (see {@link UriBuilderAdapter})    
 @hidden 
 **/
 export class SelectClause {
@@ -1148,8 +1147,8 @@ export class SelectClause {
   }
 }
 
-/** For use by breeze plugin authors only.  The class is used in most [[IUriBuilderAdapter]] implementations
-@adapter (see [[IUriBuilderAdapter]])    
+/** For use by breeze plugin authors only.  The class is used in most {@link UriBuilderAdapter} implementations
+@adapter (see {@link UriBuilderAdapter})    
 @hidden 
 **/
 export class ExpandClause {

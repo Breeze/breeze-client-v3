@@ -48,11 +48,11 @@ let rootContext = {
 
 /**
 Instances of the Validator class provide the logic to validate another object and provide a description of any errors
-encountered during the validation process.  They are typically associated with a 'validators' property on the following types: [[EntityType]],
-[[DataProperty]] or [[NavigationProperty]].
+encountered during the validation process.  They are typically associated with a 'validators' property on the following types: {@link EntityType},
+{@link DataProperty} or {@link NavigationProperty}.
 
 A number of property level validators are registered automatically, i.e added to each DataProperty.validators property
-based on [[DataProperty]] metadata.  For example,
+based on {@link DataProperty} metadata.  For example,
 
 - DataProperty.dataType -> one of the 'dataType' validator methods such as Validator.int64, Validator.date, Validator.bool etc.
 - DataProperty.maxLength -> Validator.maxLength
@@ -159,7 +159,6 @@ as shown in this revision to the pertinent part of the previous example:
         max: context.max
     });
 
-@method <ctor> Validator
 @param name {String} The name of this validator.
 @param validatorFn {Function} A function to perform validation.
 
@@ -180,7 +179,6 @@ error message is generated.
 @param [context] {Object} A free form object whose properties will made available during the validation and error message creation process.
 This object will be passed into the Validator's validation function whenever 'validate' is called. See above for a description
 of additional properties that will be automatically added to this object if not otherwise specified.
-@dynamic
 **/
 export class Validator {
   /** @hidden @internal */
@@ -237,11 +235,10 @@ export class Validator {
       var errMsg = result.errorMessage;
       var context = result.context;
       var sameValidator = result.validator;
-  @method validate
   @param value {Object} Value to validate
   @param additionalContext {Object} Any additional contextual information that the Validator
   can make use of.
-  @return {ValidationError|null} A ValidationError if validation fails, null otherwise
+  @returns {ValidationError|null} A ValidationError if validation fails, null otherwise
   **/
   validate(value: any, additionalContext?: ValidationMessageContext) {
     let currentContext: ValidationMessageContext; // { value?: Object };
@@ -273,8 +270,7 @@ export class Validator {
       var v0 = Validator.maxLength({ maxLength: 5, displayName: "City" });
       v0.validate("adasdfasdf");
       var errMessage = v0.getMessage());
-  @method getMessage
-  @return {String}
+  @returns {String}
   **/
   getMessage() {
     try {
@@ -302,8 +298,6 @@ export class Validator {
 
   /**
   Creates a validator instance from a JSON object or an array of instances from an array of JSON objects.
-  @method fromJSON
-  @static
   @param json {Object} JSON object that represents the serialized version of a validator.
   **/
   public static fromJSON(json: any): any {
@@ -325,8 +319,6 @@ export class Validator {
 
   /**
   Register a validator instance so that any deserialized metadata can reference it.
-  @method register
-  @static
   @param validator {Validator} Validator to register.
   **/
   public static register(validator: Validator) {
@@ -337,8 +329,6 @@ export class Validator {
 
   /**
   Register a validator factory so that any deserialized metadata can reference it.
-  @method registerFactory
-  @static
   @param validatorFactory {Function} A function that optionally takes a context property and returns a Validator instance.
   @param name {String} The name of the validator.
   **/
@@ -363,7 +353,6 @@ export class Validator {
           messageTemplate: "'%displayName%' must start with 'US'" 
       });
   @property messageTemplates {Object}
-  @static
   **/
   public static messageTemplates: Record<string, any> = {
     bool: "'%displayName%' must be a 'true' or 'false' value",
@@ -394,11 +383,9 @@ export class Validator {
       regionProperty.validators.push(Validator.required());
       // or to allow empty strings
       regionProperty.validators.push(Validator.required({ allowEmptyStrings: true }););
-  @method required
-  @static
   @param context {Object}
   @param [context.allowEmptyStrings] {Boolean} If this parameter is omitted or false then empty strings do NOT pass validation.
-  @return {Validator} A new Validator
+  @returns {Validator} A new Validator
   **/
   public static required = function(context?: any) {
     let valFn = function (v: any, ctx: any) {
@@ -420,11 +407,9 @@ export class Validator {
       var regionProperty - custType.getProperty("Region");
       // Validates that the value of the Region property on Customer will be less than or equal to 5 characters.
       regionProperty.validators.push(Validator.maxLength( {maxLength: 5}));
-  @method maxLength
-  @static
   @param context {Object}
   @param context.maxLength {Integer}
-  @return {Validator} A new Validator
+  @returns {Validator} A new Validator
   **/
   public static maxLength = function(context: any) {
     let valFn = function (v: any, ctx: any) {
@@ -444,12 +429,10 @@ export class Validator {
       // Validates that the value of the Region property on Customer will be
       // between 2 and 5 characters
       regionProperty.validators.push(Validator.stringLength( {minLength: 2, maxLength: 5});
-  @method stringLength
-  @static
   @param context {Object}
   @param context.maxLength {Integer}
   @param context.minLength {Integer}
-  @return {Validator} A new Validator
+  @returns {Validator} A new Validator
   **/
   public static stringLength = function (context: any) {
     let valFn = function (v: any, ctx: any) {
@@ -470,9 +453,7 @@ export class Validator {
       var regionProperty - custType.getProperty("Region");
       // Validates that the value of the Region property on Customer is a string.
       regionProperty.validators.push(Validator.string());
-  @method string
-  @static
-  @return {Validator} A new Validator
+  @returns {Validator} A new Validator
   **/
   public static string = function () {
     let valFn = function (v: any) {
@@ -490,9 +471,7 @@ export class Validator {
       var customerIdProperty - custType.getProperty("CustomerID");
       // Validates that the value of the CustomerID property on Customer is a Guid.
       customerIdProperty.validators.push(Validator.guid());
-  @method guid
-  @static
-  @return {Validator} A new Validator
+  @returns {Validator} A new Validator
   **/
   public static guid = function () {
     let valFn = function (v: any) {
@@ -510,9 +489,7 @@ export class Validator {
       var elapsedTimeProperty - eventType.getProperty("ElapsedTime");
       // Validates that the value of the ElapsedTime property on Customer is a duration.
       elapsedTimeProperty.validators.push(Validator.duration());
-  @method duration
-  @static
-  @return {Validator} A new Validator
+  @returns {Validator} A new Validator
   **/
   public static duration = function () {
     let valFn = function (v: any) {
@@ -530,9 +507,7 @@ export class Validator {
       var freightProperty - orderType.getProperty("Freight");
       // Validates that the value of the Freight property on Order is a number.
       freightProperty.validators.push(Validator.number());
-  @method number
-  @static
-  @return {Validator} A new Validator
+  @returns {Validator} A new Validator
   **/
 
     // TODO: may need to have seperate logic for single.
@@ -557,9 +532,7 @@ export class Validator {
       var freightProperty - orderType.getProperty("Freight");
       // Validates that the value of the Freight property on Order is within the range of a 64 bit integer.
       freightProperty.validators.push(Validator.int64());
-  @method int64
-  @static
-  @return {Validator} A new Validator
+  @returns {Validator} A new Validator
   **/
   public static integer = function(context: any) {
     let valFn = function (v: any, ctx: any) {
@@ -580,9 +553,7 @@ export class Validator {
       var orderType = em1.metadataStore.getEntityType("Order");
       var freightProperty - orderType.getProperty("Freight");
       freightProperty.validators.push(Validator.int32());
-  @method int32
-  @static
-  @return {Validator} A new Validator
+  @returns {Validator} A new Validator
   **/
   public static int32 = function(context: any) {
     return intRangeValidatorCtor("int32", INT32_MIN, INT32_MAX, context)();
@@ -596,9 +567,7 @@ export class Validator {
       var freightProperty - orderType.getProperty("Freight");
       // Validates that the value of the Freight property on Order is within the range of a 16 bit integer.
       freightProperty.validators.push(Validator.int16());
-  @method int16
-  @static
-  @return {Validator} A new Validator
+  @returns {Validator} A new Validator
   **/
   public static int16 = function(context: any) {
     return intRangeValidatorCtor("int16", INT16_MIN, INT16_MAX, context)();
@@ -613,9 +582,7 @@ export class Validator {
       // Validates that the value of the Freight property on Order is within the range of a 16 bit integer.
       // Probably not a very good validation to place on the Freight property.
       regionProperty.validators.push(Validator.byte());
-  @method byte
-  @static
-  @return {Validator} A new Validator
+  @returns {Validator} A new Validator
   **/
   public static byte = function(context: any) {
     return intRangeValidatorCtor("byte", BYTE_MIN, BYTE_MAX, context)();
@@ -629,9 +596,7 @@ export class Validator {
       var discontinuedProperty - productType.getProperty("Discontinued");
       // Validates that the value of the Discontinued property on Product is a boolean
       discontinuedProperty.validators.push(Validator.bool());
-  @method bool
-  @static
-  @return {Validator} A new Validator
+  @returns {Validator} A new Validator
   **/
   public static bool = function() {
     let valFn = function (v: any) {
@@ -657,9 +622,7 @@ export class Validator {
       // Validates that the value of the OrderDate property on Order is a date
       // Probably not a very good validation to place on the Freight property.
       orderDateProperty.validators.push(Validator.date());
-  @method date
-  @static
-  @return {Validator} A new Validator
+  @returns {Validator} A new Validator
   **/
   public static date = function() {
     let valFn = function (v: any) {
@@ -689,10 +652,8 @@ export class Validator {
       var creditCardProperty = personType.getProperty("creditCard");
       // Validates that the value of the Person.creditCard property is credit card.
       creditCardProperty.validators.push(Validator.creditCard());
-  @method creditCard
-  @static
   @param [context] {Object} optional parameters to pass through to validation constructor
-  @return {Validator} A new Validator
+  @returns {Validator} A new Validator
   **/
   public static creditCard = function(context?: any) {
     function valFn(v: any) {
@@ -714,11 +675,9 @@ export class Validator {
       var regionProperty = customerType.getProperty("Region");
       // Validates that the value of Customer.Region is 2 char uppercase alpha.
       regionProperty.validators.push(Validator.regularExpression( {expression: '^[A-Z]{2}$'} );
-  @method regularExpression
-  @static
   @param context {Object}
   @param context.expression {String} String form of the regular expression to apply
-  @return {Validator} A new Validator
+  @returns {Validator} A new Validator
   **/
   public static regularExpression = function(context?: any) {
     function valFn(v: any, ctx: any) {
@@ -743,10 +702,8 @@ export class Validator {
       var emailProperty = personType.getProperty("email");
       // Validates that the value of the Person.email property is an email address.
       emailProperty.validators.push(Validator.emailAddress());
-  @method emailAddress
-  @static
   @param [context] {Object} optional parameters to pass through to validation constructor
-  @return {Validator} A new Validator
+  @returns {Validator} A new Validator
   **/
   public static emailAddress = function(context?: any) {
     // See https://github.com/srkirkland/DataAnnotationsExtensions/blob/master/DataAnnotationsExtensions/EmailAttribute.cs
@@ -772,10 +729,8 @@ export class Validator {
       var phoneProperty = customerType.getProperty("phone");
       // Validates that the value of the Customer.phone property is phone.
       phoneProperty.validators.push(Validator.phone());
-  @method phone
-  @static
   @param [context] {Object} optional parameters to pass through to validation constructor
-  @return {Validator} A new Validator
+  @returns {Validator} A new Validator
   **/
   public static phone = function (context?: any) {
     // See https://github.com/srkirkland/DataAnnotationsExtensions/blob/master/DataAnnotationsExtensions/Expressions.cs
@@ -791,10 +746,8 @@ export class Validator {
       var websiteProperty = personType.getProperty("website");
       // Validates that the value of the Person.website property is a URL.
       websiteProperty.validators.push(Validator.url());
-  @method url
-  @static
   @param [context] {Object} optional parameters to pass through to validation constructor
-  @return {Validator} A new Validator
+  @returns {Validator} A new Validator
   **/
   public static url = function (context?: any) {
     //See https://github.com/srkirkland/DataAnnotationsExtensions/blob/master/DataAnnotationsExtensions/UrlAttribute.cs
@@ -820,13 +773,11 @@ export class Validator {
       var custType = em.metadataStore.getEntityType("Customer");
       var zipProperty = custType.getProperty("PostalCode");
       zipProperty.validators.push(zipValidator);
-  @method makeRegExpValidator
-  @static
   @param validatorName {String} name of this validator
   @param expression {String | RegExp} regular expression to apply
   @param [defaultMessage] {String} default message for failed validations
   @param [context] {Object} optional parameters to pass through to validation constructor
-  @return {Validator} A new Validator
+  @returns {Validator} A new Validator
   **/
   public static makeRegExpValidator = makeRegExpValidator;
 
@@ -945,7 +896,6 @@ A ValidationError is used to describe a failed validation.
 
 /**
 Constructs a new ValidationError
-@method <ctor> ValidationError
 
 @param validator {Validator || null} The Validator used to create this error, if any.
 @param context { ContextObject || null} The Context object used in conjunction with the Validator to create this error.
@@ -1035,11 +985,9 @@ export class ValidationError {
 
   /**
   Composes a ValidationError 'key' given a validator or an errorName and an optional propertyName
-  @method getKey
-  @static
   @param validator {ValidatorOrErrorKey} A Validator or an "error name" if no validator is available.
   @param [propertyName] A property name
-  @return {String} A ValidationError 'key'
+  @returns {String} A ValidationError 'key'
   **/
   public static getKey(validatorOrErrorName: Validator | string, propertyName?: string) {
     let name = (typeof validatorOrErrorName === 'string') ? validatorOrErrorName : validatorOrErrorName.name;

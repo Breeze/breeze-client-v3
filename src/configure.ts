@@ -15,7 +15,7 @@ export interface AjaxAdapterRegistration {
   register(breezeConfig?: BreezeConfig, fetchFn?: BreezeFetch): any;
 }
 
-/** Options accepted by [[configureBreeze]]. */
+/** Options accepted by {@link configureBreeze}. */
 export interface BreezeSetupOptions {
   /** Model library adapter, e.g. `ModelLibraryBackingStoreAdapter`. */
   modelLibrary?: AdapterRegistration;

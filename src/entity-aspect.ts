@@ -58,7 +58,7 @@ that provide a variety of services including validation and change tracking.
 
 An EntityAspect will almost never need to be constructed directly. You will usually get an EntityAspect by accessing
 an entities 'entityAspect' property.  This property will be automatically attached when an entity is created via either
-a query, import or [[EntityManager.createEntity]] call.
+a query, import or {@link EntityManager.createEntity} call.
 >      // assume order is an order entity attached to an EntityManager.
 >      var aspect = order.entityAspect;
 >      var currentState = aspect.entityState;
@@ -67,11 +67,11 @@ a query, import or [[EntityManager.createEntity]] call.
 export class EntityAspect {
   /** The Entity that this aspect is associated with. __Read Only__  **/
   entity?: Entity;
-  /** The [[EntityManager]] that contains this entity. __Read Only__ **/
+  /** The {@link EntityManager} that contains this entity. __Read Only__ **/
   entityManager?: EntityManager;
   /**  @hidden @internal */
   entityGroup?: EntityGroup;
-  /** The [[EntityState]] of this entity. __Read Only__ **/
+  /** The {@link EntityState} of this entity. __Read Only__ **/
   entityState: EntityState;
   /**   Whether this entity is in the process of being saved. __Read Only__ */
   isBeingSaved: boolean;
@@ -80,7 +80,7 @@ export class EntityAspect {
   originalValues: Record<string, any>;
   /**  Whether this entity has any validation errors. __Read Only__ */
   hasValidationErrors: boolean;
-  /** Whether this entity has a temporary [[EntityKey]]. */
+  /** Whether this entity has a temporary {@link EntityKey}. */
   hasTempKey?: boolean;
   /** Whether this entity was created by being loaded from the database */
   wasLoaded?: boolean;
@@ -89,12 +89,12 @@ export class EntityAspect {
   Breeze (de)serializes this object when importing/exporting the entity. **/
   extraMetadata?: any;
   /**
-  A [[BreezeEvent]] that fires whenever any of the validation errors on this entity change.
+  A {@link BreezeEvent} that fires whenever any of the validation errors on this entity change.
   Note that this might be the removal of an error when some data on the entity is fixed.
   @eventArgs - 
     - entity - The entity on which the validation errors are being added or removed.
-    - added - An array containing any newly added [[ValidationError]]s
-    - removed - An array containing any newly removed [[ValidationError]]s. This is those
+    - added - An array containing any newly added {@link ValidationError}s
+    - removed - An array containing any newly removed {@link ValidationError}s. This is those
       errors that have been 'fixed'.
 
 >      // assume order is an order entity attached to an EntityManager.
@@ -109,10 +109,10 @@ export class EntityAspect {
   **/
   validationErrorsChanged: BreezeEvent<ValidationErrorsChangedEventArgs>;
   /**
-  A [[BreezeEvent]] that fires whenever a value of one of this entity's properties change.
+  A {@link BreezeEvent} that fires whenever a value of one of this entity's properties change.
   @eventArgs -
     - entity - The entity whose property has changed.
-    - property - The [[DataProperty]] that changed.
+    - property - The {@link DataProperty} that changed.
     - propertyName - The name of the property that changed. This value will be 'null' for operations that replace the entire entity.  This includes
       queries, imports and saves that require a merge. The remaining parameters will not exist in this case either. This will actually be a "property path"
       for any properties of a complex type.
@@ -237,11 +237,11 @@ export class EntityAspect {
   }
 
   /**
-  Returns the [[EntityKey]] for this Entity.
+  Returns the {@link EntityKey} for this Entity.
   >      // assume order is an order entity attached to an EntityManager.
   >      var entityKey = order.entityAspect.getKey();
   @param forceRefresh - (boolean=false) Forces the recalculation of the key.  This should normally be unnecessary.
-  @return The [[EntityKey]] associated with this Entity.
+  @returns The {@link EntityKey} associated with this Entity.
   **/
   getKey(forceRefresh: boolean = false) {
     forceRefresh = assertParam(forceRefresh, "forceRefresh").isBoolean().isOptional().check(false);
@@ -257,7 +257,7 @@ export class EntityAspect {
   }
 
   /**
-  Returns the entity to an [[EntityState]] of 'Unchanged' by committing all changes made since the entity was last queried
+  Returns the entity to an {@link EntityState} of 'Unchanged' by committing all changes made since the entity was last queried
   had 'acceptChanges' called on it.
   >      // assume order is an order entity attached to an EntityManager.
   >      order.entityAspect.acceptChanges();
@@ -276,7 +276,7 @@ export class EntityAspect {
   }
 
   /**
-  Returns the entity to an [[EntityState]] of 'Unchanged' by rejecting all changes made to it since the entity was last queried
+  Returns the entity to an {@link EntityState} of 'Unchanged' by rejecting all changes made to it since the entity was last queried
   had 'rejectChanges' called on it.
   >      // assume order is an order entity attached to an EntityManager.
   >      order.entityAspect.rejectChanges();
@@ -313,10 +313,10 @@ export class EntityAspect {
   }
 
   /**
-  Sets the entity to an EntityState of 'Added'.  This is NOT the equivalent of calling [[EntityManager.addEntity]]
+  Sets the entity to an EntityState of 'Added'.  This is NOT the equivalent of calling {@link EntityManager.addEntity}
   because no key generation will occur for autogenerated keys as a result of this operation. As a result this operation can be problematic
   unless you are certain that the entity being marked 'Added' does not already exist in the database and does not have an autogenerated key.
-  The same operation can be performed by calling [[EntityAspect.setEntityState]].
+  The same operation can be performed by calling {@link EntityAspect.setEntityState}.
   >      // assume order is an order entity attached to an EntityManager.
   >      order.entityAspect.setAdded();
   >      // The 'order' entity will now be in an 'Added' state.
@@ -326,8 +326,8 @@ export class EntityAspect {
   }
 
   /**
-  Sets the entity to an EntityState of 'Unchanged'.  This is also the equivalent of calling [[EntityAspect.acceptChanges]].
-  The same operation can be performed by calling [[EntityAspect.setEntityState]].
+  Sets the entity to an EntityState of 'Unchanged'.  This is also the equivalent of calling {@link EntityAspect.acceptChanges}.
+  The same operation can be performed by calling {@link EntityAspect.setEntityState}.
   >      // assume order is an order entity attached to an EntityManager.
   >      order.entityAspect.setUnchanged();
   >      // The 'order' entity will now be in an 'Unchanged' state with any changes committed.
@@ -339,7 +339,7 @@ export class EntityAspect {
 
   /**
   Sets the entity to an EntityState of 'Modified'.  This can also be achieved by changing the value of any property on an 'Unchanged' entity.
-  The same operation can be performed by calling [[EntityAspect.setEntityState]].
+  The same operation can be performed by calling {@link EntityAspect.setEntityState}.
   >      // assume order is an order entity attached to an EntityManager.
   >      order.entityAspect.setModified();
   >      // The 'order' entity will now be in a 'Modified' state.
@@ -351,7 +351,7 @@ export class EntityAspect {
   /**
   Sets the entity to an EntityState of 'Deleted'.  This both marks the entity as being scheduled for deletion during the next 'Save' call
   but also removes the entity from all of its related entities.  If the current entityState is 'Added', then `setDeleted()` will mark it 'Detached'
-  The same operation can be performed by calling [[EntityAspect.setEntityState]].
+  The same operation can be performed by calling {@link EntityAspect.setEntityState}.
   >      // assume order is an order entity attached to an EntityManager.
   >      order.entityAspect.setDeleted();
   >      // The 'order' entity will now be in a 'Deleted' state and it will no longer have any 'related' entities.
@@ -362,7 +362,7 @@ export class EntityAspect {
 
   /**
   Sets the entity to an EntityState of 'Detached'.  This removes the entity from all of its related entities, but does NOT change the EntityState of any existing entities.
-  The same operation can be performed by calling [[EntityAspect.setEntityState]].
+  The same operation can be performed by calling {@link EntityAspect.setEntityState}.
   >      // assume order is an order entity attached to an EntityManager.
   >      order.entityAspect.setDetached();
   >      // The 'order' entity will now be in a 'Detached' state and it will no longer have any 'related' entities.
@@ -426,7 +426,7 @@ export class EntityAspect {
   loadNavigationProperty(navigationProperty: string, callback?: QuerySuccessCallback, errorCallback?: QueryErrorCallback): Promise<QueryResult>;
   loadNavigationProperty(navigationProperty: NavigationProperty, callback?: QuerySuccessCallback, errorCallback?: QueryErrorCallback): Promise<QueryResult>;
   /**
-  Performs a query for the value of a specified [[NavigationProperty]]. __Async__
+  Performs a query for the value of a specified {@link NavigationProperty}. __Async__
   >      emp.entityAspect.loadNavigationProperty("Orders").then(function (data) {
   >          var orders = data.results;
   >      }).catch(function (exception) {
@@ -435,7 +435,7 @@ export class EntityAspect {
   @param navigationProperty - The NavigationProperty or the name of the NavigationProperty to 'load'.
   @param callback - Function to call on success.
   @param errorCallback - Function to call on failure.
-  @return Promise with shape
+  @returns Promise with shape
     - results {Array of Entity}
     - query {EntityQuery} The original query
     - httpResponse {httpResponse} The HttpResponse returned from the server.
@@ -477,10 +477,10 @@ export class EntityAspect {
   A navigation property is considered loaded when any of the following three conditions applies:
 
     1. It was fetched from the backend server.
-        <br/>   This can be the result of an expand query or a call to the [[EntityAspect.loadNavigationProperty]] method.
+        <br/>   This can be the result of an expand query or a call to the {@link EntityAspect.loadNavigationProperty} method.
         <br/>   Note that even if the fetch returns nothing the property is still marked as loaded in this case.
     1. The property is scalar and has been set to a nonnull value.
-    1. The [[EntityAspect.markNavigationPropertyAsLoaded]] was called.
+    1. The {@link EntityAspect.markNavigationPropertyAsLoaded} was called.
   
   >     var wasLoaded = emp.entityAspect.isNavigationPropertyLoaded("Orders");
   @param navigationProperty - The NavigationProperty or name of NavigationProperty to 'load'.
@@ -503,7 +503,7 @@ export class EntityAspect {
 
   /**
   Performs validation on the entity, any errors encountered during the validation are available via the
-  [[EntityAspect.getValidationErrors]] method. Validating an entity means executing
+  {@link EntityAspect.getValidationErrors} method. Validating an entity means executing
   all of the validators on both the entity itself as well as those on each of its properties.
   >      // assume order is an order entity attached to an EntityManager.
   >      var isOk = order.entityAspect.validateEntity();
@@ -511,7 +511,7 @@ export class EntityAspect {
   >      if (!isOk) {
   >          var errors = order.entityAspect.getValidationErrors();
   >      }
-  @return Whether the entity passed validation.
+  @returns Whether the entity passed validation.
   **/
   validateEntity() {
     let ok = true;
@@ -526,7 +526,7 @@ export class EntityAspect {
   validateProperty(property: NavigationProperty, context?: any): boolean;
   /**
   Performs validation on a specific property of this entity, any errors encountered during the validation are available via the
-  [[EntityAspect.getValidationErrors]] method. Validating a property means executing
+  {@link EntityAspect.getValidationErrors} method. Validating a property means executing
   all of the validators on the specified property.  This call is also made automatically anytime a property
   of an entity is changed.
   >      // assume order is an order entity attached to an EntityManager.
@@ -535,10 +535,10 @@ export class EntityAspect {
   or
   >      var orderDateProperty = order.entityType.getProperty("OrderDate");
   >      var isOk = order.entityAspect.validateProperty(OrderDateProperty);
-  @param property - The [[DataProperty]] or [[NavigationProperty]] to validate or a string 
+  @param property - The {@link DataProperty} or {@link NavigationProperty} to validate or a string 
   with the name of the property or a property path with the path to a property of a complex object.
-  @param context -  A context object used to pass additional information to each [[Validator]].
-  @return Whether the entity passed validation.
+  @param context -  A context object used to pass additional information to each {@link Validator}.
+  @returns Whether the entity passed validation.
   **/
   validateProperty(property: EntityProperty | string, context: any) {
     let value = this.getPropertyValue(property); // performs validations
@@ -578,7 +578,7 @@ export class EntityAspect {
   >      var orderDateErrors = order.entityAspect.getValidationErrors(orderDateProperty);
   @param property - The property for which validation errors should be retrieved.
   If omitted, all of the validation errors for this entity will be returned.
-  @return A array of validation errors.
+  @returns A array of validation errors.
   **/
   getValidationErrors(property?: DataProperty | NavigationProperty | string) {
     assertParam(property, "property").isOptional().isEntityProperty().or().isString().check();
@@ -633,11 +633,11 @@ export class EntityAspect {
   }
 
   /**
-  Returns an [[EntityKey]] for the entity pointed to by the specified scalar NavigationProperty.
+  Returns an {@link EntityKey} for the entity pointed to by the specified scalar NavigationProperty.
   This only returns an EntityKey if the current entity is a 'child' entity along the specified NavigationProperty. 
   i.e. has a single parent.
 
-  @param navigationProperty - The [[NavigationProperty]] ( pointing to a parent). 
+  @param navigationProperty - The {@link NavigationProperty} ( pointing to a parent). 
   @returns Either a parent EntityKey if this is a 'child' entity or null;  
   */
   getParentKey(navigationProperty: NavigationProperty) {
@@ -903,7 +903,7 @@ export class ComplexAspect {
   originalValues: Record<string, any>;
   /** The parent object that to which this aspect belongs; this will either be an entity or another complex object. __Read Only__ */
   parent?: StructuralObject;
-  /** The [[DataProperty]] on the 'parent' that contains this complex object. __Read Only__ */
+  /** The {@link DataProperty} on the 'parent' that contains this complex object. __Read Only__ */
   parentProperty?: DataProperty;
   extraMetadata?: any;
 

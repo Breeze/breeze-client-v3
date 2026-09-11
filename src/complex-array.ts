@@ -32,7 +32,7 @@ let complexArrayMixin = {
    **/
 
   /**
-  An [[Event]] that fires whenever the contents of this array changed.  This event
+  An {@link BreezeEvent} that fires whenever the contents of this array changed.  This event
   is fired any time a new entity is attached or added to the EntityManager and happens to belong to this collection.
   Adds that occur as a result of query or import operations are batched so that all of the adds or removes to any individual
   collections are collected into a single notification event for each relation array.
@@ -131,8 +131,8 @@ function setAspect(co: ComplexObject, arr: ComplexArray) {
 }
 
 
-/** For use by breeze plugin authors only. The class is for use in building a [[IModelLibraryAdapter]] implementation. 
-@adapter (see [[IModelLibraryAdapter]])    
+/** For use by breeze plugin authors only. The class is for use in building a {@link ModelLibraryAdapter} implementation. 
+@adapter (see {@link ModelLibraryAdapter})    
 @hidden 
 */
 export function makeComplexArray(arr: any[], parent: StructuralObject, parentProperty: DataProperty) {

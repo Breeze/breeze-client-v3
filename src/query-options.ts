@@ -6,21 +6,20 @@ import { assertConfig } from './assert-param';
 MergeStrategy is an 'Enum' that determines how entities are merged into an EntityManager.
 
 @class MergeStrategy
-@static
 **/
 export class MergeStrategy extends BreezeEnum {
 
   /**
   MergeStrategy.PreserveChanges updates the cached entity with the incoming values unless the cached entity is in a changed
   state (added, modified, deleted) in which case the incoming values are ignored. The updated cached entity’s EntityState will
-  remain [[EntityState.Unchanged]] unless you’re importing entities in which case the new EntityState will
+  remain {@link EntityState.Unchanged} unless you’re importing entities in which case the new EntityState will
   be that of the imported entities.
   **/
   static PreserveChanges = new MergeStrategy();
   /**
   MergeStrategy.OverwriteChanges always updates the cached entity with incoming values even if the entity is in
   a changed state (added, modified, deleted). After the merge, the pending changes are lost.
-  The new EntityState will be  [[EntityState/Unchanged]] unless you’re importing entities
+  The new EntityState will be  {@link EntityState.Unchanged} unless you’re importing entities
   in which case the new EntityState will be that of the imported entities.
   **/
   static OverwriteChanges = new MergeStrategy();
@@ -61,11 +60,11 @@ export class FetchStrategy extends BreezeEnum {
 FetchStrategy.prototype._$typeName = "FetchStrategy";
 (Error as any)['x'] = FetchStrategy.resolveSymbols();
 
-/** Configuration info to be passed to the [[QueryOptions]] constructor. */
+/** Configuration info to be passed to the {@link QueryOptions} constructor. */
 export interface QueryOptionsConfig {
-  /** The [[FetchStrategy]] to use with any queries.*/
+  /** The {@link FetchStrategy} to use with any queries.*/
   fetchStrategy?: FetchStrategy;
-  /** The [[MergeStrategy]] to use with any queries.*/
+  /** The {@link MergeStrategy} to use with any queries.*/
   mergeStrategy?: MergeStrategy;
   /** Whether to include cached deleted entities in a query result (false by default). __Read Only__ */
   includeDeleted?: boolean;
@@ -77,9 +76,9 @@ A QueryOptions instance is used to specify the 'options' under which a query wil
 export class QueryOptions {
   /** @hidden @internal */
   declare _$typeName: string;
-  /** The [[FetchStrategy]] to use with any queries. __Read Only__ */
+  /** The {@link FetchStrategy} to use with any queries. __Read Only__ */
   declare fetchStrategy: FetchStrategy;
-  /** The [[MergeStrategy]] to use with any queries. __Read Only__ */
+  /** The {@link MergeStrategy} to use with any queries. __Read Only__ */
   declare mergeStrategy: MergeStrategy;
   /** Whether to include cached deleted entities in a query result (false by default). __Read Only__ */
   declare includeDeleted: boolean;
@@ -114,8 +113,8 @@ export class QueryOptions {
   }
 
   /**
-  Returns a copy of this QueryOptions with the specified [[MergeStrategy]],
-  [[FetchStrategy]], or 'includeDeleted' option applied.
+  Returns a copy of this QueryOptions with the specified {@link MergeStrategy},
+  {@link FetchStrategy}, or 'includeDeleted' option applied.
   >     // Given an EntityManager instance, em
   >     var queryOptions = em.queryOptions.using(MergeStrategy.PreserveChanges);
 
@@ -130,8 +129,8 @@ export class QueryOptions {
   >        includeDeleted: true,
   >        fetchStrategy:  FetchStrategy.FromLocalCache 
   >     });
-  @param config - A configuration object or a standalone [[MergeStrategy]] or [[FetchStrategy]] 
-  @return A new QueryOptions instance.
+  @param config - A configuration object or a standalone {@link MergeStrategy} or {@link FetchStrategy} 
+  @returns A new QueryOptions instance.
   **/
   using(qoConfig: QueryOptionsConfig | MergeStrategy | FetchStrategy) {
     if (!qoConfig) return this;
