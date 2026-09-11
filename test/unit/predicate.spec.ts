@@ -1,5 +1,5 @@
 import { breeze } from '../../src/breeze';
-import { ModelLibraryBackingStoreAdapter } from '../../src/adapter-model-library-backing-store';
+import { ModelLibraryBackingStoreAdapter } from '../../src/adapters/adapter-model-library-backing-store';
 import { TestFns } from '../test-fns';
 
 ModelLibraryBackingStoreAdapter.register();

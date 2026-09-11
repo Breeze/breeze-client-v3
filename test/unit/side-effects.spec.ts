@@ -9,7 +9,12 @@ import metadata from '../support/NorthwindIBMetadata.json';
 // of CHANGES-DEV.md.
 
 const srcDir = new URL('../../src/', import.meta.url);
-const moduleNames = fs.readdirSync(srcDir).filter(f => f.endsWith('.ts')).map(f => f.slice(0, -3));
+// src/ is grouped by concern, so walk it: names come back as 'core/core', 'config/config', ...
+const moduleNames = (function walk(dir, prefix = ''): string[] {
+  return fs.readdirSync(new URL(dir, srcDir), { withFileTypes: true }).flatMap(e =>
+    e.isDirectory() ? walk(`${dir}${e.name}/`, `${prefix}${e.name}/`)
+                    : e.name.endsWith('.ts') ? [prefix + e.name.slice(0, -3)] : []);
+})('./');
 
 describe("each module, loaded without the barrel", () => {
 
@@ -22,13 +27,13 @@ describe("each module, loaded without the barrel", () => {
   });
 
   test("config has its adapter interfaces without interface-registry.ts", async () => {
-    const { config } = await import('../../src/config');
+    const { config } = await import('../../src/config/config');
     expect(config.getInterfaceDef('dataService').name).toBe('dataService');
     expect(typeof config.initializeAdapterInstances).toBe('function');
   });
 
   test("a MetadataStore gets the default model library without an EntityManager", async () => {
-    const { MetadataStore } = await import('../../src/entity-metadata');
+    const { MetadataStore } = await import('../../src/metadata/entity-metadata');
     const ms = new MetadataStore();
     ms.importMetadata(metadata);
     const cust = (ms.getEntityType('Customer') as any).createEntity({ companyName: 'Metadata only' });
@@ -37,14 +42,14 @@ describe("each module, loaded without the barrel", () => {
   });
 
   test("an EntityManager gets the default server adapters without the barrel", async () => {
-    const { config } = await import('../../src/config');
-    await import('../../src/entity-manager');
+    const { config } = await import('../../src/config/config');
+    await import('../../src/manager/entity-manager');
     expect(config.getAdapterInstance('dataService')!.name).toBe('webApi');
     expect(config.getAdapterInstance('uriBuilder')!.name).toBe('json');
   });
 
   test("Param checks entities without entity-metadata.ts", async () => {
-    const { assertParam } = await import('../../src/assert-param');
+    const { assertParam } = await import('../../src/core/assert-param');
     expect(() => assertParam({ entityType: {} }, 'entity').isEntity().check()).not.toThrow();
     expect(() => assertParam({}, 'entity').isEntity().check()).toThrow(/must be an entity/);
     expect(() => assertParam({ isDataProperty: true }, 'p').isEntityProperty().check()).not.toThrow();
@@ -61,22 +66,22 @@ describe("each module, loaded without the barrel", () => {
 const legacyCore = "2.x alias on core. Nothing in Breeze reads it; it is set whenever config.ts is bundled";
 const ownPrototype = "patches this module's own class";
 const allowed: [file: string, statement: string, why: string][] = [
-  ['assert-param.ts', '(core as any).Param = Param;', legacyCore],
-  ['assert-param.ts', '(core as any).assertParam = assertParam;', legacyCore],
-  ['assert-param.ts', '(core as any).assertConfig = assertConfig;', legacyCore],
+  ['core/assert-param.ts', '(core as any).Param = Param;', legacyCore],
+  ['core/assert-param.ts', '(core as any).assertParam = assertParam;', legacyCore],
+  ['core/assert-param.ts', '(core as any).assertConfig = assertConfig;', legacyCore],
   ['breeze.ts', 'try {', "window.breeze: kept only when the bundle uses the breeze object, which holds every class anyway"],
   ['breeze.ts', 'if (win) {', "window.breeze, as above"],
-  ['config.ts', '(core as any).config = config;', legacyCore],
-  ['core.ts', 'if (!Object.create) {', "ES5 polyfill of a global; no supported runtime needs it"],
-  ['entity-aspect.ts', 'BreezeEvent.bubbleEvent(EntityAspect.prototype,', ownPrototype],
-  ['entity-manager.ts', 'BreezeEvent.bubbleEvent(EntityManager.prototype);', ownPrototype],
-  ['entity-manager.ts', 'setDefaultAdapters(serverDefaultAdapters);', "server-side default adapters: every bundle that talks to a server has an EntityManager"],
-  ['entity-metadata.ts', 'BreezeEvent.bubbleEvent(MetadataStore.prototype);', ownPrototype],
-  ['entity-metadata.ts', 'setDefaultAdapters({ modelLibrary:', "default model library: every bundle with entity types has this module"],
-  ['event.ts', '(core as any).Event = BreezeEvent;', legacyCore],
-  ['key-generator.ts', 'config.registerType(KeyGenerator,', "brands its own class; readers pass the class"],
-  ['mixin-get-entity-graph.ts', 'mixinEntityGraph(EntityManager);', "imported for its effect by design: listed in package.json sideEffects"],
-  ['validate.ts', "(Error as any)['x'] = core.objectForEach(Validator,", "registers its own validators; only Validator.fromJSON reads them"],
+  ['config/config.ts', '(core as any).config = config;', legacyCore],
+  ['core/core.ts', 'if (!Object.create) {', "ES5 polyfill of a global; no supported runtime needs it"],
+  ['entity/entity-aspect.ts', 'BreezeEvent.bubbleEvent(EntityAspect.prototype,', ownPrototype],
+  ['manager/entity-manager.ts', 'BreezeEvent.bubbleEvent(EntityManager.prototype);', ownPrototype],
+  ['manager/entity-manager.ts', 'setDefaultAdapters(serverDefaultAdapters);', "server-side default adapters: every bundle that talks to a server has an EntityManager"],
+  ['metadata/entity-metadata.ts', 'BreezeEvent.bubbleEvent(MetadataStore.prototype);', ownPrototype],
+  ['metadata/entity-metadata.ts', 'setDefaultAdapters({ modelLibrary:', "default model library: every bundle with entity types has this module"],
+  ['core/event.ts', '(core as any).Event = BreezeEvent;', legacyCore],
+  ['entity/key-generator.ts', 'config.registerType(KeyGenerator,', "brands its own class; readers pass the class"],
+  ['mixins/mixin-get-entity-graph.ts', 'mixinEntityGraph(EntityManager);', "imported for its effect by design: listed in package.json sideEffects"],
+  ['validation/validate.ts', "(Error as any)['x'] = core.objectForEach(Validator,", "registers its own validators; only Validator.fromJSON reads them"],
 ];
 
 function rootName(e: ts.Expression): string | undefined {
@@ -141,6 +146,6 @@ describe("import-time effects", () => {
 
   test("package.json lists only the modules imported for their effect", () => {
     const pkg = JSON.parse(fs.readFileSync(new URL('../../package.json', import.meta.url), 'utf8'));
-    expect(pkg.sideEffects).toEqual(['./dist/mixin-get-entity-graph.js']);
+    expect(pkg.sideEffects).toEqual(['./dist/mixins/mixin-get-entity-graph.js']);
   });
 });

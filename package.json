@@ -27,7 +27,7 @@
   },
   "//sideEffects": "Only the entity-graph mixin is imported for its effect (it patches EntityManager.prototype). Every other module's import-time code is needed only when that module's own exports are used. Read the sideEffects section of CHANGES-DEV.md before adding top-level code.",
   "sideEffects": [
-    "./dist/mixin-get-entity-graph.js"
+    "./dist/mixins/mixin-get-entity-graph.js"
   ],
   "exports": {
     ".": {
@@ -35,32 +35,32 @@
       "default": "./dist/breeze.js"
     },
     "./adapter-ajax-fetch": {
-      "types": "./dist/adapter-ajax-fetch.d.ts",
-      "default": "./dist/adapter-ajax-fetch.js"
+      "types": "./dist/adapters/adapter-ajax-fetch.d.ts",
+      "default": "./dist/adapters/adapter-ajax-fetch.js"
     },
     "./adapter-ajax-post": {
-      "types": "./dist/adapter-ajax-post.d.ts",
-      "default": "./dist/adapter-ajax-post.js"
+      "types": "./dist/adapters/adapter-ajax-post.d.ts",
+      "default": "./dist/adapters/adapter-ajax-post.js"
     },
     "./adapter-data-service-webapi": {
-      "types": "./dist/adapter-data-service-webapi.d.ts",
-      "default": "./dist/adapter-data-service-webapi.js"
+      "types": "./dist/adapters/adapter-data-service-webapi.d.ts",
+      "default": "./dist/adapters/adapter-data-service-webapi.js"
     },
     "./adapter-model-library-backing-store": {
-      "types": "./dist/adapter-model-library-backing-store.d.ts",
-      "default": "./dist/adapter-model-library-backing-store.js"
+      "types": "./dist/adapters/adapter-model-library-backing-store.d.ts",
+      "default": "./dist/adapters/adapter-model-library-backing-store.js"
     },
     "./adapter-uri-builder-json": {
-      "types": "./dist/adapter-uri-builder-json.d.ts",
-      "default": "./dist/adapter-uri-builder-json.js"
+      "types": "./dist/adapters/adapter-uri-builder-json.d.ts",
+      "default": "./dist/adapters/adapter-uri-builder-json.js"
     },
     "./mixin-get-entity-graph": {
-      "types": "./dist/mixin-get-entity-graph.d.ts",
-      "default": "./dist/mixin-get-entity-graph.js"
+      "types": "./dist/mixins/mixin-get-entity-graph.d.ts",
+      "default": "./dist/mixins/mixin-get-entity-graph.js"
     },
     "./mixin-save-queuing": {
-      "types": "./dist/mixin-save-queuing.d.ts",
-      "default": "./dist/mixin-save-queuing.js"
+      "types": "./dist/mixins/mixin-save-queuing.d.ts",
+      "default": "./dist/mixins/mixin-save-queuing.js"
     },
     "./package.json": "./package.json"
   },

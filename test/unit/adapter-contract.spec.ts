@@ -3,9 +3,9 @@ import {
   NamingConvention, JsonResultsAdapter,
 } from '../../src/breeze';
 import type { Entity, HttpResponse, SaveBundle, SaveContext } from '../../src/breeze';
-import { DataServiceWebApiAdapter } from '../../src/adapter-data-service-webapi';
-import { UriBuilderJsonAdapter } from '../../src/adapter-uri-builder-json';
-import { ModelLibraryBackingStoreAdapter } from '../../src/adapter-model-library-backing-store';
+import { DataServiceWebApiAdapter } from '../../src/adapters/adapter-data-service-webapi';
+import { UriBuilderJsonAdapter } from '../../src/adapters/adapter-uri-builder-json';
+import { ModelLibraryBackingStoreAdapter } from '../../src/adapters/adapter-model-library-backing-store';
 import metadata from '../support/NorthwindIBMetadata.json';
 
 // The data service adapter contract, exercised end to end with a fake fetch: the errors a

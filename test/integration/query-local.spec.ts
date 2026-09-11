@@ -1,6 +1,6 @@
 import { Predicate, FilterQueryOp, MetadataStore, EntityType, OrderByClause, DataType, core, EntityQuery, EntityManager, QueryOptions, FetchStrategy } from '../../src/breeze';
 import { TestFns } from '../test-fns';
-import { ModelLibraryBackingStoreAdapter } from '../../src/adapter-model-library-backing-store';
+import { ModelLibraryBackingStoreAdapter } from '../../src/adapters/adapter-model-library-backing-store';
 
 
 TestFns.initServerEnv();

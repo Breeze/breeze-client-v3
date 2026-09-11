@@ -1,18 +1,18 @@
 
 // import { AjaxFakeAdapter } from '../../src/adapter-ajax-fake';
-// import { DataServiceWebApiAdapter } from '../../src/adapter-data-service-webapi';
-// import { ModelLibraryBackingStoreAdapter } from '../../src/adapter-model-library-backing-store';
-// import { UriBuilderJsonAdapter } from '../../src/adapter-uri-builder-json';
-// import { config } from '../../src/config';
-// import { EntityManager } from '../../src/entity-manager';
-// import { EntityQuery } from '../../src/entity-query';
+// import { DataServiceWebApiAdapter } from '../../src/adapters/adapter-data-service-webapi';
+// import { ModelLibraryBackingStoreAdapter } from '../../src/adapters/adapter-model-library-backing-store';
+// import { UriBuilderJsonAdapter } from '../../src/adapters/adapter-uri-builder-json';
+// import { config } from '../../src/config/config';
+// import { EntityManager } from '../../src/manager/entity-manager';
+// import { EntityQuery } from '../../src/query/entity-query';
 // import { AjaxConfig, MappingContext, NodeContext, JsonResultsAdapter } from '../../src/breeze';
 
 import { config, EntityManager, EntityQuery, AjaxConfig, MappingContext, NodeContext, JsonResultsAdapter, NamingConvention } from '../../src/breeze';
-import { DataServiceWebApiAdapter } from '../../src/adapter-data-service-webapi';
-import { ModelLibraryBackingStoreAdapter } from '../../src/adapter-model-library-backing-store';
+import { DataServiceWebApiAdapter } from '../../src/adapters/adapter-data-service-webapi';
+import { ModelLibraryBackingStoreAdapter } from '../../src/adapters/adapter-model-library-backing-store';
 
-import { UriBuilderJsonAdapter } from '../../src/adapter-uri-builder-json';
+import { UriBuilderJsonAdapter } from '../../src/adapters/adapter-uri-builder-json';
 import { AjaxFakeAdapter } from '../support/adapter-ajax-fake';
 
 // jasmine.DEFAULT_TIMEOUT_INTERVAL = 120000;

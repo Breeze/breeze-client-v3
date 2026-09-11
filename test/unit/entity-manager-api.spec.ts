@@ -1,6 +1,6 @@
 import { configureBreeze, EntityManager, EntityState, KeyGenerator, MetadataStore, NamingConvention } from '../../src/breeze';
 import type { EntityType } from '../../src/breeze';
-import { ModelLibraryBackingStoreAdapter } from '../../src/adapter-model-library-backing-store';
+import { ModelLibraryBackingStoreAdapter } from '../../src/adapters/adapter-model-library-backing-store';
 import metadata from '../support/NorthwindIBMetadata.json';
 
 configureBreeze({

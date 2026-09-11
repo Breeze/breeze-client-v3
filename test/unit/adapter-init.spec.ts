@@ -1,7 +1,7 @@
 import { config } from '../../src/breeze';
 import type { AjaxConfig } from '../../src/breeze';
-import { builtinAjax } from '../../src/http';
-import { DataServiceWebApiAdapter } from '../../src/adapter-data-service-webapi';
+import { builtinAjax } from '../../src/adapters/http';
+import { DataServiceWebApiAdapter } from '../../src/adapters/adapter-data-service-webapi';
 
 // Adapter initialization publishes interfaceInitialized, saying whether the adapter became
 // the default. A data service adapter re-resolves its ajax adapter only for a new default.

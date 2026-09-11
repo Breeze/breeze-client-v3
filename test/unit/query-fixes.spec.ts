@@ -2,9 +2,9 @@ import {
   configureBreeze, EntityManager, EntityQuery, EntityState, FilterQueryOp, MetadataStore, DataService, NamingConvention,
   Predicate, SelectClause,
 } from '../../src/breeze';
-import { DataServiceWebApiAdapter } from '../../src/adapter-data-service-webapi';
-import { UriBuilderJsonAdapter } from '../../src/adapter-uri-builder-json';
-import { ModelLibraryBackingStoreAdapter } from '../../src/adapter-model-library-backing-store';
+import { DataServiceWebApiAdapter } from '../../src/adapters/adapter-data-service-webapi';
+import { UriBuilderJsonAdapter } from '../../src/adapters/adapter-uri-builder-json';
+import { ModelLibraryBackingStoreAdapter } from '../../src/adapters/adapter-model-library-backing-store';
 import metadata from '../support/NorthwindIBMetadata.json';
 
 // Regression tests for query and predicate defects found while writing the user docs.

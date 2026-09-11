@@ -1,5 +1,5 @@
-// import { config } from '../../src/config';
-// import { Validator } from '../../src/validate';
+// import { config } from '../../src/config/config';
+// import { Validator } from '../../src/validation/validate';
 
 import { config, Validator, ValidationOptions } from '../../src/breeze';
 

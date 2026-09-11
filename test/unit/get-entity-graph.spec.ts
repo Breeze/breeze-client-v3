@@ -1,13 +1,13 @@
-// import { ModelLibraryBackingStoreAdapter } from '../../src/adapter-model-library-backing-store';
-// import { EntityManager } from '../../src/entity-manager';
-// import '../../src/mixin-get-entity-graph';
-// import { HasEntityGraph } from '../../src/mixin-get-entity-graph';
+// import { ModelLibraryBackingStoreAdapter } from '../../src/adapters/adapter-model-library-backing-store';
+// import { EntityManager } from '../../src/manager/entity-manager';
+// import '../../src/mixins/mixin-get-entity-graph';
+// import { HasEntityGraph } from '../../src/mixins/mixin-get-entity-graph';
 
 import { EntityManager } from '../../src/breeze';
-import { ModelLibraryBackingStoreAdapter } from '../../src/adapter-model-library-backing-store';
+import { ModelLibraryBackingStoreAdapter } from '../../src/adapters/adapter-model-library-backing-store';
 
-import '../../src/mixin-get-entity-graph';
-import { HasEntityGraph } from '../../src/mixin-get-entity-graph';
+import '../../src/mixins/mixin-get-entity-graph';
+import { HasEntityGraph } from '../../src/mixins/mixin-get-entity-graph';
 
 import { TestFns } from '../test-fns';
 

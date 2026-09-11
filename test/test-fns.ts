@@ -1,5 +1,5 @@
 import { EntityManager, NamingConvention, MetadataStore, DataType, breeze, core, Entity, config } from '../src/breeze';
-import { ModelLibraryBackingStoreAdapter } from '../src/adapter-model-library-backing-store';
+import { ModelLibraryBackingStoreAdapter } from '../src/adapters/adapter-model-library-backing-store';
 import { UtilFns } from './util-fns';
 
 // Choose whether to use the EmployeeTerritoriesNoPayload join table by swapping this import.

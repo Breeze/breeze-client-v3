@@ -18,7 +18,7 @@ export default {
   // listing them stops TypeDoc warning about each one on every run.
   intentionallyNotExported: [
     'InterfaceDef', 'Op', 'Param', 'RecursiveArray', 'QueryOp', 'BooleanQueryOp',
-    'src/core.ts:Predicate',
+    'src/core/core.ts:Predicate',
   ],
   excludeInternal: true,
   readme: 'none',

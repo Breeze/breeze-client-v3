@@ -1,9 +1,9 @@
 import { AjaxConfig, EntityManager, SaveResult, config, configureBreeze } from '../../src/breeze';
-import { DataServiceWebApiAdapter } from '../../src/adapter-data-service-webapi';
-import { ModelLibraryBackingStoreAdapter } from '../../src/adapter-model-library-backing-store';
-import { UriBuilderJsonAdapter } from '../../src/adapter-uri-builder-json';
+import { DataServiceWebApiAdapter } from '../../src/adapters/adapter-data-service-webapi';
+import { ModelLibraryBackingStoreAdapter } from '../../src/adapters/adapter-model-library-backing-store';
+import { UriBuilderJsonAdapter } from '../../src/adapters/adapter-uri-builder-json';
 
-import { enableSaveQueuing } from '../../src/mixin-save-queuing';
+import { enableSaveQueuing } from '../../src/mixins/mixin-save-queuing';
 
 import { AjaxFakeAdapter } from '../support/adapter-ajax-fake';
 

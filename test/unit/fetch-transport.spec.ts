@@ -1,9 +1,9 @@
 import {
   configureBreeze, config, EntityManager, EntityQuery, MetadataStore, DataService, NamingConvention,
 } from '../../src/breeze';
-import { DataServiceWebApiAdapter } from '../../src/adapter-data-service-webapi';
-import { UriBuilderJsonAdapter } from '../../src/adapter-uri-builder-json';
-import { ModelLibraryBackingStoreAdapter } from '../../src/adapter-model-library-backing-store';
+import { DataServiceWebApiAdapter } from '../../src/adapters/adapter-data-service-webapi';
+import { UriBuilderJsonAdapter } from '../../src/adapters/adapter-uri-builder-json';
+import { ModelLibraryBackingStoreAdapter } from '../../src/adapters/adapter-model-library-backing-store';
 import metadata from '../support/NorthwindIBMetadata.json';
 
 // No ajax adapter is registered anywhere in this file, so every request has to go through

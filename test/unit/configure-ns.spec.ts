@@ -2,10 +2,10 @@ import {
   configureBreeze, config, NamingConvention, EntityManager, MetadataStore,
   BreezeFetch, AjaxAdapter, DataServiceAdapter, UriBuilderAdapter, ModelLibraryAdapter,
 } from '../../src/breeze';
-import { AjaxFetchAdapter } from '../../src/adapter-ajax-fetch';
-import { DataServiceWebApiAdapter } from '../../src/adapter-data-service-webapi';
-import { UriBuilderJsonAdapter } from '../../src/adapter-uri-builder-json';
-import { ModelLibraryBackingStoreAdapter } from '../../src/adapter-model-library-backing-store';
+import { AjaxFetchAdapter } from '../../src/adapters/adapter-ajax-fetch';
+import { DataServiceWebApiAdapter } from '../../src/adapters/adapter-data-service-webapi';
+import { UriBuilderJsonAdapter } from '../../src/adapters/adapter-uri-builder-json';
+import { ModelLibraryBackingStoreAdapter } from '../../src/adapters/adapter-model-library-backing-store';
 
 // No server needed - this only exercises configuration.
 

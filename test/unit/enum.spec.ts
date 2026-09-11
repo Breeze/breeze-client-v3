@@ -1,4 +1,4 @@
-// import { BreezeEnum } from '../../src/enum';
+// import { BreezeEnum } from '../../src/core/enum';
 import { BreezeEnum, EntityAction, EntityState, assertParam } from '../../src/breeze';
 
 

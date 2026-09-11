@@ -72,7 +72,7 @@ is worth knowing before adding any top-level code.
 `BreezeEvent.bubbleEvent(EntityManager.prototype)`. Whoever needs the result uses one of
 that module's exports, which is exactly what keeps the module in the bundle. (The
 `Error['x'] =` prefix on the ten `resolveSymbols` calls is not meaningful - it is an idiom
-that stops Terser treating the call as dead code. See `src/enum.ts`.)
+that stops Terser treating the call as dead code. See `src/core/enum.ts`.)
 
 **What is not safe** is a statement that reaches into *another* module, because the bundler
 may drop the module that holds it while keeping the one that needs the effect:
@@ -174,6 +174,42 @@ snapshot before each integration file. The revert is an HTTP call to the test ho
 10 s per run. The four tests that relied on another file's rows now create their own, and
 the pinned alphabetical file order is gone: files are shuffled on every run, which is what
 keeps them independent. The seed is printed, and `--sequence.seed=<n>` repeats an order.
+
+## `src/` grouped by concern
+
+45 modules sat flat in `src/`. They are now in nine folders:
+
+| folder | what it holds |
+|---|---|
+| `core/` | `core`, `enum`, `event`, `assert-param` |
+| `config/` | `config`, `configure`, `interface-registry`, `default-adapters` |
+| `adapters/` | the five shipped adapters, `abstract-data-service-adapter`, `adapter-core`, and `http` — the one implementation of an HTTP request |
+| `metadata/` | `entity-metadata`, `data-type`, `naming-convention`, `data-service`, `local-query-comparison-options` |
+| `entity/` | `entity-aspect`, `entity-key`, `entity-state`, `entity-action`, `entity-group`, `default-property-interceptor`, `unattached-children-map`, `key-generator`, and the four array modules |
+| `query/` | `entity-query`, `predicate`, `query-options`, `mapping-context` |
+| `manager/` | `entity-manager`, `save-options` |
+| `validation/` | `validate`, `validation-options` |
+| `mixins/` | `mixin-get-entity-graph`, `mixin-save-queuing` |
+
+`src/breeze.ts` stays at the root. It is the barrel, TypeDoc's entry point, and what the
+package's root export resolves to.
+
+**Nothing about the public API moved.** The `exports` map publishes the same eight entry
+points; only the files behind them are in new places (`./dist/adapters/…`,
+`./dist/mixins/…`), and the `"sideEffects"` entry moved with the mixin. Every file was
+moved with `git mv`, so `git log --follow` still works.
+
+The move was mechanical and scripted: 44 files relocated, 218 import specifiers inside
+`src/` rewritten to the new relative paths, and 59 in the specs. Two things had to be
+taught the new shape - `test/unit/side-effects.spec.ts`, which walks `src/` and keys its
+list of allowed import-time statements by file, and `typedoc.config.mjs`, whose
+`intentionallyNotExported` names a path.
+
+Verified after the move: typecheck clean, unit 319, integration 450 + 7 skipped, browser
+718 + 7 skipped, a docs build with no TypeDoc warning, and - against the packed tarball -
+every published subpath resolving and loading, with bundle sizes unchanged: 329.6 KB for an
+app using only `MetadataStore`, 455.0 KB with `EntityManager`, 460.4 KB adding the mixin
+subpath.
 
 ## Object-as-map to Map
 
@@ -278,7 +314,7 @@ behaviour change, and an intended one.
 
 ## The ajax adapter is optional
 
-`src/http.ts` is now the one implementation of an HTTP request. `toFetchArgs` turns
+`src/adapters/http.ts` is now the one implementation of an HTTP request. `toFetchArgs` turns
 Breeze's request description (`AjaxConfig` without the callbacks) into a fetch call, and
 `sendFetch` reads the response into an `HttpResponse`, resolving with an outcome rather
 than ever rejecting. `AjaxFetchAdapter` moved there and is built on those two functions;

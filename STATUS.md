@@ -106,10 +106,10 @@ split, explicit registration + `@deprecated` string API) are done — see the se
 6. **GitHub Actions**: typecheck + unit tier + docs build on every push; the integration
    tier separately, since it needs SQL Server and the .NET server. *Deferred for now at the
    user's request; to be raised again.*
-7. Regroup `src/` by concern (`core/`, `metadata/`, `entity/`, `query/`, `manager/`,
-   `validation/`, `config/`, `adapters/`, `mixins/`). Deliberately deferred — moving 42
-   files and rewriting imports at the same time as deleting code would make any breakage
-   impossible to attribute.
+7. ~~Regroup `src/` by concern~~ **done** — nine folders, `breeze.ts` still the barrel at
+   the root. Deliberately left until last, so that moving 44 files was the only thing in
+   flight and any breakage had one possible cause. See *`src/` grouped by concern* in
+   CHANGES-DEV.md.
 
 ## Known issues
 
@@ -179,7 +179,7 @@ a no-server unit run is unaffected.
 
 ## Configuration API (done)
 
-`configureBreeze(options)` in `src/configure.ts` replaces the stringly-typed
+`configureBreeze(options)` in `src/config/configure.ts` replaces the stringly-typed
 `config.registerAdapter(...)` + `config.initializeAdapterInstance(...)` pairs:
 
 ```ts
@@ -245,7 +245,7 @@ sends `credentials: 'include'`.
 The barrel re-exported **41 type-only symbols as if they were runtime values**. Node mode
 tolerated it because Vite's SSR transform can drop exports it cannot resolve; a browser
 loading real ES modules cannot, and every spec file failed to import with
-`SyntaxError: The requested module '/src/configure.ts' does not provide an export named
+`SyntaxError: The requested module '/src/config/configure.ts' does not provide an export named
 'AdapterRegistration'`.
 
 `src/breeze.ts` now separates them: 51 value exports in `export { ... }` and 41 in

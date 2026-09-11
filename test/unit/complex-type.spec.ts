@@ -1,16 +1,16 @@
-// import { EntityManager } from '../../src/entity-manager';
+// import { EntityManager } from '../../src/manager/entity-manager';
 // import { AjaxFakeAdapter } from '../../src/adapter-ajax-fake';
-// import { ModelLibraryBackingStoreAdapter } from '../../src/adapter-model-library-backing-store';
-// import { UriBuilderJsonAdapter } from '../../src/adapter-uri-builder-json';
-// import { DataServiceWebApiAdapter } from '../../src/adapter-data-service-webapi';
-// import { EntityType, ComplexType } from '../../src/entity-metadata';
+// import { ModelLibraryBackingStoreAdapter } from '../../src/adapters/adapter-model-library-backing-store';
+// import { UriBuilderJsonAdapter } from '../../src/adapters/adapter-uri-builder-json';
+// import { DataServiceWebApiAdapter } from '../../src/adapters/adapter-data-service-webapi';
+// import { EntityType, ComplexType } from '../../src/metadata/entity-metadata';
 // import { assertConfig } from 'src/assert-param';
 
 import { EntityManager, EntityType, ComplexType, configureBreeze, NamingConvention } from '../../src/breeze';
 
-import { ModelLibraryBackingStoreAdapter } from '../../src/adapter-model-library-backing-store';
-import { UriBuilderJsonAdapter } from '../../src/adapter-uri-builder-json';
-import { DataServiceWebApiAdapter } from '../../src/adapter-data-service-webapi';
+import { ModelLibraryBackingStoreAdapter } from '../../src/adapters/adapter-model-library-backing-store';
+import { UriBuilderJsonAdapter } from '../../src/adapters/adapter-uri-builder-json';
+import { DataServiceWebApiAdapter } from '../../src/adapters/adapter-data-service-webapi';
 // import { AjaxFakeAdapter } from '../support/adapter-ajax-fake';  // OK
 import { AjaxFakeAdapter } from '../support/adapter-ajax-fake';    // OK
 import '../test-fns'; // loaded for its side effects (adapter registration, sample metadata)
