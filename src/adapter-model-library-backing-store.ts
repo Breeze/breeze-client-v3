@@ -1,4 +1,4 @@
-﻿import * as breeze from './breeze';
+﻿import * as breeze from './breeze.js';
 
 let core = breeze.core;
 

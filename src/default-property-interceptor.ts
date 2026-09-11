@@ -1,10 +1,10 @@
-﻿import { core } from './core';
-import { ComplexType, DataProperty, NavigationProperty, EntityProperty } from './entity-metadata';
-import { EntityKey } from './entity-key';
-import { EntityAspect, ComplexAspect, Entity, StructuralObject } from './entity-aspect';
-import { EntityState } from './entity-state';
-import { EntityAction } from './entity-action';
-import { EntityQuery } from './entity-query';
+﻿import { core } from './core.js';
+import { ComplexType, DataProperty, NavigationProperty, EntityProperty } from './entity-metadata.js';
+import { EntityKey } from './entity-key.js';
+import { EntityAspect, ComplexAspect, Entity, StructuralObject } from './entity-aspect.js';
+import { EntityState } from './entity-state.js';
+import { EntityAction } from './entity-action.js';
+import { EntityQuery } from './entity-query.js';
 
 /** @hidden @internal */
 export function defaultPropertyInterceptor(this: StructuralObject, property: EntityProperty, newValue: any, rawAccessorFn: Function) {

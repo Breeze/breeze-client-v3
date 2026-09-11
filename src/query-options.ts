@@ -1,6 +1,6 @@
-﻿import { core } from './core';
-import { BreezeEnum } from './enum';
-import { assertConfig } from './assert-param';
+﻿import { core } from './core.js';
+import { BreezeEnum } from './enum.js';
+import { assertConfig } from './assert-param.js';
 
 /**
 MergeStrategy is an 'Enum' that determines how entities are merged into an EntityManager.

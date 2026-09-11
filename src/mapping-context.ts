@@ -1,14 +1,14 @@
-﻿import { DataServiceAdapter } from './interface-registry';
-import { core } from './core';
-import { DataType  } from './data-type';
-import { DataService, JsonResultsAdapter, NodeContext, NodeMeta } from './data-service';
-import { EntityState  } from './entity-state';
-import { EntityAction } from './entity-action';
-import { MetadataStore, EntityType, StructuralType, DataProperty, NavigationProperty } from './entity-metadata';
-import { EntityManager } from './entity-manager';
-import { MergeStrategy } from './query-options';
-import { Entity } from './entity-aspect';
-import { EntityQuery } from './entity-query';
+﻿import { DataServiceAdapter } from './interface-registry.js';
+import { core } from './core.js';
+import { DataType  } from './data-type.js';
+import { DataService, JsonResultsAdapter, NodeContext, NodeMeta } from './data-service.js';
+import { EntityState  } from './entity-state.js';
+import { EntityAction } from './entity-action.js';
+import { MetadataStore, EntityType, StructuralType, DataProperty, NavigationProperty } from './entity-metadata.js';
+import { EntityManager } from './entity-manager.js';
+import { MergeStrategy } from './query-options.js';
+import { Entity } from './entity-aspect.js';
+import { EntityQuery } from './entity-query.js';
 
 
 /**

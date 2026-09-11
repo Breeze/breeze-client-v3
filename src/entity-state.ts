@@ -1,4 +1,4 @@
-﻿import { BreezeEnum } from './enum';
+﻿import { BreezeEnum } from './enum.js';
 
 /**
 EntityState is an 'Enum' containing all of the valid states for an 'Entity'.

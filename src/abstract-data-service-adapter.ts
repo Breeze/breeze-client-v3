@@ -1,13 +1,13 @@
-﻿import { core } from './core';
-import { config } from './config';
-import { builtinAjax } from './http';
-import { EntityQuery } from './entity-query';
-import { DataServiceAdapter, AjaxAdapter, AjaxConfig, ChangeRequestInterceptorCtor, ChangeRequestInterceptor } from './interface-registry';
-import { Entity } from './entity-aspect';
-import { MappingContext } from './mapping-context';
-import { DataService, JsonResultsAdapter } from './data-service';
-import { HttpResponse, SaveContext, SaveBundle, ServerError, SaveResult, SaveErrorFromServer, QueryResult } from './entity-manager';
-import { EntityType, MetadataStore } from './entity-metadata';
+﻿import { core } from './core.js';
+import { config } from './config.js';
+import { builtinAjax } from './http.js';
+import { EntityQuery } from './entity-query.js';
+import { DataServiceAdapter, AjaxAdapter, AjaxConfig, ChangeRequestInterceptorCtor, ChangeRequestInterceptor } from './interface-registry.js';
+import { Entity } from './entity-aspect.js';
+import { MappingContext } from './mapping-context.js';
+import { DataService, JsonResultsAdapter } from './data-service.js';
+import { HttpResponse, SaveContext, SaveBundle, ServerError, SaveResult, SaveErrorFromServer, QueryResult } from './entity-manager.js';
+import { EntityType, MetadataStore } from './entity-metadata.js';
 
 /** For use by breeze plugin authors only.  The class is used as the base class for most {@link DataServiceAdapter} implementations
 @adapter (see {@link DataServiceAdapter})    

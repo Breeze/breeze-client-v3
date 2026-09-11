@@ -1,7 +1,7 @@
-﻿import type { BreezeFetch } from './interface-registry';
-import { core } from './core';
-import { assertParam  } from './assert-param';
-import { BreezeEvent } from './event';
+﻿import type { BreezeFetch } from './interface-registry.js';
+import { core } from './core.js';
+import { assertParam  } from './assert-param.js';
+import { BreezeEvent } from './event.js';
 
 /** @hidden */
 export interface AdapterCtor<T extends BaseAdapter> { new (...args: any[]): T; }

@@ -1,10 +1,10 @@
-﻿import { EntityType, NavigationProperty } from './entity-metadata';
-import { DataServiceAdapter, UriBuilderAdapter } from './interface-registry';
-import { KeyMapping } from './entity-manager';
-import { MappingContext } from './mapping-context';
-import { assertConfig } from './assert-param';
-import { config } from './config';
-import { core } from './core';
+﻿import { EntityType, NavigationProperty } from './entity-metadata.js';
+import { DataServiceAdapter, UriBuilderAdapter } from './interface-registry.js';
+import { KeyMapping } from './entity-manager.js';
+import { MappingContext } from './mapping-context.js';
+import { assertConfig } from './assert-param.js';
+import { config } from './config.js';
+import { core } from './core.js';
 
 /** Configuration info to be passed to the {@link DataService} constructor */
 export interface DataServiceConfig {

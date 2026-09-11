@@ -1,6 +1,6 @@
-﻿import { core } from './core';
-import { assertConfig } from './assert-param';
-import { DataService } from './data-service';
+﻿import { core } from './core.js';
+import { assertConfig } from './assert-param.js';
+import { DataService } from './data-service.js';
 
 /** Configuration info to be passed to the {@link SaveOptions} constructor */
 export interface SaveOptionsConfig {

@@ -1,6 +1,6 @@
-﻿import { core } from './core';
-import { assertConfig } from './assert-param';
-import { config } from './config';
+﻿import { core } from './core.js';
+import { assertConfig } from './assert-param.js';
+import { config } from './config.js';
 
 
 /** Configuration info to be passed to the {@link LocalQueryComparisonOptions} constructor. */

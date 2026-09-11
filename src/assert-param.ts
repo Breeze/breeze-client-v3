@@ -1,7 +1,7 @@
-﻿import { BreezeEnum } from './enum';
-import { core  } from './core';
+﻿import { BreezeEnum } from './enum.js';
+import { core  } from './core.js';
 
-/** @hidden @internal */
+/** @hidden */
 export interface IParamContext {
     typeName?: string;
     type?: Function;
@@ -14,14 +14,14 @@ export interface IParamContext {
     fn?(context: IParamContext, v: any): boolean;
 }
 
-/** @hidden @internal */
+/** @hidden */
 export interface IConfigParam {
     config: any;
     params: Param[];
     whereParam: (propName: string) => Param;
 }
 
-/** @hidden @internal */
+/** @hidden */
 export class Param {
     // The %1 parameter
     // is required
@@ -226,7 +226,7 @@ export class Param {
 
 }
 
-/** @hidden @internal */
+/** @hidden */
 export let assertParam = function (v: any, name: string) {
     return new Param(v, name);
 };
@@ -378,7 +378,7 @@ class ConfigParam {
     }
 }
 
-/** @hidden @internal */
+/** @hidden */
 export let assertConfig = function (config: Object) {
     return new ConfigParam(config) as IConfigParam;
 };

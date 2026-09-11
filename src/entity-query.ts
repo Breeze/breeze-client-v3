@@ -1,14 +1,14 @@
-﻿import { core, Callback, ErrorCallback } from './core';
-import { assertParam } from './assert-param';
-import { DataType } from './data-type';
-import { EntityAspect, Entity } from './entity-aspect';
-import { EntityKey } from './entity-key';
-import { BreezeEnum } from './enum';
-import { DataService, JsonResultsAdapter } from './data-service';
-import { EntityManager, QueryResult } from './entity-manager';
-import { MetadataStore, EntityType, NavigationProperty, EntityProperty } from './entity-metadata';
-import { QueryOptions, MergeStrategy, FetchStrategy } from './query-options';
-import { Predicate } from './predicate';
+﻿import { core, Callback, ErrorCallback } from './core.js';
+import { assertParam } from './assert-param.js';
+import { DataType } from './data-type.js';
+import { EntityAspect, Entity } from './entity-aspect.js';
+import { EntityKey } from './entity-key.js';
+import { BreezeEnum } from './enum.js';
+import { DataService, JsonResultsAdapter } from './data-service.js';
+import { EntityManager, QueryResult } from './entity-manager.js';
+import { MetadataStore, EntityType, NavigationProperty, EntityProperty } from './entity-metadata.js';
+import { QueryOptions, MergeStrategy, FetchStrategy } from './query-options.js';
+import { Predicate } from './predicate.js';
 
 export interface RecursiveArray<T> {
   [i: number]: T | RecursiveArray<T>;

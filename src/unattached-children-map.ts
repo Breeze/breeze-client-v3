@@ -1,7 +1,7 @@
-import { core } from './core';
-import { Entity } from './entity-aspect';
-import { NavigationProperty } from './entity-metadata';
-import { EntityKey } from './entity-key';
+import { core } from './core.js';
+import { Entity } from './entity-aspect.js';
+import { NavigationProperty } from './entity-metadata.js';
+import { EntityKey } from './entity-key.js';
 
 /** @hidden @internal */
 export interface INavTuple {

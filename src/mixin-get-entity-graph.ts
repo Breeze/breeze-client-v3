@@ -21,7 +21,7 @@
  * https://github.com/Breeze/breeze.js.samples/tree/master/net/DocCode/DocCode/tests/getEntityGraphTests.js
  */
 //#endregion
-import { Entity, EntityManager, EntityQuery, EntityState, EntityType, ExpandClause } from './breeze';
+import { Entity, EntityManager, EntityQuery, EntityState, EntityType, ExpandClause } from './breeze.js';
 
 interface EntityGroup {
   _entities: (Entity | null)[];

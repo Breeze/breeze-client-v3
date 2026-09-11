@@ -60,7 +60,7 @@
  * touch them at your own risk.
  */
 //#endregion
-import { Entity, EntityManager, KeyMapping, EntityState, SaveResult, breeze } from './breeze';
+import { Entity, EntityManager, KeyMapping, EntityState, SaveResult, breeze } from './breeze.js';
 
 
 export function enableSaveQueuing(em: EntityManager, enable: boolean = true) {

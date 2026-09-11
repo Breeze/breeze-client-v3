@@ -1,6 +1,6 @@
-﻿import { core } from './core';
-import { BreezeEnum } from './enum';
-import { Validator } from './validate';
+﻿import { core } from './core.js';
+import { BreezeEnum } from './enum.js';
+import { Validator } from './validate.js';
 
 let _localTimeRegex = /.\d{3}$/;
 

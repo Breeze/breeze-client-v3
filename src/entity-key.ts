@@ -1,7 +1,7 @@
-﻿import { core } from './core';
-import { assertParam } from './assert-param';
-import { EntityType, MetadataStore } from './entity-metadata';
-import { DataType } from './data-type';
+﻿import { core } from './core.js';
+import { assertParam } from './assert-param.js';
+import { EntityType, MetadataStore } from './entity-metadata.js';
+import { DataType } from './data-type.js';
 
 /**
 An EntityKey is an object that represents the unique identity of an entity.  EntityKey's are immutable.

@@ -1,6 +1,6 @@
-import { BreezeConfig, config } from './config';
-import { BreezeFetch } from './interface-registry';
-import { NamingConvention } from './naming-convention';
+import { BreezeConfig, config } from './config.js';
+import { BreezeFetch } from './interface-registry.js';
+import { NamingConvention } from './naming-convention.js';
 
 /**
  * Anything with a static `register` method - which is every Breeze adapter.

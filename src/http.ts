@@ -1,8 +1,8 @@
-import { BreezeConfig, config } from './config';
-import { core } from './core';
-import { appendQueryStringParameter, encodeParams } from './adapter-core';
-import type { AjaxAdapter, AjaxConfig, AjaxRequestInterceptor, BreezeFetch } from './interface-registry';
-import type { HttpResponse } from './entity-manager';
+import { BreezeConfig, config } from './config.js';
+import { core } from './core.js';
+import { appendQueryStringParameter, encodeParams } from './adapter-core.js';
+import type { AjaxAdapter, AjaxConfig, AjaxRequestInterceptor, BreezeFetch } from './interface-registry.js';
+import type { HttpResponse } from './entity-manager.js';
 
 /*
  * How Breeze makes HTTP requests.

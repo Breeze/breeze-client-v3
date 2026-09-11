@@ -2,6 +2,9 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "sourceMap": true,
-    "declarationMap": true
+    // The package ships dist/ only, so the maps must carry the TypeScript source
+    // themselves; declaration maps would point "go to definition" at missing files.
+    "inlineSources": true,
+    "declarationMap": false
   }
 }

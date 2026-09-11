@@ -1,8 +1,8 @@
-import { core  } from './core';
-import { ObservableArray, observableArray } from './observable-array';
-import { BreezeEvent } from './event';
-import { ComplexObject, StructuralObject } from './entity-aspect';
-import { DataProperty } from './entity-metadata';
+import { core  } from './core.js';
+import { ObservableArray, observableArray } from './observable-array.js';
+import { BreezeEvent } from './event.js';
+import { ComplexObject, StructuralObject } from './entity-aspect.js';
+import { DataProperty } from './entity-metadata.js';
 
 // TODO: mixin impl is not very typesafe
 

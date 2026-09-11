@@ -1,5 +1,5 @@
-﻿import * as breeze from './breeze';
-// import { JsonResultsAdapter, KeyMapping } from './breeze';
+﻿import * as breeze from './breeze.js';
+// import { JsonResultsAdapter, KeyMapping } from './breeze.js';
 
 /** @hidden */
 export class DataServiceWebApiAdapter extends breeze.AbstractDataServiceAdapter {

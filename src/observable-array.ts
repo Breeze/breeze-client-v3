@@ -1,7 +1,7 @@
-﻿import { core } from './core';
-import { BreezeEvent } from './event';
-import { EntityAspect } from './entity-aspect';
-import { DataProperty } from './entity-metadata';
+﻿import { core } from './core.js';
+import { BreezeEvent } from './event.js';
+import { EntityAspect } from './entity-aspect.js';
+import { DataProperty } from './entity-metadata.js';
 
 /** @hidden */
 export interface ObservableArray {

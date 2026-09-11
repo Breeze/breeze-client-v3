@@ -1,6 +1,6 @@
-﻿import { assertConfig } from './assert-param';
-import { core } from './core';
-import { config } from './config';
+﻿import { assertConfig } from './assert-param.js';
+import { core } from './core.js';
+import { config } from './config.js';
 
 // TODO: strongly type context object passed to naming convention converter fns.
 

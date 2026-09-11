@@ -1,4 +1,4 @@
-import * as breeze from './breeze';
+import * as breeze from './breeze.js';
 
 /**
  *  Functions to enable Breeze to use POST for queries when

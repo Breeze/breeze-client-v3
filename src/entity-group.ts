@@ -1,9 +1,9 @@
-﻿import { Entity } from './entity-aspect';
-import { EntityType, DataProperty  } from './entity-metadata';
-import { EntityKey } from './entity-key';
-import { EntityState } from './entity-state';
-import { EntityManager } from './entity-manager';
-import { MergeStrategy } from './query-options';
+﻿import { Entity } from './entity-aspect.js';
+import { EntityType, DataProperty  } from './entity-metadata.js';
+import { EntityKey } from './entity-key.js';
+import { EntityState } from './entity-state.js';
+import { EntityManager } from './entity-manager.js';
+import { MergeStrategy } from './query-options.js';
 
 /** @hidden @internal */
 export class EntityGroup {

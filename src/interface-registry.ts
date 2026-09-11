@@ -1,13 +1,13 @@
-import { core } from './core';
-import { assertConfig } from './assert-param';
-import { config, InterfaceDef, BaseAdapter } from './config';
-import type { AdapterType } from './config';
-import { MappingContext } from './mapping-context';
-import { EntityQuery } from './entity-query';
-import { MetadataStore } from './entity-metadata';
-import { JsonResultsAdapter, DataService } from './data-service';
-import { Entity } from './entity-aspect';
-import { SaveContext, SaveBundle, QueryResult, SaveResult, HttpResponse } from './entity-manager';
+import { core } from './core.js';
+import { assertConfig } from './assert-param.js';
+import { config, InterfaceDef, BaseAdapter } from './config.js';
+import type { AdapterType } from './config.js';
+import { MappingContext } from './mapping-context.js';
+import { EntityQuery } from './entity-query.js';
+import { MetadataStore } from './entity-metadata.js';
+import { JsonResultsAdapter, DataService } from './data-service.js';
+import { Entity } from './entity-aspect.js';
+import { SaveContext, SaveBundle, QueryResult, SaveResult, HttpResponse } from './entity-manager.js';
 
 /** Adapter names for the deprecated `config.initializeAdapterInstances`. Each is the name of a previously registered adapter. */
 export interface InterfaceRegistryConfig {
@@ -31,7 +31,7 @@ export class InterfaceRegistry {
 
 // This module describes the interfaceRegistry by extending config
 /** @hidden @internal */
-declare module "./config" {
+declare module "./config.js" {
     interface BreezeConfig {
         /**
         Initializes a collection of adapter implementations and makes each one the default for its corresponding interface.

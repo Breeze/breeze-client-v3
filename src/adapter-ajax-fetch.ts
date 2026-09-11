@@ -9,4 +9,4 @@
  * 'fetch')` - and code that uses the adapter's `defaultSettings` or `requestInterceptor`
  * keeps working. The implementation now lives in the core, shared with the default path.
  */
-export { AjaxFetchAdapter } from './http';
+export { AjaxFetchAdapter } from './http.js';

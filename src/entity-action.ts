@@ -1,4 +1,4 @@
-﻿import { BreezeEnum} from './enum';
+﻿import { BreezeEnum} from './enum.js';
 
 /** EntityAction is an 'Enum' containing all of the valid actions that can occur to an 'Entity'. 
  

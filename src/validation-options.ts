@@ -1,5 +1,5 @@
-﻿import { core  } from './core';
-import { assertConfig } from './assert-param';
+﻿import { core  } from './core.js';
+import { assertConfig } from './assert-param.js';
 
 /** Configuration info to be passed to the {@link ValidationOptions} constructor */
 export interface ValidationOptionsConfig {

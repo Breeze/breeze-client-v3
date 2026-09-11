@@ -1,9 +1,9 @@
-﻿import { core } from './core';
-import { EntityType, StructuralType, DataProperty  } from './entity-metadata';
-import { QueryOp } from './entity-query';
-import { DataType  } from './data-type';
-import { EntityAspect, Entity } from './entity-aspect';
-import { LocalQueryComparisonOptions } from './local-query-comparison-options';
+﻿import { core } from './core.js';
+import { EntityType, StructuralType, DataProperty  } from './entity-metadata.js';
+import { QueryOp } from './entity-query.js';
+import { DataType  } from './data-type.js';
+import { EntityAspect, Entity } from './entity-aspect.js';
+import { LocalQueryComparisonOptions } from './local-query-comparison-options.js';
 
 export interface Op {
   key: string;

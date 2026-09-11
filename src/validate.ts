@@ -1,8 +1,8 @@
-﻿import { core } from './core';
-import { assertParam } from './assert-param';
-import { config } from './config';
-import { NavigationProperty, DataProperty } from './entity-metadata';
-import { Entity } from './entity-aspect';
+﻿import { core } from './core.js';
+import { assertParam } from './assert-param.js';
+import { config } from './config.js';
+import { NavigationProperty, DataProperty } from './entity-metadata.js';
+import { Entity } from './entity-aspect.js';
 
 export const INT16_MIN = -32768;
 export const INT16_MAX = 32767;

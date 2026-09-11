@@ -1,6 +1,6 @@
-﻿import { EntityType, DataProperty } from './entity-metadata';
-import { EntityKey } from './entity-key';
-import { config } from './config';
+﻿import { EntityType, DataProperty } from './entity-metadata.js';
+import { EntityKey } from './entity-key.js';
+import { config } from './config.js';
 
 interface IPropEntry {
   entityType: EntityType;

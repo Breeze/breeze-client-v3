@@ -1,5 +1,5 @@
-﻿import * as breeze from './breeze';
-import { appendQueryStringParameter } from './adapter-core';
+﻿import * as breeze from './breeze.js';
+import { appendQueryStringParameter } from './adapter-core.js';
 
 export class UriBuilderJsonAdapter implements breeze.UriBuilderAdapter {
   name: string;

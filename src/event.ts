@@ -1,5 +1,5 @@
-﻿import { core } from './core';
-import { assertParam } from './assert-param';
+﻿import { core } from './core.js';
+import { assertParam } from './assert-param.js';
 
 function publishCore<T>(that: BreezeEvent<T>, data: T, errorCallback?: (e: Error) => any) {
   let subscribers = that._subscribers;

@@ -1,15 +1,15 @@
-﻿import { core } from './core';
-import { config } from './config';
-import { BreezeEvent } from './event';
-import { assertParam } from './assert-param';
-import { EntityState  } from './entity-state';
-import { EntityAction } from './entity-action';
-import { EntityType, ComplexType, DataProperty, NavigationProperty, EntityProperty } from './entity-metadata';
-import { EntityKey } from './entity-key';
-import { EntityGroup } from './entity-group';
-import { EntityManager, QueryResult, QueryErrorCallback, QuerySuccessCallback, ValidationErrorsChangedEventArgs } from './entity-manager';
-import { Validator, ValidationError } from './validate';
-import { EntityQuery } from './entity-query';
+﻿import { core } from './core.js';
+import { config } from './config.js';
+import { BreezeEvent } from './event.js';
+import { assertParam } from './assert-param.js';
+import { EntityState  } from './entity-state.js';
+import { EntityAction } from './entity-action.js';
+import { EntityType, ComplexType, DataProperty, NavigationProperty, EntityProperty } from './entity-metadata.js';
+import { EntityKey } from './entity-key.js';
+import { EntityGroup } from './entity-group.js';
+import { EntityManager, QueryResult, QueryErrorCallback, QuerySuccessCallback, ValidationErrorsChangedEventArgs } from './entity-manager.js';
+import { Validator, ValidationError } from './validate.js';
+import { EntityQuery } from './entity-query.js';
 
 export interface Entity {
   entityAspect: EntityAspect;
