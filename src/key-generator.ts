@@ -111,6 +111,8 @@ export class KeyGenerator {
   }
 
   /** @hidden @internal */
+  private _getPropEntry(keyProp: DataProperty, createIfMissing: true): IPropEntry;
+  private _getPropEntry(keyProp: DataProperty, createIfMissing?: boolean): IPropEntry | undefined;
   private _getPropEntry(keyProp: DataProperty, createIfMissing = false) {
     let key = keyProp.name + ".." + keyProp.parentType.name;
     let propEntry = this._tempIdMap.get(key);

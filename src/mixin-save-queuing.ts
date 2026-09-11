@@ -107,10 +107,11 @@ class SaveQueuing {
   baseSaveChanges: () => Promise<any>;
   isSaving: boolean;
   _isEnabled: boolean;
-  activeSaveDeferred: Deferred<SaveResult>;
-  nextSaveDeferred: Deferred<SaveResult>;
-  activeSaveMemo: SaveMemo;
-  nextSaveMemo: SaveMemo;
+  // null means 'nothing active / nothing queued'; these are reset to null between saves
+  activeSaveDeferred: Deferred<SaveResult> | null;
+  nextSaveDeferred: Deferred<SaveResult> | null;
+  activeSaveMemo: SaveMemo | null;
+  nextSaveMemo: SaveMemo | null;
   saveOptions: any;
 
   constructor(entityManager: EntityManager) {

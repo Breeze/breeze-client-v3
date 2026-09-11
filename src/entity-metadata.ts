@@ -717,7 +717,7 @@ export class MetadataStore {
   /** @hidden @internal */
   _checkEntityType(entity: Entity) {
     if (entity.entityType) return;
-    let typeName = entity.prototype._$typeName;
+    let typeName = entity.prototype!._$typeName;
     if (!typeName) {
       throw new Error("This entity has not been registered. See the MetadataStore.registerEntityTypeCtor method");
     }

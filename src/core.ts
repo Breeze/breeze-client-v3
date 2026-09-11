@@ -18,7 +18,7 @@ let hasOwnProperty: (obj: Object, key: string) => boolean = uncurry(Object.proto
 let arraySlice: (ar: any[], start?: number, end?: number) => any[] = uncurry(Array.prototype.slice);
 let isES5Supported: boolean = function () {
     try {
-        return !!(Object.getPrototypeOf && Object.defineProperty({}, 'x', {}));
+        return !!Object.defineProperty({}, 'x', {});
     } catch (e) {
         return false;
     }

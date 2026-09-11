@@ -56,7 +56,7 @@ export class EntityGroup {
       if (this._emptyIndexes.length === 0) {
         ix = this._entities.push(entity) - 1;
       } else {
-        ix = this._emptyIndexes.pop();
+        ix = this._emptyIndexes.pop()!;
         this._entities[ix] = entity;
       }
       this._indexMap[keyInGroup] = ix;

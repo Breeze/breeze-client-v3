@@ -81,7 +81,7 @@ export class EntityAspect {
   /**  Whether this entity has any validation errors. __Read Only__ */
   hasValidationErrors: boolean;
   /** Whether this entity has a temporary [[EntityKey]]. */
-  hasTempKey: boolean;
+  hasTempKey?: boolean;
   /** Whether this entity was created by being loaded from the database */
   wasLoaded?: boolean;
   /** Extra metadata about this entity such as the entity's etag.
@@ -179,14 +179,14 @@ export class EntityAspect {
       // remove properties that should be on prototype but placed on instance by Babel
       if (entity.hasOwnProperty('entityType')) {
         // throw new Error("Entity instance has entityType property; should only be on prototype");
-        delete(entity.entityType);
+        delete (entity as any).entityType;
       }
       entity.entityAspect = this;
 
       // entityType should already be on the entity from 'watch'
       let entityType = entity.entityType || entity._$entityType;
       if (!entityType) {
-        let typeName = entity.prototype._$typeName;
+        let typeName = entity.prototype!._$typeName;
         if (!typeName) {
           throw new Error("This entity is not registered as a valid EntityType");
         } else {
@@ -935,7 +935,7 @@ export class ComplexAspect {
 
     let complexType = complexObject.complexType;
     if (!complexType) {
-      let typeName = complexObject.prototype._$typeName;
+      let typeName = complexObject.prototype!._$typeName;
       if (!typeName) {
         throw new Error("This entity is not registered as a valid ComplexType");
       } else {

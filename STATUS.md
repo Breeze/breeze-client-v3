@@ -313,3 +313,15 @@ design. That broke 572 of 639 tests on the first attempt. Every `Object.keys` ca
 `core.ts` now carries a `|| {}` guard and a comment saying it is load-bearing.
 
 `strictNullChecks` is still off and is the remaining piece of the modernization.
+
+## Known flaky test
+
+`query-named-on-server.spec.ts` > "project objects containing entities" asserts
+`results[0].orders.length > 0`. The named server endpoint has no `ORDER BY`, so SQL may
+return the projected customers in any order, and `results[0]` is whichever row comes back
+first — sometimes one with no orders. Observed failing once in roughly a dozen runs and
+passing on re-run.
+
+This is independent of the database reset and the file sequencer; both are deterministic.
+The fix is for the test to pick a customer it knows has orders, or for the endpoint to
+order its results.

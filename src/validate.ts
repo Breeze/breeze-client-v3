@@ -958,7 +958,7 @@ export class ValidationError {
   context: any;
   errorMessage: string;
   property: any; // IProperty
-  propertyName: string;
+  propertyName?: string;
   isServerError: boolean;
 
   constructor(validator: Validator | null, context: ValidationContext, errorMessage: string, key?: string) {
