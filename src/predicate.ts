@@ -818,8 +818,11 @@ export class FnExpr extends PredicateExpression {
       }, dataType: DataType.String
     },
     substring: {
-      fn: function (source: string, pos: number, length: number) {
-        return source.substring(pos, length);
+      // As on the server (.NET String.Substring(startIndex, length)), the third argument is
+      // a length, not an end index. Function arguments arrive unparsed, often as strings.
+      fn: function (source: string, pos: number, length?: number) {
+        const start = Number(pos);
+        return length == null ? source.substring(start) : source.substring(start, start + Number(length));
       }, dataType: DataType.String
     },
     substringof: {
