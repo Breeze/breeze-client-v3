@@ -65,7 +65,9 @@ npx playwright install chromium   # once, for browser mode
 2. Creates `BreezeTestDb` from the server repo's script if it does not exist yet. After
    that, every test run rebuilds it anyway.
 3. Reuses a test server already answering on `http://localhost:34377`, and leaves it
-   running. Otherwise it starts one with `dotnet run` and waits for it to answer.
+   running. Otherwise it starts one with `dotnet run ... --TestDb:AllowReset=true` and
+   waits for it to answer. A server you start yourself needs that option too; see
+   [section 2](#2-start-the-test-server).
 4. Runs the chosen tier or tiers.
 5. Stops the server it started, and exits with `0` only if every tier passed.
 
@@ -139,13 +141,16 @@ The integration tests mutate data, so the database drifts. **Re-applying the scr
 the reset**, and it takes a couple of seconds:
 
 ```bash
-sqlcmd -S . -E -Q "ALTER DATABASE BreezeTestDb SET SINGLE_USER WITH ROLLBACK IMMEDIATE; DROP DATABASE BreezeTestDb; CREATE DATABASE BreezeTestDb;"
+sqlcmd -S . -E -Q "IF DB_ID('BreezeTestDb_TestSnapshot') IS NOT NULL DROP DATABASE BreezeTestDb_TestSnapshot; ALTER DATABASE BreezeTestDb SET SINGLE_USER WITH ROLLBACK IMMEDIATE; DROP DATABASE BreezeTestDb; CREATE DATABASE BreezeTestDb;"
 sqlcmd -S . -E -d BreezeTestDb -f 65001 -i tests/Databases/BreezeTestDb.sql
 ```
 
 You rarely need to do this by hand — `npm run test:integration` does it automatically
-before every run. `SINGLE_USER WITH ROLLBACK IMMEDIATE` disconnects the running server;
-it reconnects on its next query.
+before every run, then resets the database before every spec file (see
+[The integration tier](#the-integration-tier)). Those runs leave a database snapshot,
+`BreezeTestDb_TestSnapshot`, behind; the first statement drops it, because a database
+that has a snapshot cannot be dropped. `SINGLE_USER WITH ROLLBACK IMMEDIATE` disconnects
+the running server; it reconnects on its next query.
 
 ### Regenerating the script itself
 
@@ -166,11 +171,16 @@ From the **breeze-server-v3** checkout:
 
 ```bash
 dotnet run --project tests/Test.AspNetCore.EFCore/Test.AspNetCore.EFCore.csproj \
-  --no-launch-profile --urls http://localhost:34377
+  --no-launch-profile --urls http://localhost:34377 --TestDb:AllowReset=true
 ```
 
 `--no-launch-profile` matters: the default profile in `launchSettings.json` is IIS Express
 and will not work here.
+
+`--TestDb:AllowReset=true` switches on the test host's `/breeze/TestDb` endpoints, which
+the integration tests use to snapshot the database and reset it before every file. Without
+it they answer 404, and the integration tests stop at once with
+`[db-reset] POST .../breeze/TestDb/Snapshot returned 404`.
 
 Check it:
 
@@ -188,9 +198,9 @@ recreating the database by hand** — otherwise those tables are empty.
 | command | tests | needs a server? | time |
 |---|---|---|---|
 | `npm run test:unit` | 268 | **no** | a few seconds |
-| `npm run test:integration` | 457 | yes | ~25s |
-| `npm test` | 725 (unit + integration) | yes | ~30s |
-| `npm run test:browser` | 725 | yes | ~35s |
+| `npm run test:integration` | 457 | yes | ~35s |
+| `npm test` | 725 (unit + integration) | yes | ~50s |
+| `npm run test:browser` | 725 | yes | ~40s |
 | `npm run test:watch` | 268 | no | watch mode |
 
 7 tests are skipped by design. Five are skipped on the ASP.NET Core server: three need
@@ -209,16 +219,45 @@ database, no server, files run in parallel. **This is the tier to iterate agains
 
 ### The integration tier
 
-`test/integration/` — 27 files that query and save real data. Before each run,
-`test/global-setup.ts` rebuilds `BreezeTestDb` from the script and re-seeds the
-Inheritance tables via `POST /breeze/Inheritance/Seed`.
+`test/integration/` — 27 files that query and save real data. Every file starts from the
+same, pristine database:
+
+1. Once per run, `test/global-setup.ts` rebuilds `BreezeTestDb` from the script, re-seeds
+   the Inheritance tables via `POST /breeze/Inheritance/Seed`, and has the server take a
+   SQL Server database snapshot of the result (`POST /breeze/TestDb/Snapshot`).
+2. Before each file, `test/integration-setup.ts` has the server revert the database to
+   that snapshot (`POST /breeze/TestDb/Reset`). The revert takes about 0.2 seconds, but
+   it leaves the database cache cold and the connection pool empty; all told it adds about
+   10 seconds to a run. It goes over HTTP rather than `sqlcmd`, so browser mode does the same.
+
+So each file passes on its own, and in any order. A test may rely on the shipped data and
+on what earlier tests *in its own file* did, but never on another file: if it needs a row
+the shipped data lacks, such as an order with no customer, it creates it.
 
 The suite registers no ajax adapter, so every request goes through `config.fetch`: the
 same default path an application gets.
 
-These files share one database, so they run serially in a fixed alphabetical order. That
-is not stylistic: a few tests still assert on rows another file created, so changing the
-order changes the outcome. Per-file isolation is outstanding work — see `STATUS.md`.
+The files still run one at a time (`fileParallelism: false`): there is one database, and a
+reset would pull it out from under a file running alongside. Their order is shuffled on
+every run, which keeps them honest. The seed is printed at the top of the run:
+
+```
+      Running tests with seed "1789154820041"
+```
+
+To repeat that order, pass it back:
+
+```bash
+npx vitest run --config vitest.integration.config.ts --sequence.seed=1789154820041
+```
+
+Tests within a file always run in the order they are written.
+
+The two endpoints belong to the test host in `breeze-server-v3`
+(`tests/Test.AspNetCore.EFCore/Controllers/TestDbController.cs`), not to any Breeze
+package. They are off unless the host is started with `--TestDb:AllowReset=true`, and
+even then answer only requests from the local machine. Snapshots need SQL Server 2016 SP1
+or later, in any edition.
 
 ### Browser mode
 
@@ -260,6 +299,9 @@ npx vitest run --config vitest.integration.config.ts -t "nullable dateTime"
 `-t` (and the script's `-Filter`) is matched against the full test name, including the
 names of its `describe` blocks.
 
+An integration file run on its own sees the same data it sees in a full run: it resets the
+database first either way.
+
 ---
 
 ## Configuration
@@ -273,11 +315,13 @@ from its options.
 | `BREEZE_TEST_DB` | `BreezeTestDb` | database name |
 | `BREEZE_SQL_INSTANCE` | `.` | passed to `sqlcmd -S` |
 | `BREEZE_TEST_DB_SCRIPT` | `../breeze-server-v3/tests/Databases/BreezeTestDb.sql` | set this if the repos are not siblings |
-| `BREEZE_SKIP_DB_RESET` | unset | set to `1` to skip the rebuild |
+| `BREEZE_SKIP_DB_RESET` | unset | set to `1` to skip the rebuild; files still reset to the last snapshot |
 
 `BREEZE_SKIP_DB_RESET=1` (the script's `-SkipDbReset`) is useful when re-running one
-integration test repeatedly and you do not want to pay for the rebuild each time. Be
-aware the database then carries whatever the previous run left behind.
+integration test repeatedly and you do not want to pay for the rebuild each time. It skips
+only the rebuild and the new snapshot: each integration file still resets the database,
+to the snapshot the last full run took. With no snapshot yet, every file fails with
+`No snapshot 'BreezeTestDb_TestSnapshot' of 'BreezeTestDb' to reset to`; run once without it.
 
 ---
 
@@ -288,7 +332,7 @@ The server is not running, or not on 34377. Check
 `curl http://localhost:34377/breeze/NorthwindIBModel/Metadata`, or let the test script
 start it.
 
-**`[db-reset] SKIPPED - script not found`**
+**`[db-reset] script not found`**
 `breeze-server-v3` is not a sibling of this repo. Set `BREEZE_TEST_DB_SCRIPT`, or pass
 `-ServerRepo` to the script.
 
@@ -299,6 +343,11 @@ String or binary data would be truncated ... Truncated value: 'San CristÃƒÂ³
 The database was built without `-f 65001` and the accented data is corrupted, compounding
 on each rebuild. Drop it and recreate with the flag.
 
+**`[db-reset] POST .../breeze/TestDb/Snapshot returned 404`** (or `.../Reset`)
+The test server was started without `--TestDb:AllowReset=true`, or predates the endpoints.
+Stop it and let the script start one, or start it as in
+[section 2](#2-start-the-test-server).
+
 **Inheritance tests fail on empty tables**
 The database was recreated while the server was running. The server only seeds those
 tables at startup — restart it, or `POST http://localhost:34377/breeze/Inheritance/Seed`.
@@ -307,10 +356,19 @@ tables at startup — restart it, or `POST http://localhost:34377/breeze/Inherit
 The server predates the `BreezeTestCors` policy. Pull the latest `breeze-server-v3` and
 rebuild.
 
+**A tier printed nothing and exited 1**
+Read `%TEMP%reeze-vitest-<tier>.log`: the script keeps every tier's full output there.
+Vitest writes its warnings to stderr, and in Windows PowerShell a native command's stderr
+arrives as an error record; under `$ErrorActionPreference = 'Stop'` that used to abort the
+script mid-tier, which looked exactly like a failing tier. The script now merges stderr
+into the log and lets the exit code decide.
+
 **A test fails once and passes on re-run**
-Possible, though the known instance of this is fixed. The integration tests share a
-database within a run; if you find one, check whether it depends on data another file
-creates — and please note it in `STATUS.md`.
+The file order is shuffled on every run, so check whether it depends on the order: re-run
+with the seed printed at the top of the failing run (`--sequence.seed=<seed>`), then run
+its file on its own. The database is reset before every file, so a test that fails only
+after some other file depends on state that file left behind outside the database, or
+on a row it never created — please fix it, or note it in `STATUS.md`.
 
 **"running scripts is disabled on this system"**
 PowerShell's execution policy blocks `.ps1` files. Use `scripts\test-with-server.cmd`,

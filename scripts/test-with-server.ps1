@@ -7,10 +7,12 @@
 .DESCRIPTION
   1. Checks that dotnet, sqlcmd and node are on PATH.
   2. Creates BreezeTestDb from breeze-server-v3\tests\Databases\BreezeTestDb.sql if it
-     does not exist yet. (After that the test run itself rebuilds it before every run -
-     see test/global-setup.ts - so it is always clean.)
+     does not exist yet. (After that the test run itself rebuilds and snapshots it before
+     every run, and resets it before every integration file - see test/global-setup.ts
+     and test/integration-setup.ts - so it is always clean.)
   3. If a test server is already answering on http://localhost:34377 it is reused and left
-     running. Otherwise one is started with `dotnet run`, and the script waits for it.
+     running. Otherwise one is started with `dotnet run ... --TestDb:AllowReset=true`, and
+     the script waits for it. A reused server must have been started with that option too.
   4. Runs the chosen tier(s).
   5. Stops the server if this script started it (unless -KeepServer), and exits with the
      test result: 0 if every tier passed.
@@ -34,7 +36,8 @@
 
 .PARAMETER SkipDbReset
   Skip the database rebuild at the start of the test run. Faster when re-running one
-  test, but the database then carries whatever the last run left behind.
+  test. Each integration file still resets the database, to the snapshot the last full
+  run took.
 
 .EXAMPLE
   .\scripts\test-with-server.ps1
@@ -145,7 +148,9 @@ try {
     # inheriting none of this script's handles. With Start-Process the server inherited the
     # script's stdout, so anyone piping this script's output (Tee-Object, CI) waited until
     # the server exited - for ever, with -KeepServer.
-    $cmdLine = "cmd.exe /d /c dotnet run --project `"$serverProject`" --no-launch-profile --urls $Url > `"$serverLog`" 2>&1"
+    # --TestDb:AllowReset=true switches on the test host's /breeze/TestDb endpoints, which the
+    # tests use to snapshot the database and reset it before every integration file.
+    $cmdLine = "cmd.exe /d /c dotnet run --project `"$serverProject`" --no-launch-profile --urls $Url --TestDb:AllowReset=true > `"$serverLog`" 2>&1"
     $startup = New-CimInstance -ClassName Win32_ProcessStartup -ClientOnly -Property @{ ShowWindow = [uint16]0 }
     $created = Invoke-CimMethod -ClassName Win32_Process -MethodName Create -Arguments @{
       CommandLine = $cmdLine
@@ -189,13 +194,28 @@ try {
       # -Filter value containing spaces.
       $vitestArgs = @($vitest, 'run', '--config', "vitest.$t.config.ts")
       if ($Filter) { $vitestArgs += @('-t', $Filter) }
+      # Always keep a copy of the output: a failing tier is worth reading after the run, and
+      # when this script's own output is itself redirected (a background job, CI) the console
+      # copy can be lost.
+      $out = Join-Path ([IO.Path]::GetTempPath()) "breeze-vitest-$t.log"
+      if (-not $env:NO_COLOR) { $env:FORCE_COLOR = '1' }   # keep colours when piped, unless the user opted out
+      # Vitest writes warnings to stderr, and browser mode always writes at least one. In
+      # Windows PowerShell a native command's stderr arrives as a NativeCommandError record,
+      # so under $ErrorActionPreference = 'Stop' that one warning line aborted this script
+      # mid-tier: no test output, no summary, exit 1 - which looked exactly like a tier that
+      # had failed. Merge stderr into the log instead and let the exit code decide.
+      $prevEap = $ErrorActionPreference
+      $ErrorActionPreference = 'Continue'
+      try {
+        & node @vitestArgs 2>&1 | Tee-Object -FilePath $out
+        $code = $LASTEXITCODE
+      } finally {
+        $ErrorActionPreference = $prevEap
+      }
+
       if ($Filter) {
         # Vitest exits 0 when -t matches nothing - every test is simply skipped - so a
-        # mistyped filter would look like a pass. Keep a copy of the output to check.
-        $out = Join-Path ([IO.Path]::GetTempPath()) "breeze-vitest-$t.log"
-        if (-not $env:NO_COLOR) { $env:FORCE_COLOR = '1' }   # keep colours when piped, unless the user opted out
-        & node @vitestArgs | Tee-Object -FilePath $out
-        $code = $LASTEXITCODE
+        # mistyped filter would look like a pass. Check the summary line.
         $esc = [char]27
         $text = (Get-Content $out -Raw) -replace "$esc\[[0-9;]*m", ''
         $summaries = [regex]::Matches($text, 'Tests\s+([^\r\n]*)')
@@ -204,11 +224,12 @@ try {
           Write-Host "No test in the $t tier matched -Filter '$Filter'." -ForegroundColor Yellow
           $code = 1
         }
-      } else {
-        & node @vitestArgs
-        $code = $LASTEXITCODE
       }
-      if ($code -ne 0) { $failedTiers += $t }
+
+      if ($code -ne 0) {
+        $failedTiers += $t
+        Write-Host "The $t tier failed (exit $code). Full output: $out" -ForegroundColor Yellow
+      }
     }
   } finally {
     Pop-Location

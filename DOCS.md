@@ -156,5 +156,7 @@ VitePress moves to the next free port and prints it. Use the URL it prints.
 - **Publishing.** The site is not deployed anywhere. `npm run docs:build` produces a static
   site in `docs/.vitepress/dist/` that any static host (GitHub Pages, for example) can
   serve; deploying it is still to be done.
-- **The .NET API reference.** The nav's *Server → .NET API reference* link still points at
-  the 2.x site. A DocFX-generated reference for breeze-server-v3 is planned.
+- **The .NET API reference** is a separate DocFX site in breeze-server-v3; its
+  [DOCS.md](https://github.com/Breeze/breeze-server-v3/blob/master/DOCS.md) says how to build
+  and view it locally. It is not published either, so for now the nav's
+  *Server → .NET API reference* link goes to that page.

@@ -1,6 +1,5 @@
 import { defineConfig } from 'vitest/config';
 import { playwright } from '@vitest/browser-playwright';
-import { AlphabeticalSequencer } from './test/sequencer';
 
 /**
  * Browser run - `npm run test:browser`.
@@ -14,18 +13,21 @@ import { AlphabeticalSequencer } from './test/sequencer';
  *    without it every request fails preflight
  *  - `npx playwright install chromium` once
  *
- * globalSetup still runs in Node, so the per-run database rebuild works unchanged.
+ * globalSetup still runs in Node, so the per-run database rebuild works unchanged. The
+ * per-file reset (test/integration-setup.ts) runs in the browser; it goes over HTTP.
  */
 export default defineConfig({
   test: {
     globals: true,
     include: ['test/**/*.spec.ts'],
-    setupFiles: ['./test/setup.ts'],
+    setupFiles: ['./test/setup.ts', './test/integration-setup.ts'],
     globalSetup: ['./test/global-setup.ts'],
     fileParallelism: false,
+    // Each integration file resets the database before it runs, so file order does not
+    // matter - and shuffling keeps it that way. The seed is printed at the top of the run;
+    // repeat an order with --sequence.seed=<seed>. Tests within a file keep their order.
     sequence: {
-      shuffle: false,
-      sequencer: AlphabeticalSequencer,
+      shuffle: { files: true, tests: false },
     },
     testTimeout: 60_000,
     hookTimeout: 60_000,

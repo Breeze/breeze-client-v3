@@ -279,13 +279,11 @@ The pristine employee ids are **1-6, 8, 9, 10** — there is no employee 7, and 
 10. That gap is in the `.mdf` this data came from; it predates this repo. Worth knowing
 before writing an assertion about employee counts or ids.
 
-### Still not isolated
+### Isolation (done)
 
-Green is not the same as isolated. Tests still share one database within a run, and the
-alphabetical sequencer is what keeps that reproducible. `query-misc.spec.ts`'s
-"self-referencing entity" still requires an employee with id > 10, which only exists
-because `bugs.spec.ts` inserts one earlier in the run. Splitting into unit and integration
-tiers, with per-file reset for the integration tier, is what actually fixes that.
+Green was not the same as isolated: the files shared one database within a run, and an
+alphabetical sequencer kept that reproducible. Each integration file now starts from a
+pristine database; see [Per-file isolation](#per-file-isolation-done) below.
 
 ## noImplicitAny (done)
 
@@ -371,7 +369,7 @@ and `core.ts`'s ES5 probe dropped an always-true `Object.getPrototypeOf &&`.
 
 ```
 npm run test:unit          # 2.7s, no server, files run in parallel
-npm run test:integration   # rebuilds the database, serial, pinned order
+npm run test:integration   # rebuilds the database, serial, shuffled, reset per file
 npm test                   # both
 npm run test:browser       # both, in Chromium
 npm run test:watch         # watches the unit tier
@@ -383,19 +381,31 @@ being reliable: `predicate.spec.ts` needs no server despite the missing suffix, 
 
 The unit tier has no `globalSetup`, no database rebuild, and file parallelism left on —
 nothing in it touches shared state. Shared helpers (`test-fns.ts`, `util-fns.ts`,
-`save-test-fns.ts`, `support/`, `setup.ts`, `sequencer.ts`, `global-setup.ts`) stay at
+`save-test-fns.ts`, `support/`, `setup.ts`, `integration-setup.ts`, `global-setup.ts`) stay at
 `test/` and are imported from both tiers.
 
-### Still not per-file isolated
+### Per-file isolation (done)
 
-The integration tier shares one database *within* a run, which is why it keeps
-`fileParallelism: false` and the pinned alphabetical order. `query-misc.spec.ts`'s
-"self-referencing entity" still needs an employee with id > 10 that only exists because
-`bugs.spec.ts` inserted it earlier in the run.
+Every integration file now starts from the same database. After the per-run rebuild,
+`global-setup.ts` has the test server take a SQL Server database snapshot
+(`POST /breeze/TestDb/Snapshot`), and `test/integration-setup.ts` reverts to it before
+each file (`POST /breeze/TestDb/Reset`; about 10 s per run in all). It is an HTTP endpoint on the test
+host, not `sqlcmd`, because in browser mode the files run in Chromium. The endpoints are
+off unless the host is started with `--TestDb:AllowReset=true`, and answer only local
+requests. `TESTING.md` has the details.
 
-Per-file reset is the fix, and it now has a natural home: only the integration config
-would need it. It also needs a server-side reset endpoint, because `global-setup.ts`
-shells out to `sqlcmd`, which a browser-mode worker cannot do mid-run.
+The alphabetical sequencer is gone. Files run in a shuffled order (`shuffle: { files:
+true }`; the seed is printed), still one at a time, because there is one database.
+
+Run one file at a time and in shuffled orders, three tests turned out to depend on rows
+another file had inserted. Each now creates its own:
+
+- `query-misc.spec.ts` "self-referencing entity" looked for an employee with id > 10; only
+  `bugs.spec.ts` made one.
+- `datatypes.spec.ts` "nullable dateTime" queried for employees with no birth date; every
+  shipped employee has one.
+- `query-basic.spec.ts` "expand through null child object" queried for orders with no
+  employee; every shipped order has one.
 
 ## API docs: TypeDoc warnings 71 → 0 (done)
 

@@ -1,5 +1,4 @@
 import { defineConfig } from 'vitest/config';
-import { AlphabeticalSequencer } from './test/sequencer';
 
 /**
  * Node-environment run. This is `npm test`.
@@ -14,15 +13,18 @@ export default defineConfig({
     globals: true,
     environment: 'node',
     include: ['test/**/*.spec.ts'],
-    setupFiles: ['./test/setup.ts'],
-    // Rebuilds BreezeTestDb once per run. See test/global-setup.ts.
+    // integration-setup.ts resets the database before each integration file.
+    setupFiles: ['./test/setup.ts', './test/integration-setup.ts'],
+    // Rebuilds and snapshots BreezeTestDb once per run. See test/global-setup.ts.
     globalSetup: ['./test/global-setup.ts'],
-    // The integration tier shares one database and one server. Until the suite
-    // is split and each file resets its own state, it must stay serial.
+    // The integration tier shares one database and one server. Each file reverts the
+    // database before it runs, so files must not run alongside each other.
     fileParallelism: false,
+    // Each integration file resets the database before it runs, so file order does not
+    // matter - and shuffling keeps it that way. The seed is printed at the top of the run;
+    // repeat an order with --sequence.seed=<seed>. Tests within a file keep their order.
     sequence: {
-      shuffle: false,
-      sequencer: AlphabeticalSequencer,
+      shuffle: { files: true, tests: false },
     },
     testTimeout: 30_000,
     hookTimeout: 30_000,

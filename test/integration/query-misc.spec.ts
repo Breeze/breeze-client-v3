@@ -335,19 +335,20 @@ describe("Query Misc", () => {
     const em1 = TestFns.newEntityManager();
     let empId;
     {
-      // get an employee outside the known range.  Should be at least one.
-      const q1 = EntityQuery.from("Employees").where("employeeID", "gt", 10).take(1);
-      const qr1 = await em1.executeQuery(q1);
-      expect(qr1.results.length).toEqual(1);
-      const emp1 = qr1.results[0];
+      // Create the employee rather than look for one outside the pristine ids (1-10): the
+      // only such employee used to be one bugs.spec.ts inserted earlier in the run.
+      const emp1 = em1.createEntity("Employee", {
+        lastName: "Doe",
+        firstName: "Jane",
+        title: "Self-reporting",
+        hireDate: new Date(1974, 1, 1),
+      }) as any;
+      await em1.saveChanges();
       empId = emp1.getProperty("employeeID");
       emp1.setProperty("reportsToEmployeeID", empId);
-      if (em1.hasChanges()) {
-        const sr = await em1.saveChanges();
-        console.log(sr);
-        expect(sr.entities.length).toEqual(1);
-      }
-    } 
+      const sr = await em1.saveChanges();
+      expect(sr.entities.length).toEqual(1);
+    }
     {
       const q2 = EntityQuery.from("EmployeesNoTracking").where("employeeID", "eq", empId).expand("manager");
       const qr2 = await em1.executeQuery(q2);

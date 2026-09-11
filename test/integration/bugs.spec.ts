@@ -411,9 +411,9 @@ describe("Old Fixed Bugs", () => {
     const [qr4, qr3, qr2] = await Promise.all([em.executeQuery(q4), em.executeQuery(q3), em.executeQuery(q2)]);
 
     // Northwind ships 9 employees (ids 1-6, 8-10; there is no employee 7 in the
-    // shipped data). An earlier test in this file inserts one more, and other spec
-    // files may too, so assert a floor rather than an exact count - the point of this
-    // test is that expanded entities are attached, not how many employees exist.
+    // shipped data). An earlier test in this file inserts one more, so assert a floor
+    // rather than an exact count - the point of this test is that expanded entities are
+    // attached, not how many employees exist.
     expect(qr2.results.length).toBeGreaterThanOrEqual(9);
 
     const empsWithTerr = qr2.results.filter((e: any) => e.employeeTerritories.length > 0);
