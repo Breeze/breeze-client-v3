@@ -31,6 +31,7 @@ Source is 42 files / 15,630 lines, down from 51 / 19,708.
 | | |
 |---|---|
 | [UPGRADE.md](./UPGRADE.md) | **Converting an app from 2.x** — every consumer-facing change |
+| [TESTING.md](./TESTING.md) | **Running the tests** — creating the database, starting the server |
 | [CHANGES-DEV.md](./CHANGES-DEV.md) | Structural changes, for people working on Breeze itself |
 | [STATUS.md](./STATUS.md) | What is done, what is in flight, what is next |
 
