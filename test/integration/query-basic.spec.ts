@@ -1,5 +1,5 @@
 import { breeze, EntityManager, EntityQuery, NamingConvention, Predicate, EntityType, EntityState, EntityKey, Entity, MergeStrategy, RelationArray, core, QueryOptions, FetchStrategy, FilterQueryOp } from '../../src/breeze';
-import { TestFns, expectPass } from '../test-fns';
+import { TestFns } from '../test-fns';
 
 TestFns.initServerEnv();
 
@@ -436,11 +436,7 @@ describe("Query Basics", () => {
     expect(qr1.results.length).toBeGreaterThan(0);
 
     const empId = qr1.results[0].getProperty(TestFns.wellKnownData.keyNames.employee);
-    if (!TestFns.isMongoServer) {
-      expect(empId).toBeLessThan(6);
-    } else {
-      expectPass();
-    }
+    expect(empId).toBeLessThan(6);
   });
 
   test("where with empty predicates 4", async () => {
@@ -496,15 +492,10 @@ describe("Query Basics", () => {
 
     const orderDate2 = qr2.results[0].orderDate;
     let orderDate2a;
-    if (TestFns.isODataServer) {
-      expect(breeze.core.isDate(orderDate2)).toBe(true);
-      orderDate2a = orderDate2;
-    } else {
-      // orderDate projection should not be a date except with ODATA'"
-      expect(breeze.core.isDate(orderDate2)).toBe(false);
-      // now it will be a date
-      orderDate2a = breeze.DataType.parseDateFromServer(orderDate2);
-    }
+    // orderDate projection should not be a date
+    expect(breeze.core.isDate(orderDate2)).toBe(false);
+    // now it will be a date
+    orderDate2a = breeze.DataType.parseDateFromServer(orderDate2);
     expect(orderDate.getTime()).toBe(orderDate2a.getTime());
   });
 
@@ -574,7 +565,6 @@ describe("Query Basics", () => {
     expect(inlineCount == null).toBeTrue();
   });
 
-  // no expand support in Mongo
   test("inlineCount 2", async () => {
     expect.hasAssertions();
     const em1 = TestFns.newEntityManager();
@@ -1175,8 +1165,7 @@ describe("Query Basics", () => {
 
   });
 
-  // skipTestIf(TestFns.isODataServer)
-  // ("webApi metadata", function () {
+  // test("webApi metadata", function () {
   //     expect.hasAssertions();
 
   //     const metadataPath = TestFns.defaultServiceName + "/Metadata";

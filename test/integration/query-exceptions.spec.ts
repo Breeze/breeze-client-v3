@@ -27,9 +27,7 @@ describe("Entity Query Exceptions", () => {
         .execute();
       throw new Error('should not get here');
     } catch (e) {
-      if (TestFns.isODataServer) {
-        expect(e.message === "Not Found").toBe(true);
-      } else if (TestFns.isAspCoreServer) {
+      if (TestFns.isAspCoreServer) {
         expect(e.status === 404).toBe(true);
       } else {
         expect(e.message && e.message.toLowerCase().indexOf("entitythatdoesnotexist") >= 0).toBe(true);
@@ -136,13 +134,7 @@ describe("Entity Query Exceptions", () => {
       throw new Error('should not get here');
     } catch (error) {
       const msg = error.message.toLowerCase();
-      if (TestFns.isMongoServer) {
-        expect(msg).toMatch(/unable to locate/);
-      } else if (TestFns.isODataServer) {
-        expect(msg).toMatch(/not found/);
-      } else if (TestFns.isHibernateServer) {
-        expect(msg).toMatch(/no entitytype name registered/);
-      } else if (TestFns.isAspCoreServer) {
+      if (TestFns.isAspCoreServer) {
         expect(error.status === 404).toBe(true);
       } else {
         expect(msg).toMatch(/no http resource was found/);

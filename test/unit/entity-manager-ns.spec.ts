@@ -182,7 +182,6 @@ describe("EntityManager - no server", () => {
 
   });
 
-  // testFns.skipIf("odata,hibernate", "does not have TimeList and Timegroup tables").
   test("connect entities - unidirectional 1-> n", () => {
     const em = TestFns.newEntityManager();
 
@@ -197,7 +196,6 @@ describe("EntityManager - no server", () => {
     expect(timeLimits.length).toBe(2);
   });
 
-  // testFns.skipIf("odata,hibernate", "does not have TimeList and Timegroup tables").
   test("connect entities - unidirectional 1-> n - part 2", () => {
     const em = TestFns.newEntityManager();
 

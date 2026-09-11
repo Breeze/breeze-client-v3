@@ -1,5 +1,5 @@
 import { Entity, EntityQuery, EntityType, MetadataStore, Predicate, breeze, MergeStrategy, DataProperty, NavigationProperty, core, QueryOptions, EntityManager, EntityKey, FetchStrategy, EntityState } from '../../src/breeze';
-import { TestFns, skipTestIf, skipDescribeIf } from '../test-fns';
+import { TestFns, skipDescribeIf } from '../test-fns';
 
 function ok(a: any, b?: any) {
   throw new Error('for test conversion purposes');
@@ -120,9 +120,7 @@ describe("Query Misc", () => {
     expect(successCount).toBe(2);
   });
 
-  // testFns.skipIf("odata,hibernate", "does not have any server unmapped properties").
-  skipTestIf(TestFns.isHibernateServer || TestFns.isODataServer,
-    "querying server unmapped property", async function() {
+  test("querying server unmapped property", async function() {
     expect.hasAssertions();
     
     const emBase = TestFns.newEntityManager();
@@ -191,8 +189,7 @@ describe("Query Misc", () => {
   }, 99000);
 
 
-  // "odata", "has not yet implemented server side interception").
-  skipTestIf(TestFns.isODataServer, "insure that query is Not a duration query even without type mapping", async function () {
+  test("insure that query is Not a duration query even without type mapping", async function () {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
     const q = EntityQuery.from("AltCustomers").where('companyName', '==', 'Papa');
@@ -201,8 +198,7 @@ describe("Query Misc", () => {
     expect(data.results.length).toBe(0);
   });
 
-  //"odata,hibernate", "is N/A for this EF specific test").
-  skipTestIf(TestFns.isHibernateServer || TestFns.isODataServer, "query involving multiple entities on the server", async function () {
+  test("query involving multiple entities on the server", async function () {
     expect.hasAssertions();
 
     const em = TestFns.newEntityManager();

@@ -1,5 +1,5 @@
 import { Entity, EntityQuery, EntityType, MetadataStore, Predicate, breeze, MergeStrategy, DataProperty, NavigationProperty, core } from '../../src/breeze';
-import { TestFns, skipTestIf, skipDescribeIf } from '../test-fns';
+import { TestFns, skipTestIf } from '../test-fns';
 
 function ok(a: any, b?: any) {
   throw new Error('for test conversion purposes');
@@ -12,7 +12,7 @@ beforeAll(async () => {
 
 });
 
-skipDescribeIf(TestFns.isHibernateServer, "Query Functions", () => {
+describe("Query Functions", () => {
 
   beforeEach(function () {
 
@@ -31,8 +31,6 @@ skipDescribeIf(TestFns.isHibernateServer, "Query Functions", () => {
     expect(emps2.length).toBe(qr1.results.length);
   });
 
-  // skipIfHibFuncExpr.
-  // skipTestIf("mongo", "does not support 'year' odata predicate").
   test("function expr - date(month) function", async () => {
     expect.hasAssertions();
     const em1 = TestFns.newEntityManager();
@@ -47,8 +45,6 @@ skipDescribeIf(TestFns.isHibernateServer, "Query Functions", () => {
     expect(emps2.length).toBe(qr1.results.length);
   });
 
-  // skipIfHibFuncExpr.
-  // skipTestIf("mongo", "does not support 'hour' odata predicate").
   test("function expr - date(hour) function", async () => {
     expect.hasAssertions();
     const em1 = TestFns.newEntityManager();

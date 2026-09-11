@@ -82,15 +82,10 @@ describe("Save Basics", () => {
         expect(entity === nancy).toBeTrue();
         expect(index).toBe(0);
 
-        if (TestFns.isODataServer) {
-          const headers = request && request.headers;
-          expect(headers).toBeTruthy();
-        } else {
-          const aspect = request && request.entityAspect;
-          expect(aspect).toBeTruthy();
-          const origValues = aspect && aspect.originalValuesMap;
-          expect(origValues).toBeTruthy();
-        }
+        const aspect = request && request.entityAspect;
+        expect(aspect).toBeTruthy();
+        const origValues = aspect && aspect.originalValuesMap;
+        expect(origValues).toBeTruthy();
         return request;
       };
 

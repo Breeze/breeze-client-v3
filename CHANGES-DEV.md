@@ -278,3 +278,19 @@ The test suite no longer registers an ajax adapter (`test/test-fns.ts`), so the
 integration and browser tiers exercise the default path. `fetch-transport.spec.ts` covers
 it without a server; the specs that use `AjaxFakeAdapter` keep covering the deprecated
 slot.
+
+## Dead server-backend switches removed from the tests
+
+The 2.x suite ran against several servers and carried a flag for each in `test/test-fns.ts`.
+Breeze 3 has no Sequelize, Java Hibernate, OData or Mongo server, so those flags were always
+false; they, their branches and their skip conditions are gone. Where a dead flag was a
+test's only skip condition, the test now simply runs (it already did). Nothing runs
+differently: integration 448 + 7 skipped and browser 652 + 7 skipped, before and after.
+
+`isNHibernateServer` stays, because `Breeze.Persistence.NH` is still a shipping package in
+breeze-server-v3; whether it stays in v3 is an open decision.
+
+Outside the tests, OData is still *named* in the migration guide, UPGRADE.md, the CSDL error
+message and a few docs pages. That is deliberate: those are the notices that tell a 2.x
+user OData is gone and what to use instead. `"NOdataServices"` in two metadata fixtures is
+a deliberately disabled `dataServices` key, not OData.

@@ -1,5 +1,5 @@
 import { breeze, core, Entity, EntityKey, EntityQuery, FilterQueryOp, SaveOptions, EntityManager } from '../../src/breeze';
-import { skipTestIf, TestFns, skipDescribeIf } from '../test-fns';
+import { skipTestIf, TestFns } from '../test-fns';
 
 TestFns.initServerEnv();
 
@@ -8,8 +8,7 @@ beforeAll(async () => {
 
 });
 
-skipDescribeIf(TestFns.isODataServer,
-  "Saves with deletions on the server", function () {
+describe("Saves with deletions on the server", function () {
 
 
   test("delete new product on server before", async function () {

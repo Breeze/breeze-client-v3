@@ -12,7 +12,6 @@ export class TestFns extends UtilFns {
   // Uncomment just one
   static defaultServerEnvName = "ASPCORE";
   // static defaultServerEnvName = "ASPWEBAPI";
-  // static defaultServerEnvName = "HIBERNATE";
 
   static serverEnvName: string;
   static defaultServiceName: string;
@@ -25,11 +24,8 @@ export class TestFns extends UtilFns {
   static defaultMetadata: string;
   static defaultMetadataStore: MetadataStore;
   
-  static isODataServer: boolean;
-  static isMongoServer: boolean;
   static isAspCoreServer: boolean;
   static isAspWebApiServer: boolean;
-  static isHibernateServer: boolean;
   static isNHibernateServer: boolean;
 
   static wellKnownData = {
@@ -76,18 +72,15 @@ export class TestFns extends UtilFns {
   }
 
   private static calcServerTypes(serverEnvName: string) {
-    TestFns.isODataServer = serverEnvName === 'ODATA';
-    TestFns.isMongoServer = serverEnvName === 'MONGO';
     TestFns.isAspCoreServer = serverEnvName === 'ASPCORE';
     TestFns.isAspWebApiServer = serverEnvName === 'ASPWEBAPI';
-    TestFns.isHibernateServer = serverEnvName === 'HIBERNATE';
     TestFns.isNHibernateServer = serverEnvName === 'NHIBERNATE';
   }
 
   private static initAdapters() {
     ModelLibraryBackingStoreAdapter.register();
 
-    // Breeze JSON is the only supported query syntax; the OData uri builder was removed in v3.
+    // Breeze JSON is the only supported query syntax; the 2.x alternative uri builder was removed in v3.
     UriBuilderJsonAdapter.register();
 
     // No ajax adapter: requests go through config.fetch, globalThis.fetch by default. The
@@ -98,7 +91,7 @@ export class TestFns extends UtilFns {
     // UriBuilderJsonAdapter.register();
     // ModelLibraryBackingStoreAdapter.register();
 
-    if (TestFns.isAspCoreServer || TestFns.isAspWebApiServer || TestFns.isODataServer) {
+    if (TestFns.isAspCoreServer || TestFns.isAspWebApiServer) {
       NamingConvention.camelCase.setAsDefault();
     } else {
       NamingConvention.camelCase.setAsDefault();

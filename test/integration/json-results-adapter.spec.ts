@@ -1,5 +1,5 @@
 import { breeze, EntityManager, EntityQuery, NamingConvention, Predicate, EntityType, EntityState, EntityKey, Entity, DataService, MappingContext, NodeContext, NodeMeta } from '../../src/breeze';
-import { skipTestIf, TestFns, expectPass } from '../test-fns';
+import { TestFns, expectPass } from '../test-fns';
 
 
 TestFns.initServerEnv();
@@ -19,11 +19,7 @@ const jsonResultsAdapter = new breeze.JsonResultsAdapter({
     const propertyName = nodeContext.propertyName;
     const ignore = propertyName && propertyName.substr(0, 1) === "$";
     if (entityType) {
-      if (TestFns.isHibernateServer) {
-        node.rowVersion = 77;
-      } else {
-        node.RowVersion = 77;
-      }
+      node.RowVersion = 77;
     }
     return {
       entityType: entityType,
@@ -41,9 +37,7 @@ describe("JsonResultsAdapter", () => {
   });
 
 
-  // test does not work with this test's jsonResultsAdapter
-  skipTestIf(TestFns.isMongoServer || TestFns.isODataServer,
-    "using jsonResultsAdapter", async () => {
+  test("using jsonResultsAdapter", async () => {
       expect.assertions(2);
       const em1 = TestFns.newEntityManager();
       const q1 = EntityQuery.from("OrderDetails").take(5).using(jsonResultsAdapter);
@@ -53,8 +47,7 @@ describe("JsonResultsAdapter", () => {
       expect(rv).toBe(77);
     });
 
-  skipTestIf(TestFns.isMongoServer || TestFns.isODataServer,
-    "using dataService with jsonResultsAdapter", async () => {
+  test("using dataService with jsonResultsAdapter", async () => {
       expect.assertions(2);
       const em1 = TestFns.newEntityManager();
       const oldDs = em1.dataService;
@@ -66,8 +59,7 @@ describe("JsonResultsAdapter", () => {
       expect(rv).toBe(77);
     });
 
-  skipTestIf(TestFns.isMongoServer || TestFns.isODataServer,
-    "using em with dataService with jsonResultsAdapter", async () => {
+  test("using em with dataService with jsonResultsAdapter", async () => {
       expect.assertions(2);
       const newDs = new DataService({ serviceName: TestFns.defaultServiceName, jsonResultsAdapter: jsonResultsAdapter });
       const em1 = new EntityManager({ dataService: newDs });

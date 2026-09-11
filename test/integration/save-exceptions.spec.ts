@@ -256,7 +256,6 @@ describe("Save exception handling", () => {
 
   }));
 
-  //TestFns.skipIf("odata", "does not support server interception or alt resources").
   test("adds with EntityErrorsException", async function () {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
@@ -347,8 +346,6 @@ describe("Save exception handling", () => {
     }
   });
 
-  //TestFns.skipIf("odata", "does not support server interception or alt resources").
-  // skipIf("hibernate", "is not applicable because this test uses EF validation annotations")
   skipTestIf(TestFns.isAspCoreServer,
     "with server side entity level validation error", async function () {
       expect.hasAssertions();
@@ -369,7 +366,6 @@ describe("Save exception handling", () => {
       }
     });
 
-  //TestFns.skipIf("odata", "does not support server interception or alt resources").
   // AspCore does not have server validation.
   skipTestIf(TestFns.isAspCoreServer,
     "with server side entity level validation error + repeat", async function () {
@@ -400,9 +396,8 @@ describe("Save exception handling", () => {
       }
     });
 
-  //TestFns.skipIf("hibernate", " is unsupported because MySQL does not support millisecond resolution").
   // ASP Core is skipped because it does not do server validations 
-  skipTestIf(TestFns.isAspCoreServer || TestFns.isHibernateServer,
+  skipTestIf(TestFns.isAspCoreServer,
   "custom data annotation validation", async function () {
     expect.hasAssertions();
 
@@ -452,12 +447,7 @@ describe("Save exception handling", () => {
     } catch (error) {
       expect(em2.hasChanges()).toBeTrue();
 
-      let frag;
-      if (TestFns.isHibernateServer) {
-        frag = "duplicate entry";
-      } else {
-        frag = "primary key constraint";
-      }
+      const frag = "primary key constraint";
       expect(error.message.toLowerCase()).toInclude(frag);
     }
   });

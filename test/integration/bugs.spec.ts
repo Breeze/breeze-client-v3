@@ -74,9 +74,6 @@ describe("Old Fixed Bugs", () => {
     expect(qr1.results.length).toBeGreaterThan(0);
     expect(qr1.inlineCount).toBeGreaterThan(0);
 
-    // For ODATA this is a known bug: https://aspnetwebstack.codeplex.com/workitem/1037
-    // having to do with mixing expand and inlineCount
-    // it sounds like it might already be fixed in the next major release but not yet avail.
     const localQuery = EntityQuery.from('OrderDetails');
     const orderDetails = em1.executeQueryLocally(localQuery);
     expect(orderDetails.length).toBeGreaterThan(0);

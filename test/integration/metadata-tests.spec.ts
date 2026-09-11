@@ -183,7 +183,7 @@ describe("Metadata", () => {
       expect(props.length).toBeGreaterThan(0);
       const keys = custType.keyProperties;
       expect(keys.length).toBeGreaterThan(0);
-      // some servers (hibernate) may use lower case prop names.
+      // some servers may use lower case prop names.
       const prop = custType.getProperty("CompanyName") || custType.getProperty("companyName");
       expect(prop).toBeTruthy();
       expect(prop.isDataProperty).toBe(true);
@@ -275,7 +275,7 @@ describe("Metadata", () => {
           "defaultResourceName": "Person",
           "dataProperties": [
             {
-              "name": "_id", "dataType": "MongoObjectId", "isNullable": false, "defaultValue": "",
+              "name": "_id", "dataType": "String", "isNullable": false, "defaultValue": "",
               "isPartOfKey": true
             },
             { "name": "displayName", "dataType": "String" },
@@ -316,8 +316,6 @@ describe("Metadata", () => {
   });
 
 
-  // testFns.skipIf("hibernate", "does not yet have TimeList and TimeGroup tables").
-
   test("create metadata and use it for save - CodeFirst only", async function () {
 
     expect.hasAssertions();
@@ -336,7 +334,6 @@ describe("Metadata", () => {
 
   });
 
-  // testFns.skipIf("hibernate", "does not yet have TimeList and TimeGroup tables").
   test("create metadata and insert using existing entity re-attached - CodeFirst only", async function () {
     expect.hasAssertions();
     
@@ -527,9 +524,6 @@ describe("Metadata", () => {
 
   function makeCustomMetadata(namespace: string) {
     let custKeyName = null;
-    if (TestFns.isHibernateServer) {
-      custKeyName = "customerID"; // server is lower case.
-    }
 
     return {
       "structuralTypes": [
@@ -651,9 +645,6 @@ describe("Metadata", () => {
       eto.navigationProperties.push(np);
 
       let et = new EntityType(eto);
-      if (TestFns.isODataServer) {
-        et.defaultResourceName = "TimeGroups"; // required for resolving batch urls
-      }
 
       et['guid'] = breeze.core.getUuid(); // to see distinct entity types while debugging
       store.addEntityType(et);

@@ -23,7 +23,7 @@ describe("Query wih noTracking", () => {
     let q = EntityQuery
       .from("Employees")
       .where(predicate1);
-    if (TestFns.isHibernateServer || TestFns.isNHibernateServer) {
+    if (TestFns.isNHibernateServer) {
       q = q.expand("directReports");
     } else {
       // q = q.expand("directReports");

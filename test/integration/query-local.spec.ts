@@ -1,5 +1,5 @@
 import { Predicate, FilterQueryOp, MetadataStore, EntityType, OrderByClause, DataType, core, EntityQuery, EntityManager, QueryOptions, FetchStrategy } from '../../src/breeze';
-import { TestFns, skipTestIf } from '../test-fns';
+import { TestFns } from '../test-fns';
 import { ModelLibraryBackingStoreAdapter } from '../../src/adapter-model-library-backing-store';
 
 
@@ -89,9 +89,7 @@ describe("Query Local", () => {
     expect(r.length).toBe(r2.length);
   });
 
-  // TODO: Hibernate does not have the tables
-  skipTestIf(TestFns.isHibernateServer,
-    "timespan", async function () {
+  test("timespan", async function () {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
     const q = EntityQuery.from("TimeLimits")
@@ -104,9 +102,7 @@ describe("Query Local", () => {
     expect(r.length).toBe(r2.length);
   });
 
-  // TODO: Hibernate does not have the tables
-  skipTestIf(TestFns.isHibernateServer,
-    "compare timespans", async function () {
+  test("compare timespans", async function () {
     
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
@@ -120,9 +116,7 @@ describe("Query Local", () => {
     expect(r.length).toBe(r2.length);
   });
 
-  // TODO: Hibernate does not have the tables
-  skipTestIf(TestFns.isHibernateServer,
-    "null timespans", async function () {
+  test("null timespans", async function () {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
     const q = EntityQuery.from("TimeLimits")

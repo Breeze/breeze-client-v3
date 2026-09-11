@@ -18,9 +18,6 @@ describe("Query Select clause", () => {
       .where("freight", FilterQueryOp.GreaterThan, 500)
       .select("customer.companyName")
       .orderBy("customer.companyName");
-    if (TestFns.isODataServer) {
-      query = query.expand("customer");
-    }
 
     const qr1 = await em.executeQuery(query);
     expect(qr1.results.length).toBeGreaterThan(0);
@@ -48,8 +45,6 @@ describe("Query Select clause", () => {
     });
   });
 
-  // testFns.skipIf("odata,mongo", "does not use the WebApi jsonResultsAdapter that this test assumes").
-  // skipIf("hibernate", "does not have the 'UnusualDates' table this test assumes").
   test("anon with jra & dateTimes", async function () {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
@@ -104,7 +99,6 @@ describe("Query Select clause", () => {
   });
 
 
-  // skipIf("hibernate", "cannot project entity collections").
   test("anon collection", async function () {
     expect.hasAssertions();
 
@@ -112,9 +106,6 @@ describe("Query Select clause", () => {
     let query = EntityQuery.from("Customers")
       .where("companyName", "startsWith", "C")
       .select("orders");
-    if (TestFns.isODataServer) {
-      query = query.expand("orders");
-    }
 
     const qr1 = await em.executeQuery(query);
     expect(em.metadataStore.isEmpty()).toBe(false);
@@ -131,7 +122,6 @@ describe("Query Select clause", () => {
   });
 
 
-  //  skipIf("hibernate", "cannot project entity collections").
   test("anon simple, entity collection projection", async function () {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
@@ -171,13 +161,8 @@ describe("Query Select clause", () => {
     let query = EntityQuery
       .from("Orders")
       .where("customer.companyName", "startsWith", "C")
-      .orderBy("customer.companyName");  // - problem for the OData Web api provider.
-    if (TestFns.isODataServer) {
-      query = query.select("customer, orderDate");
-      query = query.expand("customer");
-    } else {
-      query = query.select("customer.companyName, customer, orderDate");
-    }
+      .orderBy("customer.companyName");
+    query = query.select("customer.companyName, customer, orderDate");
     const qr1 = await em.executeQuery(query);
     expect(em.metadataStore.isEmpty()).toBe(false);
     const customerType = em.metadataStore.getEntityType("Customer");
@@ -186,16 +171,12 @@ describe("Query Select clause", () => {
     const anons = qr1.results;
     anons.forEach(function (a) {
 
-      if (TestFns.isODataServer) {
-        expect(Object.keys(a).length).toBe(2);
-      } else {
-        expect(Object.keys(a).length).toBe(3);
-        if (TestFns.isAspCoreServer || TestFns.isAspWebApiServer) {
-          expect(typeof (a.customer_CompanyName)).toBe('string');
-        }
-        else {
-          expect(typeof (a["customer.companyName"])).toBe('string');
-        }
+      expect(Object.keys(a).length).toBe(3);
+      if (TestFns.isAspCoreServer || TestFns.isAspWebApiServer) {
+        expect(typeof (a.customer_CompanyName)).toBe('string');
+      }
+      else {
+        expect(typeof (a["customer.companyName"])).toBe('string');
       }
 
       expect(a.customer.entityType).toBe(customerType);

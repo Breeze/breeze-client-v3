@@ -82,11 +82,7 @@ describe("Query Navigation", () => {
       const qr1 = await query.using(em).execute();
       throw new Error("should not get here");
     } catch (err) {
-      if (TestFns.isODataServer) {
-        expect(err.message.indexOf("Product") >= 1).toBe(true);
-      } else {
-        expect(err.message.indexOf("orderDetails") >= 1).toBe(true);
-      }
+      expect(err.message.indexOf("orderDetails") >= 1).toBe(true);
     }
   });
 
