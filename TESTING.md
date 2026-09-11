@@ -188,9 +188,9 @@ recreating the database by hand** — otherwise those tables are empty.
 | command | tests | needs a server? | time |
 |---|---|---|---|
 | `npm run test:unit` | 263 | **no** | a few seconds |
-| `npm run test:integration` | 455 | yes | ~25s |
-| `npm test` | 718 (unit + integration) | yes | ~30s |
-| `npm run test:browser` | 718 | yes | ~35s |
+| `npm run test:integration` | 457 | yes | ~25s |
+| `npm test` | 720 (unit + integration) | yes | ~30s |
+| `npm run test:browser` | 720 | yes | ~35s |
 | `npm run test:watch` | 263 | no | watch mode |
 
 7 tests are skipped by design. Five are skipped on the ASP.NET Core server: three need
@@ -209,7 +209,7 @@ database, no server, files run in parallel. **This is the tier to iterate agains
 
 ### The integration tier
 
-`test/integration/` — 26 files that query and save real data. Before each run,
+`test/integration/` — 27 files that query and save real data. Before each run,
 `test/global-setup.ts` rebuilds `BreezeTestDb` from the script and re-seeds the
 Inheritance tables via `POST /breeze/Inheritance/Seed`.
 
