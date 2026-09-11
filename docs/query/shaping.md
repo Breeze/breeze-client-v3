@@ -225,8 +225,9 @@ EntityQuery.from('EmployeesFilteredByCountryAndBirthdate')
 A query holds one set of parameters. Calling `withParameters` again replaces the earlier
 set; it does not merge with it.
 
-The parameters also appear under `parameters` in the query JSON, which is how
-`query.toJSON()` preserves them.
+`query.toJSON()` writes the parameters under `parameters`, so a serialized query keeps
+them. They are not part of the query JSON sent to the server; they travel only as the
+query-string arguments described above.
 
 ## noTracking
 

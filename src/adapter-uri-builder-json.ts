@@ -23,10 +23,10 @@ export class UriBuilderJsonAdapter implements breeze.UriBuilderAdapter {
     let json = entityQuery.toJSONExt( { entityType: entityType, toNameOnServer: true}) as any;
     json.from = undefined;
     json.queryOptions = undefined;
-    if (json.parameters && json.parameters.$data) {
-      // remove parameters if doing ajax post
-      json.parameters = undefined;
-    }
+    // withParameters values are sent once, as ordinary query-string arguments (the data
+    // service adapter passes them as request params). That is where the server's model
+    // binding reads them; a copy inside the JSON was never read.
+    json.parameters = undefined;
 
     let jsonString = JSON.stringify(json);
     if (jsonString.length > 2) {

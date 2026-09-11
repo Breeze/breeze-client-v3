@@ -99,8 +99,9 @@ The `mappingContext` describes the query:
 | `getUrl()` | the query URL, built by the URI builder |
 
 `AbstractDataServiceAdapter.executeQuery` sends `GET getUrl()`. Any
-`query.withParameters(...)` values go into the query string. If the query has
-`usePost()`, it POSTs the query as JSON to `{serviceName}/{resourceName}` instead.
+`query.withParameters(...)` values go into the query string, and only there: the URI
+builder leaves them out of the JSON. If the query has `usePost()`, it POSTs the query as
+JSON to `{serviceName}/{resourceName}` instead; the parameters still go in the query string.
 
 It resolves with this object, which Breeze then passes to the JsonResultsAdapter's
 `extractResults`:

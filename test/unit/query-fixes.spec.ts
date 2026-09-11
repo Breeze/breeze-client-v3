@@ -165,3 +165,47 @@ describe("toJSON keeps usePost", () => {
     expect(new EntityQuery(EntityQuery.from("Customers").toJSON()).usePostEnabled).toBeFalsy();
   });
 });
+
+describe("withParameters values are sent once, as query-string arguments", () => {
+  // The ASP.NET Core server binds them from the query string ([FromQuery] and plain
+  // action parameters). BreezeQueryFilter reads only the JSON, and never used a
+  // "parameters" copy inside it.
+  function split(url: string) {
+    const [path, query = ""] = url.split("?");
+    const amp = query.startsWith("%7B") ? query.indexOf("&") : 0;
+    const jsonPart = amp < 0 ? query : query.slice(0, amp);
+    const rest = amp < 0 ? "" : query.slice(amp).replace(/^&/, "");
+    return { path, json: jsonPart ? JSON.parse(decodeURIComponent(jsonPart)) : undefined, args: decodeURIComponent(rest) };
+  }
+
+  test("a GET puts them after the JSON, and not in it", async () => {
+    await newManager().executeQuery(
+      EntityQuery.from("SearchEmployees").withParameters({ employeeIds: [1, 4], city: "Seattle" }).take(2));
+    const { path, json, args } = split(calls[0].url);
+    expect(path).toBe("http://example.invalid/breeze/Northwind/SearchEmployees");
+    expect(json).toEqual({ take: 2 });
+    expect(args).toBe("employeeIds[0]=1&employeeIds[1]=4&city=Seattle");
+  });
+
+  test("a GET with nothing but parameters sends no JSON at all", async () => {
+    await newManager().executeQuery(EntityQuery.from("CustomersStartingWith").withParameters({ companyName: "C" }));
+    expect(calls[0].url).toBe("http://example.invalid/breeze/Northwind/CustomersStartingWith?companyName=C");
+  });
+
+  test("a POST keeps them in the query string and out of the body", async () => {
+    await newManager().executeQuery(EntityQuery.from("CustomersStartingWith")
+      .withParameters({ companyName: "C" }).where("city", "==", "London").usePost());
+    expect(calls[0].init!.method).toBe("POST");
+    expect(calls[0].url).toBe("http://example.invalid/breeze/Northwind/CustomersStartingWith?companyName=C");
+    const body = JSON.parse(calls[0].init!.body as string);
+    expect(body).not.toHaveProperty("parameters");
+    expect(body).not.toHaveProperty("usePost");
+    expect(body.where).toBeDefined();
+  });
+
+  test("toJSON still keeps them", () => {
+    const q = EntityQuery.from("CustomersStartingWith").withParameters({ companyName: "C" });
+    expect(q.toJSON()).toMatchObject({ parameters: { companyName: "C" } });
+    expect(new EntityQuery(q.toJSON()).parameters).toEqual({ companyName: "C" });
+  });
+});

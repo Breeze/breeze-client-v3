@@ -91,11 +91,11 @@ What to check:
   [Where clauses](/query/predicates).
 - **No clauses, no query string.** `EntityQuery.from('Customers')` requests plain
   `/Customers`.
-- **`withParameters`** values appear twice: inside the JSON as `"parameters"`, and as
-  ordinary query-string parameters after it, for example `…}&foo=bar`.
+- **`withParameters`** values are ordinary query-string parameters after the JSON, for
+  example `…}&foo=bar`. They are not part of the JSON.
 
 With `query.usePost()`, the same JSON is sent as the body of a POST to the resource URL,
-and the endpoint must accept POST.
+and the endpoint must accept POST. `withParameters` values stay in the query string.
 
 ## When the query fails
 
