@@ -131,25 +131,25 @@ downlevel is why `Predicate(...)` without `new` appeared to work in 2.x.
 
 Two things about the existing suite that shape the rewrite:
 
-**It is not isolated.** 27 of 39 spec files need a live server and a SQL Server database,
-and they mutate it. The suite both adds rows (`Employee` 9 → 11) and deletes them
-(`Employee` ID 7 disappears — most likely `save-basic.spec.ts:176-213`, which
-hand-assembles a key and issues a raw delete). Consequently the pass count moves between
-runs: **623–624 of 636**.
+**It was not isolated.** 27 of 39 spec files need a live server and a SQL Server
+database, and they mutate it. The suite both added rows (`Employee` 9 → 11) and deleted
+them (`Employee` ID 7 disappeared — most likely `save-basic.spec.ts:176-213`, which
+hand-assembles a key and issues a raw delete), so the pass count moved between runs:
+**623–624 of 636**. One test was even designed to depend on another file's leftovers:
+`query-misc.spec.ts` asserted that `Employees where employeeID > 10` returns a row, which
+held only because `bugs.spec.ts` permanently inserted a "John Doe" employee whose name
+does not match the cleanup predicate. The only cleanup mechanism, `SaveTestFns.cleanup()`,
+was a blanket delete of anything named `Test*` or `foo*`, registered in the `afterAll` of
+just three files, and it swallowed its own errors.
 
-**One test is designed to depend on another file's leftovers.** `query-misc.spec.ts:337`
-asserts that `Employees where employeeID > 10` returns a row. Northwind ships nine
-employees. It passes only because `bugs.spec.ts:354` permanently inserts a "John Doe"
-employee whose name does not match the cleanup predicate. Run the file alone, or against a
-clean database, and it fails.
-
-The only cleanup mechanism is `SaveTestFns.cleanup()`, a blanket delete of anything named
-`Test*` or `foo*`, registered in the `afterAll` of just three files, and it swallows its
-own errors. Filter those files out of a run and nothing is ever cleaned up.
-
-The fix is a per-run database rebuild, not a better cleanup script — re-applying
-`tests/Databases/BreezeTestDb.sql` from the server repo takes seconds and is proven to
-restore a correct baseline.
+**Now every file starts from the same database.** `test/global-setup.ts` rebuilds
+`BreezeTestDb` from the server repo's `BreezeTestDb.sql` once per run and has the test host
+take a SQL Server database snapshot of it; `test/integration-setup.ts` reverts to that
+snapshot before each integration file. The revert is an HTTP call to the test host
+(`POST /breeze/TestDb/Reset`), so it works in Chromium too — about 0.2 s per file, roughly
+10 s per run. The four tests that relied on another file's rows now create their own, and
+the pinned alphabetical file order is gone: files are shuffled on every run, which is what
+keeps them independent. The seed is printed, and `--sequence.seed=<n>` repeats an order.
 
 ## Object-as-map to Map
 

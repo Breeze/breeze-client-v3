@@ -66,9 +66,22 @@ async function post(action: string): Promise<Response> {
   }
 }
 
+/**
+ * Vitest calls globalSetup once per project, and browser mode has more than one project in
+ * the same Node process - so this ran twice. The two rebuilds raced: each dropped and
+ * recreated the database while the other was loading it, and sqlcmd failed with
+ * "Access is denied", at random. Memoized, so the rebuild happens once per run and every
+ * project waits on that one.
+ */
+let rebuilding: Promise<void> | undefined;
+
 export async function setup(project: TestProject): Promise<void> {
   project.provide('breezeTestServer', SERVER);
+  rebuilding ??= rebuild();
+  return rebuilding;
+}
 
+async function rebuild(): Promise<void> {
   if (process.env.BREEZE_SKIP_DB_RESET === '1') {
     console.log('[db-reset] rebuild skipped (BREEZE_SKIP_DB_RESET=1)');
     return;

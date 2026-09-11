@@ -194,13 +194,28 @@ try {
       # -Filter value containing spaces.
       $vitestArgs = @($vitest, 'run', '--config', "vitest.$t.config.ts")
       if ($Filter) { $vitestArgs += @('-t', $Filter) }
+      # Always keep a copy of the output: a failing tier is worth reading after the run, and
+      # when this script's own output is itself redirected (a background job, CI) the console
+      # copy can be lost.
+      $out = Join-Path ([IO.Path]::GetTempPath()) "breeze-vitest-$t.log"
+      if (-not $env:NO_COLOR) { $env:FORCE_COLOR = '1' }   # keep colours when piped, unless the user opted out
+      # Vitest writes warnings to stderr, and browser mode always writes at least one. In
+      # Windows PowerShell a native command's stderr arrives as a NativeCommandError record,
+      # so under $ErrorActionPreference = 'Stop' that one warning line aborted this script
+      # mid-tier: no test output, no summary, exit 1 - which looked exactly like a tier that
+      # had failed. Merge stderr into the log instead and let the exit code decide.
+      $prevEap = $ErrorActionPreference
+      $ErrorActionPreference = 'Continue'
+      try {
+        & node @vitestArgs 2>&1 | Tee-Object -FilePath $out
+        $code = $LASTEXITCODE
+      } finally {
+        $ErrorActionPreference = $prevEap
+      }
+
       if ($Filter) {
         # Vitest exits 0 when -t matches nothing - every test is simply skipped - so a
-        # mistyped filter would look like a pass. Keep a copy of the output to check.
-        $out = Join-Path ([IO.Path]::GetTempPath()) "breeze-vitest-$t.log"
-        if (-not $env:NO_COLOR) { $env:FORCE_COLOR = '1' }   # keep colours when piped, unless the user opted out
-        & node @vitestArgs | Tee-Object -FilePath $out
-        $code = $LASTEXITCODE
+        # mistyped filter would look like a pass. Check the summary line.
         $esc = [char]27
         $text = (Get-Content $out -Raw) -replace "$esc\[[0-9;]*m", ''
         $summaries = [regex]::Matches($text, 'Tests\s+([^\r\n]*)')
@@ -209,11 +224,12 @@ try {
           Write-Host "No test in the $t tier matched -Filter '$Filter'." -ForegroundColor Yellow
           $code = 1
         }
-      } else {
-        & node @vitestArgs
-        $code = $LASTEXITCODE
       }
-      if ($code -ne 0) { $failedTiers += $t }
+
+      if ($code -ne 0) {
+        $failedTiers += $t
+        Write-Host "The $t tier failed (exit $code). Full output: $out" -ForegroundColor Yellow
+      }
     }
   } finally {
     Pop-Location
