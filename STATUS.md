@@ -315,17 +315,16 @@ design. That broke 572 of 639 tests on the first attempt. Every `Object.keys` ca
 `strictNullChecks` and `noImplicitAny` are both on; the modernization of the type layer
 is complete.
 
-## Known flaky test
+## Flaky test - fixed
 
-`query-named-on-server.spec.ts` > "project objects containing entities" asserts
-`results[0].orders.length > 0`. The named server endpoint has no `ORDER BY`, so SQL may
-return the projected customers in any order, and `results[0]` is whichever row comes back
-first — sometimes one with no orders. Observed failing once in roughly a dozen runs and
-passing on re-run.
+`query-named-on-server.spec.ts` > "project objects containing entities" asserted
+`results[0].orders.length > 0`. The `CompanyInfoAndOrders` endpoint had no `ORDER BY`,
+so SQL could return the projected customers in any order, and plenty of Northwind
+customers have no orders at all.
 
-This is independent of the database reset and the file sequencer; both are deterministic.
-The fix is for the test to pick a customer it knows has orders, or for the endpoint to
-order its results.
+Fixed on both sides: the endpoint now orders by `CustomerID`, and the test no longer
+assumes `results[0]` is the interesting row - it asserts entity materialization on
+whichever of the five rows actually have orders. Verified over two consecutive runs.
 
 ## strictNullChecks (done)
 

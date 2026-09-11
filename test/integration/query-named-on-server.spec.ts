@@ -418,12 +418,19 @@ describe("Queries with named endpoints on the server", function () {
       expect(results.length).toBe(5);
       expect(results[0].companyName).toBeTruthy();
       expect(results[0].customerID).toBeTruthy();
-      expect(results[0].orders.length).toBeGreaterThan(0);
-      results[0].orders.forEach(function (o: Entity) {
-        const aspect = o.entityAspect;
-        expect(aspect).toBeTruthy();
-        expect(aspect.entityManager).toBe(em);
-        expect(aspect.entityState.isUnchanged()).toBeTrue();
+
+      // Do not assume results[0] has orders - plenty of Northwind customers have none.
+      // What this test is actually about is that entities inside a projection are
+      // materialized and attached, so assert that on whichever rows do have orders.
+      const withOrders = results.filter((r: any) => r.orders.length > 0);
+      expect(withOrders.length).toBeGreaterThan(0);
+      withOrders.forEach((r: any) => {
+        r.orders.forEach(function (o: Entity) {
+          const aspect = o.entityAspect;
+          expect(aspect).toBeTruthy();
+          expect(aspect.entityManager).toBe(em);
+          expect(aspect.entityState.isUnchanged()).toBeTrue();
+        });
       });
     });
 
