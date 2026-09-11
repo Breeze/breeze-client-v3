@@ -72,8 +72,10 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "clean": "rimraf dist",
     "test": "vitest run",
+    "test:unit": "vitest run --config vitest.unit.config.ts",
+    "test:integration": "vitest run --config vitest.integration.config.ts",
     "test:browser": "vitest run --config vitest.browser.config.ts",
-    "test:watch": "vitest"
+    "test:watch": "vitest --config vitest.unit.config.ts"
   },
   "devDependencies": {
     "@types/node": "^22.20.2",

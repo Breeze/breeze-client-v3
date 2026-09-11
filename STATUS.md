@@ -358,3 +358,40 @@ The rest fell into three kinds, in descending order of preference:
 Two runtime behaviours changed, both deliberate and both covered by the suite:
 `AbstractDataServiceAdapter.initialize` dropped an always-true `&& this.ajaxImpl.ajax`,
 and `core.ts`'s ES5 probe dropped an always-true `Object.getPrototypeOf &&`.
+
+## Unit / integration split (done)
+
+`test/` is now split by what a spec actually needs:
+
+| | files | tests | needs |
+|---|---|---|---|
+| `test/unit/` | 14 | 184 | nothing — **runs in 2.7s** |
+| `test/integration/` | 26 | 455 | the .NET server on `:34377` and `BreezeTestDb` |
+
+```
+npm run test:unit          # 2.7s, no server, files run in parallel
+npm run test:integration   # rebuilds the database, serial, pinned order
+npm test                   # both
+npm run test:browser       # both, in Chromium
+npm run test:watch         # watches the unit tier
+```
+
+The split is by directory rather than by the old `-ns` filename suffix, which had stopped
+being reliable: `predicate.spec.ts` needs no server despite the missing suffix, and
+`query-construction-ns.spec.ts` carries the suffix but calls neither init function.
+
+The unit tier has no `globalSetup`, no database rebuild, and file parallelism left on —
+nothing in it touches shared state. Shared helpers (`test-fns.ts`, `util-fns.ts`,
+`save-test-fns.ts`, `support/`, `setup.ts`, `sequencer.ts`, `global-setup.ts`) stay at
+`test/` and are imported from both tiers.
+
+### Still not per-file isolated
+
+The integration tier shares one database *within* a run, which is why it keeps
+`fileParallelism: false` and the pinned alphabetical order. `query-misc.spec.ts`'s
+"self-referencing entity" still needs an employee with id > 10 that only exists because
+`bugs.spec.ts` inserted it earlier in the run.
+
+Per-file reset is the fix, and it now has a natural home: only the integration config
+would need it. It also needs a server-side reset endpoint, because `global-setup.ts`
+shells out to `sqlcmd`, which a browser-mode worker cannot do mid-run.
