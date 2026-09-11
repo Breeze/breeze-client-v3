@@ -799,6 +799,11 @@ describe("Query Basics", () => {
   test("expand through null child object", async () => {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
+    // Northwind ships no order without an employee; this used to find only orders other
+    // spec files had created. Create one, then start from an empty cache.
+    const seedEm = TestFns.newEntityManager();
+    seedEm.createEntity("Order", { shipName: "Test order with no employee" });
+    await seedEm.saveChanges();
     let query = new EntityQuery()
       .from("Orders")
       .where("employeeID", "eq", null);

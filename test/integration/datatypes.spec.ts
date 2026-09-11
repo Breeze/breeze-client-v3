@@ -105,6 +105,9 @@ describe("Unusual Datatypes", () => {
     expect(emp.entityAspect.entityState).toBe(EntityState.Added);
     const birthDate = emp.getProperty("birthDate");
     expect(birthDate).toBeNull;
+    // Save it: every employee in the pristine data has a birth date, so without this the
+    // query only found rows other spec files had inserted.
+    await em.saveChanges();
 
     const q = EntityQuery.from("Employees").where("birthDate", "==", null);
 
