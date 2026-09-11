@@ -598,7 +598,7 @@ describe("Metadata", () => {
 
       let et = new breeze.EntityType(eto);
 
-      et['guid'] = breeze.core.getUuid(); // to see distinct entity types while debugging
+      (et as any)['guid'] = breeze.core.getUuid(); // to see distinct entity types while debugging
       store.addEntityType(et);
     }
   }
@@ -646,7 +646,7 @@ describe("Metadata", () => {
 
       let et = new EntityType(eto);
 
-      et['guid'] = breeze.core.getUuid(); // to see distinct entity types while debugging
+      (et as any)['guid'] = breeze.core.getUuid(); // to see distinct entity types while debugging
       store.addEntityType(et);
     }
   }
@@ -694,7 +694,7 @@ describe("Metadata", () => {
 
       let et = new EntityType(eto);
 
-      et['guid'] = breeze.core.getUuid(); // to see distinct entity types while debugging
+      (et as any)['guid'] = breeze.core.getUuid(); // to see distinct entity types while debugging
       store.addEntityType(et);
     }
   }

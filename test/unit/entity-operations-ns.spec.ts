@@ -527,7 +527,7 @@ describe("Entity operations - no server", () => {
     const em = TestFns.newEntityManager(TestFns.sampleMetadataStore);
     const orderType = em.metadataStore.getAsEntityType("Order");
     const empType = em.metadataStore.getAsEntityType("Employee");
-    em['tag'] = "foo";
+    (em as any)['tag'] = "foo";
     const changedArgs = [];
     breeze.Event.enable("entityChanged", em, em => em.tag === "enabled");
     em.entityChanged.subscribe(function (args) {

@@ -84,7 +84,7 @@ describe("FilterQueryOp.IsTypeOf is gone", () => {
   // "Unable to resolve predicate". It was removed rather than half-supported.
   test("IsTypeOf is not defined", () => {
     expect((FilterQueryOp as any).IsTypeOf).toBeUndefined();
-    expect(FilterQueryOp.getSymbols().map(op => op.operator)).not.toContain("isof");
+    expect((FilterQueryOp.getSymbols() as FilterQueryOp[]).map(op => op.operator)).not.toContain("isof");
   });
 
   test("every FilterQueryOp that is defined can be used in a predicate", () => {

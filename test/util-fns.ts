@@ -59,7 +59,7 @@ export class UtilFns {
       children.sort(function (a, b) {
         return b.size - a.size;
       });
-      const alt = {};
+      const alt: Record<string, any> = {};
       children.forEach(function (c) {
         alt[c.name] = c;
       });
@@ -102,7 +102,7 @@ export class UtilFns {
       }
     }
 
-    const alt = {};
+    const alt: Record<string, any> = {};
     children.forEach((c: any) => {
       alt[c.name] = c;
     });

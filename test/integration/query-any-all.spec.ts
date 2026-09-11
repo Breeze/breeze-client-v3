@@ -1,7 +1,6 @@
 import { Entity, EntityQuery, Predicate } from '../../src/breeze';
 import { TestFns, skipDescribeIf } from '../test-fns';
 import { UtilFns } from '../util-fns';
-import { skip } from 'rxjs/operators';
 
 TestFns.initServerEnv();
 

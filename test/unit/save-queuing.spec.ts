@@ -42,7 +42,7 @@ describe("Save Queuing", () => {
 
     const sr = await em.saveChanges();
     let rcust0 = sr.entities[0];
-    expect(rcust0['companyName']).toEqual("FirstCo");
+    expect(rcust0.getProperty('companyName')).toEqual("FirstCo");
     expect(rcust0.entityAspect.entityState.name).toEqual("Unchanged");
   });
 
@@ -82,9 +82,9 @@ describe("Save Queuing", () => {
     const sr = await Promise.all([p0, p1]);
     expect(sr.length).toEqual(2);
     expect(sr[0].entities.length).toEqual(1);
-    expect(sr[0].entities[0]['companyName']).toEqual("FirstCo");
+    expect(sr[0].entities[0].getProperty('companyName')).toEqual("FirstCo");
     expect(sr[1].entities.length).toEqual(1);
-    expect(sr[1].entities[0]['companyName']).toEqual("SecondCo");
+    expect(sr[1].entities[0].getProperty('companyName')).toEqual("SecondCo");
   });
 
 

@@ -242,7 +242,7 @@ describe("Entity Creation", () => {
       // should be called after materialization ... but is not.
       const companyName = customer.getProperty("companyName");
       expect(companyName).not.toBeNull();
-      customer["foo"] = "Foo " + companyName;
+      (customer as any)["foo"] = "Foo " + companyName;
     };
     em.metadataStore.registerEntityTypeCtor("Customer", Customer, customerInitializer);
 
@@ -261,7 +261,7 @@ describe("Entity Creation", () => {
 
     const empInitializer = function (emp: Entity) {
       emp.setProperty("hireDate", dt);
-      emp["foo"] = "Foo " + emp.getProperty("hireDate").toString();
+      (emp as any)["foo"] = "Foo " + emp.getProperty("hireDate").toString();
     };
     em.metadataStore.registerEntityTypeCtor("Employee", null, empInitializer);
 

@@ -133,7 +133,7 @@ describe("Entity Creation - no server", () => {
     const productKeyName = TestFns.wellKnownData.keyNames.product;
     let newDetail = null;
     // pretend parent entities were queried
-    let cfg = {};
+    let cfg: Record<string, any> = {};
     cfg[orderKeyName] = 1;
     const parentOrder = em.createEntity("Order", cfg, breeze.EntityState.Unchanged);
     cfg = {};
@@ -154,7 +154,7 @@ describe("Entity Creation - no server", () => {
 
     let newDetail = null;
     // pretend parent entities were queried
-    let cfg = {};
+    let cfg: Record<string, any> = {};
     cfg[orderKeyName] = 1;
     const parentOrder = em.createEntity("Order", cfg, breeze.EntityState.Detached);
     cfg = {};

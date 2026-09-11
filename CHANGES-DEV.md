@@ -314,3 +314,21 @@ end to end — found two blocking defects.
 
 Source maps now use `inlineSources`, since the package ships `dist/` only, and declaration
 maps are off.
+
+## The tests have their own TypeScript project
+
+`tsconfig.json` covers `src/` only, so until now the specs were checked by nothing: VS Code
+fell back to a default project that knew neither Vitest's globals nor the JSON fixtures,
+and showed hundreds of errors. `test/tsconfig.json` extends the root config and adds
+`vitest/globals`, Node types and `resolveJsonModule`. It uses `bundler` resolution, because
+the specs import `../../src/...` without extensions and only ever run under Vite. The
+library keeps `NodeNext`. `test/global.d.ts` puts the `jest-extended` matchers on Vitest's
+`Assertion`.
+
+The tests are checked without `strictNullChecks`. With it on there were 410 errors, almost
+all null-handling in code ported from 2.x, which never had the setting. With it off, 37
+remained, and they were fixed rather than relaxed away. They included a real hole:
+`enum.spec.ts` called `fail()`, which Vitest does not define, inside a `try` whose `catch`
+swallowed the `ReferenceError`, so that check could never fail.
+
+`npm run typecheck` now checks both projects.

@@ -234,6 +234,22 @@ fast default. Both give identical results.
 This needs the server's `BreezeTestCors` policy, which is already in `Startup.cs`. Without
 it every request fails preflight.
 
+### Type-checking the tests
+
+```bash
+npm run typecheck        # the library, then the tests
+npm run typecheck:test   # just the tests
+```
+
+The tests have their own project, `test/tsconfig.json`, which VS Code uses for every file
+under `test/`. It knows Vitest's globals (`describe`, `test`, `expect`), the `jest-extended`
+matchers and the JSON fixtures. If spec files still show red squiggles after pulling this,
+run **TypeScript: Restart TS Server** from the command palette.
+
+The tests are checked without `strictNullChecks`, which the library itself keeps on. They
+were written for 2.x and deliberately work with nulls and lookups that can fail.
+`noImplicitAny` stays on for both.
+
 ### Running one file or one test
 
 ```bash

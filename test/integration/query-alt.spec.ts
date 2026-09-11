@@ -208,7 +208,7 @@ describe("Query Alternatives", () => {
     const em = TestFns.newEntityManager();
     const pred = Predicate.create("customerID", "!=", null).and("employeeID", "!=", null);
     const query = EntityQuery.from("Orders").where(pred).take(1);
-    em["tag"] = "xxxx";
+    (em as any)["tag"] = "xxxx";
 
     const qr1 = await em.executeQuery(query);
     const order = qr1.results[0];

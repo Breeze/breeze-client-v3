@@ -1,0 +1,23 @@
+{
+  // Type-checking for the tests and the Vitest configs. VS Code uses this for every file
+  // under test/; `npm run typecheck:test` runs it from the command line. Nothing is emitted:
+  // Vitest compiles the specs itself.
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    // The specs import ../../src/... without extensions, which Vite resolves. The library
+    // itself uses NodeNext (see ../tsconfig.json) so that the published package loads in
+    // Node; the tests never run as plain Node ESM, so they use bundler resolution.
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "noEmit": true,
+    // The library is checked with strictNullChecks (../tsconfig.json). The tests are not:
+    // they were written for 2.x, which never had it on, and they deliberately work with
+    // nulls and lookups that can fail. noImplicitAny stays on.
+    "strictNullChecks": false,
+    "resolveJsonModule": true,
+    "types": ["vitest/globals", "node"]
+  },
+  "include": ["**/*.ts", "../vitest*.config.ts"],
+  // Replace the base config's exclude, which excludes test/ itself.
+  "exclude": ["../node_modules", "../dist"]
+}

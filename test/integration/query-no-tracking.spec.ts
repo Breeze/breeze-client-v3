@@ -34,7 +34,7 @@ describe("Query wih noTracking", () => {
     const r = qr1.results;
     expect(r.length > 0);
     let count = 0;
-    const umap = {};
+    const umap: Record<string, any> = {};
     r.forEach(function (emp) {
       checkUniqEmp(umap, emp);
       if (emp.manager) {
@@ -276,7 +276,7 @@ describe("Query wih noTracking", () => {
 
   });
 
-  function checkUniqEmp(umap: object, emp: Entity) {
+  function checkUniqEmp(umap: Record<string, any>, emp: any) {  // noTracking results are plain objects, not entities
     const empId = emp["employeeID"];
     const sameEmp = umap[empId];
     if (sameEmp != null) {

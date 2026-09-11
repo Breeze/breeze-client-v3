@@ -148,14 +148,14 @@ describe("Validator", () => {
   });
 
   test("custom validation message", function () {
-    Validator['min'] = function (context: any) {
+    (Validator as any)['min'] = function (context: any) {
       const fn = function (val: any, ctx: any) {
         return val >= ctx.min;
       };
       return new Validator('min', fn, context);
     };
     Validator.messageTemplates['min'] = "Insert value >= %min%";
-    const v0 = Validator['min']({ min: 0 });
+    const v0 = (Validator as any)['min']({ min: 0 });
     const r = v0.validate(-3);
     expect(r != null).toBe(true);
     expect(r.errorMessage).toMatch(/>= 0/);

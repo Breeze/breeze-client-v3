@@ -297,7 +297,7 @@ describe("Old Fixed Bugs", () => {
 
     const m1 = em.createEmptyCopy();
     
-    const cfg = {};
+    const cfg: Record<string, any> = {};
     cfg[customerKeyName] = breeze.core.getUuid();
     const customer = m1.createEntity("Customer", cfg);
     const exported = m1.exportEntities([customer], { includeMetadata: false });
@@ -315,7 +315,7 @@ describe("Old Fixed Bugs", () => {
     em.metadataStore.registerEntityTypeCtor("Customer", Customer);
 
     const m1 = em.createEmptyCopy();
-    const cfg = {};
+    const cfg: Record<string, any> = {};
     cfg[customerKeyName] = breeze.core.getUuid();
     const customer = m1.createEntity("Customer", cfg);
     const exported = m1.exportEntities([customer], { includeMetadata: false });
@@ -336,7 +336,7 @@ describe("Old Fixed Bugs", () => {
 
     const m1 = em.createEmptyCopy();
     const customerType = m1.metadataStore.getEntityType("Customer");
-    const cfg = {};
+    const cfg: Record<string, any> = {};
     cfg[customerKeyName] = breeze.core.getUuid();
     const customer = m1.createEntity("Customer", cfg);
     const exported = m1.exportEntities([customer]);

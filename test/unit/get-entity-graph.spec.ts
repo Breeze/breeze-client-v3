@@ -27,7 +27,7 @@ describe("GetEntityGraph", () => {
 
     let customer = em.createEntity("Customer", { companyName: "ACME"});
     expect(customer).toBeTruthy();
-    expect(customer['companyName']).toEqual("ACME");
+    expect(customer.getProperty('companyName')).toEqual("ACME");
 
     let o1 = em.createEntity("Order", { shipName: "One", customer: customer });
     let o2 = em.createEntity("Order", { shipName: "Two", customer: customer });
@@ -44,7 +44,7 @@ describe("GetEntityGraph", () => {
 
     let customer = em.createEntity("Customer", { companyName: "ACME"});
     expect(customer).toBeTruthy();
-    expect(customer['companyName']).toEqual("ACME");
+    expect(customer.getProperty('companyName')).toEqual("ACME");
 
     let o1 = em.createEntity("Order", { shipName: "One", customer: customer });
     let o2 = em.createEntity("Order", { shipName: "Two", customer: customer });

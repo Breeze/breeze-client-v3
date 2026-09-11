@@ -14,7 +14,7 @@ describe("MetadataStore.importMetadata", () => {
 
   test("rejects CSDL instead of silently importing nothing", () => {
     // 2.x parsed CSDL (EDMX). v3 does not, and used to accept it without a word.
-    const csdl = { schema: { namespace: "Northwind", entityType: [] } };
+    const csdl = { schema: { namespace: "Northwind", entityType: [] as unknown[] } };
     expect(() => new MetadataStore().importMetadata(csdl)).toThrow(/CSDL/);
   });
 

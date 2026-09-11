@@ -345,7 +345,7 @@ describe("Query Construction", () => {
   }
 
   function makeFilter(propName: string, value: any) {
-    return (obj: object) => {
+    return (obj: any) => {
       return obj[propName] === value;
     };
   }

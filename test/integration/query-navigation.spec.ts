@@ -8,7 +8,7 @@ function ok(a: any, b?: any) {
 TestFns.initServerEnv();
 
 // check using well-known data.  Map of employeeId : reportsToEmployeeID
-const employeeMap = {
+const employeeMap: Record<string, any> = {
   1: 2,
   3: 2,
   4: 3,

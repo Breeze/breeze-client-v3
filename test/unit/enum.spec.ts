@@ -58,20 +58,15 @@ describe("Breeze Enums", () => {
       expect(EntityState.fromName('Added')).toBe(EntityState.Added);
       let est = EntityState;
       let nm = est.Added.name;
-      if (nm == null) {
-        fail("should not get here");
-      }
+      expect(nm).toBeTruthy();
       expect(EntityState.Added.name).toBe("Added");
       expect(EntityState.Added instanceof EntityState).toBe(true);
       expect(EntityState.Added.constructor).toBe(EntityState);
       let es = EntityState.Detached;
       assertParam(es, "entityState").isEnumOf(EntityState).check();
-      try {
-        assertParam(es, "entityState").isEnumOf(EntityAction).check();
-        fail("should not get here");
-      } catch (e) {
-        // should get here
-      }
+      // This used to call fail(), which Vitest does not define. The catch swallowed the
+      // resulting ReferenceError, so the check could never fail.
+      expect(() => assertParam(es, "entityState").isEnumOf(EntityAction).check()).toThrow();
     });
 
     test("EntityState.isDeletedOrDetached", () => {
