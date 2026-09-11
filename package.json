@@ -70,6 +70,9 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "docs:api": "typedoc",
+    "docs:dev": "npm run docs:api && vitepress dev docs",
+    "docs:build": "npm run docs:api && vitepress build docs",
+    "docs:preview": "vitepress preview docs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "clean": "rimraf dist",
     "test": "vitest run",
@@ -86,7 +89,10 @@
     "playwright": "^1.63.0",
     "rimraf": "^6.0.1",
     "typedoc": "^0.28.20",
+    "typedoc-plugin-markdown": "^4.13.0",
+    "typedoc-vitepress-theme": "^1.1.4",
     "typescript": "~5.8.0",
+    "vitepress": "^1.6.4",
     "vitest": "^5.0.0"
   },
   "keywords": [

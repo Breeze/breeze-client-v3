@@ -715,13 +715,13 @@ export class Validator {
   Returns the phone validator
   Provides basic assertions on the format and will help to eliminate most nonsense input
   Matches:
-  International dialing prefix: {{}, +, 0, 0000} (with or without a trailing break character, if not '+': [-/. ])
+  International dialing prefix: one of nothing, `+`, `0` or `0000` (with or without a trailing break character, if not '+': [-/. ])
   > ((\+)|(0(\d+)?[-/.\s]))
-  Country code: {{}, 1, ..., 999} (with or without a trailing break character: [-/. ])
+  Country code: nothing, or `1` to `999` (with or without a trailing break character: [-/. ])
   > [1-9]\d{,2}[-/.\s]?
-  Area code: {(0), ..., (000000), 0, ..., 000000} (with or without a trailing break character: [-/. ])
+  Area code: `(0)` to `(000000)`, or `0` to `000000` (with or without a trailing break character: [-/. ])
   > ((\(\d{1,6}\)|\d{1,6})[-/.\s]?)?
-  Local: {0, ...}+ (with or without a trailing break character: [-/. ])
+  Local: one or more digits (with or without a trailing break character: [-/. ])
   > (\d+[-/.\s]?)+\d+
   @example
       // Assume em is a preexisting EntityManager.

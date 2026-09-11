@@ -15,3 +15,8 @@ vn.txt
 temp-docs/
 td.txt
 docs/api/
+
+# docs
+docs/api/
+docs/.vitepress/dist/
+docs/.vitepress/cache/

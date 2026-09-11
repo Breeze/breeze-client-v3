@@ -241,3 +241,19 @@ rebuild.
 Possible, though the known instance of this is fixed. The integration tests share a
 database within a run; if you find one, check whether it depends on data another file
 creates — and please note it in `STATUS.md`.
+
+---
+
+## Building the docs
+
+Separate from the tests, but same toolchain:
+
+```bash
+npm run docs:dev       # local server with hot reload
+npm run docs:build     # static site to docs/.vitepress/dist
+npm run docs:preview   # serve the built site
+npm run docs:api       # regenerate just the API markdown
+```
+
+`docs:dev` and `docs:build` run TypeDoc first, so the API reference is always in step
+with the source. Both `docs/api/` (generated) and `docs/.vitepress/dist/` are gitignored.
