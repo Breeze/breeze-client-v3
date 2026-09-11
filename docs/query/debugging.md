@@ -31,7 +31,7 @@ const loggingFetch: BreezeFetch = async (input, init) => {
   return res;
 };
 
-configureBreeze({ fetch: loggingFetch, /* ...the rest */ });
+configureBreeze({ fetch: loggingFetch });
 ```
 
 It is a plain function, so you can wrap your auth or retry transport in it the same way.

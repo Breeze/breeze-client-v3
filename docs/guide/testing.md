@@ -19,22 +19,18 @@ The examples use [Vitest](https://vitest.dev) and the Northwind model.
 
 ## Configure Breeze once
 
-`configureBreeze` sets global state, so call it in a Vitest setup file:
+Breeze needs no adapter registration, so with a .NET server the only setup is the naming
+convention. It is global state, so set it in a Vitest setup file:
 
 ```ts
 // test/breeze-setup.ts
 import { configureBreeze, NamingConvention } from 'breeze-client';
-import { DataServiceWebApiAdapter } from 'breeze-client/adapter-data-service-webapi';
-import { UriBuilderJsonAdapter } from 'breeze-client/adapter-uri-builder-json';
-import { ModelLibraryBackingStoreAdapter } from 'breeze-client/adapter-model-library-backing-store';
 
-configureBreeze({
-  dataService: DataServiceWebApiAdapter,
-  uriBuilder: UriBuilderJsonAdapter,
-  modelLibrary: ModelLibraryBackingStoreAdapter,
-  namingConvention: NamingConvention.camelCase,
-});
+configureBreeze({ namingConvention: NamingConvention.camelCase });
 ```
+
+If your application registers a custom adapter, register it here too, so that the tests
+use the same one.
 
 ```ts
 // vitest.config.ts

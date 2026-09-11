@@ -470,3 +470,18 @@ Tree-shaking works: an unimported subpath is dropped. Core plus three adapters i
 
 `scripts/test-with-server.ps1` (and `test-with-server.cmd`) runs the server-backed loop in
 one command: database, server, tests, shutdown. See TESTING.md.
+
+## Default adapters (done)
+
+Breeze works with no adapter registration: with nothing registered it falls back to the
+backing-store model library, the JSON uri builder and the Web API data service, and sends
+requests through `config.fetch`. Defaults are registered lazily, only for an interface
+nothing has been registered for; 2.x startup that initialized them by name works without
+`registerAdapter`. Design notes in CHANGES-DEV.md.
+
+`test/test-fns.ts` registers nothing, so every server-backed test runs on the defaults:
+unit 268, integration 450 + 7 skipped, browser 718 + 7 skipped. The packed tarball passes a
+Node end-to-end with no configuration at all.
+
+The test hosts in breeze-server-v3 now set `UseAppHost=false`: Windows application control
+had started blocking the rebuilt, unsigned test-host `.exe`.

@@ -53,6 +53,27 @@ export interface BaseAdapter {
     checkForRecomposition?: (context: any) => void;
 }
 
+/**
+An adapter Breeze falls back to for an interface when nothing has been registered for it.
+@hidden
+*/
+export interface DefaultAdapter {
+    ctor: AdapterCtor<any>;
+    /** Use only when asked for by name, never as the unnamed default. */
+    namedOnly?: boolean;
+}
+
+const defaultAdapters: Partial<Record<AdapterType, DefaultAdapter>> = {};
+
+/**
+Sets the adapters Breeze falls back to when none has been registered for an interface.
+Called once, by default-adapters.ts; applies to every BreezeConfig.
+@hidden @internal
+*/
+export function setDefaultAdapters(defaults: Partial<Record<AdapterType, DefaultAdapter>>) {
+    Object.assign(defaultAdapters, defaults);
+}
+
 export class BreezeConfig {
     functionRegistry: Record<string, Function> = {};
     typeRegistry: Record<string, Function> = {};
@@ -145,7 +166,7 @@ export class BreezeConfig {
         assertParam(isDefault, "isDefault").isBoolean().check();
 
         let idef = this.getInterfaceDef(interfaceName);
-        let impl = idef.getImpl(adapterName);
+        let impl = idef.getImpl(adapterName) || this._registerDefaultAdapter(idef, interfaceName, adapterName);
         if (!impl) {
             throw new Error("Unregistered adapter.  Interface: " + interfaceName + " AdapterName: " + adapterName);
         }
@@ -172,6 +193,7 @@ export class BreezeConfig {
         } else {
             impl = idef.getImpl(adapterName!);
         }
+        if (!impl) impl = this._registerDefaultAdapter(idef, interfaceName, isDefault ? undefined : adapterName)!;
         if (!impl) return undefined;
         if (impl.defaultInstance) {
             return impl.defaultInstance;
@@ -239,6 +261,24 @@ export class BreezeConfig {
             throw new Error("Unable to locate a registered object by the name: " + key);
         }
         return result;
+    }
+
+    /**
+    Registers the default adapter for an interface that has none, so that Breeze works with no
+    configuration at all (see default-adapters.ts). It runs only when the interface is first
+    asked for and nothing has been registered for it, so importing Breeze still registers
+    nothing, and anything an application registers wins. A named lookup falls back only when
+    the name is the default adapter's own.
+    @hidden @internal
+    */
+    _registerDefaultAdapter<T extends BaseAdapter>(idef: InterfaceDef<T>, interfaceName: AdapterType, adapterName?: string): IDef<T> | undefined {
+        const fallback = defaultAdapters[interfaceName];
+        if (!fallback) return undefined;
+        if (!adapterName && fallback.namedOnly) return undefined;
+        const name: string = new fallback.ctor().name;
+        if (adapterName && adapterName.toLowerCase() !== name.toLowerCase()) return undefined;
+        this.registerAdapter(interfaceName, fallback.ctor);
+        return idef.getImpl(name);
     }
 
     /** @hidden @internal */

@@ -1,7 +1,5 @@
 import { EntityManager, NamingConvention, MetadataStore, DataType, breeze, core, Entity, config } from '../src/breeze';
 import { ModelLibraryBackingStoreAdapter } from '../src/adapter-model-library-backing-store';
-import { UriBuilderJsonAdapter } from '../src/adapter-uri-builder-json';
-import { DataServiceWebApiAdapter } from '../src/adapter-data-service-webapi';
 import { UtilFns } from './util-fns';
 
 // Choose whether to use the EmployeeTerritoriesNoPayload join table by swapping this import.
@@ -78,18 +76,10 @@ export class TestFns extends UtilFns {
   }
 
   private static initAdapters() {
-    ModelLibraryBackingStoreAdapter.register();
+    // No adapters are registered. Breeze falls back to its defaults - backing-store model
+    // library, JSON uri builder, Web API data service, requests through config.fetch - so the
+    // integration and browser tiers exercise exactly what an unconfigured application gets.
 
-    // Breeze JSON is the only supported query syntax; the 2.x alternative uri builder was removed in v3.
-    UriBuilderJsonAdapter.register();
-
-    // No ajax adapter: requests go through config.fetch, globalThis.fetch by default. The
-    // integration and browser tiers therefore exercise the default path.
-    DataServiceWebApiAdapter.register();
-    
-    // DataServiceWebApiAdapter.register();
-    // UriBuilderJsonAdapter.register();
-    // ModelLibraryBackingStoreAdapter.register();
 
     if (TestFns.isAspCoreServer || TestFns.isAspWebApiServer) {
       NamingConvention.camelCase.setAsDefault();

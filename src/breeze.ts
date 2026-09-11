@@ -41,6 +41,10 @@ import { makeRelationArray, makePrimitiveArray, makeComplexArray } from './array
 
 import type { RelationArray } from './relation-array.js';
 import type { ArrayChangedArgs } from './observable-array.js';
+
+// Fills the fallback table, so that Breeze works with no adapter registration. It registers
+// nothing itself: see default-adapters.ts.
+import './default-adapters.js';
 export { BreezeConfig };
 export type { ComplexArray, RelationArray };
 

@@ -35,8 +35,9 @@ Version 3 is a rewrite of the 2.x codebase with the same public API. What change
 - **ESM only**, one package, one npm tag. No CommonJS build, no UMD bundle, no
   `mjs`/`cjs` dist-tags to choose between.
 - **No runtime dependencies.**
-- **Typed configuration** — [`configureBreeze`](/guide/configuration) replaces the
-  stringly-typed adapter registration.
+- **No adapter setup** — Breeze uses its standard adapters unless you register others.
+  When you do, [`configureBreeze`](/guide/configuration) replaces the stringly-typed
+  adapter registration.
 - **Knockout, jQuery, AngularJS and OData support removed.** See
   [Migrating from 2.x](/guide/migrating-from-2x) for what to do if you use them.
 - Built under `strictNullChecks` and `noImplicitAny`.

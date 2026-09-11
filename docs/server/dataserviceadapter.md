@@ -7,14 +7,16 @@ kind of service:
   entities.
 - **`saveChanges`** sends pending changes and returns what the server saved.
 
-Breeze ships one adapter, `DataServiceWebApiAdapter`, named `'webApi'`. It talks to a
-Breeze .NET server, or to any server that uses the same JSON. For anything else, write
+Breeze ships one adapter, `DataServiceWebApiAdapter`, named `'webApi'`, and uses it unless
+you register another. It talks to a Breeze .NET server, or to any server that uses the
+same JSON. For anything else, write
 your own adapter — usually by subclassing `AbstractDataServiceAdapter` and overriding a few
 methods.
 
 ::: tip Changed in 3.0
 - The OData adapter is gone.
-- Adapters no longer register themselves when imported.
+- Adapters no longer register themselves when imported. `DataServiceWebApiAdapter` does
+  not need registering: it is the default.
 - `AbstractDataServiceAdapter` is promise-based: `fetchMetadata`, `executeQuery` and
   `saveChanges` are `async` and return native promises. They share one `_ajax` helper.
 
@@ -25,26 +27,33 @@ return a native one.
 
 ## Registering an adapter
 
+You don't register `DataServiceWebApiAdapter`. When no data service adapter is
+registered, Breeze uses it. Registering an adapter is how you replace it:
+
 ```ts
 import { configureBreeze } from 'breeze-client';
-import { DataServiceWebApiAdapter } from 'breeze-client/adapter-data-service-webapi';
+import { ChangeSetAdapter } from './change-set-adapter';
 
-configureBreeze({
-  dataService: DataServiceWebApiAdapter,
-  /* ...uriBuilder, modelLibrary */
-});
+configureBreeze({ dataService: ChangeSetAdapter });
 ```
+
+Do this at startup, before you create an `EntityManager`. A `DataService` resolves its
+adapter once, the first time it is used, and keeps it.
 
 Requests go through `config.fetch`, so there is no ajax adapter to register first. See
 [Supplying your own transport](/server/transport).
 
 `configureBreeze` makes the adapter the default for every `DataService`. To use a second
 adapter for one service only, register it without making it the default, and name it in
-that service's `DataService`:
+that service's `DataService`. In this case, register the default adapter explicitly too.
+Breeze falls back to `DataServiceWebApiAdapter` only when no data service adapter is
+registered at all; otherwise it uses the first one registered.
 
 ```ts
 import { config, DataService } from 'breeze-client';
+import { DataServiceWebApiAdapter } from 'breeze-client/adapter-data-service-webapi';
 
+DataServiceWebApiAdapter.register();                        // the default, for every other service
 config.registerAdapter('dataService', ChangeSetAdapter);   // registered, not the default
 
 const legacy = new DataService({
@@ -317,14 +326,10 @@ export class ChangeSetAdapter extends AbstractDataServiceAdapter {
 }
 ```
 
-Register it like any other adapter:
+Register it at startup. The URI builder and model library keep their defaults:
 
 ```ts
-configureBreeze({
-  dataService: ChangeSetAdapter,
-  uriBuilder: UriBuilderJsonAdapter,
-  modelLibrary: ModelLibraryBackingStoreAdapter,
-});
+configureBreeze({ dataService: ChangeSetAdapter });
 
 const em = new EntityManager({
   dataService: new DataService({ serviceName: '/api', hasServerMetadata: false }),
@@ -368,6 +373,8 @@ export class MyWebApiAdapter extends DataServiceWebApiAdapter {
 }
 ```
 
+`configureBreeze({ dataService: MyWebApiAdapter })` then replaces the default.
+
 ## Adjusting save requests
 
 Sometimes an adapter's save request is nearly right, and only a detail needs to change.
@@ -398,14 +405,12 @@ class ClearOriginalNotes implements ChangeRequestInterceptor {
 }
 ```
 
-To install it, you need the adapter instance, which `register()` returns. Leave
-`dataService` out of `configureBreeze`, and register the adapter yourself:
+To install it, you need the adapter instance, which `register()` returns. Registering the
+default adapter yourself is harmless, and gives you the instance every `DataService` will
+use. Do it at startup, before you create an `EntityManager`:
 
 ```ts
-configureBreeze({
-  uriBuilder: UriBuilderJsonAdapter,
-  modelLibrary: ModelLibraryBackingStoreAdapter,
-});
+import { DataServiceWebApiAdapter } from 'breeze-client/adapter-data-service-webapi';
 
 const dsAdapter = DataServiceWebApiAdapter.register();
 dsAdapter.changeRequestInterceptor = ClearOriginalNotes;

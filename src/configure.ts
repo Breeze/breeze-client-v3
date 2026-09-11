@@ -17,9 +17,9 @@ export interface AjaxAdapterRegistration {
 
 /** Options accepted by {@link configureBreeze}. */
 export interface BreezeSetupOptions {
-  /** Model library adapter, e.g. `ModelLibraryBackingStoreAdapter`. */
+  /** Model library adapter. Defaults to `ModelLibraryBackingStoreAdapter`. */
   modelLibrary?: AdapterRegistration;
-  /** Uri builder adapter, e.g. `UriBuilderJsonAdapter`. */
+  /** Uri builder adapter. Defaults to `UriBuilderJsonAdapter`. */
   uriBuilder?: AdapterRegistration;
   /**
    * @deprecated Breeze no longer needs an ajax adapter: requests go through `fetch`.
@@ -27,7 +27,7 @@ export interface BreezeSetupOptions {
    * and is handed `fetch` as its transport if you supply both.
    */
   ajax?: AjaxAdapterRegistration;
-  /** Data service adapter, e.g. `DataServiceWebApiAdapter`. */
+  /** Data service adapter. Defaults to `DataServiceWebApiAdapter`. */
   dataService?: AdapterRegistration;
 
   /**
@@ -50,26 +50,22 @@ export interface BreezeSetupOptions {
 /**
  * Configures Breeze in a single typed call.
  *
+ * Every option is optional. With no call at all, Breeze uses its default adapters - the
+ * backing-store model library, the JSON uri builder and the Web API data service - and
+ * sends requests through `globalThis.fetch`. A Breeze .NET server typically needs only:
+ *
  * ```ts
  * import { configureBreeze, NamingConvention } from 'breeze-client';
- * import { DataServiceWebApiAdapter } from 'breeze-client/adapter-data-service-webapi';
- * import { UriBuilderJsonAdapter } from 'breeze-client/adapter-uri-builder-json';
- * import { ModelLibraryBackingStoreAdapter } from 'breeze-client/adapter-model-library-backing-store';
  *
- * configureBreeze({
- *   dataService: DataServiceWebApiAdapter,
- *   uriBuilder: UriBuilderJsonAdapter,
- *   modelLibrary: ModelLibraryBackingStoreAdapter,
- *   namingConvention: NamingConvention.camelCase,
- * });
+ * configureBreeze({ namingConvention: NamingConvention.camelCase });
  * ```
+ *
+ * Pass an adapter to replace a default, e.g. `configureBreeze({ dataService: MyAdapter })`,
+ * or a `fetch` to add auth headers, retry or logging.
  *
  * This replaces the stringly-typed pairs of `config.registerAdapter("dataService", Ctor)`
  * and `config.initializeAdapterInstance("dataService", "webApi", true)`. Those still work and
  * are unchanged, but are deprecated.
- *
- * No ajax adapter is needed. Requests go through `fetch`, which defaults to
- * `globalThis.fetch`; pass your own to add auth headers, retry or logging.
  */
 export function configureBreeze(options: BreezeSetupOptions): void {
   const cfg = options.config || config;

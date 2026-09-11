@@ -20,7 +20,7 @@ const authFetch: BreezeFetch = (input, init) =>
     headers: { ...init?.headers, Authorization: `Bearer ${getToken()}` },
   });
 
-configureBreeze({ fetch: authFetch, /* ...the rest */ });
+configureBreeze({ fetch: authFetch });
 ```
 
 Because the token is read inside the function, it picks up refreshes without
@@ -95,7 +95,9 @@ Breeze 2.x routed requests through an *ajax adapter*. Breeze 3 does not need one
 `AjaxFetchAdapter` is still there so that 2.x startup code keeps working. If you register
 it — `configureBreeze({ ajax: AjaxFetchAdapter })`, `AjaxFetchAdapter.register()` or
 `config.initializeAdapterInstance('ajax', 'fetch')` — Breeze uses it instead of
-`config.fetch`, and its two older hooks still work:
+`config.fetch`, and its two older hooks still work. (With no ajax adapter registered,
+`initializeAdapterInstance('ajax', 'fetch')` gets an `AjaxFetchAdapter` that sends its
+requests through `config.fetch`.)
 
 ```ts
 import { config, type AjaxAdapter } from 'breeze-client';

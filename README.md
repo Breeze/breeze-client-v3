@@ -46,11 +46,16 @@ npm install breeze-client
 ```
 
 ```ts
-import { EntityManager, EntityQuery } from 'breeze-client';
-import { DataServiceWebApiAdapter } from 'breeze-client/adapter-data-service-webapi';
-import { UriBuilderJsonAdapter } from 'breeze-client/adapter-uri-builder-json';
-import { ModelLibraryBackingStoreAdapter } from 'breeze-client/adapter-model-library-backing-store';
+import { configureBreeze, EntityManager, EntityQuery, NamingConvention } from 'breeze-client';
+
+configureBreeze({ namingConvention: NamingConvention.camelCase });   // for a Breeze .NET server
+
+const em = new EntityManager('/breeze/Northwind');
+const { results } = await em.executeQuery(EntityQuery.from('Customers').take(10));
 ```
+
+There are no adapters to import or register: Breeze uses its standard ones unless you
+configure others.
 
 ## Building
 

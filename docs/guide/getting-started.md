@@ -15,35 +15,29 @@ esbuild, Rollup) or native `import`. There is no UMD bundle and no `<script>` ta
 
 ## Configure
 
-Breeze needs three adapters wired up before you use it. Do this once, at startup:
+With a Breeze .NET server, the only thing to set is the naming convention. Do it once, at
+startup:
 
 ```ts
 import { configureBreeze, NamingConvention } from 'breeze-client';
-import { DataServiceWebApiAdapter } from 'breeze-client/adapter-data-service-webapi';
-import { UriBuilderJsonAdapter } from 'breeze-client/adapter-uri-builder-json';
-import { ModelLibraryBackingStoreAdapter } from 'breeze-client/adapter-model-library-backing-store';
 
-configureBreeze({
-  dataService: DataServiceWebApiAdapter,
-  uriBuilder: UriBuilderJsonAdapter,
-  modelLibrary: ModelLibraryBackingStoreAdapter,
-  namingConvention: NamingConvention.camelCase,
-});
+configureBreeze({ namingConvention: NamingConvention.camelCase });
 ```
 
-Those three choices mean, respectively: talk to a Breeze .NET server, encode queries as
-Breeze JSON, and track changes with plain properties. HTTP requests go through the
-platform's `fetch`; to add auth headers or logging, see
+`NamingConvention.camelCase` translates `CompanyName` on the server to `companyName` on
+the client. Use it with a .NET server; omit it if your server already sends camelCase.
+`NamingConvention.camelCase.setAsDefault()` does the same thing.
+
+There are no adapters to import or register. Unless you say otherwise, Breeze talks to a
+Breeze .NET server, encodes queries as Breeze JSON, tracks changes with plain properties,
+and makes its HTTP requests with the platform's `fetch`. To replace any of those, see
+[Configuration](/guide/configuration); to add auth headers or logging, see
 [Supplying your own transport](/server/transport).
 
-`namingConvention: NamingConvention.camelCase` translates `CompanyName` on the server to
-`companyName` on the client. Use it with a .NET server; omit it if your server already
-sends camelCase.
-
-::: tip Importing does not register
-In Breeze 3, importing an adapter module does **not** register it — that was a
-side effect in 2.x. Passing it to `configureBreeze` is what registers it. See
-[Configuration](/guide/configuration).
+::: tip Changed in 3.0
+In 2.x, importing an adapter module registered it. Breeze 3 registers nothing on import,
+and you don't need it to: when nothing is registered, Breeze uses its standard adapters.
+See [Default adapters](/guide/configuration#default-adapters).
 :::
 
 ## Create an EntityManager
@@ -113,8 +107,8 @@ it.
 
 ## Where next
 
-- [Configuration](/guide/configuration) — what `configureBreeze` does, and supplying your
-  own HTTP transport
+- [Configuration](/guide/configuration) — the default adapters, replacing them, and
+  supplying your own HTTP transport
 - [Querying](/query/) — predicates, projections, `expand`, querying the cache
 - [Inside the entity](/guide/inside-the-entity) — `entityAspect`, entity state, original values
 - [Migrating from 2.x](/guide/migrating-from-2x) — if you have an existing application

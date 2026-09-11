@@ -74,9 +74,6 @@ is needed:
 
 ```ts
 configureBreeze({
-  dataService: DataServiceWebApiAdapter,
-  uriBuilder: UriBuilderJsonAdapter,
-  modelLibrary: ModelLibraryBackingStoreAdapter,
   fetch: (input, init) =>
     fetch(input, { ...init, headers: { ...init?.headers, Authorization: token } }),
 });
@@ -107,18 +104,32 @@ carries a `Content-Type` header, which lets browsers skip the CORS preflight for
 
 ## 4. Typed configuration
 
-**Done.** Adapters can now be wired in one typed call:
+**Done.** Breeze needs no adapter registration by default. With nothing registered, it
+uses `ModelLibraryBackingStoreAdapter` (`'backingStore'`), `UriBuilderJsonAdapter`
+(`'json'`) and `DataServiceWebApiAdapter` (`'webApi'`), and makes HTTP requests through
+`config.fetch`, which defaults to `globalThis.fetch`. The minimal setup for a Breeze .NET
+server is the naming convention, which is not an adapter and still defaults to `none`:
 
 ```ts
-import { configureBreeze, NamingConvention } from 'breeze-client';
-import { DataServiceWebApiAdapter } from 'breeze-client/adapter-data-service-webapi';
-import { UriBuilderJsonAdapter } from 'breeze-client/adapter-uri-builder-json';
-import { ModelLibraryBackingStoreAdapter } from 'breeze-client/adapter-model-library-backing-store';
+import { configureBreeze, EntityManager, NamingConvention } from 'breeze-client';
 
+configureBreeze({ namingConvention: NamingConvention.camelCase });   // or NamingConvention.camelCase.setAsDefault()
+const em = new EntityManager('/breeze/Northwind');
+```
+
+No adapter imports are needed. Nothing is registered at import time: each default is
+registered the first time it is needed, and only for an interface nothing has been
+registered for, so anything the application registers takes precedence. Register custom
+adapters at startup, **before creating any `EntityManager`** — a `DataService` resolves its
+adapters once, when it is first used.
+
+`configureBreeze` is optional. When you do replace an adapter — a subclass of
+`DataServiceWebApiAdapter`, say, or your own `AbstractDataServiceAdapter` — it wires it in
+one typed call:
+
+```ts
 configureBreeze({
-  dataService: DataServiceWebApiAdapter,
-  uriBuilder: UriBuilderJsonAdapter,
-  modelLibrary: ModelLibraryBackingStoreAdapter,
+  dataService: MyWebApiAdapter,
   namingConvention: NamingConvention.camelCase,
 });
 ```
@@ -126,18 +137,23 @@ configureBreeze({
 instead of the stringly-typed pairs:
 
 ```ts
-config.registerAdapter("dataService", DataServiceWebApiAdapter);
-config.initializeAdapterInstance("dataService", "webApi", true);
+config.registerAdapter("dataService", MyWebApiAdapter);
+config.initializeAdapterInstance("dataService", "myWebApi", true);
 ```
 
 Misspell an adapter name in the old form and you get a runtime error; in the new form it
-does not compile. `configureBreeze` also takes `fetch`, `noEval`, and a `config` for
-targeting a non-global `BreezeConfig`.
+does not compile. `configureBreeze` also takes `modelLibrary`, `uriBuilder`, `fetch`,
+`noEval`, and a `config` for targeting a non-global `BreezeConfig`. The adapter subpaths
+(`breeze-client/adapter-data-service-webapi` and so on) still exist, for subclassing and
+for explicit registration.
 
 **`config.registerAdapter`, `initializeAdapterInstance` and `initializeAdapterInstances`
 still work.** They are the compatibility path; existing 2.x startup code runs as-is. They
 are marked `@deprecated`, because `configureBreeze` is better, but they are not scheduled
-for removal.
+for removal. The standard names — `'backingStore'`, `'json'`, `'webApi'` and the ajax
+adapter's `'fetch'` — resolve to the defaults without a `registerAdapter` call first, so
+`config.initializeAdapterInstance("dataService", "webApi", true)` works on its own. An
+unknown name still throws `Unregistered adapter`.
 
 `InterfaceRegistryConfig`, the argument to `initializeAdapterInstances`, now types its
 fields as adapter *names* — `{ ajax: 'fetch' }` — which is what the method always expected.
@@ -145,7 +161,7 @@ fields as adapter *names* — `{ ajax: 'fetch' }` — which is what the method a
 
 ### Importing an adapter no longer registers it
 
-**Done, and this one is breaking.** In 2.x, importing an adapter module registered it as
+**Done, but it rarely matters.** In 2.x, importing an adapter module registered it as
 a side effect:
 
 ```ts
@@ -153,11 +169,15 @@ a side effect:
 import 'breeze-client/adapter-data-service-webapi';
 ```
 
-v3 modules do not touch global state on import. Registration is explicit: pass the
-adapter to `configureBreeze`, or call its `register()`.
+v3 modules do not touch global state on import. That no longer breaks anything, because
+the standard adapters need no registration at all: Breeze falls back to them. You can
+delete side-effect imports. 2.x startup code that then initialized the standard adapters
+by name — `config.initializeAdapterInstance("dataService", "webApi", true)`,
+`config.initializeAdapterInstance("ajax", "fetch", true)` — keeps working; `"fetch"` gives
+an ajax adapter that sends requests through `config.fetch`.
 
-**If your startup relied on the import side effect, adapters will appear unregistered**,
-and queries fail for want of a data service adapter.
+A custom adapter is registered explicitly: pass it to `configureBreeze`, or call its
+`register()`, before creating an `EntityManager`.
 
 In 2.x the import side effect also hid an ordering requirement: the data service adapter
 needed the ajax adapter registered before it. That no longer applies — see section 3.
@@ -241,6 +261,11 @@ Small pre-existing defects corrected in v3:
 - **`config.getAdapterInstance` was missing from the published type declarations.** It was
   tagged `@internal` and the build strips internal members, so TypeScript code calling it
   needed a cast. It is now public.
+- **2.x startup code that initialized the standard adapters by name works again.**
+  `config.initializeAdapterInstance("dataService", "webApi", true)` and the like relied on
+  the adapter module having registered itself on import. Once v3 dropped that side effect
+  they threw `Unregistered adapter`. The standard names now resolve to the default
+  adapters without being registered first.
 - `breeze.version` reported `"2.1.5"` in the 2.2.2 release. It will report the real
   version. *(planned)*
 - `breeze.assertConfig` and `breeze.assertParam` were `null` on the `breeze` object

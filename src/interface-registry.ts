@@ -49,11 +49,13 @@ declare module "./config.js" {
 config.interfaceRegistry = new InterfaceRegistry();
 config._interfaceRegistry = config.interfaceRegistry;
 config.interfaceRegistry.modelLibrary.getDefaultInstance = function() {
-    if (!this.defaultInstance) {
+    // Falls back to the default model library (backingStore) when none is registered.
+    const instance = this.defaultInstance || config.getAdapterInstance<ModelLibraryAdapter>("modelLibrary");
+    if (!instance) {
         throw new Error("Unable to locate the default implementation of the '" + this.name +
-            "' interface. 'backingStore' is the only one shipped - register it with configureBreeze({ modelLibrary: ModelLibraryBackingStoreAdapter }).");
+            "' interface. Register one with configureBreeze({ modelLibrary: ... }).");
     }
-    return this.defaultInstance;
+    return instance;
 };
 
 // The data service adapter resolves the ajax adapter when it initializes, so ajax has to

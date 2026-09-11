@@ -332,3 +332,29 @@ remained, and they were fixed rather than relaxed away. They included a real hol
 swallowed the `ReferenceError`, so that check could never fail.
 
 `npm run typecheck` now checks both projects.
+
+## Default adapters: nothing needs registering
+
+With no configuration at all, `new EntityManager(serviceName)` works: Breeze falls back to
+the backing-store model library, the JSON uri builder and the Web API data service, and
+sends requests through `config.fetch`.
+
+- `config.ts` keeps a fallback table (`setDefaultAdapters`). `getAdapterInstance` and
+  `initializeAdapterInstance` consult it through `_registerDefaultAdapter` when an interface
+  has nothing registered, and `interfaceRegistry.modelLibrary.getDefaultInstance` does the
+  same. The default is registered on first use - importing Breeze still registers nothing -
+  and anything an application registers wins.
+- `default-adapters.ts`, imported by the barrel, fills the table. It also maps a *named*
+  `ajax` `'fetch'` lookup to an adapter that reads `config.fetch`, so 2.x startup code that
+  initialized the standard adapters by name, without registering them, works again. The
+  unnamed ajax default stays "none": requests already go through `config.fetch`.
+- **The three adapter modules import their dependencies directly, not through
+  `./breeze.js`.** The barrel imports them now, and `DataServiceWebApiAdapter` extends
+  `AbstractDataServiceAdapter` while its module loads, so a barrel import would be a cycle
+  that fails at load time. The rule: a module the barrel imports must not import the
+  barrel. (`adapter-ajax-post` and the two mixins still do; the barrel never loads them.)
+- Cost: the three default adapters are always in the root bundle. Real applications always
+  included them anyway; core plus the three is still about 171 KB minified, 47 KB gzip.
+- `test/test-fns.ts` registers nothing, so the integration and browser tiers run on the
+  defaults. `default-adapters.spec.ts` and `default-adapters-named.spec.ts` cover the
+  no-registration path without a server.

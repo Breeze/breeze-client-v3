@@ -56,23 +56,33 @@ see [Supplying your own transport](/server/transport).
 
 ## 3. Importing an adapter no longer registers it
 
-**This is the change most likely to break your startup.**
-
 ```ts
 // 2.x: the import alone registered the adapter
 import 'breeze-client/adapter-data-service-webapi';
 ```
 
-v3 modules do not touch global state on import. Registration is explicit:
+v3 modules do not touch global state on import. For the standard adapters this does not
+matter, because they need no registration at all. With nothing registered, Breeze uses
+`DataServiceWebApiAdapter`, `UriBuilderJsonAdapter` and `ModelLibraryBackingStoreAdapter`,
+and sends requests through `fetch`. You can delete the side-effect imports.
+
+2.x startup code that then initialized those adapters by name keeps working, even though
+nothing registered them:
 
 ```ts
-configureBreeze({ dataService: DataServiceWebApiAdapter, /* ... */ });
-// or
-DataServiceWebApiAdapter.register();
+config.initializeAdapterInstance('modelLibrary', 'backingStore', true);
+config.initializeAdapterInstance('uriBuilder', 'json', true);
+config.initializeAdapterInstance('dataService', 'webApi', true);
+config.initializeAdapterInstance('ajax', 'fetch', true);
 ```
 
-If you relied on the side effect, queries fail because no data service adapter has been
-registered.
+The names `'backingStore'`, `'json'`, `'webApi'` and `'fetch'` resolve to the defaults;
+`'fetch'` gives an ajax adapter that sends requests through `config.fetch`. A name that is
+neither registered nor a default still throws `Unregistered adapter`.
+
+A custom adapter still has to be registered, by your own code or with
+`configureBreeze({ dataService: MyAdapter })`. Do it at startup, before you create an
+`EntityManager` — see [Default adapters](/guide/configuration#default-adapters).
 
 ## 4. You no longer need an ajax adapter
 
@@ -80,12 +90,7 @@ Breeze 3 makes every request through a `fetch` function — `globalThis.fetch` u
 supply your own — so a normal setup has no ajax adapter:
 
 ```ts
-configureBreeze({
-  dataService: DataServiceWebApiAdapter,
-  uriBuilder: UriBuilderJsonAdapter,
-  modelLibrary: ModelLibraryBackingStoreAdapter,
-  fetch: myFetch,   // optional: auth headers, retry, logging
-});
+configureBreeze({ fetch: myFetch });   // optional: auth headers, retry, logging
 ```
 
 You don't have to change anything. `AjaxFetchAdapter`, `configureBreeze({ ajax })`,
@@ -117,19 +122,21 @@ Fix by adding `new`, or using the static factory where one exists.
 
 ## 6. Typed configuration (optional, recommended)
 
-`configureBreeze` replaces the stringly-typed pairs:
+For the standard adapters you need neither form: they are the defaults. When you do
+register an adapter of your own, `configureBreeze` replaces the stringly-typed pairs:
 
 ```ts
 // still works, now deprecated
-config.registerAdapter('dataService', DataServiceWebApiAdapter);
-config.initializeAdapterInstance('dataService', 'webApi', true);
+config.registerAdapter('dataService', MyWebApiAdapter);
+config.initializeAdapterInstance('dataService', 'myWebApi', true);
 
 // preferred
-configureBreeze({ dataService: DataServiceWebApiAdapter, /* ... */ });
+configureBreeze({ dataService: MyWebApiAdapter });
 ```
 
 Misspell an adapter name in the old form and you get a runtime error; in the new form it
-does not compile. The old API is not scheduled for removal.
+does not compile. The old API is not scheduled for removal. `configureBreeze` itself is
+optional: use it for a custom adapter, a custom `fetch`, the naming convention or `noEval`.
 
 If you call `config.initializeAdapterInstances` from TypeScript, you can drop any cast:
 its argument is now typed as adapter names, `{ ajax: 'fetch', dataService: 'webApi' }`.

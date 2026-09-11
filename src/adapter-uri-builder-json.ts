@@ -1,25 +1,28 @@
-﻿import * as breeze from './breeze.js';
+﻿import { config as globalConfig, BreezeConfig } from './config.js';
+import type { UriBuilderAdapter } from './interface-registry.js';
+import { EntityQuery } from './entity-query.js';
+import { MetadataStore, EntityType } from './entity-metadata.js';
 import { appendQueryStringParameter } from './adapter-core.js';
 
-export class UriBuilderJsonAdapter implements breeze.UriBuilderAdapter {
+export class UriBuilderJsonAdapter implements UriBuilderAdapter {
   name: string;
 
   constructor() {
     this.name = "json";
   }
 
-  static register(config?: breeze.BreezeConfig) {
-    config = config || breeze.config;
+  static register(config?: BreezeConfig) {
+    config = config || globalConfig;
     config.registerAdapter("uriBuilder", UriBuilderJsonAdapter);
     return config.initializeAdapterInstance("uriBuilder", "json", true) as UriBuilderJsonAdapter;
   }
 
   initialize() {}
 
-  buildUri(entityQuery: breeze.EntityQuery, metadataStore: breeze.MetadataStore) {
+  buildUri(entityQuery: EntityQuery, metadataStore: MetadataStore) {
     // force entityType validation;
     let entityType = entityQuery._getFromEntityType(metadataStore, false);
-    if (!entityType) entityType = new breeze.EntityType(metadataStore);
+    if (!entityType) entityType = new EntityType(metadataStore);
     let json = entityQuery.toJSONExt( { entityType: entityType, toNameOnServer: true}) as any;
     json.from = undefined;
     json.queryOptions = undefined;

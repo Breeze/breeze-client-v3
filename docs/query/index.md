@@ -77,8 +77,8 @@ const toGermany = bigOrders.where('shipCountry', '==', 'Germany');
 
 ## What goes over the wire
 
-The `uriBuilder` adapter turns a query into a URL. Breeze 3 ships one, `UriBuilderJsonAdapter`
-(see [Configuration](/guide/configuration)). It serializes the query as Breeze JSON,
+The `uriBuilder` adapter turns a query into a URL. Breeze 3 ships one, `UriBuilderJsonAdapter`,
+and uses it by default (see [Configuration](/guide/configuration)). It serializes the query as Breeze JSON,
 translates property names to their server names with the
 [naming convention](/server/namingconvention), URL-encodes the JSON, and makes the result
 the query string.

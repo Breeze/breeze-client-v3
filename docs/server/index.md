@@ -26,17 +26,18 @@ parsing. See [Migrating from 2.x](/guide/migrating-from-2x).
 
 ## The pieces
 
-| Piece | Job | Ships with Breeze | More |
+| Piece | Job | Default | More |
 |---|---|---|---|
 | `DataService` | which service: its URL, which adapter talks to it, whether it serves metadata | created for you from the service name | [below](#dataservice) |
 | data service adapter | what requests look like and how responses are read | `DataServiceWebApiAdapter` (`'webApi'`) | [DataServiceAdapter](/server/dataserviceadapter) |
 | URI builder | turns an `EntityQuery` into a URL | `UriBuilderJsonAdapter` (`'json'`) | [Configuration](/guide/configuration) |
 | `fetch` function | makes the HTTP request | `globalThis.fetch`, or yours via `configureBreeze({ fetch })` | [Supplying your own transport](/server/transport) |
 | `JsonResultsAdapter` | finds the entities in the JSON, and their types | supplied by the data service adapter | [Transforming JSON results](/server/jsonresultsadapter) |
-| `NamingConvention` | translates property names between server and client | `none`, `camelCase` | [Naming conventions](/server/namingconvention) |
+| `NamingConvention` | translates property names between server and client | `none` (`camelCase` also ships) | [Naming conventions](/server/namingconvention) |
 
-You choose the adapters once, at startup, with `configureBreeze`. See
-[Configuration](/guide/configuration).
+Every piece has a default, and none needs registering. For a Breeze .NET server, the only
+thing to set is `NamingConvention.camelCase`. To replace an adapter, do it once, at
+startup, before you create an `EntityManager`. See [Configuration](/guide/configuration).
 
 ### A query, step by step
 

@@ -11,7 +11,7 @@ The suite lives in this repo. Most of it also needs the **.NET test server** and
 ## TL;DR
 
 ```bash
-npm run test:unit      # 263 tests, a few seconds, needs nothing at all
+npm run test:unit      # 268 tests, a few seconds, needs nothing at all
 ```
 
 That is the loop to work in. For everything else, one command creates the database if
@@ -187,11 +187,11 @@ recreating the database by hand** — otherwise those tables are empty.
 
 | command | tests | needs a server? | time |
 |---|---|---|---|
-| `npm run test:unit` | 263 | **no** | a few seconds |
+| `npm run test:unit` | 268 | **no** | a few seconds |
 | `npm run test:integration` | 457 | yes | ~25s |
-| `npm test` | 720 (unit + integration) | yes | ~30s |
-| `npm run test:browser` | 720 | yes | ~35s |
-| `npm run test:watch` | 263 | no | watch mode |
+| `npm test` | 725 (unit + integration) | yes | ~30s |
+| `npm run test:browser` | 725 | yes | ~35s |
+| `npm run test:watch` | 268 | no | watch mode |
 
 7 tests are skipped by design. Five are skipped on the ASP.NET Core server: three need
 server-side validation, which that server does not perform; one needs a named-query endpoint
@@ -201,7 +201,7 @@ yet. The other two are always skipped: one is awaiting review, and one covers a 
 
 ### The unit tier
 
-`test/unit/` — 21 files that need nothing. They work against checked-in metadata fixtures.
+`test/unit/` — 23 files that need nothing. They work against checked-in metadata fixtures.
 Where a test needs a server response, it supplies a fake `fetch` through
 `configureBreeze({ fetch })` (`fetch-transport.spec.ts` shows how), or, to cover the
 deprecated ajax adapter path, registers `AjaxFakeAdapter` from `test/support/`. No
@@ -331,6 +331,12 @@ another program already using port 34377, or a build error in `breeze-server-v3`
 **`No test in the integration tier matched -Filter '...'`**
 Nothing matched the filter. It is matched against the full test name, including its
 `describe` blocks, so check the spelling against the test file.
+
+**`An Application Control policy has blocked this file`** (in the server log)
+Windows application control (Smart App Control, or an organisation's WDAC policy) blocks
+freshly built, unsigned executables. The test hosts set `UseAppHost=false`, so `dotnet run`
+starts the server through the Microsoft-signed `dotnet.exe` instead of a per-project `.exe`.
+If you see this, pull the latest `breeze-server-v3`.
 
 **`(!) Your Vite config uses features that are unsupported by configLoader: 'native'`**
 Harmless. Every run prints it; it concerns a future Vite default, not the tests.
