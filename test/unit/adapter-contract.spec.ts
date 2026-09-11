@@ -55,14 +55,26 @@ function savedBundle(ix: number) {
 /** Runs fn, and collects any unhandled rejections raised while it runs or just after. */
 async function collectUnhandledRejections(fn: () => Promise<unknown>) {
   const seen: unknown[] = [];
-  const listener = (reason: unknown) => { seen.push(reason); };
-  process.on('unhandledRejection', listener);
+  // The suite runs in Node and in Chromium, which report unhandled rejections through
+  // different hooks: process 'unhandledRejection' in Node, a window event in the browser.
+  const nodeProcess = (globalThis as any).process;
+  const onNode = (reason: unknown) => { seen.push(reason); };
+  const onBrowser = (e: PromiseRejectionEvent) => { seen.push(e.reason); e.preventDefault(); };
+  if (nodeProcess?.on) {
+    nodeProcess.on('unhandledRejection', onNode);
+  } else {
+    globalThis.addEventListener('unhandledrejection', onBrowser);
+  }
   try {
     await fn();
-    // unhandledRejection is raised once the microtask queue has drained
+    // unhandled rejections are reported once the microtask queue has drained
     await new Promise(r => setTimeout(r, 20));
   } finally {
-    process.off('unhandledRejection', listener);
+    if (nodeProcess?.off) {
+      nodeProcess.off('unhandledRejection', onNode);
+    } else {
+      globalThis.removeEventListener('unhandledrejection', onBrowser);
+    }
   }
   return seen;
 }

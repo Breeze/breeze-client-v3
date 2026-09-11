@@ -69,11 +69,11 @@ At import time the modules:
   comment at `src/enum.ts:47`.
 - call `BreezeEvent.bubbleEvent(EntityManager.prototype)` and the same for
   `MetadataStore.prototype`, and apply the entity-graph mixin.
-- register every adapter **twice**: once as a module-level side effect, once via its
-  static `register()`.
+- (Adapters used to register themselves at import time as well. They no longer do:
+  registration is explicit, through `configureBreeze` or an adapter's `register()`.)
 
-The `configureBreeze` work should replace these with explicit initialization. Until then,
-the flag stays.
+The three remaining side effects keep the flag `true`. Replacing them with explicit
+initialization is on the list in STATUS.md.
 
 ## Public API surface
 
@@ -294,3 +294,23 @@ Outside the tests, OData is still *named* in the migration guide, UPGRADE.md, th
 message and a few docs pages. That is deliberate: those are the notices that tell a 2.x
 user OData is gone and what to use instead. `"NOdataServices"` in two metadata fixtures is
 a deliberately disabled `dataServices` key, not OData.
+
+## Packaging: Node ESM and the published types
+
+The suite imports `src/` directly, so it never exercised the built package. A consumer
+check — pack, install into a fresh Vite + TypeScript app, `tsc`, a Node import, one query
+end to end — found two blocking defects.
+
+- **Extensionless relative imports.** `moduleResolution: "bundler"` accepts
+  `from './config'`; Node's ESM loader does not, so `import('breeze-client')` failed with
+  `ERR_MODULE_NOT_FOUND`. Every relative specifier in `src/` now ends in `.js`, including
+  the two `declare module "./…"` augmentations, and `tsconfig.json` uses `NodeNext` for
+  `module` and `moduleResolution`, which makes an extensionless import a compile error.
+  Vite and Vitest resolve `./x.js` to `x.ts`, so the tests are unaffected.
+- **`stripInternal` versus re-exports.** `breeze.ts` re-exports `assertParam`,
+  `assertConfig` and `Param`, but they were `@internal`, so the published
+  `assert-param.d.ts` was empty and `breeze.d.ts` did not compile. The rule: nothing
+  `breeze.ts` exports may be `@internal`. Use `@hidden` to keep it out of the docs.
+
+Source maps now use `inlineSources`, since the package ships `dist/` only, and declaration
+maps are off.

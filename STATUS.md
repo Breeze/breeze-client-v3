@@ -103,7 +103,8 @@ split, explicit registration + `@deprecated` string API) are done — see the se
    `Error['x'] = …`), so `"sideEffects"` can become `false`. See Known issues.
 5. `breeze.version` and the `null` `breeze.assertConfig` / `assertParam` — see Known issues.
 6. **GitHub Actions**: typecheck + unit tier + docs build on every push; the integration
-   tier separately, since it needs SQL Server and the .NET server.
+   tier separately, since it needs SQL Server and the .NET server. *Deferred for now at the
+   user's request; to be raised again.*
 7. Regroup `src/` by concern (`core/`, `metadata/`, `entity/`, `query/`, `manager/`,
    `validation/`, `config/`, `adapters/`, `mixins/`). Deliberately deferred — moving 42
    files and rewriting imports at the same time as deleting code would make any breakage
@@ -421,77 +422,51 @@ Fixed, typed (`InterfaceRegistryConfig` now takes adapter names, as it always sh
 have), and covered by two new tests in `configure-ns.spec.ts`. With every fix from this round in: unit
 196, integration 448 + 7 skipped, browser 644 + 7 skipped. All green.
 
-## Found while writing the user docs — not yet fixed
+## Found while writing the user docs — resolved
 
-The doc agents checked every claim against `src/` and ran examples in throwaway specs.
-Along the way they turned up the defects below. The serious ones — anything that hung,
-threw for no reason, or silently did nothing — are **fixed**, each with a regression test
-(see UPGRADE.md, "Fixed along the way"). What remains is listed here. Where a page
-mentions one as a caution, it says so.
+The doc agents turned up about 35 defects. Nearly all are fixed, each with a regression
+test; UPGRADE.md lists what users can notice, under "Fixed along the way" and "Fixes that
+change what your code sees".
 
-### Behaviour
+Left as they are, deliberately:
 
-- **Local `substring` disagrees with the server.** Locally it calls JS
-  `substring(start, end)`; the server treats the third argument as a *length*. A cache
-  query can return different rows than the same query on the server. (`predicate.ts`, the
-  `substring` fn; server `FnBlock.cs`)
-- **`FilterQueryOp.IsTypeOf` cannot be used.** It is defined, but `isof` is missing from
-  the predicate operator map, so it throws "Unable to resolve predicate".
-- **`isLiteral: false` is ignored.** Only `isProperty` is read, contrary to the `where()`
-  doc comment.
-- **`EntityQuery.toJSON()` drops `usePost`**, though `fromJSON` reads it.
-- **`withParameters` values are sent twice** — inside the JSON and again as plain query
-  arguments.
-- **No client `TimeOnly` / `TimeSpan` data type.** The server defines them; unknown type
-  names from metadata silently become `String` in `DataProperty.fromJSON`. The EF Core
-  metadata builder may also emit `"TimeSpan"` where the client expects `"Time"` — check.
-- `DataType.DateOnly` has no validator, and `DateOnly.normalize` uses the deprecated
-  `getYear()`.
-- **Local and remote projections name nested paths differently**: the server returns
-  `customer_CompanyName`, a local query `customer_companyName`. *Caution on projections.*
-- **Imported metadata can override string-comparison settings.** A
-  `localQueryComparisonOptions` name in the metadata replaces the store's own setting and
-  `setAsDefault()`. *Workaround on locally.*
-- `LocalQueryComparisonOptions` requires `usesSql92CompliantStringComparison`, though its
-  doc says it defaults to true.
-- The "Is the server running?" message in `_catchNoConnectionError` never appears with
-  the fetch adapter, which always supplies a message.
-- `new EntityManager({ serviceName, metadataStore })` builds a fresh `DataService` rather
-  than using the store's; an imported store still fetches `/Metadata` unless
-  `addDataService` was called. *The testing and metadata pages pass `dataService`
-  explicitly.*
-- `importMetadata(json, true)` for a type not in the store fails with a raw TypeError if
-  `dataProperties` is missing; without `allowMerge`, existing types are skipped silently.
-
-### Types and API surface
-
-- `EntityManagerConfig.keyGenerator` is declared but rejected at runtime ("Unknown
-  property").
-- `setProperty` is typed `void` but returns `this`; with an unknown name it quietly
-  creates an untracked property.
-- `ServerError` declares `statusText`, `body` and `url`, which are never set;
-  `HttpResponse` lacks the `statusText` the adapter does set.
-- `KeyGenerator.generateTempKeyValue(valueIfAvail?: boolean)` is used as a key value.
 - Temp integer keys share one counter across all types and managers (-1, -2, … overall).
-  Probably intended; worth a sentence in the docs either way.
+  That guarantees uniqueness across types; the docs now say so.
+- `setProperty` with an unknown name creates an untracked property, as in 2.x and as plain
+  assignment does; apps use it for client-only values. Documented on the interface.
+- `importMetadata` without `allowMerge` skips types already in the store. Documented:
+  re-importing metadata, which `importEntities` does, must stay harmless.
+- A store built from raw server `/Metadata` still requests `/Metadata` once, until
+  `addDataService` is called. Skipping it would break apps that add client-only types
+  before fetching.
+- The `jsonp` branch in `_makeQueryGetParams` stays: a registered (deprecated) custom ajax
+  adapter can still receive `dataType: 'jsonp'`.
 
-### Adapter authoring (from the server pages)
+Still open:
 
-- **`_getToEntityType` never returns its fallback.** It computes `_getFromEntityType(...)`
-  and drops the result (`entity-query.ts`), so root nodes never fall back to the type
-  implied by the resource name — only `.toType()` works. In the root commit of 2.x too.
-  Fixing it changes how untyped query results materialize, so it needs the integration
-  tier as its gate.
-- **`_createChangeRequestInterceptor` is `@internal`**, so `stripInternal` removes it from
-  the published `.d.ts`, though subclasses are told to call it. (`config.getAdapterInstance`
-  had the same problem and is fixed; the transport page depends on it.)
-- `makeHttpError` is not exported; the deprecated `handleHttpError` is now unused.
-- There is no JSONP, so `DataService.useJsonp` does nothing.
-- `JsonResultsAdapterConfig` typing: `visitNode` is optional but the constructor requires
-  it; `mappingContext` / `nodeContext` are typed optional but always passed; `NodeMeta`
-  lacks the `node` member the runtime honours.
-- `ChangeRequestInterceptor.oneTime` is never honoured.
-- Adapter initialization always publishes `isDefault: true`, even for non-default adapters.
-- `saveChanges` reads `data.Errors`, which throws a TypeError on a null response body.
-- A materialization error was observed surfacing as an unhandled rejection *as well as*
-  rejecting the query promise. Cause not found.
+- The NHibernate metadata builder emits type names (`Date`, `DateTime2`, `Currency`,
+  `YesNo`, …) the client does not alias; they import as `DataType.Undefined` with a
+  warning. The better fix is the server's `BreezeTypeMap`.
+- A query rebuilt by `EntityQuery.fromJSON` without `usePost` has `usePostEnabled`
+  `undefined` rather than `false`.
+
+## Packaging check (done)
+
+Installing the packed tarball into a fresh Vite + TypeScript app found what the suite could
+not, since the suite imports `src/` directly:
+
+- **Node could not load the package.** All ~250 relative imports lacked `.js`. Fixed, and
+  `tsconfig.json` now uses `NodeNext`, so `tsc` rejects an extensionless import.
+- **The root `.d.ts` failed `tsc` without `skipLibCheck`.** It re-exported `assertParam`,
+  `assertConfig` and `Param`, which `stripInternal` had removed. They are `@hidden` now:
+  out of TypeDoc, still in the declarations.
+- Source maps pointed at unshipped `src/` files; they now inline their sources, and
+  declaration maps are off.
+
+Tree-shaking works: an unimported subpath is dropped. Core plus three adapters is about
+168 KB minified, 46 KB gzip.
+
+## Test script (done)
+
+`scripts/test-with-server.ps1` (and `test-with-server.cmd`) runs the server-backed loop in
+one command: database, server, tests, shutdown. See TESTING.md.

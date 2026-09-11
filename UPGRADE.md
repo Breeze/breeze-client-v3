@@ -232,9 +232,10 @@ Small pre-existing defects corrected in v3:
   validator produced on the entity.
 - **`BreezeEvent.isEnabled` ignored its object argument**, and
   **`EntityState.isDeletedOrDetached()` returned false for `Deleted`.**
-- **Local projections of nested paths replaced only the first dot:**
-  `order.customer.companyName` came back as `order_customer.companyName`. It is now
-  `order_customer_companyName`.
+- **Local projections named nested paths differently from the server.** Only the first
+  dot was replaced, so `order.customer.companyName` came back as
+  `order_customer.companyName`. Local queries now name a projected path the way the .NET
+  server does, joining the server property names: `order_Customer_CompanyName`.
 - **A string assigned to a `DateOnly` property stayed a string.** It is now parsed as a
   local date.
 - **`config.getAdapterInstance` was missing from the published type declarations.** It was
@@ -244,3 +245,63 @@ Small pre-existing defects corrected in v3:
   version. *(planned)*
 - `breeze.assertConfig` and `breeze.assertParam` were `null` on the `breeze` object
   literal, though the named ESM exports worked. *(planned)*
+
+### Fixes that change what your code sees
+
+These correct long-standing defects, but code that worked around them, or relied on them,
+may notice.
+
+**Queries**
+
+- **Local `substring` takes a length**, as the server does: `substring(s, start, length)`.
+  It used JavaScript's `substring(start, end)`, so a cache query could return different
+  rows from the same query on the server.
+- **`{ value, isLiteral: false }` in a where clause** now makes the value a property
+  expression, as documented. It was ignored.
+- **`withParameters` values are sent once**, as plain query-string arguments — the copy the
+  .NET server reads. They used to be sent inside the JSON query as well; a query with only
+  parameters now requests `Resource?name=value` with no JSON.
+- **Untyped results fall back to the resource's entity type.** When a query's resource maps
+  to an entity type, result nodes the JSON results adapter cannot type (no `$type`) now
+  become entities of that type instead of plain objects. The fallback was computed and then
+  dropped. Typed nodes, projections and `toType()` queries are unaffected.
+- **`FilterQueryOp.IsTypeOf` is removed.** The server has no such operator, so it could
+  never work; code that referenced it now fails to compile instead of throwing at runtime.
+- `EntityQuery.toJSON()` now includes `usePost`.
+
+**Metadata and data types**
+
+- **More server type names are understood.** `TimeSpan` maps to `DataType.Time`, `TimeOnly`
+  to the new `DataType.TimeOnly` (a `"HH:mm:ss"` string), `Char` to `String`, and `SByte`
+  and the unsigned integers to the next wider integer type. They all used to become
+  `String` silently. A name the client still does not know imports as `DataType.Undefined`,
+  with the original in `rawTypeName`, and logs a warning.
+- **`DateOnly`** has the date validator, and sorts correctly across the year 2000.
+- **Comparison options you choose win.** `localQueryComparisonOptions` named in imported
+  metadata no longer override options passed to the `MetadataStore` or set with
+  `setAsDefault()`. `LocalQueryComparisonOptions` no longer requires
+  `usesSql92CompliantStringComparison` (default `true`).
+- **`new EntityManager({ serviceName, metadataStore })` uses the store's `DataService`** for
+  that service, with its `hasServerMetadata` and adapters, instead of building a new one.
+- `importMetadata` for a new type with no `dataProperties` throws a clear error instead of
+  a `TypeError`.
+
+**Errors and adapters**
+
+- **A failed request's `ServerError` now carries `statusText`, `body` and `url`**, which
+  it always declared. A status-0 failure's message now says the server may not be running,
+  and keeps the underlying message.
+- A save whose response has no body rejects with a clear error instead of a `TypeError`.
+- A failed query no longer *also* raises an unhandled promise rejection.
+- `ChangeRequestInterceptor.oneTime` is honoured.
+- The `interfaceInitialized` event reports the real `isDefault`.
+
+**Types**
+
+- `EntityManagerConfig.keyGenerator` is removed. It was always rejected at runtime; use
+  `keyGeneratorCtor`.
+- `setProperty` is typed to return a value, so chaining compiles.
+- `JsonResultsAdapterConfig.visitNode` is required in the type, as it always was at runtime.
+- Published for adapter authors: the static `AbstractDataServiceAdapter.makeHttpError` and
+  the protected `_createChangeRequestInterceptor`.
+- `DataService.useJsonp` is deprecated; it has never had an effect in v3.
