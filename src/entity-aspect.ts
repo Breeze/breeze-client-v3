@@ -15,9 +15,9 @@ export interface Entity {
   entityAspect: EntityAspect;
   entityType: EntityType;
   /** Get the property with the given name */
-  getProperty?(prop: string): any;
+  getProperty(prop: string): any;
   /** Set the property with the given name */
-  setProperty?(prop: any, value: any): void;
+  setProperty(prop: any, value: any): void;
   /** @hidden @internal */
   prototype?: { _$typeName: string };
   /** @hidden @internal */
@@ -27,8 +27,8 @@ export interface Entity {
 export interface ComplexObject {
   complexAspect: ComplexAspect;
   complexType: ComplexType;
-  getProperty?(prop: string): any;
-  setProperty?(prop: any, value: any): void;
+  getProperty(prop: string): any;
+  setProperty(prop: any, value: any): void;
   /** @hidden @internal */
   prototype?: { _$typeName: string };
 }
