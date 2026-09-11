@@ -149,7 +149,7 @@ EntityQuery.from('Orders')
 ```
 
 - Each segment of a path is a navigation property name. Use the client-side spelling. With
-  `NamingConvention.camelCase` that means `orderDetails`, not `OrderDetails`.
+  the default `NamingConvention.camelCase` that means `orderDetails`, not `OrderDetails`.
 - Every entity along the path is included. `orderDetails.product` returns the details
   *and* their products.
 

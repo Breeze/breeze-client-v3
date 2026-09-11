@@ -1,4 +1,5 @@
 {
+  "namingConvention": "noChange",
   "structuralTypes": [
     {
       "shortName": "Location",

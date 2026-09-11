@@ -216,9 +216,10 @@ server or the export bundle are applied, and then the initializer runs.
 
 ## Naming conventions
 
-Client property names come from the naming convention in effect, set with
-`configureBreeze({ namingConvention })`. With `NamingConvention.camelCase`, the server's
-`CompanyName` is `companyName` on the client, and that is the name to declare in your class.
+Client property names come from the naming convention in effect: `NamingConvention.camelCase`
+unless you set another with `configureBreeze({ namingConvention })`. With `camelCase`, the
+server's `CompanyName` is `companyName` on the client, and that is the name to declare in
+your class.
 See [Naming conventions](/server/namingconvention).
 
 ## Temporary keys

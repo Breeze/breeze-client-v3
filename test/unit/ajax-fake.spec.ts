@@ -8,7 +8,7 @@
 // import { EntityQuery } from '../../src/entity-query';
 // import { AjaxConfig, MappingContext, NodeContext, JsonResultsAdapter } from '../../src/breeze';
 
-import { config, EntityManager, EntityQuery, AjaxConfig, MappingContext, NodeContext, JsonResultsAdapter } from '../../src/breeze';
+import { config, EntityManager, EntityQuery, AjaxConfig, MappingContext, NodeContext, JsonResultsAdapter, NamingConvention } from '../../src/breeze';
 import { DataServiceWebApiAdapter } from '../../src/adapter-data-service-webapi';
 import { ModelLibraryBackingStoreAdapter } from '../../src/adapter-model-library-backing-store';
 
@@ -21,6 +21,9 @@ UriBuilderJsonAdapter.register();
 
 AjaxFakeAdapter.register();
 DataServiceWebApiAdapter.register();
+// ComplexTypeMetadata.json uses PascalCase client property names, so it needs 'none' rather
+// than the default camelCase.
+NamingConvention.none.setAsDefault();
 
 
 import metadata from '../support/ComplexTypeMetadata.json';

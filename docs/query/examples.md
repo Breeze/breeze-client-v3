@@ -6,8 +6,9 @@ A catalogue of common queries against the Northwind model. The details are cover
 
 ## Setup
 
-Every example assumes Breeze is configured as in [Getting started](/guide/getting-started),
-with `NamingConvention.camelCase`, and this manager:
+Every example assumes Breeze's default configuration, as in
+[Getting started](/guide/getting-started), so property names are camelCase, and this
+manager:
 
 ```ts
 import { EntityManager, EntityQuery, FilterQueryOp, Predicate } from 'breeze-client';

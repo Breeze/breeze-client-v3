@@ -29,7 +29,8 @@ EntityQuery.from('Orders').where('customer.region', '==', 'CA');
 EntityQuery.from('Customers').where('country', 'in', ['Belgium', 'Germany']);
 ```
 
-Use property names as the client sees them. With `NamingConvention.camelCase` that is
+Use property names as the client sees them. With the default `NamingConvention.camelCase`
+that is
 `companyName`. Breeze translates them to server names when it builds the request.
 
 ### Operators

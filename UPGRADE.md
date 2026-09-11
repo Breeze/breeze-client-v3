@@ -107,13 +107,13 @@ carries a `Content-Type` header, which lets browsers skip the CORS preflight for
 **Done.** Breeze needs no adapter registration by default. With nothing registered, it
 uses `ModelLibraryBackingStoreAdapter` (`'backingStore'`), `UriBuilderJsonAdapter`
 (`'json'`) and `DataServiceWebApiAdapter` (`'webApi'`), and makes HTTP requests through
-`config.fetch`, which defaults to `globalThis.fetch`. The minimal setup for a Breeze .NET
-server is the naming convention, which is not an adapter and still defaults to `none`:
+`config.fetch`, which defaults to `globalThis.fetch`. The naming convention, which is not
+an adapter, now defaults to `camelCase` (see section 6). So a Breeze .NET server needs no
+configuration at all:
 
 ```ts
-import { configureBreeze, EntityManager, NamingConvention } from 'breeze-client';
+import { EntityManager } from 'breeze-client';
 
-configureBreeze({ namingConvention: NamingConvention.camelCase });   // or NamingConvention.camelCase.setAsDefault()
 const em = new EntityManager('/breeze/Northwind');
 ```
 
@@ -128,10 +128,7 @@ adapters once, when it is first used.
 one typed call:
 
 ```ts
-configureBreeze({
-  dataService: MyWebApiAdapter,
-  namingConvention: NamingConvention.camelCase,
-});
+configureBreeze({ dataService: MyWebApiAdapter });
 ```
 
 instead of the stringly-typed pairs:
@@ -143,7 +140,7 @@ config.initializeAdapterInstance("dataService", "myWebApi", true);
 
 Misspell an adapter name in the old form and you get a runtime error; in the new form it
 does not compile. `configureBreeze` also takes `modelLibrary`, `uriBuilder`, `fetch`,
-`noEval`, and a `config` for targeting a non-global `BreezeConfig`. The adapter subpaths
+`namingConvention`, `noEval`, and a `config` for targeting a non-global `BreezeConfig`. The adapter subpaths
 (`breeze-client/adapter-data-service-webapi` and so on) still exist, for subclassing and
 for explicit registration.
 
@@ -206,7 +203,42 @@ Anyone consuming the `mjs` build was already affected.
 If this affects a lot of your code, say so — the constructors can be made callable again
 with a small compatibility wrapper.
 
-## 6. What has *not* changed
+## 6. The default naming convention is now `camelCase`
+
+**Done. Breaking change** for applications that relied on the old default.
+
+`NamingConvention.defaultInstance` is now `NamingConvention.camelCase`. In 2.x, and in v3
+until now, it was `NamingConvention.none`. A `MetadataStore` takes the default naming
+convention when it is created, so every store and every `EntityManager` created after
+startup camel-cases property names unless told otherwise: `CompanyName` on the server is
+`companyName` on the client. With the default adapters (section 4), this means a Breeze
+.NET server needs no configuration at all.
+
+- **You already set camelCase:** nothing to do. `NamingConvention.camelCase.setAsDefault()`,
+  or `configureBreeze({ namingConvention: NamingConvention.camelCase })`, is now redundant
+  but harmless.
+- **You relied on `none`:** your server already sends the property names the client should
+  use — a Node/Sequelize-style server, say, or one whose metadata names are already
+  camelCase. Set the old behaviour explicitly at startup, before creating any
+  `MetadataStore` or `EntityManager`:
+
+  ```ts
+  NamingConvention.none.setAsDefault();
+  // or
+  configureBreeze({ namingConvention: NamingConvention.none });
+  ```
+
+  Without it, PascalCase server names reach your code camel-cased, so code that reads
+  `CompanyName` finds nothing. Server names that are already camelCase do not round-trip
+  (`camelCase` turns `companyName` back into `CompanyName`), so metadata either fails to
+  load with `NamingConvention for this ... property name does not roundtrip properly`, or
+  Breeze sends the server upper-cased names.
+
+`NamingConvention.none` is still named `'noChange'` in exported metadata, and metadata that
+names a naming convention still sets it when imported into an empty store. A store
+loaded from an `exportMetadata()` file therefore keeps the convention it was exported with.
+
+## 7. What has *not* changed
 
 The public API is otherwise intended to be source-compatible with 2.x. `EntityManager`,
 `EntityQuery`, `Predicate`, `MetadataStore`, `EntityType`, `EntityAspect`, `Validator`,

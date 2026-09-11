@@ -1,35 +1,44 @@
 # Naming conventions
 
 Breeze moves entity data between client and server as property values, so property names
-matter. By default a property has the same name on both sides: `FirstName` on the server
-is `FirstName` on the client.
+matter. A .NET server spells a property `FirstName`; most JavaScript code prefers
+`firstName`. A `NamingConvention` translates between the two spellings, so the server can
+keep its names and the client can use its own.
 
-Most JavaScript code prefers `firstName`. A `NamingConvention` translates between the two
-spellings, so the server can keep its names and the client can use its own.
+By default Breeze uses `NamingConvention.camelCase`, which is what a Breeze .NET server
+needs: `FirstName` on the server is `firstName` on the client. Set a convention only if
+your server is different.
 
 ## Choosing a convention
-
-Set the default once, at startup:
-
-```ts
-import { configureBreeze, NamingConvention } from 'breeze-client';
-
-configureBreeze({ namingConvention: NamingConvention.camelCase });
-```
-
-That is the same as calling `NamingConvention.camelCase.setAsDefault()`.
 
 Breeze ships two conventions:
 
 | Convention | `name` | Server → client |
 |---|---|---|
-| `NamingConvention.none` | `'noChange'` | unchanged. This is the initial default. |
-| `NamingConvention.camelCase` | `'camelCase'` | first letter lower-cased: `CompanyName` → `companyName` |
+| `NamingConvention.camelCase` | `'camelCase'` | first letter lower-cased: `CompanyName` → `companyName`. This is the default. |
+| `NamingConvention.none` | `'noChange'` | unchanged |
 
 `camelCase` changes only the first character, so `CustomerID` becomes `customerID`, not
 `customerId`. Use it with a Breeze .NET server.
 
+Use `none` when the server already sends the property names the client should use — a
+Node/Sequelize-style server, say, or one whose metadata names are already camelCase.
+(`camelCase` would turn `companyName` back into `CompanyName`, which does not
+[round-trip](#round-tripping-is-required).) Set it once, at startup:
+
+```ts
+import { configureBreeze, NamingConvention } from 'breeze-client';
+
+configureBreeze({ namingConvention: NamingConvention.none });
+```
+
+That is the same as calling `NamingConvention.none.setAsDefault()`.
+
 ::: tip Changed in 3.0
+The default is `camelCase`. In 2.x it was `none`, so a .NET application had to set
+`camelCase` itself; that call is now redundant but harmless. An application that relied on
+`none` must now set it. See [Migrating from 2.x](/guide/migrating-from-2x).
+
 `configureBreeze` takes `namingConvention` directly. There is no `breeze.` global, and no
 `NamingConvention.instance` — the current default is `NamingConvention.defaultInstance`.
 :::
@@ -41,15 +50,18 @@ Each `MetadataStore` takes the default convention when it is created and keeps i
 default too:
 
 ```ts
-configureBreeze({ namingConvention: NamingConvention.camelCase });
+new EntityManager('/breeze/NorthwindIBModel').metadataStore.namingConvention.name;   // 'camelCase'
 
-const em = new EntityManager('/breeze/NorthwindIBModel');
-em.metadataStore.namingConvention.name;   // 'camelCase'
+configureBreeze({ namingConvention: NamingConvention.none });
+
+const em = new EntityManager('/api/products');
+em.metadataStore.namingConvention.name;   // 'noChange'
 ```
 
 Changing the default afterwards does not affect stores that already exist.
 
-`setAsDefault()` stores a copy, so compare conventions by `name`, not by identity:
+The default is always a copy — `setAsDefault()` stores one, and the built-in default is
+one too — so compare conventions by `name`, not by identity:
 
 ```ts
 NamingConvention.defaultInstance === NamingConvention.camelCase;   // false
@@ -58,8 +70,9 @@ NamingConvention.defaultInstance.name === 'camelCase';             // true
 
 ### A convention for one store
 
-To use a different convention for one store, pass it to the `MetadataStore` and give that
-store to the `EntityManager`:
+To use a different convention for one store — `none` for one service that already sends
+client names, say — pass it to the `MetadataStore` and give that store to the
+`EntityManager`:
 
 ```ts
 const store = new MetadataStore({ namingConvention: NamingConvention.none });

@@ -6,7 +6,7 @@
 // import { EntityType, ComplexType } from '../../src/entity-metadata';
 // import { assertConfig } from 'src/assert-param';
 
-import { EntityManager, EntityType, ComplexType, configureBreeze } from '../../src/breeze';
+import { EntityManager, EntityType, ComplexType, configureBreeze, NamingConvention } from '../../src/breeze';
 
 import { ModelLibraryBackingStoreAdapter } from '../../src/adapter-model-library-backing-store';
 import { UriBuilderJsonAdapter } from '../../src/adapter-uri-builder-json';
@@ -24,6 +24,8 @@ configureBreeze({
   uriBuilder: UriBuilderJsonAdapter,
   ajax: AjaxFakeAdapter,
   dataService: DataServiceWebApiAdapter,
+  // ComplexTypeMetadata.json uses PascalCase client property names, so it needs 'none'.
+  namingConvention: NamingConvention.none,
 });
 
 import metadata from '../support/ComplexTypeMetadata.json';

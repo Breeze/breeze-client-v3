@@ -120,7 +120,48 @@ library down to ES5; anyone consuming the `mjs` build was already affected.
 
 Fix by adding `new`, or using the static factory where one exists.
 
-## 6. Typed configuration (optional, recommended)
+## 6. The default naming convention is now `camelCase`
+
+**Breaking change.** In 2.x the default was `NamingConvention.none`: client property names
+were the server's names unless you set a convention. Breeze 3 defaults to
+`NamingConvention.camelCase`, which suits a Breeze .NET server: `CompanyName` on the server
+is `companyName` on the client. A `MetadataStore` takes the default when it is created, so
+every store, and every `EntityManager` that creates its own, uses camelCase unless told
+otherwise. With the default adapters, a Breeze .NET server needs no configuration at all:
+
+```ts
+import { EntityManager } from 'breeze-client';
+
+const em = new EntityManager('/breeze/Northwind');
+```
+
+- **If you already set camelCase**, nothing changes. `NamingConvention.camelCase.setAsDefault()`
+  or `configureBreeze({ namingConvention: NamingConvention.camelCase })` is now redundant
+  but harmless; you can delete it.
+- **If you relied on `none`** — your server already sends the property names the client
+  should use, as a Node/Sequelize-style server does, or its metadata names are already
+  camelCase — set it explicitly at startup, before you create any `MetadataStore` or
+  `EntityManager`:
+
+  ```ts
+  import { configureBreeze, NamingConvention } from 'breeze-client';
+
+  configureBreeze({ namingConvention: NamingConvention.none });
+  // or: NamingConvention.none.setAsDefault();
+  ```
+
+  Without it, PascalCase server names reach your code camel-cased, so code that reads
+  `CompanyName` finds nothing. Server names that are already camelCase do not round-trip
+  (`camelCase` turns `companyName` back into `CompanyName`), so metadata either fails to
+  load with a `does not roundtrip properly` error, or Breeze sends the server upper-cased
+  names.
+
+Metadata that names a naming convention still sets it when imported into an empty store,
+so a store loaded from an `exportMetadata()` file keeps the convention it was exported
+with. `NamingConvention.none` appears there as `'noChange'`. See
+[Naming conventions](/server/namingconvention).
+
+## 7. Typed configuration (optional, recommended)
 
 For the standard adapters you need neither form: they are the defaults. When you do
 register an adapter of your own, `configureBreeze` replaces the stringly-typed pairs:
@@ -141,7 +182,7 @@ optional: use it for a custom adapter, a custom `fetch`, the naming convention o
 If you call `config.initializeAdapterInstances` from TypeScript, you can drop any cast:
 its argument is now typed as adapter names, `{ ajax: 'fetch', dataService: 'webApi' }`.
 
-## 7. Types are stricter
+## 8. Types are stricter
 
 v3 builds under `strictNullChecks` and `noImplicitAny`. Two declarations changed in ways
 you may notice:

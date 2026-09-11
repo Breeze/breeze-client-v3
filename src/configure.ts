@@ -37,7 +37,7 @@ export interface BreezeSetupOptions {
    */
   fetch?: BreezeFetch;
 
-  /** Sets the default NamingConvention, e.g. `NamingConvention.camelCase`. */
+  /** Sets the default NamingConvention. Defaults to `NamingConvention.camelCase`; use `NamingConvention.none` when the server already sends the names the client should use. */
   namingConvention?: NamingConvention;
 
   /** Prohibit `eval()` and `Function()` in breeze code, for strict CSP environments. */
@@ -50,18 +50,19 @@ export interface BreezeSetupOptions {
 /**
  * Configures Breeze in a single typed call.
  *
- * Every option is optional. With no call at all, Breeze uses its default adapters - the
- * backing-store model library, the JSON uri builder and the Web API data service - and
- * sends requests through `globalThis.fetch`. A Breeze .NET server typically needs only:
+ * Every option is optional, and a Breeze .NET server needs none of them. With no call at
+ * all, Breeze uses its default adapters - the backing-store model library, the JSON uri
+ * builder and the Web API data service - sends requests through `globalThis.fetch`, and
+ * maps property names with `NamingConvention.camelCase`.
  *
  * ```ts
  * import { configureBreeze, NamingConvention } from 'breeze-client';
  *
- * configureBreeze({ namingConvention: NamingConvention.camelCase });
+ * // a server that already sends the names the client should use, with an auth transport
+ * configureBreeze({ namingConvention: NamingConvention.none, fetch: myAuthFetch });
  * ```
  *
- * Pass an adapter to replace a default, e.g. `configureBreeze({ dataService: MyAdapter })`,
- * or a `fetch` to add auth headers, retry or logging.
+ * Pass an adapter to replace a default, e.g. `configureBreeze({ dataService: MyAdapter })`.
  *
  * This replaces the stringly-typed pairs of `config.registerAdapter("dataService", Ctor)`
  * and `config.initializeAdapterInstance("dataService", "webApi", true)`. Those still work and

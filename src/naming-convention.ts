@@ -61,7 +61,8 @@ export class NamingConvention {
 
 
   /**
-  A noop naming convention - This is the default unless another is specified.
+  A no-op naming convention: client property names are the server property names. Set it with
+  `NamingConvention.none.setAsDefault()` for a server that already sends the names the client should use.
   **/
   static none = new NamingConvention({
     name: "noChange",
@@ -88,9 +89,10 @@ export class NamingConvention {
   });
 
   /**
-  The default value whenever NamingConventions are not specified.
+  The default value whenever NamingConventions are not specified: `camelCase`, which suits a .NET
+  server. (2.x defaulted to `none`.)
   **/
-  static defaultInstance = new NamingConvention(NamingConvention.none);
+  static defaultInstance = new NamingConvention(NamingConvention.camelCase);
 
   /**
   Sets the 'defaultInstance' by creating a copy of the current 'defaultInstance' and then applying all of the properties of the current instance.

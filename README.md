@@ -47,16 +47,17 @@ npm install breeze-client
 ```
 
 ```ts
-import { configureBreeze, EntityManager, EntityQuery, NamingConvention } from 'breeze-client';
-
-configureBreeze({ namingConvention: NamingConvention.camelCase });   // for a Breeze .NET server
+import { EntityManager, EntityQuery } from 'breeze-client';
 
 const em = new EntityManager('/breeze/Northwind');
 const { results } = await em.executeQuery(EntityQuery.from('Customers').take(10));
 ```
 
-There are no adapters to import or register: Breeze uses its standard ones unless you
-configure others.
+That is all a Breeze .NET server needs. There are no adapters to import or register, and
+property names are camel-cased by default: `CompanyName` on the server is `companyName`
+on the client. If your server already sends the names the client should use, call
+`NamingConvention.none.setAsDefault()` at startup, before creating an `EntityManager`.
+2.x defaulted to `none` — see [UPGRADE.md](./UPGRADE.md).
 
 ## Building
 

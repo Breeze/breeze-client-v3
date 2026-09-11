@@ -33,11 +33,13 @@ parsing. See [Migrating from 2.x](/guide/migrating-from-2x).
 | URI builder | turns an `EntityQuery` into a URL | `UriBuilderJsonAdapter` (`'json'`) | [Configuration](/guide/configuration) |
 | `fetch` function | makes the HTTP request | `globalThis.fetch`, or yours via `configureBreeze({ fetch })` | [Supplying your own transport](/server/transport) |
 | `JsonResultsAdapter` | finds the entities in the JSON, and their types | supplied by the data service adapter | [Transforming JSON results](/server/jsonresultsadapter) |
-| `NamingConvention` | translates property names between server and client | `none` (`camelCase` also ships) | [Naming conventions](/server/namingconvention) |
+| `NamingConvention` | translates property names between server and client | `camelCase` (`none` also ships) | [Naming conventions](/server/namingconvention) |
 
-Every piece has a default, and none needs registering. For a Breeze .NET server, the only
-thing to set is `NamingConvention.camelCase`. To replace an adapter, do it once, at
-startup, before you create an `EntityManager`. See [Configuration](/guide/configuration).
+Every piece has a default, and none needs registering. A Breeze .NET server needs no
+configuration at all. For a server that already sends the property names the client
+should use, set `NamingConvention.none` — see [Naming conventions](/server/namingconvention).
+To replace an adapter, do it once, at startup, before you create an `EntityManager`. See
+[Configuration](/guide/configuration).
 
 ### A query, step by step
 
@@ -186,8 +188,8 @@ services.AddControllers().AddNewtonsoftJson(options =>
 
 Among other things, `UpdateWithDefaults` sets up the `$id`, `$ref` and `$type`
 properties that the client's JSON reader relies on. It also turns off ASP.NET Core's
-default camel-casing, so property names stay PascalCase on the wire. Configure the client
-with `NamingConvention.camelCase`, and it translates them.
+default camel-casing, so property names stay PascalCase on the wire. The client's default
+naming convention, `NamingConvention.camelCase`, translates them.
 
 If a query endpoint should also accept `query.usePost()`, give the action `[HttpPost]` as
 well as `[HttpGet]`, and set `[BreezeQueryFilter(UsePost = true)]`.

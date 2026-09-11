@@ -15,29 +15,36 @@ esbuild, Rollup) or native `import`. There is no UMD bundle and no `<script>` ta
 
 ## Configure
 
-With a Breeze .NET server, the only thing to set is the naming convention. Do it once, at
-startup:
+With a Breeze .NET server there is nothing to configure. Go straight to
+[creating an EntityManager](#create-an-entitymanager).
+
+There are no adapters to import or register. Unless you say otherwise, Breeze talks to a
+Breeze .NET server, encodes queries as Breeze JSON, tracks changes with plain properties,
+makes its HTTP requests with the platform's `fetch`, and camel-cases property names:
+`CompanyName` on the server is `companyName` on the client. To replace any of those, see
+[Configuration](/guide/configuration); to add auth headers or logging, see
+[Supplying your own transport](/server/transport).
+
+If your server already sends the property names the client should use — a Node server,
+say, or one whose names are already camelCase — turn the translation off. Do it once, at
+startup, before you create any `EntityManager`:
 
 ```ts
 import { configureBreeze, NamingConvention } from 'breeze-client';
 
-configureBreeze({ namingConvention: NamingConvention.camelCase });
+configureBreeze({ namingConvention: NamingConvention.none });
 ```
 
-`NamingConvention.camelCase` translates `CompanyName` on the server to `companyName` on
-the client. Use it with a .NET server; omit it if your server already sends camelCase.
-`NamingConvention.camelCase.setAsDefault()` does the same thing.
-
-There are no adapters to import or register. Unless you say otherwise, Breeze talks to a
-Breeze .NET server, encodes queries as Breeze JSON, tracks changes with plain properties,
-and makes its HTTP requests with the platform's `fetch`. To replace any of those, see
-[Configuration](/guide/configuration); to add auth headers or logging, see
-[Supplying your own transport](/server/transport).
+`NamingConvention.none.setAsDefault()` does the same thing. See
+[Naming conventions](/server/namingconvention).
 
 ::: tip Changed in 3.0
 In 2.x, importing an adapter module registered it. Breeze 3 registers nothing on import,
 and you don't need it to: when nothing is registered, Breeze uses its standard adapters.
 See [Default adapters](/guide/configuration#default-adapters).
+
+The default naming convention was `none` in 2.x, so a .NET application had to set
+`camelCase`. Breeze 3 defaults to `camelCase`. See [Migrating from 2.x](/guide/migrating-from-2x).
 :::
 
 ## Create an EntityManager

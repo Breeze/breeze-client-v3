@@ -116,8 +116,8 @@ public class NorthwindPersistenceManager : EFPersistenceManager<NorthwindIBConte
 ```
 
 The server writes property names as they are in C# (`CompanyName`) and does not send a
-naming convention. The client's naming convention produces the client-side names:
-`NamingConvention.camelCase` turns `CompanyName` into `companyName`. See
+naming convention. The client's naming convention produces the client-side names: the
+default, `NamingConvention.camelCase`, turns `CompanyName` into `companyName`. See
 [Naming conventions](/server/namingconvention).
 
 `Breeze.Persistence.NH` does the same for NHibernate. A server with neither, or a

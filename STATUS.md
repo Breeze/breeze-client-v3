@@ -485,3 +485,13 @@ Node end-to-end with no configuration at all.
 
 The test hosts in breeze-server-v3 now set `UseAppHost=false`: Windows application control
 had started blocking the rebuilt, unsigned test-host `.exe`.
+
+## Default naming convention: camelCase (done)
+
+`NamingConvention.camelCase` is now the default, so with the default adapters a Breeze
+.NET server needs no configuration at all: `new EntityManager(serviceName)`. It is a
+breaking change for applications that relied on 2.x's `none`; UPGRADE.md says how to set it
+back. The Configuration page now lists every startup setting with its default.
+
+Unit 268, integration 450 + 7 skipped, browser 718 + 7 skipped, with no naming convention
+set anywhere in the suite.

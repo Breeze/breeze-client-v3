@@ -358,3 +358,15 @@ sends requests through `config.fetch`.
 - `test/test-fns.ts` registers nothing, so the integration and browser tiers run on the
   defaults. `default-adapters.spec.ts` and `default-adapters-named.spec.ts` cover the
   no-registration path without a server.
+
+## The default naming convention is camelCase
+
+`NamingConvention.defaultInstance` is now `camelCase` (it was `none`). With the default
+adapters, a Breeze .NET server needs no configuration at all. Stores and managers take the
+default when they are created, and a store that imports metadata naming a convention still
+adopts it while empty.
+
+`test/test-fns.ts` no longer sets a naming convention, so the server-backed tiers run on
+the default. `ajax-fake.spec.ts` and `complex-type.spec.ts` set `NamingConvention.none`
+explicitly: their fixture, `ComplexTypeMetadata.json`, uses PascalCase client property
+names and names no convention of its own.

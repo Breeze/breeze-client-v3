@@ -19,18 +19,19 @@ The examples use [Vitest](https://vitest.dev) and the Northwind model.
 
 ## Configure Breeze once
 
-Breeze needs no adapter registration, so with a .NET server the only setup is the naming
-convention. It is global state, so set it in a Vitest setup file:
+With a .NET server, Breeze needs no configuration: the default adapters and the default
+`camelCase` naming convention are what it needs, in tests as in the application. If your
+application does configure Breeze — a custom adapter, say, or `NamingConvention.none` for
+a server that already sends client property names — do the same in a Vitest setup file.
+Breeze configuration is global state, so the tests then use what the application uses:
 
 ```ts
 // test/breeze-setup.ts
 import { configureBreeze, NamingConvention } from 'breeze-client';
 
-configureBreeze({ namingConvention: NamingConvention.camelCase });
+// the same configuration as your application's startup, for example:
+configureBreeze({ namingConvention: NamingConvention.none });
 ```
-
-If your application registers a custom adapter, register it here too, so that the tests
-use the same one.
 
 ```ts
 // vitest.config.ts
@@ -197,7 +198,7 @@ double is an ordinary function that returns a `Response`. The basic pattern is o
 when the stub has to return entities:
 
 - **Use server property names.** Response data is what the server would send. With
-  `NamingConvention.camelCase` that means `CompanyName`, not `companyName`. Camel-case
+  the default `NamingConvention.camelCase` that means `CompanyName`, not `companyName`. Camel-case
   names in the payload are not mapped and come through as `null`.
 - **Include `$type`**, as the Breeze .NET server does, so Breeze knows which entity type
   each object is. The type name is `Namespace.TypeName, Assembly`.

@@ -80,13 +80,8 @@ export class TestFns extends UtilFns {
     // library, JSON uri builder, Web API data service, requests through config.fetch - so the
     // integration and browser tiers exercise exactly what an unconfigured application gets.
 
-
-    if (TestFns.isAspCoreServer || TestFns.isAspWebApiServer) {
-      NamingConvention.camelCase.setAsDefault();
-    } else {
-      NamingConvention.camelCase.setAsDefault();
-    }
-    
+    // No naming convention is set either: the default, camelCase, is what the .NET test
+    // server needs.
   }
 
   static async initDefaultMetadataStore() {
