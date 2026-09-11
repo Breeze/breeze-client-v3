@@ -345,14 +345,5 @@ Harmless. Every run prints it; it concerns a future Vite default, not the tests.
 
 ## Building the docs
 
-Separate from the tests, but same toolchain:
-
-```bash
-npm run docs:dev       # local server with hot reload
-npm run docs:build     # static site to docs/.vitepress/dist
-npm run docs:preview   # serve the built site
-npm run docs:api       # regenerate just the API markdown
-```
-
-`docs:dev` and `docs:build` run TypeDoc first, so the API reference is always in step
-with the source. Both `docs/api/` (generated) and `docs/.vitepress/dist/` are gitignored.
+Separate from the tests; see [DOCS.md](./DOCS.md). In short: `npm run docs:dev`, then open
+http://localhost:5173/ and click **API**.
