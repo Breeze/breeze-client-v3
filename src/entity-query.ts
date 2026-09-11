@@ -552,7 +552,11 @@ export class EntityQuery {
   }
 
   toJSON() {
-    return this.toJSONExt();
+    const json = this.toJSONExt() as Record<string, any>;
+    // usePost is not part of the query sent to the server, so toJSONExt leaves it out;
+    // it is part of the query itself, and fromJSON reads it back.
+    if (this.usePostEnabled) json.usePost = true;
+    return json;
   }
 
   /** Typically only for use when building UriBuilderAdapters.  
@@ -739,7 +743,7 @@ export class EntityQuery {
       if (skipFromCheck || this.selectClause) {
         return undefined;
       } else {
-        this._getFromEntityType(metadataStore, false);
+        return this._getFromEntityType(metadataStore, false);
       }
 
     }
@@ -934,8 +938,6 @@ export class FilterQueryOp extends BreezeEnum implements QueryOp {
   static All = new FilterQueryOp({ operator: "all" });
   /** No aliases */
   static In = new FilterQueryOp({ operator: "in" });
-  /** No aliases */
-  static IsTypeOf = new FilterQueryOp({ operator: "isof" });
 }
 FilterQueryOp.prototype._$typeName = "FilterQueryOp";
 (Error as any)['x'] = FilterQueryOp.resolveSymbols();
@@ -1130,12 +1132,27 @@ export class SelectClause {
     });
   }
 
-  toFunction(/* config */) {
+  /** @hidden @internal
+  The property names of a projected result. Given the queried type, they are the names a
+  remote query's results get: the server names each path by joining the server names of
+  its properties (the ones sent in the select clause) with '_', and the client passes that
+  name through the naming convention, as it does every key of an anonymous result. */
+  _resultNames(entityType?: EntityType) {
+    if (entityType == null || entityType.isAnonymous) return this._pathNames;
+    const et: EntityType = entityType;
+    const toClient = et.metadataStore.namingConvention.serverPropertyNameToClient;
+    return this.propertyPaths.map(function (pp) {
+      return toClient(et.clientPropertyPathToServer(pp, "_"));
+    });
+  }
+
+  toFunction(config?: { entityType?: EntityType }) {
     let that = this;
+    let names = this._resultNames(config && config.entityType);
     return function (entity: Entity) {
       let result = {};
       that.propertyPaths.forEach(function (path, i) {
-        (result as Record<string, any>)[that._pathNames[i]] = EntityAspect.getPropertyPathValue(entity, path);
+        (result as Record<string, any>)[names[i]] = EntityAspect.getPropertyPathValue(entity, path);
       });
       return result;
     };

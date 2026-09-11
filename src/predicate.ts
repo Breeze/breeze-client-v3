@@ -818,8 +818,11 @@ export class FnExpr extends PredicateExpression {
       }, dataType: DataType.String
     },
     substring: {
-      fn: function (source: string, pos: number, length: number) {
-        return source.substring(pos, length);
+      // As on the server (.NET String.Substring(startIndex, length)), the third argument is
+      // a length, not an end index. Function arguments arrive unparsed, often as strings.
+      fn: function (source: string, pos: number, length?: number) {
+        const start = Number(pos);
+        return length == null ? source.substring(start) : source.substring(start, start + Number(length));
       }, dataType: DataType.String
     },
     substringof: {
@@ -937,7 +940,9 @@ function createExpr(source: any, exprContext: ExpressionContext) {
       if (source.value === undefined) {
         throw new Error("Unable to resolve an expression for: " + source + " on entityType: " + (entityType ? entityType.name : 'null'));
       }
-      if (source.isProperty) {
+      // { value, isProperty: true } or { value, isLiteral: false } forces a property;
+      // anything else (including { value, isLiteral: true }) is a literal.
+      if (source.isProperty || source.isLiteral === false) {
         return new PropExpr(source.value);
       } else {
         // we want to insure that any LitExpr created this way is tagged with 'hasExplicitDataType: true'

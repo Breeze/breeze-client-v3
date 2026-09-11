@@ -55,9 +55,6 @@ sees an alias.
 
 `In` requires an array on the right-hand side and throws if it gets anything else.
 
-`FilterQueryOp` also defines `IsTypeOf`, but the predicate parser does not accept it. Don't
-use it.
-
 An unknown operator throws as soon as you call `where`:
 
 ```
@@ -101,7 +98,8 @@ EntityQuery.from('Employees')
   .where('notes', 'contains', { value: 'firstName', isProperty: true });
 ```
 
-A value object with `isProperty: true` is a property. Any other value object is a literal.
+A value object with `isProperty: true` or `isLiteral: false` is a property. Any other value
+object, including one with `isLiteral: true`, is a literal.
 
 A value object can also fix the data type of a literal, as a `DataType` or its name:
 
@@ -368,8 +366,6 @@ const query = new EntityQuery({
 ```
 
 Use `take`. The constructor ignores `top`, even though the fluent API has a `top()` method.
-
-`toJSON()` does not write `usePost`, so it is lost in a round trip.
 
 ## What the server receives
 

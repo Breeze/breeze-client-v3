@@ -191,9 +191,12 @@ Long-standing defects, all present in 2.x:
   validator produced on the entity.
 - **`BreezeEvent.isEnabled` ignored its object argument**, and
   **`EntityState.isDeletedOrDetached()` returned false for `Deleted`.**
-- **Local projections of nested paths replaced only the first dot:**
-  `order.customer.companyName` came back as `order_customer.companyName`. It is now
-  `order_customer_companyName`.
+- **Local projections named nested paths differently from the server.** Only the first
+  dot was replaced, and the client names were used: `order.customer.companyName` came back
+  as `order_customer.companyName`. A local projection now uses the name the server gives
+  the path, passed through the naming convention, so it matches a remote one:
+  `order_Customer_CompanyName` with camelCase. See
+  [Projections](/query/projections#related-property-projections).
 - **A string assigned to a `DateOnly` property stayed a string.** It is now parsed as a
   local date.
 - **`config.getAdapterInstance` was missing from the published type declarations.** It was

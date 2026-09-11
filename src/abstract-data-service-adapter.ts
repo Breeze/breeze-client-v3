@@ -165,6 +165,8 @@ export abstract class AbstractDataServiceAdapter implements DataServiceAdapter {
     const json = entityQuery.toJSONExt({ entityType: entityType, toNameOnServer: true}) as any;
     json.from = undefined;
     json.queryOptions = undefined;
+    // withParameters values go in the query string (params, below), as for a GET.
+    json.parameters = undefined;
 
     const params = {
       type: "POST",
