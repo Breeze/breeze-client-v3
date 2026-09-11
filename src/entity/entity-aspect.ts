@@ -796,6 +796,20 @@ function rejectChangesCore(target: any) {
   });
 }
 
+/**
+ * The value of a property as stored, without creating anything. A collection navigation is built
+ * on first read, so code that only wants to look at *existing* related entities - attaching,
+ * deleting - asks with this. Falls back to getProperty for a model library that cannot peek,
+ * which just means the collection is created as it was before.
+ * @hidden @internal
+ */
+export function peekProperty(entity: StructuralObject, propertyName: string): any {
+  const modelLibrary = config.interfaceRegistry.modelLibrary.getDefaultInstance() as any;
+  return modelLibrary.peekProperty
+    ? modelLibrary.peekProperty(entity, propertyName)
+    : (entity as any).getProperty(propertyName);
+}
+
 function removeFromRelations(entity: Entity, entityState: EntityState) {
   // remove this entity from any collections.
   // mark the entity deleted or detached
@@ -813,7 +827,9 @@ function removeFromRelations(entity: Entity, entityState: EntityState) {
 function removeFromRelationsCore(entity: Entity) {
   entity.entityType.navigationProperties.forEach(function (np) {
     let inverseNp = np.inverse;
-    let npValue = entity.getProperty(np.name);
+    // A collection that has never been read holds no related entities, and reading it here would
+    // create an array only to empty it.
+    let npValue = np.isScalar ? entity.getProperty(np.name) : peekProperty(entity, np.name);
     if (np.isScalar) {
       if (npValue) {
         if (inverseNp) {
@@ -829,6 +845,7 @@ function removeFromRelationsCore(entity: Entity) {
         entity.setProperty(np.name, null);
       }
     } else {
+      if (npValue == null) return;
       if (inverseNp != null) {
         // npValue is a live list so we need to copy it first.
         npValue.slice(0).forEach((v: any) => {
@@ -872,7 +889,9 @@ function validateTarget(target: any, coIndex?: number) {
   }
 
   stype.getProperties().forEach(function (p: any) {
-    let value = target.getProperty(p.name);
+    let value = p.isNavigationProperty && !p.isScalar
+      ? peekProperty(target, p.name)
+      : target.getProperty(p.name);
     let validators = p.getAllValidators();
     if (validators.length > 0) {
       context.property = p;

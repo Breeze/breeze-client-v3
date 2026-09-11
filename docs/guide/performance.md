@@ -57,12 +57,36 @@ An entity that arrives from a query costs about half what the same entity costs 
 (unless you turn on `validateOnQuery`). If you have a choice between querying data and
 constructing the equivalent entities in a loop, query.
 
-## Collections are created eagerly
+## Collections are created on first read
 
-Every collection navigation property gets its array as soon as the entity is created — about
-**0.5 µs** each, including the array's `arrayChanged` event. A type with three collection
-navigations spends more than half its build time on arrays that the code may never touch. There
-is nothing to configure here; it is worth knowing when a wide type is created in bulk.
+A collection navigation - `order.orderDetails` - is an empty relation array until something
+reads it. Creating one costs about 0.5 µs and 400 bytes, including the array's `arrayChanged`
+event, and most collections on most entities are never touched, so an entity only pays for the
+ones it uses.
+
+Measured over 50,000 attached entities, each type in its own process:
+
+| type | collection navigations | eager | lazy |
+|---|---|---|---|
+| `Order` | 1 | 3,285 B | 2,909 B |
+| `Customer` | 1 | 3,590 B | 3,190 B |
+| `Employee` | 3 | 5,822 B | 3,927 B |
+
+Building a detached entity drops from about 1.74 µs to 1.18 µs with it. Attaching one is
+unchanged - that cost is validation and manager bookkeeping, not collections.
+
+The array is created on the first read and kept, so its identity is stable from then on:
+
+```ts
+const a = order.orderDetails;
+const b = order.orderDetails;   // the same array
+a.push(detail);                 // and normal in every other way
+```
+
+Reading is the only thing that creates it. Attaching an entity, deleting one, validating one or
+propagating a key change all skip collections that do not exist yet - there is nothing in an
+uncreated collection for any of them to act on. A query creates only the collections its payload
+actually carries.
 
 ## Reads are cheap
 

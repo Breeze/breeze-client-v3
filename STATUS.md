@@ -476,6 +476,16 @@ custom-accessor path. Creating a detached entity went 1.70 -> 1.45 µs; everythi
 because the adapter is only ~2% of a property set. The measurements that say so, and the levers
 that do matter (validation), are in docs/guide/performance.md - a new page.
 
+## Lazy relation arrays (done)
+
+Collection navigations are created on first read rather than at entity creation. Memory per
+entity drops by roughly 400 bytes per collection navigation - `Employee` (three of them) went
+5,822 -> 3,927 bytes - and building a detached entity went 1.74 -> 1.18 µs; attaching is
+unchanged. Four places used to read collections for no reason (attach cascade, delete unhook,
+validation, key propagation) and now peek via an optional `peekProperty` on the model library
+adapter, falling back to `getProperty` for an adapter that lacks it. See *Lazy relation arrays*
+in CHANGES-DEV.md and docs/guide/performance.md.
+
 ## Packaging check (done)
 
 Installing the packed tarball into a fresh Vite + TypeScript app found what the suite could

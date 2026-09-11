@@ -79,6 +79,11 @@ export interface ModelLibraryAdapter extends BaseAdapter {
     getTrackablePropertyNames: (entity: any) => string[];
     initializeEntityPrototype(proto: Object): void;
     startTracking(entity: any, entityCtor: Function): void;
+    /** Optional. The stored value of a property, without creating anything that reading it would
+        create - the backing store builds a collection navigation's array on first read. Breeze
+        falls back to `getProperty` for an adapter that does not implement this, which simply
+        means the array is created as it always was. */
+    peekProperty?(entity: any, propertyName: string): any;
     createCtor?: Function;
 }
 

@@ -358,6 +358,62 @@ options as the levers that actually matter.
 
 Verified: typecheck clean, unit 328, integration 450 + 7 skipped, browser 727 + 7 skipped.
 
+## Lazy relation arrays
+
+A collection navigation - `order.orderDetails` - is now an empty relation array only once
+something reads it. An array plus its `arrayChanged` event is about 400 bytes, and most
+collections on most entities are never touched.
+
+Measured over 50,000 attached entities, each type in its own process:
+
+| type | collection navigations | eager | lazy |
+|---|---|---|---|
+| `Order` | 1 | 3,285 B | 2,909 B |
+| `Customer` | 1 | 3,590 B | 3,190 B |
+| `Employee` | 3 | 5,822 B | **3,927 B** |
+
+Building a detached entity went from 1.74 to 1.18 µs. Attaching one is unchanged at ~10.5 µs,
+which is the expected result: that cost is validation and manager bookkeeping, not collections.
+
+**The design.** Collection navigations get a property descriptor of their own, so the accessor
+that every *data* property uses is untouched and stays hot. The array is built on first read and
+kept, so identity is stable afterwards. Assigning to a collection navigation throws exactly as
+before ("Nonscalar navigation properties are readonly").
+
+**The hard part was everything that assumed the array was always there.** Four places read a
+collection for no reason other than that it existed, and each would have materialised every
+collection of every entity, defeating the change entirely:
+
+- `attachRelatedEntities` - cascades an attach to related entities.
+- `removeFromRelationsCore` - unhooks relationships on delete or detach.
+- `validateTarget` - reads every property's value *before* asking whether it has any validators,
+  and `validateOnAttach` is on by default.
+- the interceptor's key-propagation branch - walks every navigation on any key change, including
+  the temporary key generated for every entity created.
+
+All four now peek: they ask for the stored value and treat "not created" as "empty", which it is.
+Peeking goes through a new optional `peekProperty` on the `ModelLibraryAdapter` interface, with a
+fallback to `getProperty` - so a model library that does not implement it behaves exactly as
+before, creating the arrays as it always did.
+
+Only two of those four were predicted. The other two were found by trapping writes to the backing
+store slot and reading the stack, after two wrong guesses - worth remembering as the cheaper
+technique next time.
+
+One self-inflicted bug is worth recording: `startTracking` read each property through
+`entity[propName]`, an accessor read, which for a collection navigation *created* the array it was
+supposed to leave lazy, so the "did the constructor assign this?" guard threw. 160 tests failed at
+once. It reads the stored value now, which is equivalent for every other property because
+constructor-assigned values have already been moved into the backing store.
+
+`test/unit/lazy-relation-arrays.spec.ts` covers both halves: that laziness holds (not created
+until read, identity stable, attach/delete/detach/export do not force it) and that nothing
+downstream noticed (inverse fixup, `arrayChanged`, assignment still throwing, cascade on attach,
+clearing on delete, and a query filling only the collections its payload carries).
+
+Verified: typecheck clean, unit 340, integration 450 + 7 skipped, browser 739 + 7 skipped, docs
+build with no dead links and zero TypeDoc warnings.
+
 ## Object-as-map to Map
 
 Where a structure is keyed by *data* rather than by fixed property names, it is now a real

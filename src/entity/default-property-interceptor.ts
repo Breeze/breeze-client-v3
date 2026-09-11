@@ -1,7 +1,7 @@
 ﻿import { core } from '../core/core.js';
 import { ComplexType, DataProperty, NavigationProperty, EntityProperty } from '../metadata/entity-metadata.js';
 import { EntityKey } from './entity-key.js';
-import { EntityAspect, ComplexAspect, Entity, StructuralObject } from './entity-aspect.js';
+import { EntityAspect, ComplexAspect, Entity, StructuralObject, peekProperty } from './entity-aspect.js';
 import { EntityState } from './entity-state.js';
 import { EntityAction } from './entity-action.js';
 import { EntityQuery } from '../query/entity-query.js';
@@ -210,10 +210,13 @@ function setDpValueSimple(context: IContext, rawAccessorFn: any) {
         if (invNavProp.isScalar) {
           relatedEntity.setProperty(invNavProp.name, null);
         } else {
-          // remove 'this' from old related nav prop
-          let relatedArray = relatedEntity.getProperty(invNavProp.name);
-          // arr.splice(arr.indexOf(value_to_remove), 1);
-          relatedArray.splice(relatedArray.indexOf(parent), 1);
+          // remove 'this' from old related nav prop. A collection that was never read holds
+          // nothing to remove, so peek rather than create one to splice nothing out of.
+          let relatedArray = peekProperty(relatedEntity, invNavProp.name);
+          if (relatedArray) {
+            // arr.splice(arr.indexOf(value_to_remove), 1);
+            relatedArray.splice(relatedArray.indexOf(parent), 1);
+          }
         }
       }
     }
@@ -253,7 +256,10 @@ function setDpValueSimple(context: IContext, rawAccessorFn: any) {
       let fkNames = inverseNp ? inverseNp.foreignKeyNames : np.invForeignKeyNames;
 
       if (fkNames.length === 0) return;
-      let npValue = parent.getProperty(np.name);
+      // Peek for collections: an entity whose collection has never been read has no children to
+      // propagate the new key to, and this runs on every key assignment - including the temporary
+      // key generated for every entity created.
+      let npValue = np.isScalar ? parent.getProperty(np.name) : peekProperty(parent, np.name);
       if (!npValue) return;
       let fkName = fkNames[propertyIx];
       if (np.isScalar) {
