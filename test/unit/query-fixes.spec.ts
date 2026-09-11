@@ -209,3 +209,49 @@ describe("withParameters values are sent once, as query-string arguments", () =>
     expect(new EntityQuery(q.toJSON()).parameters).toEqual({ companyName: "C" });
   });
 });
+
+describe("untyped query results fall back to the resource's entity type", () => {
+  // MappingContext asks the query for a type for each root node the JsonResultsAdapter
+  // could not type (no $type, or one not in metadata). _getToEntityType computed the type
+  // mapped to the resource name and then dropped it, so only toType() ever worked.
+  const ids = ["00000000-0000-0000-0000-000000000001", "00000000-0000-0000-0000-000000000002"];
+
+  test("root nodes without $type become entities of the resource's type", async () => {
+    respond = () => json([{ CustomerID: ids[0], CompanyName: "Acme" }, { CustomerID: ids[1], CompanyName: "Bolt" }]);
+    const em = newManager();
+    const custType = em.metadataStore.getAsEntityType("Customer");
+
+    const qr = await em.executeQuery(EntityQuery.from("Customers"));
+
+    expect(qr.results).toHaveLength(2);
+    qr.results.forEach((c: any) => {
+      expect(c.entityType).toBe(custType);
+      expect(c.entityAspect.entityState.isUnchanged()).toBe(true);
+    });
+    expect(qr.results.map((c: any) => c.getProperty("companyName"))).toEqual(["Acme", "Bolt"]);
+    expect(em.getEntities("Customer")).toHaveLength(2);
+  });
+
+  test("a resource with no mapped type still returns plain objects", async () => {
+    respond = () => json([{ CustomerID: ids[0], CompanyName: "Acme" }]);
+    const em = newManager();
+    const qr = await em.executeQuery(EntityQuery.from("CustomersStartingWith"));
+    expect(qr.results).toEqual([{ customerID: ids[0], companyName: "Acme" }]);
+    expect(em.getEntities()).toHaveLength(0);
+  });
+
+  test("a projection still returns plain objects", async () => {
+    respond = () => json([{ CompanyName: "Acme" }]);
+    const em = newManager();
+    const qr = await em.executeQuery(EntityQuery.from("Customers").select("companyName"));
+    expect(qr.results).toEqual([{ companyName: "Acme" }]);
+    expect(em.getEntities()).toHaveLength(0);
+  });
+
+  test("toType still decides for an unmapped resource", async () => {
+    respond = () => json([{ CustomerID: ids[0], CompanyName: "Acme" }]);
+    const em = newManager();
+    const qr = await em.executeQuery(EntityQuery.from("CustomersStartingWith").toType("Customer"));
+    expect(qr.results[0].entityType).toBe(em.metadataStore.getAsEntityType("Customer"));
+  });
+});

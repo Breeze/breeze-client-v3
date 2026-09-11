@@ -743,7 +743,7 @@ export class EntityQuery {
       if (skipFromCheck || this.selectClause) {
         return undefined;
       } else {
-        this._getFromEntityType(metadataStore, false);
+        return this._getFromEntityType(metadataStore, false);
       }
 
     }
