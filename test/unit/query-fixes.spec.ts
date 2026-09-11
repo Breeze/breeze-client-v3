@@ -148,3 +148,20 @@ describe("a where-value object honours isLiteral", () => {
     expect(litJson).not.toContain("isProperty");
   });
 });
+
+describe("toJSON keeps usePost", () => {
+  test("usePost survives a toJSON / fromJSON round trip", () => {
+    const q = EntityQuery.from("Customers").where("companyName", "startsWith", "A").usePost();
+    const json = JSON.parse(JSON.stringify(q));
+    expect(json.usePost).toBe(true);
+
+    const q2 = new EntityQuery(json);
+    expect(q2.usePostEnabled).toBe(true);
+    expect(JSON.stringify(q2)).toEqual(JSON.stringify(q));
+  });
+
+  test("a query without usePost does not write it", () => {
+    expect(EntityQuery.from("Customers").toJSON()).not.toHaveProperty("usePost");
+    expect(new EntityQuery(EntityQuery.from("Customers").toJSON()).usePostEnabled).toBeFalsy();
+  });
+});

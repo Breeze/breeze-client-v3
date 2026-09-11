@@ -367,8 +367,6 @@ const query = new EntityQuery({
 
 Use `take`. The constructor ignores `top`, even though the fluent API has a `top()` method.
 
-`toJSON()` does not write `usePost`, so it is lost in a round trip.
-
 ## What the server receives
 
 A where clause goes over the wire in the same JSON format, with property and function names

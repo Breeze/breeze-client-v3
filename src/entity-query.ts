@@ -552,7 +552,11 @@ export class EntityQuery {
   }
 
   toJSON() {
-    return this.toJSONExt();
+    const json = this.toJSONExt() as Record<string, any>;
+    // usePost is not part of the query sent to the server, so toJSONExt leaves it out;
+    // it is part of the query itself, and fromJSON reads it back.
+    if (this.usePostEnabled) json.usePost = true;
+    return json;
   }
 
   /** Typically only for use when building UriBuilderAdapters.  
