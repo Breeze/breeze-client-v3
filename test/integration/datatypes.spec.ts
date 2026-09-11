@@ -177,7 +177,7 @@ describe("Unusual Datatypes", () => {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
     const query = new EntityQuery("UnusualDates").take(10);
-    const tlimitType = em.metadataStore.getEntityType("UnusualDate") as EntityType;
+    const tlimitType = em.metadataStore.getAsEntityType("UnusualDate");
     const crtnDt0 = new Date(2001, 1, 1, 1, 1, 1, 135);
     const modDt0 = new Date(2002, 2, 2, 2, 2, 2, 246);
     const crtnDt2 = new Date(2003, 3, 3, 3, 3, 3, 345);
@@ -218,7 +218,7 @@ describe("Unusual Datatypes", () => {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
     const query = new EntityQuery("UnusualDates").take(10);
-    const tlimitType = em.metadataStore.getEntityType("UnusualDate") as EntityType;
+    const tlimitType = em.metadataStore.getAsEntityType("UnusualDate");
     const date0 = new Date(2001, 1, 1);
     const time0 = "01:23:45.678"; // TODO TimeOnly type is string on client, for now
     const date2 = new Date(2003, 3, 3);
@@ -302,7 +302,7 @@ describe("Unusual Datatypes", () => {
     const defaultMs = await TestFns.initDefaultMetadataStore();
     const newMs = MetadataStore.importMetadata(defaultMs.exportMetadata());
 
-    const tlimitType = newMs.getEntityType("TimeLimit") as EntityType;
+    const tlimitType = newMs.getAsEntityType("TimeLimit");
     core.arrayRemoveItem(tlimitType.dataProperties, dp => dp.dataType === DataType.Undefined);
 
     const em = TestFns.newEntityManager();
@@ -312,7 +312,7 @@ describe("Unusual Datatypes", () => {
     const results = qr1.results;
     const maxTime = results[0].getProperty("maxTime");
     expect(maxTime).toBeTruthy();
-    const tlimitType1 = em.metadataStore.getEntityType("TimeLimit") as EntityType;
+    const tlimitType1 = em.metadataStore.getAsEntityType("TimeLimit");
     const tlimit = tlimitType1.createEntity();
     tlimit.setProperty("maxTime", duration);
     em.addEntity(tlimit);
@@ -376,7 +376,7 @@ describe("Unusual Datatypes", () => {
   test("bad time", function () {
 
     const em = TestFns.newEntityManager();
-    const tlimitType = em.metadataStore.getEntityType("TimeLimit") as EntityType;
+    const tlimitType = em.metadataStore.getAsEntityType("TimeLimit");
     const tlimit = tlimitType.createEntity();
     em.attachEntity(tlimit);
 
@@ -397,7 +397,7 @@ describe("Unusual Datatypes", () => {
 
     const data = await em.executeQuery(query);
     const results = data.results;
-    const roleType = em.metadataStore.getEntityType("Role") as EntityType;
+    const roleType = em.metadataStore.getAsEntityType("Role");
     const role = roleType.createEntity();
     role.setProperty("name", "test1");
     role.setProperty("description", "descr 1");
@@ -427,7 +427,7 @@ describe("Unusual Datatypes", () => {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
     const query = new EntityQuery("Roles").where("roleType", "==", 'Restricted');
-    const roleType = em.metadataStore.getEntityType("Role");
+    const roleType = em.metadataStore.getAsEntityType("Role");
     const qr1 = await em.executeQuery(query);
     const roles = qr1.results;
     expect(roles.length).toBeGreaterThan(1);
@@ -439,7 +439,7 @@ describe("Unusual Datatypes", () => {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
     const query = new EntityQuery("Roles").where("roleType", "==", 'Restricted');
-    const roleType = em.metadataStore.getEntityType("Role") as EntityType;
+    const roleType = em.metadataStore.getAsEntityType("Role");
     const qr1 = await em.executeQuery(query);
 
     expect(qr1.results.length).toBeGreaterThan(1);
@@ -467,7 +467,7 @@ describe("Unusual Datatypes", () => {
   test("enums null - w/save", async function () {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
-    const roleType = em.metadataStore.getEntityType("Role") as EntityType;
+    const roleType = em.metadataStore.getAsEntityType("Role");
     let role = roleType.createEntity();
     role.setProperty("name", "test1");
     role.setProperty("description", "descr 1");
@@ -496,7 +496,7 @@ describe("Unusual Datatypes", () => {
   test("enums change value, detect on server", async function () {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
-    const roleType = em.metadataStore.getEntityType("Role") as EntityType;
+    const roleType = em.metadataStore.getAsEntityType("Role");
     let role = roleType.createEntity();
     role.setProperty("name", "test2");
     role.setProperty("description", null);

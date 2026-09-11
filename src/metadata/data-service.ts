@@ -19,8 +19,9 @@ export interface DataServiceConfig {
   /** The {@link JsonResultsAdapter} used to process the results of any query against this DataService.  **/
   jsonResultsAdapter?: JsonResultsAdapter;
   /** Whether to use JSONP when performing a 'GET' request against this service.
-  @deprecated Has no effect: Breeze's transport has no JSONP support. Kept because it is part of
-  a serialized DataService. **/
+  @deprecated No effect on Breeze's own transport, which has no JSONP support. Kept because it is
+  part of a serialized DataService, and because a registered (deprecated) ajax adapter can still
+  act on the dataType and crossDomain settings it produces. **/
   useJsonp?: boolean;
 }
 /**
@@ -55,8 +56,9 @@ export class DataService {
   /** The {@link JsonResultsAdapter} used to process the results of any query against this DataService. __Read Only__ **/
   declare jsonResultsAdapter: JsonResultsAdapter;
   /** Whether to use JSONP when performing a 'GET' request against this service. __Read Only__
-  @deprecated Has no effect: Breeze's transport has no JSONP support. Kept because it is part of
-  a serialized DataService. **/
+  @deprecated No effect on Breeze's own transport, which has no JSONP support. Kept because it is
+  part of a serialized DataService, and because a registered (deprecated) ajax adapter can still
+  act on the dataType and crossDomain settings it produces. **/
   declare useJsonp: boolean;
 
   /**   DataService constructor

@@ -133,9 +133,10 @@ export class BreezeConfig {
     @param adapterCtor {Function} - an ctor function that returns an instance of the specified interface.
     **/
     /**
-    @deprecated Use `configureBreeze({ ajax: MyAdapter, ... })` instead. The adapter
-    classes are passed directly, so a misspelled name is a compile error rather than a
-    runtime one. This method still works and is not scheduled for removal.
+    @deprecated For configuring an application, use `configureBreeze({ ajax: MyAdapter, ... })`
+    instead: the adapter classes are passed directly, so a misspelled name is a compile error
+    rather than a runtime one. An adapter's own static `register()` still calls this - that is
+    how an adapter registers itself, and is not deprecated. Not scheduled for removal.
     */
     registerAdapter<T extends BaseAdapter>(interfaceName: AdapterType, adapterCtor: AdapterCtor<T>) {
         assertParam(interfaceName, "interfaceName").isNonEmptyString().check();
@@ -177,9 +178,10 @@ export class BreezeConfig {
     @returns {an instance of the specified adapter}
     **/
     /**
-    @deprecated Use `configureBreeze({ ajax: MyAdapter, ... })` instead. The adapter
-    classes are passed directly, so a misspelled name is a compile error rather than a
-    runtime one. This method still works and is not scheduled for removal.
+    @deprecated For configuring an application, use `configureBreeze({ ajax: MyAdapter, ... })`
+    instead: the adapter classes are passed directly, so a misspelled name is a compile error
+    rather than a runtime one. An adapter's own static `register()` still calls this - that is
+    how an adapter registers itself, and is not deprecated. Not scheduled for removal.
     */
     initializeAdapterInstance(interfaceName: AdapterType, adapterName: string, isDefault: boolean = true) {
         isDefault = isDefault === undefined ? true : isDefault;

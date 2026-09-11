@@ -107,7 +107,7 @@ describe("Old Fixed Bugs", () => {
       expect.hasAssertions();
       const em1 = TestFns.newEntityManager();
       const metadataStore = em1.metadataStore;
-      const orderType = metadataStore.getEntityType("Order") as EntityType;
+      const orderType = metadataStore.getAsEntityType("Order");
 
       const query = EntityQuery.from("Customers")
         .where("customerID", "==", "729de505-ea6d-4cdf-89f6-0360ad37bde7")
@@ -160,7 +160,7 @@ describe("Old Fixed Bugs", () => {
   test("bug where we fill placeholder customer asynchronously", async () => {
     expect.hasAssertions();
     const em1 = TestFns.newEntityManager();
-    const custType = em1.metadataStore.getEntityType("Customer") as EntityType;
+    const custType = em1.metadataStore.getAsEntityType("Customer");
     const custKeyName = TestFns.wellKnownData.keyNames.customer;
     const customer = custType.createEntity();
     customer.setProperty("companyName", "[don't know name yet]");
@@ -227,7 +227,7 @@ describe("Old Fixed Bugs", () => {
     order1a = qr2.results[0];
     expect(order1.entityAspect.getKey()).toEqual(order1a.entityAspect.getKey());
 
-    const customerType = em2.metadataStore.getEntityType("Customer") as EntityType;
+    const customerType = em2.metadataStore.getAsEntityType("Customer");
     newCust1a = customerType.createEntity();
     newCust1a.setProperty("companyName", "Test_compName");
     order1a.setProperty("customer", newCust1a);
@@ -335,7 +335,7 @@ describe("Old Fixed Bugs", () => {
     });
 
     const m1 = em.createEmptyCopy();
-    const customerType = m1.metadataStore.getEntityType("Customer");
+    const customerType = m1.metadataStore.getAsEntityType("Customer");
     const cfg: Record<string, any> = {};
     cfg[customerKeyName] = breeze.core.getUuid();
     const customer = m1.createEntity("Customer", cfg);

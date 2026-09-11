@@ -382,4 +382,5 @@ may notice.
 - `JsonResultsAdapterConfig.visitNode` is required in the type, as it always was at runtime.
 - Published for adapter authors: the static `AbstractDataServiceAdapter.makeHttpError` and
   the protected `_createChangeRequestInterceptor`.
-- `DataService.useJsonp` is deprecated; it has never had an effect in v3.
+- `DataService.useJsonp` is deprecated. It has no effect on Breeze’s own transport, which has
+  no JSONP support; a registered (deprecated) ajax adapter can still act on it.

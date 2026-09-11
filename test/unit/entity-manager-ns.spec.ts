@@ -34,7 +34,7 @@ describe("EntityManager - no server", () => {
     let ms = em.metadataStore;
     ms.importMetadata(TestFns.sampleMetadata);
 
-    let orderType = ms.getEntityType("Order") as EntityType;
+    let orderType = ms.getAsEntityType("Order");
     expect(orderType).toBeTruthy();
 
     expect(orderType.shortName).toEqual("Order");
@@ -223,7 +223,7 @@ describe("EntityManager - no server", () => {
     em.attachEntity(product);
     const origProductId = product.getProperty(productKeyName);
     let entityKey = new EntityKey(productType, [origProductId]);
-    let sameProduct = em.findEntityByKey(entityKey);
+    let sameProduct = em.getEntityByKey(entityKey);
     const sameProduct2 = em.getEntityByKey("Product", origProductId);
     expect(product).toBe(sameProduct);
     expect(product).toBe(sameProduct2);
@@ -231,7 +231,7 @@ describe("EntityManager - no server", () => {
     sameProduct = em.getEntityByKey(entityKey);
     expect(sameProduct).toBe(null);
     entityKey = new EntityKey(productType, [7]);
-    sameProduct = em.findEntityByKey(entityKey);
+    sameProduct = em.getEntityByKey(entityKey);
     expect(product).toBe(sameProduct);
   });
 

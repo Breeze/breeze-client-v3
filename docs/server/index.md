@@ -94,7 +94,7 @@ const em = new EntityManager({ dataService });
 | `adapterName` | the default data service adapter | The name of a registered data service adapter, such as `'webApi'`. Use it to talk to one service with a different adapter. |
 | `uriBuilderName` | the default URI builder | The name of a registered URI builder (`'json'`). |
 | `jsonResultsAdapter` | the data service adapter's | Changes how responses from this service are read. See [Transforming JSON results](/server/jsonresultsadapter). |
-| `useJsonp` | `false` | Deprecated, and has no effect: Breeze has no JSONP support. It is still read and written with a serialized `DataService`. |
+| `useJsonp` | `false` | Deprecated. No effect on Breeze’s own transport, which has no JSONP support, though a registered (deprecated) ajax adapter can still act on it. Still read and written with a serialized `DataService`. |
 
 A query or save against a `DataService` with no `serviceName` throws
 `Unable to resolve a 'serviceName' for this dataService`.

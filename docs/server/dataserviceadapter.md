@@ -306,7 +306,7 @@ export class ChangeSetAdapter extends AbstractDataServiceAdapter {
   _prepareSaveResult(saveContext: SaveContext, data: any): SaveResult {
     const metadataStore = saveContext.entityManager.metadataStore;
     const keyMappings: KeyMapping[] = (data.keyMap ?? []).map((k: any) => ({
-      entityTypeName: metadataStore.getEntityType(k.type)!.name,
+      entityTypeName: metadataStore.getAsEntityType(k.type)!.name,
       tempValue: k.tempId,
       realValue: k.id,
     }));
@@ -318,7 +318,7 @@ export class ChangeSetAdapter extends AbstractDataServiceAdapter {
     name: 'changeSet',
     visitNode: (node: any, mappingContext: MappingContext) => {
       const entityType = node?.type
-        ? mappingContext.entityManager.metadataStore.getEntityType(node.type, true) as EntityType
+        ? mappingContext.entityManager.metadataStore.getAsEntityType(node.type, true) as EntityType
         : undefined;
       return { entityType };
     },

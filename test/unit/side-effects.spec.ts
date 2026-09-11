@@ -36,7 +36,7 @@ describe("each module, loaded without the barrel", () => {
     const { MetadataStore } = await import('../../src/metadata/entity-metadata');
     const ms = new MetadataStore();
     ms.importMetadata(metadata);
-    const cust = (ms.getEntityType('Customer') as any).createEntity({ companyName: 'Metadata only' });
+    const cust = (ms.getAsEntityType('Customer') as any).createEntity({ companyName: 'Metadata only' });
     expect(cust.companyName).toBe('Metadata only');
     expect(cust.entityAspect.entityState.name).toBe('Detached');
   });

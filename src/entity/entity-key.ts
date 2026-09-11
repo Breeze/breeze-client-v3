@@ -26,7 +26,7 @@ export class EntityKey {
   /**
   Constructs a new EntityKey.  Each entity within an EntityManager will have a unique EntityKey.
   >     // assume em1 is an EntityManager containing a number of existing entities.
-  >     var empType = em1.metadataStore.getEntityType("Employee");
+  >     var empType = em1.metadataStore.getAsEntityType("Employee");
   >     var entityKey = new EntityKey(empType, 1);
 
   EntityKey's may also be found by calling EntityAspect.getKey()
@@ -34,7 +34,7 @@ export class EntityKey {
   >     var empKey = employee1.entityAspect.getKey();
 
   Multipart keys are created by passing an array as the 'keyValues' parameter
-  >     var empTerrType = em1.metadataStore.getEntityType("EmployeeTerritory");
+  >     var empTerrType = em1.metadataStore.getAsEntityType("EmployeeTerritory");
   >     var empTerrKey = new EntityKey(empTerrType, [ 1, 77]);
   >     // The order of the properties in the 'keyValues' array must be the same as that
   >     // returned by empTerrType.keyProperties
@@ -85,7 +85,7 @@ export class EntityKey {
   There is also an static version of 'equals' with the same functionality.
   
   >      // assume em1 is an EntityManager containing a number of existing entities.
-  >      var empType = em1.metadataStore.getEntityType("Employee");
+  >      var empType = em1.metadataStore.getAsEntityType("Employee");
   >      var empKey1 = new EntityKey(empType, 1);
   >      // assume employee1 is an existing Employee entity
   >      var empKey2 = employee1.entityAspect.getKey();
@@ -110,7 +110,7 @@ export class EntityKey {
   Used to compare EntityKeys are determine if they refer to the same Entity.
   There is also an instance version of 'equals' with the same functionality.
   >      // assume em1 is an EntityManager containing a number of existing entities.
-  >      var empType = em1.metadataStore.getEntityType("Employee");
+  >      var empType = em1.metadataStore.getAsEntityType("Employee");
   >      var empKey1 = new EntityKey(empType, 1);
   >      // assume employee1 is an existing Employee entity
   >      var empKey2 = employee1.entityAspect.getKey();

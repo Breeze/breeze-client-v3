@@ -95,7 +95,7 @@ export class DataServiceWebApiAdapter extends AbstractDataServiceAdapter {
     visitNode: function (node: any, mappingContext: MappingContext, nodeContext: NodeContext) {
       if (node == null) return {};
       let entityTypeName = MetadataStore.normalizeTypeName(node.$type);
-      let entityType = entityTypeName && mappingContext.entityManager.metadataStore.getEntityType(entityTypeName, true);
+      let entityType = entityTypeName && mappingContext.entityManager.metadataStore._getStructuralType(entityTypeName, true);
       let propertyName = nodeContext.propertyName;
       let ignore = propertyName && propertyName.substr(0, 1) === "$";
 

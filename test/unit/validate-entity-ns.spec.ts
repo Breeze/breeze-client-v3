@@ -17,7 +17,7 @@ describe("Entity operations - no server", () => {
   test("scalar navigation property validation", function () {
     const newMs = MetadataStore.importMetadata(TestFns.sampleMetadata);
     const em = TestFns.newEntityManager(newMs);
-    const orderType = em.metadataStore.getEntityType("Order");
+    const orderType = em.metadataStore.getAsEntityType("Order");
     const custProp = orderType.getProperty("customer");
     const valFn = function (v: any) {
       if (v == null) return true;
@@ -47,7 +47,7 @@ describe("Entity operations - no server", () => {
     const newMs = MetadataStore.importMetadata(TestFns.sampleMetadata);
     const em = TestFns.newEntityManager(newMs);
 
-    const customerType = em.metadataStore.getEntityType("Customer");
+    const customerType = em.metadataStore.getAsEntityType("Customer");
     const ordersProp = customerType.getProperty("orders");
     // create a validator that insures that all orders on a customer have a freight cost > $100
     const valFn = function (v: any) {
@@ -473,7 +473,7 @@ describe("Entity operations - no server", () => {
   test("custom entity validation - register validator", function () {
     const ms = MetadataStore.importMetadata(TestFns.sampleMetadata);
     const em = TestFns.newEntityManager(ms);
-    const custType = ms.getEntityType("Customer");
+    const custType = ms.getAsEntityType("Customer");
 
     const zipCodeValidatorFactory = createZipCodeValidatorFactory();
     const zipCodeValidator = zipCodeValidatorFactory();

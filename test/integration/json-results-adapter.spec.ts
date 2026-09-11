@@ -15,7 +15,7 @@ const jsonResultsAdapter = new breeze.JsonResultsAdapter({
   },
   visitNode: function (node: any, mappingContext: MappingContext, nodeContext: NodeContext) {
     const entityTypeName = 'OrderDetail';
-    const entityType = entityTypeName && mappingContext.entityManager.metadataStore.getEntityType(entityTypeName, true);
+    const entityType = entityTypeName && mappingContext.entityManager.metadataStore.getStructuralType(entityTypeName, true);
     const propertyName = nodeContext.propertyName;
     const ignore = propertyName && propertyName.substr(0, 1) === "$";
     if (entityType) {

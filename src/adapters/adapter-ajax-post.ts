@@ -20,8 +20,11 @@ import * as breeze from '../breeze.js';
  *  $data: contains the data to be sent to the server
  *
  * Installation:
- *    var ajaxAdapter = config.initializeAdapterInstance('ajax', adapterName, true);
+ *    const ajaxAdapter = config.getAdapterInstance<AjaxAdapter>('ajax');
  *    AjaxPostWrapper.wrapAjax(ajaxAdapter);
+ *
+ *  Breeze 3 needs no ajax adapter, so there is one to wrap only if you registered one with
+ *  configureBreeze({ ajax: MyAdapter }). Otherwise wrap your own fetch function instead.
  *
  * Example:
  *   var query = breeze.EntityQuery.from('SimilarCustomersPOST')

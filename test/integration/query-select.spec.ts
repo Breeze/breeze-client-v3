@@ -109,7 +109,7 @@ describe("Query Select clause", () => {
 
     const qr1 = await em.executeQuery(query);
     expect(em.metadataStore.isEmpty()).toBe(false);
-    const orderType = em.metadataStore.getEntityType("Order");
+    const orderType = em.metadataStore.getAsEntityType("Order");
     expect(qr1).toBeTruthy();
     expect(qr1.results.length).toBeGreaterThan(0);
     const anons = qr1.results;
@@ -139,7 +139,7 @@ describe("Query Select clause", () => {
 
     const qr1 = await em.executeQuery(query);
     expect(em.metadataStore.isEmpty()).toBe(false);
-    const orderType = em.metadataStore.getStructuralType("Order");
+    const orderType = em.metadataStore.getAsEntityType("Order");
     expect(qr1).toBeTruthy();
     expect(qr1.results.length).toBeGreaterThan(0);
     const anons = qr1.results;
@@ -165,7 +165,7 @@ describe("Query Select clause", () => {
     query = query.select("customer.companyName, customer, orderDate");
     const qr1 = await em.executeQuery(query);
     expect(em.metadataStore.isEmpty()).toBe(false);
-    const customerType = em.metadataStore.getEntityType("Customer");
+    const customerType = em.metadataStore.getAsEntityType("Customer");
     expect(qr1).toBeTruthy();
     expect(qr1.results.length).toBeGreaterThan(0);
     const anons = qr1.results;

@@ -642,7 +642,7 @@ export class EntityQuery {
 
   /**
   Creates an EntityQuery for the specified {@link EntityKey}.
-  >      let empType = metadataStore.getEntityType("Employee");
+  >      let empType = metadataStore.getAsEntityType("Employee");
   >      let entityKey = new EntityKey(empType, 1);
   >      let query = EntityQuery.fromEntityKey(entityKey);
 

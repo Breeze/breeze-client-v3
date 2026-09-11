@@ -374,9 +374,9 @@ describe("EntityManager import/export", () => {
     const exported = em.exportEntities(null, false);
     const em2 = TestFns.newEntityManager();
     em2.importEntities(exported);
-    const cust0x = em2.findEntityByKey(custs[0].entityAspect.getKey());
+    const cust0x = em2.getEntityByKey(custs[0].entityAspect.getKey());
     expect(cust0x.getProperty("companyName")).toBeNull();
-    const cust1x = em2.findEntityByKey(custs[1].entityAspect.getKey());
+    const cust1x = em2.getEntityByKey(custs[1].entityAspect.getKey());
     expect(cust1x.getProperty("city")).toBeNull();
     cust0x.setProperty("companyName", "Foo");
     cust1x.setProperty("city", "Foo");
@@ -651,11 +651,11 @@ describe("EntityManager import/export", () => {
     const suppliers = data.results;
     const suppliersCount = suppliers.length;
     expect(suppliersCount).toBeGreaterThan(0);
-    const orderType = em.metadataStore.getEntityType("Order") as EntityType;
+    const orderType = em.metadataStore.getAsEntityType("Order");
     // we want to have our reconsituted em to have different ids than our current em.
     em.keyGenerator.generateTempKeyValue(orderType);
-    const empType = em.metadataStore.getEntityType("Employee") as EntityType;
-    const custType = em.metadataStore.getEntityType("Customer") as EntityType;
+    const empType = em.metadataStore.getAsEntityType("Employee");
+    const custType = em.metadataStore.getAsEntityType("Customer");
     const order1 = em.addEntity(orderType.createEntity());
     expect(order1.entityAspect.wasLoaded).toBeFalsy();
     const emp1 = em.addEntity(empType.createEntity());
@@ -704,7 +704,7 @@ describe("EntityManager import/export", () => {
     const exportedCustomer = em.exportEntities([customer], { includeMetadata: false });
     const exportedEm = em.exportEntities(null, { includeMetadata: false });
     em2.importEntities(exportedCustomer);
-    const sameCustomer = em2.findEntityByKey(customer.entityAspect.getKey());
+    const sameCustomer = em2.getEntityByKey(customer.entityAspect.getKey());
     const orders = sameCustomer.getProperty("orders") as RelationArray;
     expect(orders.length).toBe(0);
     orders.arrayChanged.subscribe(function (args) {

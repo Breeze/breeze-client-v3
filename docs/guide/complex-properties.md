@@ -57,7 +57,7 @@ returns `undefined`. Go through the complex object, or use
 ```ts
 import { ComplexType } from 'breeze-client';
 
-const locationType = em.metadataStore.getEntityType('Location') as ComplexType;
+const locationType = em.metadataStore.getAsEntityType('Location') as ComplexType;
 const newLocation = locationType.createInstance({ city: 'Paris', country: 'France' });
 
 supplier.setProperty('location', newLocation);
@@ -112,7 +112,7 @@ assign it. Northwind has no such property, so suppose a `Customer` has a `roles`
 collection of a `Role` complex type:
 
 ```ts
-const roleType = em.metadataStore.getEntityType('Role') as ComplexType;
+const roleType = em.metadataStore.getAsEntityType('Role') as ComplexType;
 const roles = customer.getProperty('roles');
 roles.push(roleType.createInstance({ name: 'Buyer' }));
 ```

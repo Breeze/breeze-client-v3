@@ -51,7 +51,7 @@ describe("Entity Creation - no server", () => {
     let supplier = em.createEntity("Supplier", { companyName: "ACME"});
     expect(supplier).toBeTruthy();
 
-    let locType = ms.getEntityType("Location") as ComplexType;
+    let locType = ms.getAsComplexType("Location");
     expect(locType).toBeTruthy();
     let loc1 = locType.createInstance({ address: "111 Oak Street"});
 
@@ -172,7 +172,7 @@ describe("Entity Creation - no server", () => {
     const store = MetadataStore.importMetadata(TestFns.sampleMetadata);
     assertFooPropertyDefined(store, false);
 
-    const customerType = store.getEntityType('Customer');
+    const customerType = store.getAsEntityType('Customer');
     const fooProp = new breeze.DataProperty({
       name: 'foo',
       defaultValue: 42,

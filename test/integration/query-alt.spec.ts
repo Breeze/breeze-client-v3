@@ -118,7 +118,7 @@ describe("Query Alternatives", () => {
     const manager = new EntityManager(TestFns.defaultServiceName);
 
     await manager.fetchMetadata();
-    const empType = manager.metadataStore.getEntityType("Employee") as EntityType;
+    const empType = manager.metadataStore.getAsEntityType("Employee");
     const entityKey = new EntityKey(empType, 1);
     const query = EntityQuery.fromEntityKey(entityKey);
     const qr = await manager.executeQuery(query);
@@ -129,7 +129,7 @@ describe("Query Alternatives", () => {
   test("using EntityQuery.fromEntityKey ", async() => {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
-    const empType = em.metadataStore.getEntityType("Employee") as EntityType;
+    const empType = em.metadataStore.getAsEntityType("Employee");
     const entityKey = new EntityKey(empType, TestFns.wellKnownData.nancyID);
     const query = EntityQuery.fromEntityKey(entityKey);
     const qr1 = await em.executeQuery(query);
@@ -140,8 +140,8 @@ describe("Query Alternatives", () => {
   test("using EntityQuery.fromEntityNavigation  - (-> n) ", async() => {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
-    const empType = em.metadataStore.getEntityType("Employee") as EntityType;
-    const orderType = em.metadataStore.getEntityType("Order") as EntityType;
+    const empType = em.metadataStore.getAsEntityType("Employee");
+    const orderType = em.metadataStore.getAsEntityType("Order");
     const entityKey = new EntityKey(empType, TestFns.wellKnownData.nancyID);
     const query = EntityQuery.fromEntityKey(entityKey);
 
@@ -190,7 +190,7 @@ describe("Query Alternatives", () => {
   test("using EntityAspect.loadNavigationProperty - (-> n) ", async() => {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
-    const empType = em.metadataStore.getEntityType("Employee") as EntityType;
+    const empType = em.metadataStore.getAsEntityType("Employee");
     const entityKey = new EntityKey(empType, TestFns.wellKnownData.nancyID);
     const query = EntityQuery.fromEntityKey(entityKey);
     
@@ -248,8 +248,8 @@ describe("Query Alternatives", () => {
   test("using RelationArray.load from navigationProperty (-> n)", async() => {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
-    const empType = em.metadataStore.getEntityType("Employee") as EntityType;
-    const orderType = em.metadataStore.getEntityType("Order");
+    const empType = em.metadataStore.getAsEntityType("Employee");
+    const orderType = em.metadataStore.getAsEntityType("Order");
     const entityKey = new EntityKey(empType, TestFns.wellKnownData.nancyID);
     const query = EntityQuery.fromEntityKey(entityKey);
     const qr1 = await em.executeQuery(query);

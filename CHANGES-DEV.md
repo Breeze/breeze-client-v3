@@ -266,6 +266,52 @@ ops and mutator objects, and the notification behaviour, so this cannot drift ba
 
 Verified: typecheck clean, unit 328, integration 450 + 7 skipped, browser 727 + 7 skipped.
 
+## Calls to deprecated APIs
+
+Breeze keeps a deprecated compatibility surface on purpose - the 2.x adapter-registration
+pattern, the ajax adapter, a few misnamed metadata lookups. What it should not do is *call* that
+surface itself, or teach it in examples. Both had drifted.
+
+**The metadata lookups.** `MetadataStore.getEntityType` returns an `EntityType` *or* a
+`ComplexType`, which is why it is deprecated. The specs called it 67 times, usually as
+`getEntityType("Order") as EntityType` - the cast is the tell. Each call now says what it
+expects: `getAsEntityType` (32 casts dropped, 31 bare calls), `getAsComplexType` (3 - `Location`
+and `Role`, which are complex types in `ComplexTypeMetadata.json` but not in Northwind), and
+`getStructuralType` for the one call taking a name of either kind. `getEntityCtor()` - an alias
+for `getCtor()` - had one internal caller, and the webapi adapter's `visitNode` looked up
+`$type` through the deprecated method; it now uses the internal `_getStructuralType`, which is
+what all of these delegate to anyway. 62 JSDoc and guide examples taught `getEntityType`; they
+now show `getAsEntityType`.
+
+**`EntityManager.findEntityByKey`** is a pure alias for `getEntityByKey`. 11 calls across four
+spec files moved. (`EntityGroup.findEntityByKey` is a different method and is not deprecated.)
+
+**Two deprecations were mis-scoped, and are corrected rather than worked around:**
+
+- `getStructuralType` was marked deprecated while `getEntityType`'s own deprecation said it had
+  been *replaced by* `getStructuralType`. Nothing replaces it: it is the lookup for "entity type
+  or complex type, I do not know which", which is exactly what a `JsonResultsAdapter` doing
+  `$type` dispatch needs. It is no longer deprecated; `getEntityType` still is, for its name.
+- `config.registerAdapter` and `config.initializeAdapterInstance` are deprecated for configuring
+  an application - `configureBreeze({ ... })` replaced that. But `configureBreeze` works by
+  calling an adapter's static `register()`, and `register()` has to register the adapter
+  somehow. That call is now documented as the sanctioned use, so Breeze's own adapters - and
+  anyone writing a custom one - are not calling something deprecated.
+
+**`useJsonp` was documented too strongly.** "It has no effect" appeared in the type, UPGRADE.md
+and three guide pages, but `_makeQueryGetParams` still sets `dataType`/`crossDomain` from it, and
+a registered (deprecated) ajax adapter can act on those. The wording now says what is true: no
+effect on Breeze's own transport.
+
+**What deliberately stayed.** The specs that exercise the deprecated registration path
+(`adapter-init`, parts of `configure-ns`, `default-adapters-named`) are testing the
+compatibility surface, which is the point of having it. `AjaxFetchAdapter` and `ajaxImpl` remain
+the bridge that lets a 2.x ajax adapter keep working, and the internal default adapter is built
+on them.
+
+Verified: typecheck clean for both source and tests, unit 328, integration 450 + 7 skipped,
+browser 727 + 7 skipped.
+
 ## Object-as-map to Map
 
 Where a structure is keyed by *data* rather than by fixed property names, it is now a real

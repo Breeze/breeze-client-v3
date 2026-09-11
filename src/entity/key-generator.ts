@@ -37,7 +37,7 @@ export class KeyGenerator {
   specified EntityType
   @example
       // Assume em1 is a preexisting EntityManager
-      let custType = em1.metadataStore.getEntityType("Customer");
+      let custType = em1.metadataStore.getAsEntityType("Customer");
       let cust1 = custType.createEntity();
       // next line both sets cust1's 'CustomerId' property but also returns the value
       let cid1 = em1.generateTempKeyValue(cust1);

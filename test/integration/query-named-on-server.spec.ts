@@ -125,7 +125,7 @@ describe("Queries with named endpoints on the server", function () {
   test("scalar server query ", async function () {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
-    const custType = em.metadataStore.getEntityType("Customer");
+    const custType = em.metadataStore.getAsEntityType("Customer");
     const query = EntityQuery.from("CustomerWithScalarResult")
       .using(em);
 
@@ -454,7 +454,7 @@ describe("Queries with named endpoints on the server", function () {
       expect(c).toBe(matchingCust);
       const ckey = c.entityAspect.getKey();
       expect(ckey).toBeTruthy();
-      const c2 = em.findEntityByKey(ckey);
+      const c2 = em.getEntityByKey(ckey);
       expect(c2).toBe(c);
       const okey = orders[0].entityAspect.getKey();
       const o2 = em.getEntityByKey(okey);
@@ -537,10 +537,10 @@ describe("Queries with named endpoints on the server", function () {
       expect(c).toBe(matchingCust);
       const ckey = c.entityAspect.getKey();
       expect(ckey).toBeTruthy();
-      const c2 = em.findEntityByKey(ckey);
+      const c2 = em.getEntityByKey(ckey);
       expect(c2).toBe(c);
       const okey = orders[0].entityAspect.getKey();
-      const o2 = em.findEntityByKey(okey);
+      const o2 = em.getEntityByKey(okey);
       expect(o2).toBe(orders[0]);
     });
   });
@@ -583,7 +583,7 @@ describe("Queries with named endpoints on the server", function () {
       expect(companyName.indexOf('A') === 0).toBeTrue();
       const ckey = c.entityAspect.getKey();
       expect(ckey).toBeTruthy();
-      const c2 = em.findEntityByKey(ckey);
+      const c2 = em.getEntityByKey(ckey);
       expect(c2).toBe(c);
       const orders = c.getProperty("orders");
       expect(orders.length).toBeGreaterThan(1);

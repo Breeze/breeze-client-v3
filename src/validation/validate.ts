@@ -83,7 +83,7 @@ Most validators will be 'property' level validators, like this.
 
     // Now plug it into Breeze.
     // Assume em1 is a preexisting EntityManager.
-    var custType = metadataStore.getEntityType("Customer");
+    var custType = metadataStore.getAsEntityType("Customer");
     var countryProp = custType.getProperty("Country");
     // Note that validator is added to a 'DataProperty' validators collection.
     prop.validators.push(countryValidator);
@@ -108,7 +108,7 @@ Entity level validators are also possible
 
     // Now plug it into Breeze.
     // Assume em1 is a preexisting EntityManager.
-    var custType = em1.metadataStore.getEntityType("Customer");
+    var custType = em1.metadataStore.getAsEntityType("Customer");
     // Note that validator is added to an 'EntityType' validators collection.
     custType.validators.push(zipCodeValidator);
 What is commonly needed is a way of creating a parameterized function that will itself
@@ -375,7 +375,7 @@ export class Validator {
   Returns a standard 'required value' Validator
   @example
       // Assume em1 is a preexisting EntityManager.
-      var custType = em1.metadataStore.getEntityType("Customer");
+      var custType = em1.metadataStore.getAsEntityType("Customer");
       var regionProperty - custType.getProperty("Region");
       // Makes "Region" on Customer a required property.
       regionProperty.validators.push(Validator.required());
@@ -400,7 +400,7 @@ export class Validator {
   Returns a standard maximum string length Validator; the maximum length must be specified
   @example
       // Assume em1 is a preexisting EntityManager.
-      var custType = em1.metadataStore.getEntityType("Customer");
+      var custType = em1.metadataStore.getAsEntityType("Customer");
       var regionProperty - custType.getProperty("Region");
       // Validates that the value of the Region property on Customer will be less than or equal to 5 characters.
       regionProperty.validators.push(Validator.maxLength( {maxLength: 5}));
@@ -420,7 +420,7 @@ export class Validator {
   Returns a standard string length Validator; both minimum and maximum lengths must be specified.
   @example
       // Assume em1 is a preexisting EntityManager.
-      var custType = em1.metadataStore.getEntityType("Customer");
+      var custType = em1.metadataStore.getAsEntityType("Customer");
       var regionProperty - custType.getProperty("Region");
       // Validates that the value of the Region property on Customer will be
       // between 2 and 5 characters
@@ -443,7 +443,7 @@ export class Validator {
   Returns a standard string dataType Validator.
   @example
       // Assume em1 is a preexisting EntityManager.
-      var custType = em1.metadataStore.getEntityType("Customer");
+      var custType = em1.metadataStore.getAsEntityType("Customer");
       var regionProperty - custType.getProperty("Region");
       // Validates that the value of the Region property on Customer is a string.
       regionProperty.validators.push(Validator.string());
@@ -461,7 +461,7 @@ export class Validator {
   Returns a Guid data type Validator.
   @example
       // Assume em1 is a preexisting EntityManager.
-      var custType = em1.metadataStore.getEntityType("Customer");
+      var custType = em1.metadataStore.getAsEntityType("Customer");
       var customerIdProperty - custType.getProperty("CustomerID");
       // Validates that the value of the CustomerID property on Customer is a Guid.
       customerIdProperty.validators.push(Validator.guid());
@@ -479,7 +479,7 @@ export class Validator {
   Returns a ISO 8601 duration string  Validator.
   @example
       // Assume em1 is a preexisting EntityManager.
-      var eventType = em1.metadataStore.getEntityType("Event");
+      var eventType = em1.metadataStore.getAsEntityType("Event");
       var elapsedTimeProperty - eventType.getProperty("ElapsedTime");
       // Validates that the value of the ElapsedTime property on Customer is a duration.
       elapsedTimeProperty.validators.push(Validator.duration());
@@ -497,7 +497,7 @@ export class Validator {
   Returns a standard numeric data type Validator.
   @example
       // Assume em1 is a preexisting EntityManager.
-      var orderType = em1.metadataStore.getEntityType("Order");
+      var orderType = em1.metadataStore.getAsEntityType("Order");
       var freightProperty - orderType.getProperty("Freight");
       // Validates that the value of the Freight property on Order is a number.
       freightProperty.validators.push(Validator.number());
@@ -522,7 +522,7 @@ export class Validator {
   Returns a standard large integer data type - 64 bit - Validator.
   @example
       // Assume em1 is a preexisting EntityManager.
-      var orderType = em1.metadataStore.getEntityType("Order");
+      var orderType = em1.metadataStore.getAsEntityType("Order");
       var freightProperty - orderType.getProperty("Freight");
       // Validates that the value of the Freight property on Order is within the range of a 64 bit integer.
       freightProperty.validators.push(Validator.int64());
@@ -544,7 +544,7 @@ export class Validator {
   Returns a standard 32 bit integer data type Validator.
   @example
       // Assume em1 is a preexisting EntityManager.
-      var orderType = em1.metadataStore.getEntityType("Order");
+      var orderType = em1.metadataStore.getAsEntityType("Order");
       var freightProperty - orderType.getProperty("Freight");
       freightProperty.validators.push(Validator.int32());
   @returns {Validator} A new Validator
@@ -557,7 +557,7 @@ export class Validator {
   Returns a standard 16 bit integer data type Validator.
   @example
       // Assume em1 is a preexisting EntityManager.
-      var orderType = em1.metadataStore.getEntityType("Order");
+      var orderType = em1.metadataStore.getAsEntityType("Order");
       var freightProperty - orderType.getProperty("Freight");
       // Validates that the value of the Freight property on Order is within the range of a 16 bit integer.
       freightProperty.validators.push(Validator.int16());
@@ -571,7 +571,7 @@ export class Validator {
   Returns a standard byte data type Validator. (This is a integer between 0 and 255 inclusive for js purposes).
   @example
       // Assume em1 is a preexisting EntityManager.
-      var orderType = em1.metadataStore.getEntityType("Order");
+      var orderType = em1.metadataStore.getAsEntityType("Order");
       var freightProperty - orderType.getProperty("Freight");
       // Validates that the value of the Freight property on Order is within the range of a 16 bit integer.
       // Probably not a very good validation to place on the Freight property.
@@ -586,7 +586,7 @@ export class Validator {
   Returns a standard boolean data type Validator.
   @example
       // Assume em1 is a preexisting EntityManager.
-      var productType = em1.metadataStore.getEntityType("Product");
+      var productType = em1.metadataStore.getAsEntityType("Product");
       var discontinuedProperty - productType.getProperty("Discontinued");
       // Validates that the value of the Discontinued property on Product is a boolean
       discontinuedProperty.validators.push(Validator.bool());
@@ -611,7 +611,7 @@ export class Validator {
   Returns a standard date data type Validator.
   @example
       // Assume em1 is a preexisting EntityManager.
-      var orderType = em1.metadataStore.getEntityType("Order");
+      var orderType = em1.metadataStore.getAsEntityType("Order");
       var orderDateProperty - orderType.getProperty("OrderDate");
       // Validates that the value of the OrderDate property on Order is a date
       // Probably not a very good validation to place on the Freight property.
@@ -642,7 +642,7 @@ export class Validator {
   catches simple mistakes; only service knows for sure
   @example
       // Assume em is a preexisting EntityManager.
-      var personType = em.metadataStore.getEntityType("Person");
+      var personType = em.metadataStore.getAsEntityType("Person");
       var creditCardProperty = personType.getProperty("creditCard");
       // Validates that the value of the Person.creditCard property is credit card.
       creditCardProperty.validators.push(Validator.creditCard());
@@ -665,7 +665,7 @@ export class Validator {
   Returns a regular expression validator; the expression must be specified
   @example
       // Add validator to a property. Assume em is a preexisting EntityManager.
-      var customerType = em.metadataStore.getEntityType("Customer");
+      var customerType = em.metadataStore.getAsEntityType("Customer");
       var regionProperty = customerType.getProperty("Region");
       // Validates that the value of Customer.Region is 2 char uppercase alpha.
       regionProperty.validators.push(Validator.regularExpression( {expression: '^[A-Z]{2}$'} );
@@ -691,7 +691,7 @@ export class Validator {
   Returns the email address validator
   @example
       // Assume em is a preexisting EntityManager.
-      var personType = em.metadataStore.getEntityType("Person");
+      var personType = em.metadataStore.getAsEntityType("Person");
       var emailProperty = personType.getProperty("email");
       // Validates that the value of the Person.email property is an email address.
       emailProperty.validators.push(Validator.emailAddress());
@@ -718,7 +718,7 @@ export class Validator {
   > (\d+[-/.\s]?)+\d+
   @example
       // Assume em is a preexisting EntityManager.
-      var customerType = em.metadataStore.getEntityType("Customer");
+      var customerType = em.metadataStore.getAsEntityType("Customer");
       var phoneProperty = customerType.getProperty("phone");
       // Validates that the value of the Customer.phone property is phone.
       phoneProperty.validators.push(Validator.phone());
@@ -735,7 +735,7 @@ export class Validator {
   Returns the URL (protocol required) validator
   @example
       // Assume em is a preexisting EntityManager.
-      var personType = em.metadataStore.getEntityType("Person");
+      var personType = em.metadataStore.getAsEntityType("Person");
       var websiteProperty = personType.getProperty("website");
       // Validates that the value of the Person.website property is a URL.
       websiteProperty.validators.push(Validator.url());
@@ -763,7 +763,7 @@ export class Validator {
       // Register it.
       Validator.register(zipValidator);
       // Add it to a data property. Assume em is a preexisting EntityManager.
-      var custType = em.metadataStore.getEntityType("Customer");
+      var custType = em.metadataStore.getAsEntityType("Customer");
       var zipProperty = custType.getProperty("PostalCode");
       zipProperty.validators.push(zipValidator);
   @param validatorName {String} name of this validator

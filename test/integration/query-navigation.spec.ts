@@ -242,7 +242,7 @@ function buildUnidirectionalMetadataStore(isBossVersion: boolean) {
       })
     ]
   });
-  const employeeType = ms.getEntityType("Employee") as EntityType;
+  const employeeType = ms.getAsEntityType("Employee");
   employeeType.addProperty(new DataProperty({
     name: "firstName",
     dataType: breeze.DataType.String

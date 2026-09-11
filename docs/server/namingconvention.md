@@ -101,7 +101,7 @@ When Breeze processes metadata, it runs the convention on every data property,
 navigation property and foreign key name. Each property ends up with both spellings:
 
 ```ts
-const prop = em.metadataStore.getEntityType('Customer').getProperty('companyName');
+const prop = em.metadataStore.getAsEntityType('Customer').getProperty('companyName');
 prop.name;           // 'companyName'
 prop.nameOnServer;   // 'CompanyName'
 ```

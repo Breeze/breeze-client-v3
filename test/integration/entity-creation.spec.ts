@@ -98,7 +98,7 @@ describe("Entity Creation", () => {
     let Customer = TestFns.getCustomerCtor();
     em.metadataStore.registerEntityTypeCtor("Customer", Customer);
 
-    const custType = em.metadataStore.getEntityType("Customer");
+    const custType = em.metadataStore.getAsEntityType("Customer");
     // Ugly construction because of typescript.
     const cust1 = new (<any>Customer)();
     // this works because the fetchMetadataStore hooked up the entityType on the registered ctor.
@@ -125,7 +125,7 @@ describe("Entity Creation", () => {
     em.metadataStore.registerEntityTypeCtor("Customer", Customer);
 
     await em.fetchMetadata();
-    const custType = em.metadataStore.getEntityType("Customer");
+    const custType = em.metadataStore.getAsEntityType("Customer");
     // Ugly construction because of typescript.
     const cust1 = new (<any>Customer)();
     // this works because the fetchMetadataStore hooked up the entityType on the registered ctor.
@@ -155,7 +155,7 @@ describe("Entity Creation", () => {
 
     // register after fetchMetadata
     em.metadataStore.registerEntityTypeCtor("Customer", Customer);
-    const custType = em.metadataStore.getEntityType("Customer");
+    const custType = em.metadataStore.getAsEntityType("Customer");
     // Ugly construction because of typescript.
     const cust1 = new (<any>Customer)();
     
@@ -219,7 +219,7 @@ describe("Entity Creation", () => {
     const em = TestFns.newEntityManager();
     const Product = createProductCtor();
 
-    const productType = em.metadataStore.getEntityType("Product") as EntityType;
+    const productType = em.metadataStore.getAsEntityType("Product");
     em.metadataStore.registerEntityTypeCtor("Product", Product, "init");
     const query = EntityQuery.from("Products").take(3);
 

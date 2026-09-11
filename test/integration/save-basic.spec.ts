@@ -292,7 +292,7 @@ describe("Save Basics", () => {
 
     const em = TestFns.newEntityManager();
     const em2 = TestFns.newEntityManager();
-    const roleType = em.metadataStore.getEntityType("Role");
+    const roleType = em.metadataStore.getAsEntityType("Role");
 
     const aRole = em.createEntity("Role");
     aRole.setProperty("roleType", "Restricted");
@@ -632,7 +632,7 @@ describe("Save Basics", () => {
 
     const q = new EntityQuery("Customers").take(1);
     const qr1 = await em1.executeQuery(q);
-    const custType = em1.metadataStore.getEntityType("Customer");
+    const custType = em1.metadataStore.getAsEntityType("Customer");
     const cust = qr1.results[0];
     const oldContactName = cust.getProperty("contactName");
     const oldMiscData = cust.getProperty("miscData");
@@ -666,7 +666,7 @@ describe("Save Basics", () => {
 
     const q = new EntityQuery("Customers").take(1);
     const qr1 = await em1.executeQuery(q);
-    const custType = em1.metadataStore.getEntityType("Customer");
+    const custType = em1.metadataStore.getAsEntityType("Customer");
     const cust = qr1.results[0];
     const oldContactName = cust.getProperty("contactName");
     const oldMiscData = cust.getProperty("miscData");

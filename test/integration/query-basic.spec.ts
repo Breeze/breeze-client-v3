@@ -175,7 +175,7 @@ describe("Query Basics", () => {
       expect(c.getProperty("companyName")).not.toBeNull();
       const key = c.entityAspect.getKey();
       expect(key).not.toBeNull();
-      const c2 = em1.findEntityByKey(key);
+      const c2 = em1.getEntityByKey(key);
       expect(c2 === c).toBe(true);
     });
   });
@@ -1089,7 +1089,7 @@ describe("Query Basics", () => {
     expect(arrayChangedCount).toBe(1);
     // should have been multiple entities shown as added
     expect(adds && adds.length > 0).toBe(true);
-    const orderType = em1.metadataStore.getEntityType("Order") as EntityType;
+    const orderType = em1.metadataStore.getAsEntityType("Order");
     const newOrder = orderType.createEntity();
     orders.push(newOrder);
     // should have incremented by 1
@@ -1121,7 +1121,7 @@ describe("Query Basics", () => {
 
     expect(arrayChangedCount).toBe(1);
     expect(adds && adds.length > 0).toBe(true);
-    const orderType = em1.metadataStore.getEntityType("Order") as EntityType;
+    const orderType = em1.metadataStore.getAsEntityType("Order");
     const newOrder = orderType.createEntity();
     orders.push(newOrder);
     expect(arrayChangedCount).toBe(2);
@@ -1149,7 +1149,7 @@ describe("Query Basics", () => {
     await query.expand("orders").execute();
 
     expect(arrayChangedCount).toBe(0);
-    const orderType = em1.metadataStore.getEntityType("Order") as EntityType;
+    const orderType = em1.metadataStore.getAsEntityType("Order");
     const newOrder = orderType.createEntity();
     orders.push(newOrder);
     expect(arrayChangedCount).toBe(0);
@@ -1190,21 +1190,21 @@ describe("Query Basics", () => {
   test("update entityManager on pk change", () => {
     expect.hasAssertions();
     const em1 = TestFns.newEntityManager();
-    const custType = em1.metadataStore.getEntityType("Customer") as EntityType;
+    const custType = em1.metadataStore.getAsEntityType("Customer");
     const customer = custType.createEntity();
     customer.setProperty("companyName", "[don't know name yet]");
     const alfredsID = '785efa04-cbf2-4dd7-a7de-083ee17b6ad2';
     em1.attachEntity(customer);
     customer.setProperty(TestFns.wellKnownData.keyNames.customer, alfredsID);
     const ek = customer.entityAspect.getKey();
-    const sameCustomer = em1.findEntityByKey(ek);
+    const sameCustomer = em1.getEntityByKey(ek);
     expect(customer).toBe(sameCustomer);
   });
 
   test("reject change to existing key", async () => {
     expect.hasAssertions();
     const em1 = TestFns.newEntityManager();
-    const custType = em1.metadataStore.getEntityType("Customer") as EntityType;
+    const custType = em1.metadataStore.getAsEntityType("Customer");
     const custKeyName = TestFns.wellKnownData.keyNames.customer;
     const alfredsID = '785efa04-cbf2-4dd7-a7de-083ee17b6ad2';
     const query = EntityQuery.from("Customers").where(custKeyName, "==", alfredsID);

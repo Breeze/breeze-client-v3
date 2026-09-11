@@ -744,14 +744,14 @@ export class EntityManager {
   /**
   Attaches an entity to this EntityManager with an  {@link EntityState} of 'Added'.
   >     // assume em1 is an EntityManager containing a number of existing entities.
-  >     let custType = em1.metadataStore.getEntityType("Customer");
+  >     let custType = em1.metadataStore.getAsEntityType("Customer");
   >     let cust1 = custType.createEntity();
   >     em1.addEntity(cust1);
 
   Note that this is the same as using 'attachEntity' with an {@link EntityState} of 'Added'.
 
   >     // assume em1 is an EntityManager containing a number of existing entities.
-  >     let custType = em1.metadataStore.getEntityType("Customer");
+  >     let custType = em1.metadataStore.getAsEntityType("Customer");
   >     let cust1 = custType.createEntity();
   >     em1.attachEntity(cust1, EntityState.Added);
   @param entity - The entity to add.
@@ -764,7 +764,7 @@ export class EntityManager {
   /**
   Attaches an entity to this EntityManager with a specified {@link EntityState}.
   >     // assume em1 is an EntityManager containing a number of existing entities.
-  >     let custType = em1.metadataStore.getEntityType("Customer");
+  >     let custType = em1.metadataStore.getAsEntityType("Customer");
   >     let cust1 = custType.createEntity();
   >     em1.attachEntity(cust1, EntityState.Added);
   @param entity - The entity to add.
@@ -1193,7 +1193,7 @@ export class EntityManager {
 
   /**
   >      // assume em1 is an EntityManager containing a number of preexisting entities.
-  >      let employeeType = em1.metadataStore.getEntityType("Employee");
+  >      let employeeType = em1.metadataStore.getAsEntityType("Employee");
   >      let employeeKey = new EntityKey(employeeType, 1);
   >      let employee = em1.getEntityByKey(employeeKey);
   >      // employee will either be an entity or null.
@@ -1209,7 +1209,7 @@ export class EntityManager {
 
   /**  
   >      // assume em1 is an EntityManager containing a number of preexisting entities.
-  >      let employeeType = em1.metadataStore.getEntityType("Employee");
+  >      let employeeType = em1.metadataStore.getAsEntityType("Employee");
   >      let employee = em1.getEntityByKey(employeeType, 1);
   >      // employee will either be an entity or null.
   **/
@@ -1245,7 +1245,7 @@ export class EntityManager {
   an option to check the local cache first. Note the this EntityManager's queryOptions.mergeStrategy
   will be used to merge any server side entity returned by this method.
   >     // assume em1 is an EntityManager containing a number of preexisting entities.
-  >     let employeeType = em1.metadataStore.getEntityType("Employee");
+  >     let employeeType = em1.metadataStore.getAsEntityType("Employee");
   >     let employeeKey = new EntityKey(employeeType, 1);
   >     em1.fetchEntityByKey(employeeKey).then(function(result) {
   >       let employee = result.entity;
@@ -1277,7 +1277,7 @@ export class EntityManager {
   /**
   [Deprecated] - Attempts to locate an entity within this EntityManager by its  {@link EntityKey}.
   >     // assume em1 is an EntityManager containing a number of preexisting entities.
-  >     let employeeType = em1.metadataStore.getEntityType("Employee");
+  >     let employeeType = em1.metadataStore.getAsEntityType("Employee");
   >     let employeeKey = new EntityKey(employeeType, 1);
   >     let employee = em1.findEntityByKey(employeeKey);
   >     // employee will either be an entity or null.
@@ -1298,7 +1298,7 @@ export class EntityManager {
   the keys - See the  KeyGenerator interface interface description to see
   how a custom key generator can be plugged in.
   >      // assume em1 is an EntityManager containing a number of preexisting entities.
-  >      let custType = em1.metadataStore.getEntityType("Customer");
+  >      let custType = em1.metadataStore.getAsEntityType("Customer");
   >      let customer = custType.createEntity();
   >      let customerId = em.generateTempKeyValue(customer);
   >      // The 'customer' entity 'CustomerID' property is now set to a newly generated unique id value
@@ -1341,15 +1341,15 @@ export class EntityManager {
 
   or if it has any changes on to a specific {@link EntityType}.
   >      // assume em1 is an EntityManager containing a number of preexisting entities.
-  >      let custType = em1.metadataStore.getEntityType("Customer");
+  >      let custType = em1.metadataStore.getAsEntityType("Customer");
   >      if ( em1.hasChanges(custType) {
   >          // do something interesting
   >      }
 
   or to a collection of {@link EntityType}s
   >      // assume em1 is an EntityManager containing a number of preexisting entities.
-  >      let custType = em1.metadataStore.getEntityType("Customer");
-  >      let orderType = em1.metadataStore.getEntityType("Order");
+  >      let custType = em1.metadataStore.getAsEntityType("Customer");
+  >      let orderType = em1.metadataStore.getAsEntityType("Order");
   >      if ( em1.hasChanges( [custType, orderType]) {
   >          // do something interesting
   >      }
@@ -1387,13 +1387,13 @@ export class EntityManager {
 
   or you can specify that you only want the changes on a specific {@link EntityType}
   >      // assume em1 is an EntityManager containing a number of preexisting entities.
-  >      let custType = em1.metadataStore.getEntityType("Customer");
+  >      let custType = em1.metadataStore.getAsEntityType("Customer");
   >      let changedCustomers = em1.getChanges(custType);
 
   or to a collection of {@link EntityType}s
   >      // assume em1 is an EntityManager containing a number of preexisting entities.
-  >      let custType = em1.metadataStore.getEntityType("Customer");
-  >      let orderType = em1.metadataStore.getEntityType("Order");
+  >      let custType = em1.metadataStore.getAsEntityType("Customer");
+  >      let orderType = em1.metadataStore.getAsEntityType("Order");
   >      let changedCustomersAndOrders = em1.getChanges([custType, orderType]);
   @param entityTypes - The {@link EntityType} or EntityTypes for which 'changed' entities will be found.
   @param entityTypeNames - The {@link EntityType} name or names for which 'changed' entities will be found.
@@ -1438,19 +1438,19 @@ export class EntityManager {
 
   or you can specify that you only want the changes on a specific {@link EntityType}
   >      // assume em1 is an EntityManager containing a number of preexisting entities.
-  >      let custType = em1.metadataStore.getEntityType("Customer");
+  >      let custType = em1.metadataStore.getAsEntityType("Customer");
   >      let customers = em1.getEntities(custType);
 
   or to a collection of {@link EntityType}s
   >      // assume em1 is an EntityManager containing a number of preexisting entities.
-  >      let custType = em1.metadataStore.getEntityType("Customer");
-  >      let orderType = em1.metadataStore.getEntityType("Order");
+  >      let custType = em1.metadataStore.getAsEntityType("Customer");
+  >      let orderType = em1.metadataStore.getAsEntityType("Order");
   >      let customersAndOrders = em1.getChanges([custType, orderType]);
 
   You can also ask for entities with a particular {@link EntityState} or EntityStates.
   >      // assume em1 is an EntityManager containing a number of preexisting entities.
-  >      let custType = em1.metadataStore.getEntityType("Customer");
-  >      let orderType = em1.metadataStore.getEntityType("Order");
+  >      let custType = em1.metadataStore.getAsEntityType("Customer");
+  >      let orderType = em1.metadataStore.getAsEntityType("Order");
   >      let addedCustomersAndOrders = em1.getEntities([custType, orderType], EntityState.Added);
  
   @param entityTypeName - The {@link EntityType} name or names for which entities will be found.

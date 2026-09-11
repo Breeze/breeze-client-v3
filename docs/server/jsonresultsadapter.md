@@ -66,7 +66,7 @@ const webApiLike = new JsonResultsAdapter({
     if (node == null) return {};
     const typeName = node.$type && MetadataStore.normalizeTypeName(node.$type);
     const entityType = typeName
-      ? mappingContext.entityManager.metadataStore.getEntityType(typeName, true) as EntityType
+      ? mappingContext.entityManager.metadataStore.getAsEntityType(typeName, true) as EntityType
       : undefined;
     return {
       entityType,
@@ -266,7 +266,7 @@ const searchResultsAdapter = new JsonResultsAdapter({
   visitNode: (node: any, mappingContext: MappingContext, nodeContext: NodeContext) => {
     if (nodeContext.nodeType !== 'root') return {};
     const metadataStore = mappingContext.entityManager.metadataStore;
-    const entityType = metadataStore.getEntityType(node.kind, true) as EntityType | null;
+    const entityType = metadataStore.getAsEntityType(node.kind, true) as EntityType | null;
     return entityType ? { entityType } : { passThru: true };
   },
 });
@@ -276,7 +276,7 @@ const { results } = await em.executeQuery(EntityQuery.from('Search').using(searc
 // results[2]: { kind: 'stats', Total: 2 }, exactly as sent
 ```
 
-`getEntityType(name, true)` returns `null` rather than throwing when there is no such
+`getAsEntityType(name, true)` returns `null` rather than throwing when there is no such
 type. Without `passThru`, the stats object would still come back, as an anonymous object
 with translated names: `{ kind: 'stats', total: 2 }`.
 

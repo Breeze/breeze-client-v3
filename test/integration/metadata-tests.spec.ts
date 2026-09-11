@@ -20,7 +20,7 @@ describe("Metadata", () => {
     const em = TestFns.newEntityManager();
     const store = em.metadataStore;
 
-    const custType = store.getEntityType("Customer");
+    const custType = store.getAsEntityType("Customer");
     const namespace = custType.namespace;
     expect(store.hasMetadataFor(TestFns.defaultServiceName)).toBe(true);
     const customMetadata = makeCustomMetadata(namespace);
@@ -37,7 +37,7 @@ describe("Metadata", () => {
     const em = TestFns.newEntityManager();
     const store = em.metadataStore;
 
-    const custType = store.getEntityType("Customer");
+    const custType = store.getAsEntityType("Customer");
     const namespace = custType.namespace;
     expect(store.hasMetadataFor(TestFns.defaultServiceName));
     const customMetadata = makeCustomMetadata(namespace);
@@ -46,7 +46,7 @@ describe("Metadata", () => {
     const store2 = new MetadataStore();
     store2.importMetadata(exported);
 
-    const custType2 = store2.getEntityType("Customer");
+    const custType2 = store2.getAsEntityType("Customer");
     checkCustomType(custType2);
     checkCustomProp(custType2, TestFns.wellKnownData.keyNames.customer);
     checkCustomProp(custType2, "companyName");
@@ -88,7 +88,7 @@ describe("Metadata", () => {
     store.addEntityType(et);
     expect(et.metadataStore).toBe(store);
 
-    const custType = store.getEntityType("type1");
+    const custType = store.getAsEntityType("type1");
     checkCustomType(custType);
     checkCustomProp(custType, "id");
     checkCustomProp(custType, "prop1");
@@ -161,7 +161,7 @@ describe("Metadata", () => {
     const em = new EntityManager({ serviceName: TestFns.defaultServiceName, metadataStore: store });
 
     try {
-      const productType = em.metadataStore.getEntityType("Customer");
+      const productType = em.metadataStore.getAsEntityType("Customer");
       throw new Error("Shouldn't get here");
     } catch (err) {
       expect(err.message).toMatch(/fetchMetadata/);
@@ -178,7 +178,7 @@ describe("Metadata", () => {
       const typeMap = store._structuralTypeMap;
       const types = Object.values(typeMap);
       expect(types.length).toBeGreaterThan(0);
-      const custType = store.getEntityType("Customer");
+      const custType = store.getAsEntityType("Customer");
       const props = custType.dataProperties;
       expect(props.length).toBeGreaterThan(0);
       const keys = custType.keyProperties;
@@ -233,7 +233,7 @@ describe("Metadata", () => {
     expect(apple.getProperty("Name")).toBe("Apple");
     expect(apple.getProperty("Id")).toBe(23);
 
-    const iopType = store.getEntityType("ItemOfProduce");
+    const iopType = store.getAsEntityType("ItemOfProduce");
     const customTypeInfo = iopType.custom;
 
     checkCustomType(iopType);
@@ -321,7 +321,7 @@ describe("Metadata", () => {
     expect.hasAssertions();
     const em = createEmWithTimeGroupMetadata();
 
-    const timeGroupType = em.metadataStore.getEntityType("TimeGroup");
+    const timeGroupType = em.metadataStore.getAsEntityType("TimeGroup");
     expect(timeGroupType).toBeTruthy();
 
     const timeGroup = em.createEntity('TimeGroup', {
@@ -339,7 +339,7 @@ describe("Metadata", () => {
     
     const em = createEmWithTimeGroupMetadata();
 
-    const timeGroupType = em.metadataStore.getEntityType("TimeGroup");
+    const timeGroupType = em.metadataStore.getAsEntityType("TimeGroup");
     expect(timeGroupType).toBeTruthy();
 
     const q = new EntityQuery()
@@ -362,10 +362,10 @@ describe("Metadata", () => {
 
     const em = createEmWithTimeGroupMetadata(true);
 
-    const timeGroupType = em.metadataStore.getEntityType("TimeGroup");
+    const timeGroupType = em.metadataStore.getAsEntityType("TimeGroup");
     expect(timeGroupType).toBeTruthy();
 
-    const fooBarType = em.metadataStore.getEntityType("FooBar");
+    const fooBarType = em.metadataStore.getAsEntityType("FooBar");
     expect(fooBarType).toBeTruthy();
 
     const testComment1 = "This was added to TimeGroup";

@@ -31,8 +31,8 @@ describe("Entity operations - no server", () => {
 
 
   test("entityType.getProperty nested", function () {
-    const odType = TestFns.sampleMetadataStore.getEntityType("OrderDetail");
-    const orderType = TestFns.sampleMetadataStore.getEntityType("Order");
+    const odType = TestFns.sampleMetadataStore.getAsEntityType("OrderDetail");
+    const orderType = TestFns.sampleMetadataStore.getAsEntityType("Order");
 
     const customerProp = odType.getProperty("order.customer");
     const customerProp2 = orderType.getProperty("customer");

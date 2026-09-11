@@ -43,7 +43,7 @@ describe('ComplexType', () => {
     let customer = em.createEntity('Customer', { CompanyName: 'ACME' });
     expect(customer).toBeTruthy();
 
-    let locType = ms.getEntityType('Location') as ComplexType;
+    let locType = ms.getAsComplexType('Location');
     expect(locType).toBeTruthy();
     let loc1 = locType.createInstance({ City: 'Palookaville' });
 
@@ -68,7 +68,7 @@ describe('ComplexType', () => {
     let customer = em.createEntity('Customer', { CompanyName: 'ACME' });
     expect(customer).toBeTruthy();
 
-    let roleType = ms.getEntityType('Role') as ComplexType;
+    let roleType = ms.getAsComplexType('Role');
     expect(roleType).toBeTruthy();
     let role1 = roleType.createInstance({ Name: 'One' });
     let role2 = roleType.createInstance({ Name: 'Two' });
@@ -94,7 +94,7 @@ describe('ComplexType', () => {
     let customer = em.createEntity('Customer', { CompanyName: 'ACME' });
     expect(customer).toBeTruthy();
 
-    let orderType = ms.getEntityType('Order') as EntityType;
+    let orderType = ms.getAsEntityType('Order');
     expect(orderType).toBeTruthy();
     let o1 = orderType.createEntity({ ShipName: 'One', Customer: customer });
     let o2 = orderType.createEntity({ ShipName: 'Two', Customer: customer });
@@ -128,12 +128,12 @@ describe('ComplexType', () => {
     let customer = em.createEntity('Customer', { CompanyName: 'ACME' });
     expect(customer).toBeTruthy();
 
-    let regionType = ms.getEntityType('Region') as EntityType;
+    let regionType = ms.getAsEntityType('Region');
     expect(regionType).toBeTruthy();
     let r1 = regionType.createEntity({ Name: 'One' });
     let r2 = regionType.createEntity({ Name: 'Two' });
 
-    let custRegionType = ms.getEntityType('CustomerRegion') as EntityType;
+    let custRegionType = ms.getAsEntityType('CustomerRegion');
     expect(custRegionType).toBeTruthy();
     let cr1 = custRegionType.createEntity({ Customer: customer, Region: r1 });
     let cr2 = custRegionType.createEntity({ Customer: customer, Region: r2 });

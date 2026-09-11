@@ -67,7 +67,7 @@ stores and managers that already exist.
 | `adapterName` | the default data service adapter (`'webApi'`) |
 | `uriBuilderName` | the default URI builder (`'json'`) |
 | `jsonResultsAdapter` | the data service adapter's own |
-| `useJsonp` | `false`. Deprecated; it has no effect |
+| `useJsonp` | `false`. Deprecated: no effect on Breeze’s own transport |
 
 ### MetadataStore
 
