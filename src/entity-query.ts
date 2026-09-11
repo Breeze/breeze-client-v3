@@ -37,11 +37,11 @@ export class EntityQuery {
   declare fromEntityType?: EntityType;
   /** The 'where' {@link Predicate} used by this query. __Read Only__ */
   declare wherePredicate?: Predicate;
-  /** The {@link OrderByClause} used by this query. __Read Only__ */
+  /** The `OrderByClause` used by this query. __Read Only__ */
   declare orderByClause?: OrderByClause;
-  /** The {@link ExpandClause} used by this query. __Read Only__ */
+  /** The `ExpandClause` used by this query. __Read Only__ */
   declare expandClause?: ExpandClause;
-  /** The {@link SelectClause} used by this query. __Read Only__ */
+  /** The `SelectClause` used by this query. __Read Only__ */
   declare selectClause?: SelectClause;
   /** The number of entities to 'skip' for this query. __Read Only__ */
   declare skipCount?: number;
@@ -1117,7 +1117,8 @@ export class SelectClause {
   constructor(propertyPaths: string[]) {
     this.propertyPaths = propertyPaths;
     this._pathNames = propertyPaths.map(function (pp) {
-      return pp.replace(".", "_");
+      // every dot, not just the first: order.customer.companyName -> order_customer_companyName
+      return pp.split(".").join("_");
     });
   }
 

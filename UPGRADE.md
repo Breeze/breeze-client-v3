@@ -126,8 +126,13 @@ targeting a non-global `BreezeConfig`, and it registers adapters in dependency o
 the data service adapter can resolve the ajax adapter when it initializes.
 
 **`config.registerAdapter`, `initializeAdapterInstance` and `initializeAdapterInstances`
-are unchanged and still work.** They are the compatibility path; existing 2.x startup code
-runs as-is. They will be marked `@deprecated` in a later release.
+still work.** They are the compatibility path; existing 2.x startup code runs as-is. They
+are marked `@deprecated`, because `configureBreeze` is better, but they are not scheduled
+for removal.
+
+`InterfaceRegistryConfig`, the argument to `initializeAdapterInstances`, now types its
+fields as adapter *names* — `{ ajax: 'fetch' }` — which is what the method always expected.
+2.x declared them as internal `InterfaceDef` objects, so TypeScript callers had to cast.
 
 ### Importing an adapter no longer registers it
 
@@ -208,6 +213,16 @@ Small pre-existing defects corrected in v3:
 - **The fetch adapter set `referrer: 'client'`**, which is the browser default and
   redundant there, but which Node's `fetch` rejects outright as an invalid URL. Breeze
   was unusable with the fetch adapter under Node. Now unset.
+- **`config.initializeAdapterInstances` always threw.** It validated its argument, copied
+  it onto the global `config`, and then iterated every property of `config` rather than of
+  the argument — passing values such as `functionRegistry` to `initializeAdapterInstance`
+  as adapter names. Nothing tested it. It now initializes exactly the adapters named, in
+  dependency order, and leaves `config` alone.
+- **More types are exported.** The config objects public constructors take
+  (`EntityTypeConfig`, `QueryOptionsConfig`, `SaveOptionsConfig`, …), event args,
+  callbacks, `SaveError`, `ImportResult` and the types adapter authors implement against
+  were used in public signatures but could not be imported by name. They can now. Type-only;
+  nothing changes at runtime.
 - `breeze.version` reported `"2.1.5"` in the 2.2.2 release. It will report the real
   version. *(planned)*
 - `breeze.assertConfig` and `breeze.assertParam` were `null` on the `breeze` object

@@ -69,9 +69,10 @@ export class Predicate {
   or
   >     let p2 = new Predicate("Region", FilterQueryOp.Equals, null);
   >     let query = new EntityQuery("Customers").where(p2);
-  @param property - A property name, a nested property name or an expression involving a property name.
-  @param operator - 
-  @param value - This will be treated as either a property expression or a literal depending on context.  In general,
+  @param args - `property, operator, value`, in that order:
+  - **property**: A property name, a nested property name or an expression involving a property name.
+  - **operator**: the filter query operator.
+  - **value**: This will be treated as either a property expression or a literal depending on context.  In general,
   if the value can be interpreted as a property expression it will be, otherwise it will be treated as a literal.
   In most cases this works well, but you can also force the interpretation by making the value argument itself an object with a 'value'
   property and an 'isLiteral' property set to either true or false.  Breeze also tries to infer the dataType of any
@@ -92,9 +93,10 @@ export class Predicate {
   >      let p = Predicate.create(a, b, c);
   >      // is the same as 
   >      let p = new Predicate(a, b, c); 
-  @param property -  A property name, a nested property name or an expression involving a property name.
-  @param operator - the filter query operator.
-  @param value - This will be treated as either a property expression or a literal depending on context.  In general,
+  @param args - `property, operator, value`, in that order:
+  - **property**:  A property name, a nested property name or an expression involving a property name.
+  - **operator**: the filter query operator.
+  - **value**: This will be treated as either a property expression or a literal depending on context.  In general,
   if the value can be interpreted as a property expression it will be, otherwise it will be treated as a literal.
   In most cases this works well, but you can also force the interpretation by making the value argument itself an object with a 'value'
   property and an 'isLiteral' property set to either true or false.  Breeze also tries to infer the dataType of any
@@ -151,7 +153,7 @@ export class Predicate {
   or
   >      let preds = [p1, p2, p3];
   >      let newPred = Predicate.and(preds);
-  @param predicates - multiple Predicates or an array of Predicate. 
+  @param args - multiple Predicates or an array of Predicate. 
   Any null or undefined values passed in will be automatically filtered out before constructing the composite predicate.
   **/
   static and(...args: any[]) {
@@ -173,7 +175,7 @@ export class Predicate {
   or
   >      let preds = [p1, p2, p3];
   >      let newPred = Predicate.or(preds);
-  @param predicates - multiple Predicates or an array of Predicate.
+  @param args - multiple Predicates or an array of Predicate.
   Any null or undefined values passed in will be automatically filtered out before constructing the composite predicate.
   **/
   static or(...args: any[]) {
@@ -240,7 +242,7 @@ export class Predicate {
   The 'and' method is also used to write "fluent" expressions
   >      let p4 = Predicate.create("ShipCity", "startswith", "F")
   >        .and("Size", "gt", 2000);
-  @param predicates - multiple Predicates or an array of Predicates. 
+  @param args - multiple Predicates or an array of Predicates. 
   Any null or undefined values passed in will be automatically filtered out before constructing the composite predicate.
   **/
   and(...args: any[]) {
@@ -262,7 +264,7 @@ export class Predicate {
   The 'or' method is also used to write "fluent" expressions
   >      let p4 = Predicate.create("ShipCity", "startswith", "F")
   >        .or("Size", "gt", 2000);
-  @param predicates - multiple Predicates or an array of Predicates. 
+  @param args - multiple Predicates or an array of Predicates. 
   Any null or undefined values passed in will be automatically filtered out before constructing the composite predicate.
   **/
   or(...args: any[]) {

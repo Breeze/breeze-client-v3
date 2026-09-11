@@ -87,5 +87,28 @@ describe("Save Queuing", () => {
     expect(sr[1].entities[0]['companyName']).toEqual("SecondCo");
   });
 
+
+  test("enabling twice does not hang saveChanges", async () => {
+    // enableSaveQueuing looked up a misspelled property, so a second call wrapped the
+    // already-wrapped saveChanges and the save queued behind itself forever.
+    let em = new EntityManager('test');
+    em.metadataStore.importMetadata(metadata);
+    enableSaveQueuing(em, true);
+    enableSaveQueuing(em, true);
+    em.createEntity('Customer', { companyName: "FirstCo" });
+    const sr = await em.saveChanges();
+    expect(sr.entities.length).toBe(1);
+  });
+
+  test("can be turned off again", async () => {
+    let em = new EntityManager('test');
+    em.metadataStore.importMetadata(metadata);
+    enableSaveQueuing(em, true);
+    enableSaveQueuing(em, false);
+    em.createEntity('Customer', { companyName: "FirstCo" });
+    const sr = await em.saveChanges();
+    expect(sr.entities.length).toBe(1);
+  });
+
 });
 

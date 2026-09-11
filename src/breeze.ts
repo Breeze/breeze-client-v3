@@ -194,6 +194,25 @@ export const breeze = {
 // breeze.assertConfig = assertConfig as any;
 // breeze.assertParam = assertParam as any;
 
+// Shapes that public signatures accept or return: constructor config objects, event args,
+// callbacks, and what adapter authors implement against. Type-only, so no runtime cost -
+// exported so applications can name them.
+export type { AdapterCtor, AdapterType } from './config';
+export type { AjaxRequest, ChangeRequestInterceptorCtor } from './interface-registry';
+export type {
+  ComplexTypeConfig, DataPropertyConfig, EntityTypeConfig, EntityTypeSetConfig,
+  MetadataFetchedEventArgs, MetadataStoreConfig, NavigationPropertyConfig,
+} from './entity-metadata';
+export type {
+  IEntityByKeyResult, ImportConfig, ImportResult, ITempKeyMap, QueryErrorCallback, QuerySuccessCallback, SaveError,
+} from './entity-manager';
+export type { LocalQueryComparisonOptionsConfig } from './local-query-comparison-options';
+export type { NamingConventionConfig } from './naming-convention';
+export type { QueryOptionsConfig } from './query-options';
+export type { SaveOptionsConfig } from './save-options';
+export type { ValidationContext, ValidationFn, ValidationMessageContext } from './validate';
+export type { ValidationOptionsConfig } from './validation-options';
+
 export namespace promises {
   /** no-op for backward compatibility with breeze-bridge2-angular */
   export interface IPromiseService {}

@@ -80,7 +80,7 @@ export class EntityState extends BreezeEnum {
 
   /** Return true if EntityState is Deleted or Detached */
   isDeletedOrDetached() {
-    return this === EntityState.Detached || this === EntityState.Detached;
+    return this === EntityState.Deleted || this === EntityState.Detached;
   }
 
   /**

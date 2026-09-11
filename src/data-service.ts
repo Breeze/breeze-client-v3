@@ -273,7 +273,7 @@ export class JsonResultsAdapter {
           dataService: dataService
       });
 
-  @param config - A configuration object.
+  @param jsConfig - A configuration object.
 
   **/
   constructor(jsConfig: JsonResultsAdapterConfig) {

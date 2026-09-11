@@ -1,4 +1,4 @@
-import { Predicate, FilterQueryOp, MetadataStore, EntityType, OrderByClause, DataType, core } from '../../src/breeze';
+import { Predicate, FilterQueryOp, MetadataStore, EntityType, OrderByClause, SelectClause, DataType, core } from '../../src/breeze';
 import { TestFns } from '../test-fns';
 
 declare let console: any;
@@ -349,5 +349,12 @@ describe("Query Construction", () => {
       return obj[propName] === value;
     };
   }
+
+  test("select names every level of a nested path", () => {
+    // Only the first dot used to be replaced: order.customer.companyName came back
+    // as order_customer.companyName.
+    const sc = new SelectClause(["order.customer.companyName", "freight"]);
+    expect(sc._pathNames).toEqual(["order_customer_companyName", "freight"]);
+  });
 
 });

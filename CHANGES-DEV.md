@@ -77,23 +77,32 @@ the flag stays.
 
 ## Public API surface
 
-92 exported names from `src/breeze.ts`: **52 runtime values** (37 classes, 7 `BreezeEnum`
-subclasses, 5 functions, `config`, `core`, `breeze`) and **40 type-only** (36 interfaces,
-3 type aliases, the `promises` namespace). The type-only ones erase at runtime, so the
-barrel rewrite must keep the 52 as real exports and can use `export type` for the rest.
+`src/breeze.ts` exports **53 runtime values** (classes, `BreezeEnum` subclasses,
+functions, `config`, `core`, `breeze`) and **75 type-only names**. The type-only ones
+erase at runtime and are exported with `export type`, so browser ESM never goes looking
+for them.
 
-Quirks carried over from 2.x, to fix during the barrel rewrite:
+26 of the type exports are new in v3: config objects, event args, callbacks, `SaveError`,
+`ImportResult` and adapter-author types that public signatures already used but that could
+not be imported by name. Internal types that public signatures happen to mention
+(`InterfaceDef`, `Op`, `Param`, `RecursiveArray`, `QueryOp`, `BooleanQueryOp`, core's
+`Predicate` alias) are deliberately *not* exported; `typedoc.config.mjs` lists them in
+`intentionallyNotExported`. Moving a name between those two lists is an API decision, not
+a way to silence a warning.
+
+Quirks carried over from 2.x:
 
 - `breeze.version` is hardcoded `"2.1.5"` while the package is `2.2.2`.
 - `breeze.assertConfig` / `breeze.assertParam` are `null as any` on the `breeze` object,
-  though the named exports work. The fix is sitting commented out at `src/breeze.ts:172-173`.
+  though the named exports work. The fix is sitting commented out in `src/breeze.ts`.
 - `Param` and `BooleanQueryOp` are reachable only via the `breeze` object, never as
   top-level exports. `BreezeEvent` appears on the object as `Event`.
-- `ErrorCallback` and `ValidationErrorsChangedEventArgs` are each declared twice in
-  different files.
 - A number of `@hidden`/`@internal` symbols are exported anyway — `assertParam`,
   `assertConfig`, `MappingContext`, `SaveContext`, `SaveBundle`, the predicate internals,
-  and `OrderByClause`, which is commented "for testing only".
+  and `OrderByClause` / `SelectClause` / `ExpandClause`, which uri-builder authors need.
+
+Fixed: `ErrorCallback` and `ValidationErrorsChangedEventArgs` were each declared twice.
+Each now has one declaration.
 
 ## Repo layout
 

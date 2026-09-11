@@ -115,6 +115,9 @@ configureBreeze({ ajax: AjaxFetchAdapter, /* ... */ });
 Misspell an adapter name in the old form and you get a runtime error; in the new form it
 does not compile. The old API is not scheduled for removal.
 
+If you call `config.initializeAdapterInstances` from TypeScript, you can drop any cast:
+its argument is now typed as adapter names, `{ ajax: 'fetch', dataService: 'webApi' }`.
+
 ## 6. Types are stricter
 
 v3 builds under `strictNullChecks` and `noImplicitAny`. Two declarations changed in ways
@@ -141,7 +144,7 @@ If you hit a difference not listed here, it is a bug — please
 
 ## Fixed along the way
 
-Two long-standing defects, both of which affected the 2.x `mjs` build:
+Long-standing defects, all present in 2.x:
 
 - **`JsonResultsAdapter` lost its type brand.** It declared `_$typeName` without
   TypeScript's `declare` modifier, so under ES2022 class-field semantics the constructor
@@ -150,3 +153,13 @@ Two long-standing defects, both of which affected the 2.x `mjs` build:
 - **The fetch adapter set `referrer: 'client'`**, which is the browser default and
   redundant there, but which Node's `fetch` rejects outright — making Breeze unusable
   with the fetch adapter under Node.
+- **`config.initializeAdapterInstances` always threw.** It validated its argument, copied
+  it onto the global `config`, and then iterated every property of `config` rather than of
+  the argument — passing values such as `functionRegistry` to `initializeAdapterInstance`
+  as adapter names. Nothing tested it. It now initializes exactly the adapters named, in
+  dependency order, and leaves `config` alone.
+- **More types are exported.** The config objects public constructors take
+  (`EntityTypeConfig`, `QueryOptionsConfig`, `SaveOptionsConfig`, …), event args,
+  callbacks, `SaveError`, `ImportResult` and the types adapter authors implement against
+  were used in public signatures but could not be imported by name. They can now. Type-only;
+  nothing changes at runtime.

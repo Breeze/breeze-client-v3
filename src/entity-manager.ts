@@ -117,7 +117,7 @@ export interface KeyMapping {
   realValue: any;
 }
 
-interface ITempKeyMap {
+export interface ITempKeyMap {
   [index: string]: EntityKey;
 }
 

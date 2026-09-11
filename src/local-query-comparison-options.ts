@@ -48,7 +48,7 @@ export class LocalQueryComparisonOptions {
   >      // or to a specific MetadataStore
   >      var ms = new MetadataStore({ localQueryComparisonOptions: lqco });
   >      var em = new EntityManager( { metadataStore: ms });
-  @param config - A configuration object.
+  @param lqcoConfig - A configuration object.
   **/
   constructor(lqcoConfig: LocalQueryComparisonOptionsConfig) {
     assertConfig(lqcoConfig || {})

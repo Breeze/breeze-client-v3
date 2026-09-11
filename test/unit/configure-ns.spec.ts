@@ -67,6 +67,30 @@ describe("configureBreeze", () => {
     expect((config.getAdapterInstance<AjaxAdapter>("ajax") as AjaxFetchAdapter).fetchFn).not.toBe(fakeFetch);
   });
 
+  test("a 200 whose body is not JSON fails instead of hanging", async () => {
+    // e.g. a proxy or auth layer answering with an HTML login page. The body promise used
+    // to be dropped, so neither callback ever ran and the query never settled.
+    const htmlFetch: BreezeFetch = async () => new Response("<html>Please sign in</html>", {
+      status: 200,
+      headers: { 'Content-Type': 'text/html' },
+    });
+    configureBreeze({ ajax: AjaxFetchAdapter, fetch: htmlFetch });
+    const adapter = config.getAdapterInstance<AjaxAdapter>("ajax") as AjaxFetchAdapter;
+
+    const outcome = await new Promise<any>((resolve) => {
+      adapter.ajax({
+        type: "GET",
+        url: "http://example.invalid/breeze/Thing",
+        success: () => resolve("success"),
+        error: (httpResponse) => resolve(httpResponse),
+      });
+    });
+    expect(outcome).not.toBe("success");
+    expect(outcome.status).toBe(200);
+
+    configureBreeze({ ajax: AjaxFetchAdapter });
+  });
+
   test("rejects a fetch supplied without an ajax adapter", () => {
     const fn: BreezeFetch = async () => new Response("{}");
     expect(() => configureBreeze({ fetch: fn })).toThrow(/without an 'ajax' adapter/);
@@ -78,6 +102,22 @@ describe("configureBreeze", () => {
     const inst = config.initializeAdapterInstance("ajax", "fetch", true);
     expect(inst.name).toBe("fetch");
     expect(config.getAdapterInstance<AjaxAdapter>("ajax")!.name).toBe("fetch");
+  });
+
+  test("the deprecated initializeAdapterInstances initializes each named adapter", () => {
+    // Broken in 2.x and in v3 until this test existed: it walked every property of the
+    // global config instead of its argument, and threw.
+    config.registerAdapter("ajax", AjaxFetchAdapter);
+    config.registerAdapter("dataService", DataServiceWebApiAdapter);
+    config.initializeAdapterInstances({ dataService: "webApi", ajax: "fetch" });
+    expect(config.getAdapterInstance<AjaxAdapter>("ajax")!.name).toBe("fetch");
+    expect(config.getAdapterInstance<DataServiceAdapter>("dataService")!.name).toBe("webApi");
+    // and does not copy its argument onto the global config
+    expect(Object.keys(config)).not.toContain("dataService");
+  });
+
+  test("initializeAdapterInstances rejects an unknown interface name", () => {
+    expect(() => config.initializeAdapterInstances({ ajx: "fetch" } as any)).toThrow(/Unknown property/);
   });
 
   test("configuration is enough to build an EntityManager", () => {

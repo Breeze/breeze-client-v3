@@ -212,7 +212,7 @@ export class MetadataStore {
   /**
   Adds an EntityType to this MetadataStore.  No additional properties may be added to the EntityType after its has
   been added to the MetadataStore.
-  @param structuralType - The EntityType or ComplexType to add
+  @param stype - The EntityType or ComplexType to add
   **/
   addEntityType(stype: StructuralType | EntityTypeConfig | ComplexTypeConfig) {
     let structuralType: StructuralType;
@@ -317,6 +317,12 @@ export class MetadataStore {
     // insure that we don't mutate incoming exportedMetadata ( if its an object)
     let metadataAsString = (typeof (exportedMetadata) === "string") ? exportedMetadata : JSON.stringify(exportedMetadata);
     const metadataJson = JSON.parse(metadataAsString);
+    // CSDL (the OData / EDMX format) has a schema property. 2.x parsed it; v3 does not, and
+    // without this check it imported silently as nothing and failed much later.
+    if (metadataJson && metadataJson.schema && !metadataJson.structuralTypes) {
+      throw new Error("This looks like CSDL (OData / EDMX) metadata, which breeze-client 3 does not read. " +
+        "Supply Breeze native JSON metadata instead - see Migrating from 2.x in the Breeze docs.");
+    }
 
 
     let json = metadataJson as IMetadataJson;
@@ -537,7 +543,7 @@ export class MetadataStore {
   or to throw an error if the type is not found
   >      let badType = em1.metadataStore.getAsEntityType("Foo", false);
   >      // badType will not get set and an exception will be thrown.
-  @param structuralTypeName - Either the fully qualified name or a short name may be used. If a short name is specified and multiple types share
+  @param typeName - Either the fully qualified name or a short name may be used. If a short name is specified and multiple types share
   that same short name an exception will be thrown.
   @param okIfNotFound - (default=false) Whether to throw an error if the specified EntityType is not found.
   @returns The EntityType. ComplexType or 'null' if not not found.
@@ -562,7 +568,7 @@ export class MetadataStore {
   or to throw an error if the type is not found
   >      let badType = em1.metadataStore.getAsComplexType("Foo", false);
   >      // badType will not get set and an exception will be thrown.
-  @param structuralTypeName - Either the fully qualified name or a short name may be used. If a short name is specified and multiple types share
+  @param typeName - Either the fully qualified name or a short name may be used. If a short name is specified and multiple types share
   that same short name an exception will be thrown.
   @param okIfNotFound - (default=false) Whether to throw an error if the specified EntityType is not found.
   @returns The EntityType. ComplexType or 'null' if not not found.
@@ -1179,7 +1185,7 @@ export class EntityType {
   >      let custType = em1.metadataStore.getAsEntityType("Customer");
   >      let cust1 = custType.createEntity();
   >      em1.addEntity(cust1);
-  @param initialValues- Configuration object of the properties to set immediately after creation.
+  @param initialValues - Configuration object of the properties to set immediately after creation.
   @returns The new entity.
   **/
   createEntity(initialValues?: any): any {

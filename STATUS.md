@@ -90,19 +90,22 @@ wrapper can make the constructors callable again if that turns out to matter.
 
 ## Next steps, in order
 
-1. Fix the last 4 failures. One is a genuine data gap (`UnusualDate.DateOnly`/`TimeOnly`
-   were never populated). The other three are cross-file dependencies: they assert on rows
-   that exist only because *another* spec file created them — employees with a null
-   birthDate, orders with a null customerID, and an exact employee count. Each needs to
-   create the data it asserts on.
-2. Add CORS to the test server, then switch Vitest to browser mode.
-3. Split the suite into unit and integration tiers.
-4. Retire the `AjaxAdapter` class and the `"ajax"` registry slot in favour of `BreezeFetch`
-   alone, and replace the callback-shaped `AjaxConfig` with a promise. This rewrites the
-   request path all 27 server-backed spec files exercise.
-5. Mark the string-based config API `@deprecated`, and make adapter registration explicit
-   so that importing a module no longer registers it.
-6. Then the module-by-module TypeScript modernization (see Known issues).
+Items 1-5 of the previous list (last 4 failures, CORS + browser mode, unit/integration
+split, explicit registration + `@deprecated` string API) are done — see the sections below.
+
+1. **User docs** — the ~28 stub pages are being written from breeze.github.io/doc-js,
+   every API checked against `src/`. The five pages already written are the style
+   reference.
+2. **Retire `AjaxAdapter` and the `"ajax"` registry slot** in favour of `BreezeFetch`
+   alone. `AbstractDataServiceAdapter._ajax` is now the single place requests are made, so
+   the change is contained there plus a deprecation shim.
+3. **Per-file isolation for the integration tier.** Needs a server-side reset endpoint so
+   browser mode can use it too.
+4. **Explicit initialization instead of import-time side effects** (prototype branding,
+   `Error['x'] = …`), so `"sideEffects"` can become `false`. See Known issues.
+5. `breeze.version` and the `null` `breeze.assertConfig` / `assertParam` — see Known issues.
+6. **GitHub Actions**: typecheck + unit tier + docs build on every push; the integration
+   tier separately, since it needs SQL Server and the .NET server.
 7. Regroup `src/` by concern (`core/`, `metadata/`, `entity/`, `query/`, `manager/`,
    `validation/`, `config/`, `adapters/`, `mixins/`). Deliberately deferred — moving 42
    files and rewriting imports at the same time as deleting code would make any breakage
@@ -394,3 +397,27 @@ The integration tier shares one database *within* a run, which is why it keeps
 Per-file reset is the fix, and it now has a natural home: only the integration config
 would need it. It also needs a server-side reset endpoint, because `global-setup.ts`
 shells out to `sqlcmd`, which a browser-mode worker cannot do mid-run.
+
+## API docs: TypeDoc warnings 71 → 0 (done)
+
+- **Stale `@param` names** fixed in the comments — rest parameters (`Predicate`'s
+  `...args`) documented as `args`, renamed parameters (`stype`, `typeName`, `qoConfig`…)
+  matched, leftover `@class` tags removed.
+- **26 types that public signatures already used are now exported** with `export type`:
+  config objects, event args, callbacks, `SaveError`, `ImportResult`, adapter-author types.
+  Type-only, no runtime change. Listed in `src/breeze.ts`.
+- **7 genuine internals** (`InterfaceDef`, `Op`, `Param`, `RecursiveArray`, `QueryOp`,
+  `BooleanQueryOp`, core's `Predicate` alias) go in `intentionallyNotExported` in
+  `typedoc.config.mjs` rather than becoming public.
+- The duplicate `ValidationErrorsChangedEventArgs` is gone; `entity-aspect.ts` imports the
+  one in `entity-manager.ts`.
+- The TypeDoc sidebar linked to `/docs/api/...`; the site serves `/api/...`. Fixed with
+  `docsRoot`.
+
+### Found on the way: `initializeAdapterInstances` always threw
+
+It iterated every property of the global `config` instead of its argument, and so passed
+`functionRegistry` and friends to `initializeAdapterInstance` as adapter names. The code
+is identical in 2.x, so this is not a v3 regression — just a deprecated path nobody tested.
+Fixed, typed (`InterfaceRegistryConfig` now takes adapter names, as it always should
+have), and covered by two new tests in `configure-ns.spec.ts`. Unit tier: 186.

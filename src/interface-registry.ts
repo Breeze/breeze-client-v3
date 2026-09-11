@@ -1,6 +1,7 @@
 import { core } from './core';
 import { assertConfig } from './assert-param';
 import { config, InterfaceDef, BaseAdapter } from './config';
+import type { AdapterType } from './config';
 import { MappingContext } from './mapping-context';
 import { EntityQuery } from './entity-query';
 import { MetadataStore } from './entity-metadata';
@@ -8,11 +9,16 @@ import { JsonResultsAdapter, DataService } from './data-service';
 import { Entity } from './entity-aspect';
 import { SaveContext, SaveBundle, QueryResult, SaveResult, HttpResponse } from './entity-manager';
 
+/** Adapter names for the deprecated `config.initializeAdapterInstances`. Each is the name of a previously registered adapter. */
 export interface InterfaceRegistryConfig {
-    ajax?: InterfaceDef<AjaxAdapter>;
-    modelLibrary?: InterfaceDef<ModelLibraryAdapter>;
-    dataService?: InterfaceDef<DataServiceAdapter>;
-    uriBuilder?: InterfaceDef<UriBuilderAdapter>;
+    /** e.g. `'fetch'` */
+    ajax?: string;
+    /** e.g. `'backingStore'` */
+    modelLibrary?: string;
+    /** e.g. `'webApi'` */
+    dataService?: string;
+    /** e.g. `'json'` */
+    uriBuilder?: string;
 }
 
 /** Registers adapters used by Breeze */
@@ -29,12 +35,9 @@ declare module "./config" {
     interface BreezeConfig {
         /**
         Initializes a collection of adapter implementations and makes each one the default for its corresponding interface.
-        @param config {Object}
-        @param [config.ajax] {String} - the name of a previously registered "ajax" adapter
-        @param [config.dataService] {String} - the name of a previously registered "dataService" adapter
-        @param [config.modelLibrary] {String} - the name of a previously registered "modelLibrary" adapter
-        @param [config.uriBuilder] {String} - the name of a previously registered "uriBuilder" adapter
-        @returns [array of instances]
+        @deprecated Use `configureBreeze({ ... })` instead. Still works; not scheduled for removal.
+        @param irConfig - The name of a previously registered adapter for each interface to initialize,
+        e.g. `{ ajax: 'fetch', dataService: 'webApi' }`. Interfaces not named are left as they are.
         **/
         initializeAdapterInstances(irConfig: InterfaceRegistryConfig): void;
 
@@ -48,29 +51,30 @@ config._interfaceRegistry = config.interfaceRegistry;
 config.interfaceRegistry.modelLibrary.getDefaultInstance = function() {
     if (!this.defaultInstance) {
         throw new Error("Unable to locate the default implementation of the '" + this.name +
-            "' interface.  Possible options are 'ko', 'backingStore' or 'backbone'. See the breeze.config.initializeAdapterInstances method.");
+            "' interface. 'backingStore' is the only one shipped - register it with configureBreeze({ modelLibrary: ModelLibraryBackingStoreAdapter }).");
     }
     return this.defaultInstance;
 };
 
-/**
-Initializes a collection of adapter implementations and makes each one the default for its corresponding interface.
-@param config {Object}
-@param [config.ajax] {String} - the name of a previously registered "ajax" adapter
-@param [config.dataService] {String} - the name of a previously registered "dataService" adapter
-@param [config.modelLibrary] {String} - the name of a previously registered "modelLibrary" adapter
-@param [config.uriBuilder] {String} - the name of a previously registered "uriBuilder" adapter
-@returns [array of instances]
-**/
+// The data service adapter resolves the ajax adapter when it initializes, so ajax has to
+// come first. Same order as configureBreeze.
+const initOrder: AdapterType[] = ['modelLibrary', 'uriBuilder', 'ajax', 'dataService'];
+
 /** @deprecated Use `configureBreeze({ ... })` instead. Still works; not scheduled for removal. */
 config.initializeAdapterInstances = function (irConfig: InterfaceRegistryConfig) {
+    // Validate only - rejects unknown keys. This used to apply irConfig onto the global
+    // config and then walk every property of *config*, passing things like functionRegistry
+    // to initializeAdapterInstance as adapter names, so it always threw. Nothing tested it.
     assertConfig(irConfig)
         .whereParam("dataService").isOptional()
         .whereParam("modelLibrary").isOptional()
         .whereParam("ajax").isOptional()
         .whereParam("uriBuilder").isOptional()
-        .applyAll(this, false);
-    return core.objectMap(config, this.initializeAdapterInstance);
+        .applyAll(irConfig, true);
+    initOrder.forEach(name => {
+        const adapterName = irConfig[name];
+        if (adapterName) this.initializeAdapterInstance(name, adapterName, true);
+    });
 };
 
 /** DataServiceAdapter Ajax request configuration */

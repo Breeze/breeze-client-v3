@@ -58,7 +58,6 @@ based on {@link DataProperty} metadata.  For example,
 - DataProperty.maxLength -> Validator.maxLength
 - DataProperty.isNullable -> Validator.required (if not nullable)
 
-@class Validator
 **/
 
 /**
@@ -383,8 +382,7 @@ export class Validator {
       regionProperty.validators.push(Validator.required());
       // or to allow empty strings
       regionProperty.validators.push(Validator.required({ allowEmptyStrings: true }););
-  @param context {Object}
-  @param [context.allowEmptyStrings] {Boolean} If this parameter is omitted or false then empty strings do NOT pass validation.
+  @param context - An object with `allowEmptyStrings` (boolean) - If this parameter is omitted or false then empty strings do NOT pass validation.
   @returns {Validator} A new Validator
   **/
   public static required = function(context?: any) {
@@ -407,8 +405,7 @@ export class Validator {
       var regionProperty - custType.getProperty("Region");
       // Validates that the value of the Region property on Customer will be less than or equal to 5 characters.
       regionProperty.validators.push(Validator.maxLength( {maxLength: 5}));
-  @param context {Object}
-  @param context.maxLength {Integer}
+  @param context - An object with `maxLength` (number).
   @returns {Validator} A new Validator
   **/
   public static maxLength = function(context: any) {
@@ -429,9 +426,7 @@ export class Validator {
       // Validates that the value of the Region property on Customer will be
       // between 2 and 5 characters
       regionProperty.validators.push(Validator.stringLength( {minLength: 2, maxLength: 5});
-  @param context {Object}
-  @param context.maxLength {Integer}
-  @param context.minLength {Integer}
+  @param context - An object with `maxLength` (number); `minLength` (number).
   @returns {Validator} A new Validator
   **/
   public static stringLength = function (context: any) {
@@ -675,8 +670,7 @@ export class Validator {
       var regionProperty = customerType.getProperty("Region");
       // Validates that the value of Customer.Region is 2 char uppercase alpha.
       regionProperty.validators.push(Validator.regularExpression( {expression: '^[A-Z]{2}$'} );
-  @param context {Object}
-  @param context.expression {String} String form of the regular expression to apply
+  @param context - An object with `expression` (string) - String form of the regular expression to apply.
   @returns {Validator} A new Validator
   **/
   public static regularExpression = function(context?: any) {
@@ -891,7 +885,6 @@ let  luhn = (function() {
 /**
 A ValidationError is used to describe a failed validation.
 
-@class ValidationError
 **/
 
 /**
@@ -985,7 +978,7 @@ export class ValidationError {
 
   /**
   Composes a ValidationError 'key' given a validator or an errorName and an optional propertyName
-  @param validator {ValidatorOrErrorKey} A Validator or an "error name" if no validator is available.
+  @param validatorOrErrorName - A Validator, or an "error name" if no validator is available.
   @param [propertyName] A property name
   @returns {String} A ValidationError 'key'
   **/

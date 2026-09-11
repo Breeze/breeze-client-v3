@@ -5,7 +5,6 @@ import { assertConfig } from './assert-param';
 /**
 MergeStrategy is an 'Enum' that determines how entities are merged into an EntityManager.
 
-@class MergeStrategy
 **/
 export class MergeStrategy extends BreezeEnum {
 
@@ -129,7 +128,7 @@ export class QueryOptions {
   >        includeDeleted: true,
   >        fetchStrategy:  FetchStrategy.FromLocalCache 
   >     });
-  @param config - A configuration object or a standalone {@link MergeStrategy} or {@link FetchStrategy} 
+  @param qoConfig - A configuration object or a standalone {@link MergeStrategy} or {@link FetchStrategy} 
   @returns A new QueryOptions instance.
   **/
   using(qoConfig: QueryOptionsConfig | MergeStrategy | FetchStrategy) {

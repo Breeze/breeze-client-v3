@@ -51,15 +51,25 @@ export abstract class AbstractDataServiceAdapter implements DataServiceAdapter {
     return new Promise<HttpResponse>((resolve, reject) => {
       this.ajaxImpl.ajax({
         ...config,
+        // Each callback is guarded: a throw inside one would otherwise escape into the ajax
+        // adapter and leave this promise pending for ever.
         success: (httpResponse: HttpResponse) => {
-          prepareResponse && prepareResponse(httpResponse);
-          resolve(httpResponse);
+          try {
+            prepareResponse && prepareResponse(httpResponse);
+            resolve(httpResponse);
+          } catch (e) {
+            reject(e);
+          }
         },
         error: (httpResponse: HttpResponse) => {
-          // must run before makeHttpError: createError reads httpResponse.saveContext
-          // to attach per-entity validation errors.
-          prepareResponse && prepareResponse(httpResponse);
-          reject(makeHttpError(httpResponse, errorMessagePrefix));
+          try {
+            // must run before makeHttpError: createError reads httpResponse.saveContext
+            // to attach per-entity validation errors.
+            prepareResponse && prepareResponse(httpResponse);
+            reject(makeHttpError(httpResponse, errorMessagePrefix));
+          } catch (e) {
+            reject(e);
+          }
         },
       } as AjaxConfig);
     });

@@ -7,7 +7,7 @@ import { EntityAction } from './entity-action';
 import { EntityType, ComplexType, DataProperty, NavigationProperty, EntityProperty } from './entity-metadata';
 import { EntityKey } from './entity-key';
 import { EntityGroup } from './entity-group';
-import { EntityManager, QueryResult, QueryErrorCallback, QuerySuccessCallback } from './entity-manager';
+import { EntityManager, QueryResult, QueryErrorCallback, QuerySuccessCallback, ValidationErrorsChangedEventArgs } from './entity-manager';
 import { Validator, ValidationError } from './validate';
 import { EntityQuery } from './entity-query';
 
@@ -44,11 +44,6 @@ export interface PropertyChangedEventArgs {
   newValue?: any;
 }
 
-export interface ValidationErrorsChangedEventArgs {
-  entity: Entity;
-  added: ValidationError[];
-  removed: ValidationError[];
-}
 
 /**
 An EntityAspect instance is associated with every attached entity and is accessed via the entity's 'entityAspect' property.
@@ -604,16 +599,27 @@ export class EntityAspect {
 
   removeValidationError(validationError: ValidationError): void;
   removeValidationError(validationKey: string): void;
+  removeValidationError(validator: Validator): void;
   /**
   Removes a validation error.
-  @param validationErrorOrKey - Either a ValidationError or a ValidationError 'key' value
+  @param validationErrorOrKey - A ValidationError, a ValidationError 'key' value, or a Validator -
+  in which case every error that validator produced on this entity is removed.
   **/
-  removeValidationError(validationErrorOrKey: ValidationError | string) {
+  removeValidationError(validationErrorOrKey: ValidationError | string | Validator) {
     assertParam(validationErrorOrKey, "validationErrorOrKey").isString().or().isInstanceOf(ValidationError).or().isInstanceOf(Validator).check();
 
-    let key = (typeof (validationErrorOrKey) === "string") ? validationErrorOrKey : validationErrorOrKey.key;
+    let keys: string[];
+    if (typeof (validationErrorOrKey) === "string") {
+      keys = [validationErrorOrKey];
+    } else if (validationErrorOrKey instanceof Validator) {
+      // A Validator has no key of its own - reading one used to remove nothing, silently.
+      const errors = this._validationErrors as Record<string, ValidationError>;
+      keys = Object.keys(errors).filter(k => errors[k]?.validator === validationErrorOrKey);
+    } else {
+      keys = [validationErrorOrKey.key];
+    }
     this._processValidationOpAndPublish(function (that: any) {
-      that._removeValidationError(key);
+      keys.forEach(key => that._removeValidationError(key));
     });
   }
 

@@ -494,7 +494,10 @@ describe("Entity operations - no server", () => {
     // which also describes EntityManager having propertyChanged event which it doesn't
     const em = TestFns.newEntityManager();
     const eventEnabled = breeze.Event.isEnabled("entityChanged", em);
-    expect(eventEnabled).not.toBeUndefined();
+    expect(eventEnabled).toBe(true);
+    // 2.x ignored obj and asked about the literal 3 instead, so this was always true.
+    breeze.Event.enable("entityChanged", em, false);
+    expect(breeze.Event.isEnabled("entityChanged", em)).toBe(false);
   });
 
   test("entityChanged event suppressed", function () {

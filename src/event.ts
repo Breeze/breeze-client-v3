@@ -137,8 +137,7 @@ export class BreezeEvent<T> {
   >              // do something
   >          }
   >      });
-  @param callback- Function to be called whenever 'data' is published for this event.
-  @param callback.data - {Object} Whatever 'data' was published.  This should be documented on the specific event.
+  @param callback - Called whenever data is published for this event, with that data as its argument. What is published is documented on each specific event.
   @returns This is a key for 'unsubscription'.  It can be passed to the 'unsubscribe' method.
   **/
   subscribe(callback: (data: T) => any) {
@@ -216,7 +215,7 @@ export class BreezeEvent<T> {
   will either enable or disable myEntityManager based on the current value of a ‘customTag’ property on myEntityManager.
   Note that this is dynamic, changing the customTag value will cause events to be enabled or disabled immediately.
   @param eventName - The name of the event.
-  @param target - The object at which enabling or disabling will occur.  All event notifications that occur to this object or
+  @param obj - The object at which enabling or disabling will occur.  All event notifications that occur to this object or
   children of this object will be enabled or disabled.
   @param isEnabled - A boolean, a null or a function that returns either a boolean or a null.
   **/
@@ -236,8 +235,8 @@ export class BreezeEvent<T> {
   >      BreezeEvent.isEnabled(“propertyChanged”, myEntityManager)
   > 
   @param eventName - The name of the event.
-  @param target - The object for which we want to know if notifications are enabled.
-  @returns A null is returned if this value has not been set.
+  @param obj - The object for which we want to know if notifications are enabled.
+  @returns Whether notifications are enabled. If nothing is set on the object, the answer comes from its parent chain, and defaults to true.
   **/
   static isEnabled(eventName: string, obj: Object) {
     assertParam(eventName, "eventName").isNonEmptyString().check();
@@ -246,8 +245,7 @@ export class BreezeEvent<T> {
     if ((<any>obj)._getEventParent === undefined) {
       throw new Error("This object does not support event enabling/disabling");
     }
-    // return ctor._isEnabled(getFullEventName(eventName), obj);
-    return BreezeEvent._isEnabled(eventName, 3);
+    return BreezeEvent._isEnabled(eventName, obj);
   }
 
   /** @hidden @internal */

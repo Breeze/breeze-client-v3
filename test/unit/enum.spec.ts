@@ -74,4 +74,11 @@ describe("Breeze Enums", () => {
       }
     });
 
+    test("EntityState.isDeletedOrDetached", () => {
+      // 2.x compared against Detached twice, so Deleted answered false.
+      expect(EntityState.Deleted.isDeletedOrDetached()).toBe(true);
+      expect(EntityState.Detached.isDeletedOrDetached()).toBe(true);
+      expect(EntityState.Modified.isDeletedOrDetached()).toBe(false);
+    });
+
 });

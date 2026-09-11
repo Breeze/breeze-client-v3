@@ -105,19 +105,20 @@ export class AjaxFetchAdapter implements AjaxAdapter {
     }
 
     if (requestInfo.config) { // exists unless requestInterceptor killed it.
-      this.fetchFn(url, requestInfo.config).then(response => {
-        if (!response.ok) {
-          response.text().then(s => {
-            requestInfo.error(response.status, response.statusText, s, response, null);
-          });
-        } else {
-          response.json().then(j => {
-            requestInfo.success(j, response.statusText, response);
-          });
-        }
-      }).catch(err => {
-        requestInfo.error(0, err && err.message || err, null, null, err);
-      });
+      // Every path ends in exactly one callback. The body promises below used to be dropped
+      // rather than returned, so a 200 whose body was not JSON rejected unhandled and the
+      // query never settled. A body that cannot be read now reports the real HTTP status.
+      this.fetchFn(url, requestInfo.config).then(
+        response => {
+          const body = response.ok ? response.json() : response.text();
+          return body.then(
+            data => response.ok
+              ? requestInfo.success(data, response.statusText, response)
+              : requestInfo.error(response.status, response.statusText, data, response, null),
+            err => requestInfo.error(response.status,
+              'Unable to read the response body: ' + (err && err.message || err), null, response, err));
+        },
+        err => requestInfo.error(0, err && err.message || err, null, null, err));
     }
 
     function successFn(data: any, statusText: string, response: Response) {

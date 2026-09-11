@@ -65,7 +65,7 @@ import { Entity, EntityManager, KeyMapping, EntityState, SaveResult, breeze } fr
 
 export function enableSaveQueuing(em: EntityManager, enable: boolean = true) {
   const emx = em as unknown as Record<string, any>;
-  let saveQueuing = emx['_saveQueueing'] ||
+  let saveQueuing = emx['_saveQueuing'] ||
     (emx['_saveQueuing'] = new SaveQueuing(em));
 
   enable = (enable === undefined) ? true : enable;

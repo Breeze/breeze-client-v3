@@ -10,7 +10,16 @@ export default {
   entryPoints: ['src/breeze.ts'],
   plugin: ['typedoc-plugin-markdown', 'typedoc-vitepress-theme'],
   out: 'docs/api',
+  // Sidebar links are computed relative to this. Without it they come out as
+  // /docs/api/... instead of the /api/... the site actually serves.
+  docsRoot: './docs',
   excludePrivate: true,
+  // Internal types that public signatures happen to mention. Deliberately not exported;
+  // listing them stops TypeDoc warning about each one on every run.
+  intentionallyNotExported: [
+    'InterfaceDef', 'Op', 'Param', 'RecursiveArray', 'QueryOp', 'BooleanQueryOp',
+    'src/core.ts:Predicate',
+  ],
   excludeInternal: true,
   readme: 'none',
   githubPages: false,

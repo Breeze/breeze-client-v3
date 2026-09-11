@@ -205,6 +205,23 @@ describe("Entity operations - no server", () => {
     expect(errs.length).toBe(0);
   });
 
+  test("removeValidationError accepts the Validator itself", function () {
+    // It passed its parameter check, then read a key a Validator does not have and
+    // silently removed nothing.
+    const newMs = MetadataStore.importMetadata(TestFns.sampleMetadata);
+    const em = TestFns.newEntityManager(newMs);
+    const alwaysWrong = new Validator("alwaysWrong", () => false, { message: "You are always wrong!" });
+    const custType = em.metadataStore.getAsEntityType("Customer");
+    custType.validators.push(alwaysWrong);
+
+    const cust = custType.createEntity({ companyName: "Presumed Guilty" });
+    em.attachEntity(cust);
+    expect(cust.entityAspect.getValidationErrors().length).not.toBe(0);
+
+    cust.entityAspect.removeValidationError(alwaysWrong);
+    expect(cust.entityAspect.getValidationErrors().length).toBe(0);
+  });
+
   test("Attached employee validation errors raised when properties set to bad values", function () {
     expect.assertions(8); // asserts about validation errors
 
