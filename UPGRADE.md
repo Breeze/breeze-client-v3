@@ -129,9 +129,36 @@ the data service adapter can resolve the ajax adapter when it initializes.
 are unchanged and still work.** They are the compatibility path; existing 2.x startup code
 runs as-is. They will be marked `@deprecated` in a later release.
 
-***Still planned:*** making adapter registration fully explicit. Today, importing an
-adapter module still registers it as a side effect, so import order can matter. When that
-changes, passing the adapter to `configureBreeze` will be the only thing that registers it.
+### Importing an adapter no longer registers it
+
+**Done, and this one is breaking.** In 2.x, importing an adapter module registered it as
+a side effect:
+
+```ts
+// 2.x: this import alone was enough - the module called config.registerAdapter itself
+import 'breeze-client/adapter-ajax-fetch';
+```
+
+v3 modules do not touch global state on import. Registration is explicit: pass the
+adapter to `configureBreeze`, or call its `register()`.
+
+**If your startup relied on the import side effect, adapters will appear unregistered**
+and you will see errors like `Unable to find ajax adapter for dataservice adapter
+'webApi'`.
+
+There is a second-order effect worth knowing about. Because registration used to happen
+at import time, it always happened *before* any of your `register()` calls - which
+hid ordering bugs. The data service adapter resolves the ajax adapter when it
+initializes, so this now throws:
+
+```ts
+DataServiceWebApiAdapter.register();   // resolves 'ajax' -> not registered yet
+AjaxFetchAdapter.register();
+```
+
+`configureBreeze` registers in dependency order, so it cannot go wrong that way. Two
+spec files in this repo had exactly that latent ordering bug, and only surfaced it when
+the import side effect was removed.
 
 ## 5. Class constructors require `new`
 

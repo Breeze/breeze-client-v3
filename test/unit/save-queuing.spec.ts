@@ -1,4 +1,4 @@
-import { AjaxConfig, EntityManager, SaveResult, config } from '../../src/breeze';
+import { AjaxConfig, EntityManager, SaveResult, config, configureBreeze } from '../../src/breeze';
 import { DataServiceWebApiAdapter } from '../../src/adapter-data-service-webapi';
 import { ModelLibraryBackingStoreAdapter } from '../../src/adapter-model-library-backing-store';
 import { UriBuilderJsonAdapter } from '../../src/adapter-uri-builder-json';
@@ -8,10 +8,15 @@ import { enableSaveQueuing } from '../../src/mixin-save-queuing';
 import { AjaxFakeAdapter } from '../support/adapter-ajax-fake';
 
 // jasmine.DEFAULT_TIMEOUT_INTERVAL = 120000;
-ModelLibraryBackingStoreAdapter.register();
-UriBuilderJsonAdapter.register();
-DataServiceWebApiAdapter.register();
-AjaxFakeAdapter.register();
+// configureBreeze registers in dependency order: the data service adapter resolves
+// the ajax adapter when it initializes, so ajax must come first. Calling the
+// individual register() methods in the wrong order throws.
+configureBreeze({
+  modelLibrary: ModelLibraryBackingStoreAdapter,
+  uriBuilder: UriBuilderJsonAdapter,
+  ajax: AjaxFakeAdapter,
+  dataService: DataServiceWebApiAdapter,
+});
 import metadata from '../support/NorthwindIBMetadata.json';
 
 // TODO migrate tests from https://github.com/Breeze/breeze.js.samples/blob/master/net/DocCode/DocCode/tests/saveQueuingTests.js

@@ -145,7 +145,10 @@ export class AjaxFetchAdapter implements AjaxAdapter {
   }
 }
 
-config.registerAdapter("ajax", AjaxFetchAdapter);
+// NOTE: this module deliberately does NOT register itself on import.
+// Registration is explicit - pass the adapter to configureBreeze, or call
+// SomeAdapter.register(). Importing a module should not mutate global state.
+
 
 // response is null when the transport itself failed, before any response existed;
 // the body below already branches on that.

@@ -95,7 +95,7 @@ export class AjaxFakeAdapter implements AjaxAdapter {
   }
 }
 
-config.registerAdapter("ajax", AjaxFakeAdapter);
+// Specs call AjaxFakeAdapter.register() explicitly; no import side effect here either.
 
 function getHeadersFn(xhr: XMLHttpRequest): any {
   return function (headerName: string) {

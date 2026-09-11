@@ -114,4 +114,7 @@ function transformValue(prop: breeze.DataProperty, val: any) {
 }
 
 
-breeze.config.registerAdapter("dataService", DataServiceWebApiAdapter);
+// NOTE: this module deliberately does NOT register itself on import.
+// Registration is explicit - pass the adapter to configureBreeze, or call
+// SomeAdapter.register(). Importing a module should not mutate global state.
+

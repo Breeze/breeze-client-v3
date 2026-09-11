@@ -40,7 +40,10 @@ export class UriBuilderJsonAdapter implements breeze.UriBuilderAdapter {
 
 }
 
-breeze.config.registerAdapter("uriBuilder", UriBuilderJsonAdapter);
+// NOTE: this module deliberately does NOT register itself on import.
+// Registration is explicit - pass the adapter to configureBreeze, or call
+// SomeAdapter.register(). Importing a module should not mutate global state.
+
 
 
 

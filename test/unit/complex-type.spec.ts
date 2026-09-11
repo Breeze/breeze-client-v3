@@ -6,7 +6,7 @@
 // import { EntityType, ComplexType } from '../../src/entity-metadata';
 // import { assertConfig } from 'src/assert-param';
 
-import { EntityManager, EntityType, ComplexType} from '../../src/breeze';
+import { EntityManager, EntityType, ComplexType, configureBreeze } from '../../src/breeze';
 
 import { ModelLibraryBackingStoreAdapter } from '../../src/adapter-model-library-backing-store';
 import { UriBuilderJsonAdapter } from '../../src/adapter-uri-builder-json';
@@ -16,10 +16,15 @@ import { AjaxFakeAdapter } from '../support/adapter-ajax-fake';    // OK
 import { TestFns, skipDescribeIf } from '../test-fns';
 // import { AjaxFakeAdapter } from '../../src/adapter-ajax-fake'; // BAD
 
-ModelLibraryBackingStoreAdapter.register();
-UriBuilderJsonAdapter.register();
-DataServiceWebApiAdapter.register();
-AjaxFakeAdapter.register();
+// configureBreeze registers in dependency order: the data service adapter resolves
+// the ajax adapter when it initializes, so ajax must come first. Calling the
+// individual register() methods in the wrong order throws.
+configureBreeze({
+  modelLibrary: ModelLibraryBackingStoreAdapter,
+  uriBuilder: UriBuilderJsonAdapter,
+  ajax: AjaxFakeAdapter,
+  dataService: DataServiceWebApiAdapter,
+});
 
 import metadata from '../support/ComplexTypeMetadata.json';
 

@@ -64,6 +64,7 @@ Initializes a collection of adapter implementations and makes each one the defau
 @param [config.uriBuilder] {String} - the name of a previously registered "uriBuilder" adapter
 @return [array of instances]
 **/
+/** @deprecated Use `configureBreeze({ ... })` instead. Still works; not scheduled for removal. */
 config.initializeAdapterInstances = function (irConfig: InterfaceRegistryConfig) {
     assertConfig(irConfig)
         .whereParam("dataService").isOptional()

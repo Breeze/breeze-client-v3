@@ -84,6 +84,11 @@ export class BreezeConfig {
     @param interfaceName {String} - one of the following interface names: "ajax", "dataService", "modelLibrary", "uriBuilder"
     @param adapterCtor {Function} - an ctor function that returns an instance of the specified interface.
     **/
+    /**
+    @deprecated Use `configureBreeze({ ajax: MyAdapter, ... })` instead. The adapter
+    classes are passed directly, so a misspelled name is a compile error rather than a
+    runtime one. This method still works and is not scheduled for removal.
+    */
     registerAdapter<T extends BaseAdapter>(interfaceName: AdapterType, adapterCtor: AdapterCtor<T>) {
         assertParam(interfaceName, "interfaceName").isNonEmptyString().check();
         assertParam(adapterCtor, "adapterCtor").isFunction().check();
@@ -125,6 +130,11 @@ export class BreezeConfig {
     @param [isDefault=true] {Boolean} - Whether to make this the default "adapter" for this interface.
     @return {an instance of the specified adapter}
     **/
+    /**
+    @deprecated Use `configureBreeze({ ajax: MyAdapter, ... })` instead. The adapter
+    classes are passed directly, so a misspelled name is a compile error rather than a
+    runtime one. This method still works and is not scheduled for removal.
+    */
     initializeAdapterInstance(interfaceName: AdapterType, adapterName: string, isDefault: boolean = true) {
         isDefault = isDefault === undefined ? true : isDefault;
         assertParam(interfaceName, "interfaceName").isNonEmptyString().check();

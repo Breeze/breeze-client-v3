@@ -102,7 +102,10 @@ export class ModelLibraryBackingStoreAdapter implements breeze.ModelLibraryAdapt
   }
 }
 
-breeze.config.registerAdapter("modelLibrary", ModelLibraryBackingStoreAdapter);
+// NOTE: this module deliberately does NOT register itself on import.
+// Registration is explicit - pass the adapter to configureBreeze, or call
+// SomeAdapter.register(). Importing a module should not mutate global state.
+
 
 // private methods
 
