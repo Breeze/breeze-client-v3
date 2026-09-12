@@ -230,7 +230,10 @@ export class EntityAspect {
   static getPropertyPathValue(obj: Entity, propertyPath: string | string[]) {
     let properties = Array.isArray(propertyPath) ? propertyPath : propertyPath.split(".");
     if (properties.length === 1) {
-      return obj.getProperty(propertyPath as string);
+      // properties[0], not propertyPath. Given a single-element array this used to pass the array
+      // itself to getProperty, and reached the right property only because a property lookup
+      // coerces ['freight'] to 'freight'. Correct by accident, and slower than the real thing.
+      return obj.getProperty(properties[0]);
     } else {
       let nextValue = obj;
       // hack use of some to perform mapFirst operation.

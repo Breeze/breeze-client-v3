@@ -52,6 +52,17 @@ export class BreezeEvent<T> {
   /** @hidden @internal */
   _defaultErrorCallback: (e: Error) => any;
 
+  /**
+   * Whether anything is listening. Lets a caller skip building event arguments it would only
+   * throw away - `publish` on an unsubscribed event still walks the `_getEventParent` chain via
+   * `_isEnabled` before discovering there is nobody to tell.
+   * @hidden @internal
+   */
+  get hasSubscribers(): boolean {
+    const subs = this._subscribers;
+    return subs != null && subs.length > 0;
+  }
+
 
   /**
   Constructor for an Event

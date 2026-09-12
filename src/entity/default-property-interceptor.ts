@@ -468,18 +468,33 @@ function postChangeEvents(context: IContext) {
   let entityManager = entityAspect.entityManager;
   let entity = entityAspect.entity;
 
-  let propChangedArgs = { entity: entity!, parent: context.parent, property: context.property, propertyName: context.propertyName, oldValue: context.oldValue, newValue: context.newValue };
+  // The argument object and the publish calls are about 11% of a tracked property set, and with
+  // nothing subscribed every bit of it is discarded: publish walks the _getEventParent chain via
+  // BreezeEvent._isEnabled before finding an empty subscriber list. Nothing inside breeze
+  // subscribes to either event, so for an application that does not either, that is every set.
+  const propertyChanged = entityAspect.propertyChanged;
   if (entityManager) {
     // propertyChanged will be fired during loading but we only want to fire it once per entity, not once per property.
     // so propertyChanged is fired in the entityManager mergeEntity method if not fired here.
     if ((!entityManager.isLoading) && (!entityManager.isRejectingChanges)) {
-      entityAspect.propertyChanged.publish(propChangedArgs);
+      const entityChanged = entityManager.entityChanged;
+      if (!propertyChanged.hasSubscribers && !entityChanged.hasSubscribers) return;
+      const propChangedArgs = makePropChangedArgs(context, entity);
+      propertyChanged.publish(propChangedArgs);
       // don't fire entityChanged event if propertyChanged is suppressed.
-      entityManager.entityChanged.publish({ entityAction: EntityAction.PropertyChange, entity: entity, args: propChangedArgs });
+      entityChanged.publish({ entityAction: EntityAction.PropertyChange, entity: entity, args: propChangedArgs });
     }
   } else {
-    entityAspect.propertyChanged.publish(propChangedArgs);
+    if (!propertyChanged.hasSubscribers) return;
+    propertyChanged.publish(makePropChangedArgs(context, entity));
   }
+}
+
+function makePropChangedArgs(context: IContext, entity: Entity | undefined) {
+  return {
+    entity: entity!, parent: context.parent, property: context.property,
+    propertyName: context.propertyName, oldValue: context.oldValue, newValue: context.newValue
+  };
 }
 
 function updateStateAndValidate(context: IContext) {
