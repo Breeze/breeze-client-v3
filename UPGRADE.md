@@ -140,7 +140,7 @@ config.initializeAdapterInstance("dataService", "myWebApi", true);
 
 Misspell an adapter name in the old form and you get a runtime error; in the new form it
 does not compile. `configureBreeze` also takes `modelLibrary`, `uriBuilder`, `fetch`,
-`namingConvention`, `noEval`, and a `config` for targeting a non-global `BreezeConfig`. The adapter subpaths
+`namingConvention`, and a `config` for targeting a non-global `BreezeConfig`. The adapter subpaths
 (`breeze-client/adapter-data-service-webapi` and so on) still exist, for subclassing and
 for explicit registration.
 
@@ -259,7 +259,23 @@ measurements and the alternatives that were tried.
 
 ---
 
-## 7. What has *not* changed
+### `noEval` is removed, and Breeze no longer evaluates strings
+
+`config.noEval` and `configureBreeze({ noEval })` are gone. Remove them - passing `noEval` to
+`configureBreeze` is now a compile error, and reading `config.noEval` gives `undefined`.
+
+Nothing replaces them, because there is nothing left to switch off. The flag existed for one
+reason: 2.x built an entity constructor from a string, `Function('return function Order(){}')()`,
+so that the type had a readable name in a debugger. It also probed for that ability at startup by
+calling `Function('')` inside a `try`, which a strict Content Security Policy turns into a
+reported violation even though the failure was caught.
+
+Constructors are now named with `Object.defineProperty(ctor, 'name', ...)`, which produces the
+same result with no dynamic code. Breeze contains no `eval` and no `new Function`, so it runs
+under a policy without `'unsafe-eval'` and reports nothing at startup.
+
+---
+
 
 The public API is otherwise intended to be source-compatible with 2.x. `EntityManager`,
 `EntityQuery`, `Predicate`, `MetadataStore`, `EntityType`, `EntityAspect`, `Validator`,

@@ -41,7 +41,6 @@ first time it is used, and keeps them.
 | Save options | `allowConcurrentSaves: false`; saves go to `SaveChanges` on the manager's service | `new SaveOptions({ ... }).setAsDefault()`; per manager with `saveOptions`; per save as the second argument to `saveChanges` |
 | Validation options | `validateOnAttach: true`, `validateOnSave: true`, `validateOnQuery: false`, `validateOnPropertyChange: true` | `new ValidationOptions({ ... }).setAsDefault()`; per manager with `validationOptions` |
 | Transport | `config.fetch` is unset, so requests use `globalThis.fetch` | `configureBreeze({ fetch })`, or assign `config.fetch` |
-| `noEval` | detected at startup: `false` unless calling `Function('')` fails, as it does under a strict Content Security Policy | `configureBreeze({ noEval: true })` |
 
 `setAsDefault()` changes the default for everything created afterwards. It does not change
 stores and managers that already exist.
@@ -79,7 +78,7 @@ stores and managers that already exist.
 ## configureBreeze
 
 `configureBreeze` is optional. Use it to replace a default adapter, supply your own
-`fetch`, set the naming convention, or set `noEval`:
+`fetch`, or set the naming convention:
 
 ```ts
 import { configureBreeze } from 'breeze-client';
@@ -106,7 +105,6 @@ does no harm, but it is not needed.
 | `dataService` | adapter class | replaces the default, `DataServiceWebApiAdapter` |
 | `fetch` | `BreezeFetch` | the function every HTTP request goes through; defaults to `globalThis.fetch`. See [Supplying your own transport](/server/transport) |
 | `namingConvention` | `NamingConvention` | sets the default, which is initially `NamingConvention.camelCase` |
-| `noEval` | `boolean` | forbid `eval`/`Function`, for strict CSP environments; detected automatically |
 | `config` | `BreezeConfig` | target a non-global config; rarely needed |
 
 You can call it more than once and pass only what you want to change:
@@ -238,12 +236,13 @@ Metadata that names a naming convention sets it when imported into an empty
 
 ## Content Security Policy
 
-If your CSP forbids `eval` and `new Function`:
+Breeze needs no Content Security Policy exception. It never evaluates a string - no `eval`,
+no `new Function` - so a policy without `'unsafe-eval'` runs it without complaint and without
+CSP violation reports.
 
-```ts
-configureBreeze({ noEval: true });
-```
-
-Breeze detects this automatically at startup by attempting a `Function('')` and catching
-the failure, so you usually do not need to set it. Set it explicitly if you want to be
-certain.
+::: tip Changed in 3.0
+2.x probed for `eval` support at startup and exposed a `noEval` flag, because it built entity
+constructors from strings to give them a readable name. Constructors are now named with
+`Object.defineProperty`, so both the probe and the flag are gone. See
+[Migrating from 2.x](/guide/migrating-from-2x).
+:::

@@ -486,6 +486,15 @@ validation, key propagation) and now peek via an optional `peekProperty` on the 
 adapter, falling back to `getProperty` for an adapter that lacks it. See *Lazy relation arrays*
 in CHANGES-DEV.md and docs/guide/performance.md.
 
+## noEval removed (done)
+
+Breeze no longer evaluates strings. `createEmptyCtor` named its constructor by building one with
+`Function(...)`; it uses `Object.defineProperty(ctor, 'name', ...)`, which gives the same name
+(`Order:#Foo` -> `Order__Foo`, checked at runtime). The startup `Function('')` probe, the
+`config.noEval` flag and the `configureBreeze({ noEval })` option are gone - a breaking change,
+written up in UPGRADE.md. Nothing in src uses `eval` or `Function` on a string, so a strict CSP
+needs no exception and sees no violation report.
+
 ## Packaging check (done)
 
 Installing the packed tarball into a fresh Vite + TypeScript app found what the suite could

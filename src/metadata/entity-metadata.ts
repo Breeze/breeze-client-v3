@@ -1750,13 +1750,13 @@ function updateClientServerNames(nc: NamingConvention, parent: any, clientPropNa
 }
 
 function createEmptyCtor(type: any) {
-  if (config.noEval) {
-    let Entity = function() {};
-    return Entity;
-  } else {
-    let name = type.name.replace(/\W/g, '_');
-    return Function('return function ' + name + '(){}')();
-  }
+  // The only reason this ever built a function from a string was the name: a constructor made
+  // with Function('return function Order(){}')() shows as Order in a debugger. Function.name is
+  // configurable, so it can simply be set - and Breeze then contains no eval and no
+  // new Function, which is what a strict Content Security Policy forbids.
+  const ctor = function () { };
+  Object.defineProperty(ctor, 'name', { value: type.name.replace(/\W/g, '_'), configurable: true });
+  return ctor;
 }
 
 function coEquals(co1: ComplexObject, co2: ComplexObject): boolean {

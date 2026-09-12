@@ -177,7 +177,7 @@ configureBreeze({ dataService: MyWebApiAdapter });
 
 Misspell an adapter name in the old form and you get a runtime error; in the new form it
 does not compile. The old API is not scheduled for removal. `configureBreeze` itself is
-optional: use it for a custom adapter, a custom `fetch`, the naming convention or `noEval`.
+optional: use it for a custom adapter, a custom `fetch`, or the naming convention.
 
 If you call `config.initializeAdapterInstances` from TypeScript, you can drop any cast:
 its argument is now typed as adapter names, `{ ajax: 'fetch', dataService: 'webApi' }`.

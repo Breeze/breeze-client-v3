@@ -414,6 +414,48 @@ clearing on delete, and a query filling only the collections its payload carries
 Verified: typecheck clean, unit 340, integration 450 + 7 skipped, browser 739 + 7 skipped, docs
 build with no dead links and zero TypeDoc warnings.
 
+## No eval, and no `noEval`
+
+Breeze contained exactly one piece of dynamic code, and a flag to switch it off.
+
+`createEmptyCtor` built the constructor for a type that has no registered one:
+
+```ts
+return Function('return function ' + name + '(){}')();
+```
+
+The string was the point - a constructor built that way carries the entity's name, which is what
+a debugger shows. `BreezeConfig`'s constructor probed for the ability at startup by calling
+`Function('')` inside a try/catch, stored the answer in `config.noEval`, and
+`configureBreeze({ noEval: true })` could force the safe path, which returned an anonymous
+function instead.
+
+So the whole mechanism - two code paths, a config flag, a `configureBreeze` option, a startup
+probe and five documentation mentions - bought a label in a debugger, and cost more than it
+looks: the probe runs on *every* import in every environment, and under a strict Content Security
+Policy a caught failure is still a **reported** violation. An application with CSP reporting saw
+one at startup from a library that never needed to evaluate a string.
+
+`Function.prototype.name` is configurable, so the name can simply be set:
+
+```ts
+const ctor = function () { };
+Object.defineProperty(ctor, 'name', { value: type.name.replace(/W/g, '_'), configurable: true });
+```
+
+Verified at runtime, not just by inspection: entity type `Order:#Foo` still produces a constructor
+named `Order__Foo`, exactly as the string-built one did.
+
+`config.noEval` and the `noEval` option are **removed** rather than left inert - there is nothing
+left for them to switch. That is a breaking change and UPGRADE.md carries an entry for it;
+`configureBreeze({ noEval: true })` is now `TS2353`, and `config.noEval` is `undefined`. `src`
+contains no `eval` and no `Function` built from a string, so Breeze runs under a policy without
+`'unsafe-eval'` and reports nothing.
+
+Verified: typecheck clean, unit 340, integration 450 + 7 skipped, browser 739 + 7 skipped, docs
+build with no dead links and zero TypeDoc warnings, and against the packed package a consumer
+compiles valid `configureBreeze` usage while `noEval` is rejected.
+
 ## Object-as-map to Map
 
 Where a structure is keyed by *data* rather than by fixed property names, it is now a real

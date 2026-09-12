@@ -93,8 +93,6 @@ export class BreezeConfig {
     interfaceInitialized: BreezeEvent<{ interfaceName: string, instance: BaseAdapter, isDefault: boolean }>;
 
     stringifyPad = '';
-    /** whether to prohibit eval() and Function() in breeze code */
-    noEval: boolean;
     /**
      * The function Breeze makes HTTP requests with, unless a (deprecated) ajax adapter is
      * registered. Set it with `configureBreeze({ fetch })`. When unset, `globalThis.fetch`.
@@ -115,15 +113,6 @@ export class BreezeConfig {
 
     constructor() {
         this.interfaceInitialized = new BreezeEvent("interfaceInitialized", this);
-        if (this.noEval === undefined) {
-            try {
-                (Error as any)['x'] = Function('');
-                this.noEval = false; // eval succeeded
-            } catch {
-                this.noEval = true; // eval failed, probably due to CSP
-            }
-        }
-        
     }
 
     /**

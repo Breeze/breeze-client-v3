@@ -40,9 +40,6 @@ export interface BreezeSetupOptions {
   /** Sets the default NamingConvention. Defaults to `NamingConvention.camelCase`; use `NamingConvention.none` when the server already sends the names the client should use. */
   namingConvention?: NamingConvention;
 
-  /** Prohibit `eval()` and `Function()` in breeze code, for strict CSP environments. */
-  noEval?: boolean;
-
   /** Configure a BreezeConfig other than the global one. Rarely needed. */
   config?: BreezeConfig;
 }
@@ -71,9 +68,6 @@ export interface BreezeSetupOptions {
 export function configureBreeze(options: BreezeSetupOptions): void {
   const cfg = options.config || config;
 
-  if (options.noEval !== undefined) {
-    cfg.noEval = options.noEval;
-  }
   if (options.modelLibrary) {
     options.modelLibrary.register(cfg);
   }
