@@ -54,6 +54,28 @@ npm install
 npx playwright install chromium   # once, for browser mode
 ```
 
+### Windows 11: check Smart App Control first
+
+Smart App Control blocks unsigned binaries, and a locally built server assembly is always
+unsigned — so where it is enforced, the test server cannot start at all and every
+server-backed tier fails. It costs a minute to rule out:
+
+```powershell
+Get-ItemProperty HKLM:\SYSTEM\CurrentControlSet\Control\CI\Policy |
+  Select-Object VerifiedAndReputablePolicyState   # 0 = off, 1 = enforced, 2 = evaluation
+```
+
+`1` means the server-backed tiers will fail until it is turned off; see
+[Troubleshooting](#troubleshooting), under **`An Application Control policy has blocked this
+file`**, which covers both turning it off and the alternative if you would rather not.
+
+This affects few machines. Smart App Control is a Windows 11 consumer feature that is on only
+where Windows was clean-installed and left enabled; it is off on machines upgraded from
+Windows 10, and does not exist on Windows 10, macOS or Linux. An organisation's WDAC policy
+behaves the same way but is not yours to switch off — event 3077 names the policy, so the
+check in the troubleshooting entry tells the two apart. `npm run test:unit` needs no server
+and works either way.
+
 ---
 
 ## The test script
@@ -412,13 +434,20 @@ Get-WinEvent -LogName Microsoft-Windows-CodeIntegrity/Operational -MaxEvents 20 
 Event 3077 names both the blocked file and the policy that blocked it.
 
 Nothing in either repo can work around this, and every rebuild re-triggers it, because each
-build writes a new unsigned file. The options are all outside the repos, and all of them are
-a decision about the machine's security posture:
+build writes a new unsigned file. The fix is a decision about the machine:
 
-- Turn Smart App Control off (Windows Security → App & browser control → Smart App Control).
-  It cannot be turned back on afterwards without resetting Windows.
-- Run the server-backed tiers on a machine or VM that does not enforce the policy.
-- Have the built assemblies signed by a certificate the policy trusts.
+- **Turn Smart App Control off.** Windows Security → App & browser control → Smart App
+  Control settings → **Off**. It blocks unsigned binaries and every local build produces
+  one, so it cannot coexist with .NET development on the same machine. Windows will not let
+  it be turned back on afterwards without resetting the machine, so treat it as one-way. The
+  registry check above should then read `0`.
+- **Or run the server where the policy does not apply** — another machine, a VM, or WSL2,
+  since Smart App Control does not govern Linux binaries. The host reads environment
+  variables, so `ConnectionStrings__BreezeTestDb` can point a WSL2-side server at SQL Server
+  on Windows with no source change; it needs a SQL login over TCP, because Windows
+  integrated auth will not work from Linux.
+- Signing the assemblies is not a practical answer: Smart App Control goes on reputation,
+  not merely on a valid signature.
 
 `npm run test:unit` needs no server and is unaffected by any of this.
 
