@@ -383,18 +383,44 @@ SQL Server is not running, or it is a named instance: pass `-SqlInstance`, for e
 `-SqlInstance .\SQLEXPRESS`.
 
 **`The test server exited during startup`**
-The script prints the last lines of `%TEMP%\breeze-test-server.log`. The usual causes are
-another program already using port 34377, or a build error in `breeze-server-v3`.
+The script prints the last lines of `%TEMP%\breeze-test-server.log`, and the cause is always
+in there. Usually it is another program already using port 34377, a build error in
+`breeze-server-v3`, or Windows application control blocking the server assembly — see the
+last entry in this section.
 
 **`No test in the integration tier matched -Filter '...'`**
 Nothing matched the filter. It is matched against the full test name, including its
 `describe` blocks, so check the spelling against the test file.
 
 **`An Application Control policy has blocked this file`** (in the server log)
-Windows application control (Smart App Control, or an organisation's WDAC policy) blocks
-freshly built, unsigned executables. The test hosts set `UseAppHost=false`, so `dotnet run`
-starts the server through the Microsoft-signed `dotnet.exe` instead of a per-project `.exe`.
-If you see this, pull the latest `breeze-server-v3`.
+Windows application control — Smart App Control, or an organisation's WDAC policy — blocks
+unsigned binaries, and a locally built one is always unsigned. The server dies on startup
+with `0x800711C7`, and the script reports `The test server exited during startup`.
+
+`UseAppHost=false` is set on both test hosts, so there is no per-project `.exe` for the
+policy to block. **That is not a fix.** The policy also blocks `dotnet.exe` from loading the
+managed assembly, which is where this actually fails. Confirm it:
+
+```powershell
+Get-ItemProperty HKLM:\SYSTEM\CurrentControlSet\Control\CI\Policy |
+  Select-Object VerifiedAndReputablePolicyState   # 0 = off, 1 = enforced, 2 = evaluation
+
+Get-WinEvent -LogName Microsoft-Windows-CodeIntegrity/Operational -MaxEvents 20 |
+  Where-Object Id -in 3076,3077
+```
+
+Event 3077 names both the blocked file and the policy that blocked it.
+
+Nothing in either repo can work around this, and every rebuild re-triggers it, because each
+build writes a new unsigned file. The options are all outside the repos, and all of them are
+a decision about the machine's security posture:
+
+- Turn Smart App Control off (Windows Security → App & browser control → Smart App Control).
+  It cannot be turned back on afterwards without resetting Windows.
+- Run the server-backed tiers on a machine or VM that does not enforce the policy.
+- Have the built assemblies signed by a certificate the policy trusts.
+
+`npm run test:unit` needs no server and is unaffected by any of this.
 
 **`(!) Your Vite config uses features that are unsupported by configLoader: 'native'`**
 Harmless. Every run prints it; it concerns a future Vite default, not the tests.
