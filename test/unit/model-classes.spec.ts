@@ -128,3 +128,20 @@ describe("Registering the generated classes", () => {
   });
 
 });
+
+describe("Importing Breeze by its published name", () => {
+
+  test("'breeze-client' resolves to the same module the specs import", async () => {
+    // test/model/ imports 'breeze-client', because those files are what the generator writes
+    // for an application. Inside this repo that name is aliased to src/ (vitest.shared.config.ts
+    // and the `paths` in test/tsconfig.json). If the alias were missing it would still resolve,
+    // via the package's own `exports` map, to dist/ - and the model would be typed against a
+    // different copy of Breeze from the one the specs run. Two copies means two EntityState
+    // enums and instanceof checks that fail for no visible reason.
+    const byName = await import('breeze-client');
+    const bySource = await import('../../src/breeze');
+    expect(byName.EntityState).toBe(bySource.EntityState);
+    expect(byName.MetadataStore).toBe(bySource.MetadataStore);
+  });
+
+});

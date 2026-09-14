@@ -2,9 +2,9 @@
 // Generate - or update in place - one TypeScript class per structural type in a Breeze
 // metadata document.
 //
-//   node scripts/generate-entity-classes.js --out test/model --breeze ../../src/breeze \
+//   node scripts/generate-entity-classes.js --out test/model --breeze breeze-client \
 //     --metadata test/support/NorthwindIBMetadata_ETNOPAYLOAD.json
-//   node scripts/generate-entity-classes.js --out test/model --breeze ../../src/breeze \
+//   node scripts/generate-entity-classes.js --out test/model --breeze breeze-client \
 //     --service http://localhost:34377/breeze/NorthwindIBModel
 //
 // --out, --breeze and a metadata source are all required; `--help` says why. In this repo,
@@ -114,12 +114,13 @@ Required:
 
       The classes reference types that live in breeze-client: RelationArray and ComplexArray
       for collection properties, and Entity, EntityAspect, EntityType and the complex-type
-      equivalents in entity-base.ts. The specifier to reach them by depends on where the
-      generated code sits and cannot be worked out from --out, so it is stated rather than
-      guessed:
+      equivalents in entity-base.ts. Nothing infers the specifier, so it is stated:
 
-        --breeze breeze-client        an application, importing the published package
-        --breeze ../../src/breeze     inside this repo, where the tests import the sources
+        --breeze breeze-client        almost always this - the published package name
+
+      A relative path into a checkout is the exception, for working on Breeze itself. Note
+      that a relative specifier is written verbatim into every generated file, so it has to
+      be correct from --out, not from where the command is run.
 
 Optional:
   --ext <ext>         extension on sibling imports, e.g. .js for a NodeNext project
@@ -152,7 +153,7 @@ Optional:
 Example:
   node scripts/generate-entity-classes.js \\
     --metadata test/support/NorthwindIBMetadata_ETNOPAYLOAD.json \\
-    --out test/model --breeze ../../src/breeze`);
+    --out test/model --breeze breeze-client`);
 }
 
 function fail(msg) {
@@ -406,6 +407,28 @@ function reconcileImports(lines, required, notes) {
     }
   });
 
+  const requiredSpecifierOf = new Map();
+  for (const req of required) {
+    for (const name of req.names) requiredSpecifierOf.set(name, req.specifier);
+  }
+
+  // 0. Re-point a marked import whose module has moved - --breeze changed, say, or the classes
+  //    were regenerated into a different directory. Dropping the name here lets the add step
+  //    put it back at the right specifier; without this it looks satisfied and the stale module
+  //    survives. Marked statements only: a hand-written import of the same name is the caller's.
+  for (const stmt of statements) {
+    if (!stmt.marked) continue;
+    const moved = stmt.names.filter(n => {
+      const local = n.split(/\s+as\s+/).pop().trim();
+      return requiredSpecifierOf.has(local) && requiredSpecifierOf.get(local) !== stmt.specifier;
+    });
+    if (!moved.length) continue;
+    const to = requiredSpecifierOf.get(moved[0].split(/\s+as\s+/).pop().trim());
+    notes.push(`move ${moved.join(', ')} from '${stmt.specifier}' to '${to}'`);
+    stmt.names = stmt.names.filter(n => !moved.includes(n));
+    lines[stmt.line] = stmt.names.length ? renderImport(stmt) : null;
+  }
+
   const bound = new Set(statements.flatMap(s => s.names.map(n => n.split(/\s+as\s+/).pop().trim())));
   const requiredBySpecifier = new Map();
   for (const req of required) {
@@ -436,8 +459,7 @@ function reconcileImports(lines, required, notes) {
 
   // 2. Prune marked imports that nothing needs any more.
   const requiredNames = new Set(required.flatMap(r => r.names));
-  const bodyText = lines.filter(l => !IMPORT_RE.test(l)).join('\n');
-  const removals = [];
+  const bodyText = lines.filter(l => l !== null && !IMPORT_RE.test(l)).join('\n');
   for (const stmt of statements) {
     if (!stmt.marked) continue;
     const keep = stmt.names.filter(n => {
@@ -450,9 +472,10 @@ function reconcileImports(lines, required, notes) {
     notes.push(`drop import ${dropped.join(', ')} from '${stmt.specifier}'`);
     stmt.names = keep;
     lines[stmt.line] = keep.length ? renderImport(stmt) : null;
-    if (!keep.length) removals.push(stmt.line);
   }
-  for (const i of removals.sort((a, b) => b - a)) lines.splice(i, 1);
+  // An import statement left with no names - here or in step 0 - is dropped outright. Nulling
+  // and filtering once keeps every `stmt.line` index valid until all the passes are done.
+  lines = lines.filter(l => l !== null);
 
   // 3. Insert the new statements after the last import, or after the header.
   if (additions.length) {

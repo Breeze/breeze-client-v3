@@ -1,4 +1,5 @@
 import { configDefaults, defineConfig } from 'vitest/config';
+import { breezeAlias } from './vitest.shared.config.js';
 import { playwright } from '@vitest/browser-playwright';
 
 /**
@@ -17,6 +18,7 @@ import { playwright } from '@vitest/browser-playwright';
  * per-file reset (test/integration-setup.ts) runs in the browser; it goes over HTTP.
  */
 export default defineConfig({
+  resolve: { alias: breezeAlias },
   test: {
     globals: true,
     include: ['test/**/*.spec.ts'],

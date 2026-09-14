@@ -1,4 +1,5 @@
 import { defineConfig } from 'vitest/config';
+import { breezeAlias } from './vitest.shared.config.js';
 
 /**
  * Node-environment run. This is `npm test`.
@@ -7,6 +8,7 @@ import { defineConfig } from 'vitest/config';
  * tested - see vitest.browser.config.ts and `npm run test:browser`.
  */
 export default defineConfig({
+  resolve: { alias: breezeAlias },
   test: {
     // Jest-style globals, so the ported specs keep using describe/test/expect
     // without an import in every file.

@@ -582,8 +582,16 @@ future version that has to migrate older output.
 
 `--out`, `--breeze` and a metadata source are required, with no defaults: a wrong guess at `--out`
 overwrites a directory nobody named, and `--breeze` — the specifier the generated files import
-`RelationArray`, `Entity`, `EntityAspect` and friends by — depends on where the generated code
-sits, not on `--out` (`../../src/breeze` here, `breeze-client` in an application). Metadata comes
+`RelationArray`, `Entity`, `EntityAspect` and friends by — cannot be inferred. It is almost always
+`breeze-client`, and **that is what the checked-in model uses**, even though the other 40 spec
+files import `../../src/breeze`: these files are what the tool writes for an application and
+should read that way. `paths` in `test/tsconfig.json` and a `resolve.alias` in
+`vitest.shared.config.ts` (wired into all four tiers) point the name back at the sources. Without
+them it would still resolve, through the package's own `exports` map, to `dist/` — binding the
+model to a *different copy of Breeze* from the one the specs run, with two `EntityState` enums and
+`instanceof` failing for no visible reason. Every Breeze import in these files is `import type`
+today, so nothing loads either way; the alias is insurance for the first real import, and a test
+asserts the two spellings resolve to one module. Metadata comes
 from either a checked-in fixture (`--metadata`) or a live service (`--service
 http://localhost:34377/breeze/NorthwindIBModel`). Then `--ext`, `--types`, `--nullable`,
 `--no-index`, `--dry-run`. The contract is written up in `test/model/README.md`.

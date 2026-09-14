@@ -6,7 +6,7 @@
 // Each one is `declare`: with ES2022 class fields a plain field would become a real own
 // property set to undefined, hiding the accessors Breeze installs on the prototype. See
 // docs/guide/extending-entities.md, "Class fields and declare".
-import type { ComplexAspect, ComplexObject, ComplexType, Entity, EntityAspect, EntityType } from '../../src/breeze';
+import type { ComplexAspect, ComplexObject, ComplexType, Entity, EntityAspect, EntityType } from 'breeze-client';
 
 export abstract class EntityBase implements Entity {
   declare entityAspect: EntityAspect;

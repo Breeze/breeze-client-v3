@@ -1,4 +1,5 @@
 import { defineConfig } from 'vitest/config';
+import { breezeAlias } from './vitest.shared.config.js';
 
 /**
  * Integration tier - `npm run test:integration`.
@@ -14,6 +15,7 @@ import { defineConfig } from 'vitest/config';
  *    under a file running alongside
  */
 export default defineConfig({
+  resolve: { alias: breezeAlias },
   test: {
     globals: true,
     environment: 'node',

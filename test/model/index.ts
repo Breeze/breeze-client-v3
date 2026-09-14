@@ -4,7 +4,7 @@
 // registerModelClasses attaches these classes to one MetadataStore. Breeze binds a class to a
 // single store - registering the same class in a second store throws - so call it once, on the
 // store the managers under test share.
-import type { MetadataStore } from '../../src/breeze';
+import type { MetadataStore } from 'breeze-client';
 export { ComplexObjectBase, EntityBase } from './entity-base';
 import { Category } from './category';
 import { Comment } from './comment';

@@ -10,6 +10,12 @@
     "module": "ESNext",
     "moduleResolution": "bundler",
     "noEmit": true,
+    // test/model/ imports Breeze by its published name, because those files are what the
+    // generator writes for an application and should read like an application's. Inside this
+    // repo that name points back at the sources, so the model is checked against the same
+    // Breeze as the specs rather than against a possibly stale dist/. The runtime half of
+    // this is the alias in vitest.shared.config.ts.
+    "paths": { "breeze-client": ["../src/breeze.ts"] },
     // The library is checked with strictNullChecks (../tsconfig.json). The tests are not:
     // they were written for 2.x, which never had it on, and they deliberately work with
     // nulls and lookups that can fail. noImplicitAny stays on.

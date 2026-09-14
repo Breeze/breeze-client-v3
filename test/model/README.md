@@ -50,26 +50,47 @@ defaults, because a wrong guess at `--out` overwrites a directory nobody named:
 # from the checked-in fixture
 node scripts/generate-entity-classes.js \
   --metadata test/support/NorthwindIBMetadata.json \
-  --out test/model --breeze ../../src/breeze
+  --out test/model --breeze breeze-client
 
 # from a running service
 node scripts/generate-entity-classes.js \
   --service http://localhost:34377/breeze/NorthwindIBModel \
-  --out test/model --breeze ../../src/breeze
+  --out test/model --breeze breeze-client
 
 # one type, nothing written
 node scripts/generate-entity-classes.js \
   --metadata test/support/NorthwindIBMetadata.json \
-  --out test/model --breeze ../../src/breeze \
+  --out test/model --breeze breeze-client \
   --types Customer,Order --dry-run
 ```
 
 **What `--breeze` is for.** The generated classes reference types that live in `breeze-client`:
 `RelationArray` and `ComplexArray` for collection properties, and `Entity`, `EntityAspect`,
-`EntityType` and the complex-type equivalents in `entity-base.ts`. The specifier to import them
-by depends on where the generated code sits, and cannot be derived from `--out` — inside this
-repo the tests import the sources directly (`../../src/breeze`), while an application imports the
-published package (`breeze-client`). So it is stated rather than guessed.
+`EntityType` and the complex-type equivalents in `entity-base.ts`. Nothing infers the specifier,
+so it is stated — and it is almost always `breeze-client`, the published package name. A relative
+path into a checkout is the exception, for working on Breeze itself; note that a relative
+specifier is written verbatim into every generated file, so it has to be correct relative to
+`--out`, not to where you run the command.
+
+### Why these files say `breeze-client` inside this repo
+
+The other 40 spec files import `../../src/breeze`. `test/model/` deliberately does not: these
+files are exactly what the generator writes for an application, and they should read that way.
+
+Two pieces make the name resolve back to the sources here:
+
+| | |
+|---|---|
+| `paths` in [test/tsconfig.json](../tsconfig.json) | type checking |
+| `resolve.alias` from [vitest.shared.config.ts](../../vitest.shared.config.ts), used by all four tiers | running |
+
+Without them the name would still resolve — `package.json` has an `exports` map, so Node and Vite
+honour the self-reference — but to `dist/`, and the model would be bound to a **different copy of
+Breeze** from the one the specs run: two `EntityState` enums, two `DataType` tables, and
+`instanceof` checks that fail for no visible reason. Today every Breeze import in these files is
+`import type`, which is erased, so nothing would actually load; the alias is there for the moment
+someone adds a real import to a model class. `test/unit/model-classes.spec.ts` asserts the two
+spellings give the same module.
 
 It reads the metadata through `dist/breeze.js`, so naming conventions, `nameOnServer`,
 inheritance and complex types resolve exactly as they do at runtime. `--help` lists every option.

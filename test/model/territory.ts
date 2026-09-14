@@ -2,10 +2,10 @@
 // Lines marked `// @generated` are written from server metadata and are rewritten on every
 // run. Everything else in this file is yours and is never touched.
 
-import type { RelationArray } from '../../src/breeze'; // @generated
 import { EntityBase } from './entity-base'; // @generated
 import type { EmployeeTerritory } from './employee-territory'; // @generated
 import type { Region } from './region'; // @generated
+import type { RelationArray } from 'breeze-client'; // @generated
 
 /**
  * Territory:#Foo - the entity type, queried as `Territories`.
