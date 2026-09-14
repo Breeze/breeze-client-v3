@@ -3,7 +3,7 @@ import { ObservableArray, ObservableArrayOps, observableArray } from './observab
 import type { ComplexObject, StructuralObject } from './entity-aspect.js';
 import type { DataProperty } from '../metadata/entity-metadata.js';
 
-export interface ComplexArray extends ObservableArray<ComplexObject> {
+export interface ComplexArray<T extends ComplexObject = ComplexObject> extends ObservableArray<T> {
   parent?: StructuralObject;
   parentProperty?: DataProperty;
 }

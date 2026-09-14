@@ -553,3 +553,61 @@ back. The Configuration page now lists every startup setting with its default.
 
 Unit 268, integration 450 + 7 skipped, browser 718 + 7 skipped, with no naming convention
 set anywhere in the suite.
+
+## Typed entity classes for the tests (in progress)
+
+`test/model/` holds one class per structural type in the Northwind test metadata — 21 of them,
+plus `entity-base.ts` and a barrel — so a spec can write `cust.companyName` instead of
+`cust.getProperty("companyName")` and have TypeScript check it. Casting is all most specs need
+(`qr.results as Customer[]`); `registerModelClasses(store)` additionally makes Breeze build
+entities from the classes, which is what gives `instanceof`.
+
+**The classes are generated, and regenerated surgically.**
+`scripts/generate-entity-classes.js` (`npm run gen:model`) reads metadata through `dist/breeze.js`
+— so naming conventions, `nameOnServer`, inheritance and complex types resolve exactly as at
+runtime — and owns individual *members*, not whole files:
+
+| | |
+|---|---|
+| a property line ending `// @generated` | rewritten from metadata, in place |
+| a marked property no longer in the metadata | removed |
+| a metadata property the file does not declare | appended, marked |
+| a metadata property declared **without** the marker | left alone and reported — that is the override mechanism |
+| a marked import | kept in step; dropped only when nothing in the file still refers to it |
+| hand-written imports, methods, getters, unmapped properties, comments | never touched |
+
+Each file's first line stamps the generator version (`// @generated-by generate-entity-classes
+v1.0.0`); a run against a file written by an older version says so, which is the hook for a
+future version that has to migrate older output.
+
+`--out`, `--breeze` and a metadata source are required, with no defaults: a wrong guess at `--out`
+overwrites a directory nobody named, and `--breeze` — the specifier the generated files import
+`RelationArray`, `Entity`, `EntityAspect` and friends by — depends on where the generated code
+sits, not on `--out` (`../../src/breeze` here, `breeze-client` in an application). Metadata comes
+from either a checked-in fixture (`--metadata`) or a live service (`--service
+http://localhost:34377/breeze/NorthwindIBModel`). Then `--ext`, `--types`, `--nullable`,
+`--no-index`, `--dry-run`. The contract is written up in `test/model/README.md`.
+
+`--base <Name>` puts a base class of the caller's own under every generated root type, so that
+behaviour can be shared across the whole model without giving up code generation. The generator
+scaffolds it once, extending the generated `EntityBase`, and never rewrites it; only the root of
+an inheritance chain extends it, so a metadata base type still wins. `--base-module`,
+`--complex-base` and `--complex-base-module` go with it. Verified end to end — `instanceof` the
+custom base, a getter and a method reaching a queried entity, and no unmapped properties added.
+
+`test/unit/model-classes.spec.ts` (11 tests) pins the runtime behaviour: `instanceof`,
+property read/write through Breeze's accessors, **no own properties shadowing the prototype**
+(the `declare` rule), **no member becoming an unmapped property**, scalar and collection
+navigations, complex properties, self-referencing navigations, and both registration rules.
+
+### One library change went with it
+
+`RelationArray` and `ComplexArray` now take a type parameter — `RelationArray<T extends Entity =
+Entity>`, `ComplexArray<T extends ComplexObject = ComplexObject>` — so a collection navigation can
+be `RelationArray<Order>` and keep `load()`, `arrayChanged` and `parentEntity` as well as typed
+elements. The default argument makes every existing use compile unchanged.
+
+### Not done yet
+
+The 40 existing spec files still use untyped `Entity` and `getProperty`. Retrofitting them onto
+these classes is the follow-on, and it is worth doing file by file rather than in one sweep.

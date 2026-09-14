@@ -78,6 +78,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p test/tsconfig.json",
     "typecheck:test": "tsc -p test/tsconfig.json",
     "clean": "rimraf dist",
+    "gen:model": "npm run build && node scripts/generate-entity-classes.js --metadata test/support/NorthwindIBMetadata_ETNOPAYLOAD.json --out test/model --breeze ../../src/breeze",
     "test": "vitest run",
     "test:unit": "vitest run --config vitest.unit.config.ts",
     "test:integration": "vitest run --config vitest.integration.config.ts",

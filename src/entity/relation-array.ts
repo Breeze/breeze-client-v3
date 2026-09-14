@@ -6,7 +6,7 @@ import type { Entity } from './entity-aspect.js';
 import type { QueryErrorCallback, QueryResult, QuerySuccessCallback } from '../manager/entity-manager.js';
 import type { DataProperty, NavigationProperty } from '../metadata/entity-metadata.js';
 
-export interface RelationArray extends ObservableArray<Entity> {
+export interface RelationArray<T extends Entity = Entity> extends ObservableArray<T> {
   parentEntity: Entity;
   parentProperty?: DataProperty;
   navigationProperty: NavigationProperty;
