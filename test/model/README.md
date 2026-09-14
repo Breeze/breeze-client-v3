@@ -43,8 +43,8 @@ and no constructors, so the specs exercise what an unconfigured application gets
 npm run gen:model        # builds dist/, then regenerates from the checked-in metadata
 ```
 
-Or drive it directly. `--out`, `--breeze` and a metadata source are all required — there are no
-defaults, because a wrong guess at `--out` overwrites a directory nobody named:
+Or drive it directly. `--out` and a metadata source are required — nothing can infer either, and
+a wrong guess at `--out` overwrites a directory nobody named:
 
 ```bash
 # from the checked-in fixture
@@ -64,13 +64,13 @@ node scripts/generate-entity-classes.js \
   --types Customer,Order --dry-run
 ```
 
-**What `--breeze` is for.** The generated classes reference types that live in `breeze-client`:
-`RelationArray` and `ComplexArray` for collection properties, and `Entity`, `EntityAspect`,
-`EntityType` and the complex-type equivalents in `entity-base.ts`. Nothing infers the specifier,
-so it is stated — and it is almost always `breeze-client`, the published package name. A relative
-path into a checkout is the exception, for working on Breeze itself; note that a relative
-specifier is written verbatim into every generated file, so it has to be correct relative to
-`--out`, not to where you run the command.
+The generated classes reference types that live in `breeze-client` — `RelationArray` and
+`ComplexArray` for collection properties, and `Entity`, `EntityAspect`, `EntityType` and the
+complex-type equivalents in `entity-base.ts` — and they import them from `breeze-client`, which
+needs no saying: it is right wherever the package is installed, this repo included. `--breeze`
+overrides it, for a fork republished under another name. A relative specifier is written verbatim
+into every generated file, so it has to be correct relative to `--out`, not to where you run the
+command.
 
 ### Why these files say `breeze-client` inside this repo
 

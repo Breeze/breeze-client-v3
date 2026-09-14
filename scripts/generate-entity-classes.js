@@ -2,13 +2,14 @@
 // Generate - or update in place - one TypeScript class per structural type in a Breeze
 // metadata document.
 //
-//   node scripts/generate-entity-classes.js --out test/model --breeze breeze-client \
+//   node scripts/generate-entity-classes.js --out test/model \
 //     --metadata test/support/NorthwindIBMetadata_ETNOPAYLOAD.json
-//   node scripts/generate-entity-classes.js --out test/model --breeze breeze-client \
+//   node scripts/generate-entity-classes.js --out test/model \
 //     --service http://localhost:34377/breeze/NorthwindIBModel
 //
-// --out, --breeze and a metadata source are all required; `--help` says why. In this repo,
-// `npm run gen:model` is the spelling with the right arguments already filled in.
+// --out and a metadata source are required; nothing can infer either. Everything else has a
+// default - the files import from 'breeze-client', which is right wherever the package is
+// installed. In this repo, `npm run gen:model` is the spelling with the arguments filled in.
 //
 // It reads the metadata through the library itself (dist/breeze.js), so naming conventions,
 // `nameOnServer`, inheritance and complex types resolve exactly as they do at runtime. Run
@@ -43,14 +44,17 @@ const MARK = '// @generated';
 
 // --- options ---------------------------------------------------------------------------------
 
-// Required: --out, --breeze, and one of --metadata / --service. Nothing about where the classes
-// belong or what they should import from is guessable, and guessing wrong overwrites a directory
-// the caller did not mean to name, so there are no defaults for those.
+// Required: --out, and one of --metadata / --service. Neither is guessable, and guessing wrong
+// at --out overwrites a directory the caller did not mean to name.
 const DEFAULTS = {
   metadata: null,
   service: null,
   out: null,
-  breeze: null,
+  // The module the generated files import Breeze types from. The published package name is
+  // right for everyone who installs breeze-client, including this repo - test/tsconfig.json
+  // maps it to the sources with `paths`, and vitest.shared.config.ts with an alias. Override
+  // it only for a fork republished under another name.
+  breeze: 'breeze-client',
   // Extension for sibling imports. '' suits a bundler (Vite, the test tier); '.js' suits a
   // NodeNext project.
   ext: '',
@@ -96,7 +100,6 @@ function parseArgs(argv) {
   }
   if (!opts.metadata && !opts.service) fail('one of --metadata <file> or --service <url> is required');
   if (!opts.out) fail('--out <dir> is required');
-  if (!opts.breeze) fail('--breeze <specifier> is required - run --help for what it is for');
   return opts;
 }
 
@@ -110,21 +113,15 @@ Required - one source of metadata:
 Required:
   --out <dir>         where the classes go, relative to the repo root
 
-  --breeze <spec>     the module the generated files import Breeze types from.
-
-      The classes reference types that live in breeze-client: RelationArray and ComplexArray
-      for collection properties, and Entity, EntityAspect, EntityType and the complex-type
-      equivalents in entity-base.ts. Nothing infers the specifier, so it is stated:
-
-        --breeze breeze-client        almost always this - the published package name
-
-      A relative path into a checkout is the exception, for working on Breeze itself. Note
-      that a relative specifier is written verbatim into every generated file, so it has to
-      be correct from --out, not from where the command is run.
-
 Optional:
   --ext <ext>         extension on sibling imports, e.g. .js for a NodeNext project
                       (default: none, which suits a bundler)
+
+  --breeze <spec>     the module the generated files import Breeze types from
+                      (default: breeze-client). Override it only for a fork republished
+                      under another name. A relative specifier is written verbatim into
+                      every generated file, so it must be correct relative to --out rather
+                      than to where the command is run.
 
   --base <Name>       a base class of your own for every generated entity, so you can give them
                       all behaviour and still regenerate their properties. Only the root of an
@@ -153,7 +150,7 @@ Optional:
 Example:
   node scripts/generate-entity-classes.js \\
     --metadata test/support/NorthwindIBMetadata_ETNOPAYLOAD.json \\
-    --out test/model --breeze breeze-client`);
+    --out test/model`);
 }
 
 function fail(msg) {
