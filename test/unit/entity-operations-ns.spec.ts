@@ -1,10 +1,15 @@
 import { EntityManager, EntityType, ComplexType, EntityState, EntityAction, EntityChangedEventArgs, breeze, MetadataStore, SaveOptions, QueryOptions, ValidationOptions, Entity, DataType, core, EntityKey, RelationArray, MergeStrategy, AnyAllPredicate, EntityQuery, QueryResult, StructuralType, EntityProperty, DataProperty, NavigationProperty, EntityAspect, PropertyChangedEventArgs } from '../../src/breeze';
 import { ModelLibraryBackingStoreAdapter } from '../../src/adapters/adapter-model-library-backing-store';
 import { TestFns, JsonObj } from '../test-fns';
+import { Customer, Employee, Order, OrderDetail, Product, registerModelClasses } from '../model';
 
 ModelLibraryBackingStoreAdapter.register();
 
 TestFns.initNonServerEnv();
+// Types the calls below; see test/model/README.md. A constructor stands for its type name, so one
+// registration covers every manager in this file whatever store it was given. The unregistered
+// default-constructor path has its own coverage in test/unit/unregistered-types.spec.ts.
+registerModelClasses(TestFns.sampleMetadataStore);
 
 describe("Entity operations - no server", () => {
 
@@ -16,8 +21,8 @@ describe("Entity operations - no server", () => {
   test("event token is the same for different entities", function () {
     const em = TestFns.newEntityManager();
 
-    const emp1 = em.createEntity("Employee", { firstName: "Joe1", lastName: "Smith1", birthDate: new Date(2000, 1, 1) });
-    const emp2 = em.createEntity("Employee", { firstName: "Joe2", lastName: "Smith2", birthDate: new Date(2000, 1, 1) });
+    const emp1 = em.createEntity(Employee, { firstName: "Joe1", lastName: "Smith1", birthDate: new Date(2000, 1, 1) });
+    const emp2 = em.createEntity(Employee, { firstName: "Joe2", lastName: "Smith2", birthDate: new Date(2000, 1, 1) });
 
     const token1 = emp1.entityAspect.propertyChanged.subscribe(function (changeArgs) {
       const a = changeArgs;
@@ -49,7 +54,7 @@ describe("Entity operations - no server", () => {
     const em = TestFns.newEntityManager();
     const count = 10;
     for (let i = 0; i < count; i++) {
-      const ent = orderType.createEntity();
+      const ent = orderType.createEntity() as Order;
       em.addEntity(ent);
     }
     const tempKeys = em.keyGenerator.getTempKeys();
@@ -65,7 +70,7 @@ describe("Entity operations - no server", () => {
     expect(orderType).toBeTruthy();
     const orderDetailType = em.metadataStore.getAsEntityType("OrderDetail");
     expect(orderDetailType).toBeTruthy();
-    const order = orderType.createEntity() as Entity;
+    const order = orderType.createEntity() as Order;
     let lastProperty, lastOldValue, lastNewValue: any;
     order.entityAspect.propertyChanged.subscribe(function (args) {
       expect(args.entity).toBe(order);
@@ -73,20 +78,20 @@ describe("Entity operations - no server", () => {
       lastOldValue = args.oldValue;
       lastNewValue = args.newValue;
     });
-    const order2 = orderType.createEntity();
+    const order2 = orderType.createEntity() as Order;
 
-    order.setProperty("employeeID", 1);
+    order.employeeID = 1;
     order2.setProperty("employeeID", 999); // should not raise event
     expect(lastProperty).toBe("employeeID");
     expect(lastNewValue).toBe(1);
-    order.setProperty("freight", 123.34);
+    order.freight = 123.34;
     expect(lastProperty).toBe("freight");
     expect(lastNewValue).toBe(123.34);
-    order.setProperty("shippedDate", new Date(2000, 1, 1));
+    order.shippedDate = new Date(2000, 1, 1);
     expect(lastProperty).toBe("shippedDate");
     expect(lastNewValue!.toDateString()).toEqual(new Date(2000, 1, 1).toDateString());
 
-    order.setProperty("employeeID", 2);
+    order.employeeID = 2;
     expect(lastProperty).toBe("employeeID");
     expect(lastNewValue).toBe(2);
     expect(lastOldValue).toBe(1);
@@ -97,7 +102,7 @@ describe("Entity operations - no server", () => {
     const orderType = em.metadataStore.getAsEntityType("Order");
     const orderKeyName = TestFns.wellKnownData.keyNames.order;
     expect(orderType);
-    const order = orderType.createEntity() as Entity;
+    const order = orderType.createEntity() as Order;
     let lastProperty, lastOldValue, lastNewValue;
     const key = order.entityAspect.propertyChanged.subscribe(function (args) {
       lastProperty = args.propertyName;
@@ -108,7 +113,7 @@ describe("Entity operations - no server", () => {
     expect(lastProperty).toBe(orderKeyName);
     expect(lastNewValue).toBe(TestFns.wellKnownData.dummyOrderID);
     order.entityAspect.propertyChanged.unsubscribe(key);
-    order.setProperty("employeeID", TestFns.wellKnownData.dummyEmployeeID);
+    order.employeeID = TestFns.wellKnownData.dummyEmployeeID;
     expect(lastProperty).toBe(orderKeyName);
     expect(lastNewValue).toBe(TestFns.wellKnownData.dummyOrderID);
   });
@@ -117,8 +122,8 @@ describe("Entity operations - no server", () => {
   test("delete entity - check children", function () {
     const em = TestFns.newEntityManager();
     const order = createOrderAndDetails(em, true);
-    const orderId = order.getProperty("orderID");
-    const details = order.getProperty("orderDetails");
+    const orderId = order.orderID;
+    const details = order.orderDetails;
     const copyDetails = details.slice(0);
     expect(details.length).toBeGreaterThan(0);
     order.entityAspect.setDeleted();
@@ -126,9 +131,9 @@ describe("Entity operations - no server", () => {
 
     expect(details.length).toBe(0);
 
-    copyDetails.forEach(function (od: Entity) {
-      expect(od.getProperty("order")).toBeNull();
-      expect(od.getProperty("orderID")).toBe(orderId);
+    copyDetails.forEach(function (od: OrderDetail) {
+      expect(od.order).toBeNull();
+      expect(od.orderID).toBe(orderId);
       expect(od.entityAspect.entityState.isModified()).toBe(true);
     });
   });
@@ -137,11 +142,11 @@ describe("Entity operations - no server", () => {
   test("delete entity children then parent - check children", function () {
     const em = TestFns.newEntityManager();
     const order = createOrderAndDetails(em, true);
-    const orderID = order.getProperty("orderID");
-    const details = order.getProperty("orderDetails");
+    const orderID = order.orderID;
+    const details = order.orderDetails;
     const copyDetails = details.slice(0);
     expect(details.length).toBeGreaterThan(0);
-    copyDetails.forEach(function (od: Entity) {
+    copyDetails.forEach(function (od: OrderDetail) {
       od.entityAspect.setDeleted();
     });
     order.entityAspect.setDeleted();
@@ -149,9 +154,9 @@ describe("Entity operations - no server", () => {
 
     expect(details.length).toBe(0);
 
-    copyDetails.forEach(function (od: Entity) {
-      expect(od.getProperty("order")).toBeNull();
-      expect(od.getProperty("orderID")).toBe(orderID);
+    copyDetails.forEach(function (od: OrderDetail) {
+      expect(od.order).toBeNull();
+      expect(od.orderID).toBe(orderID);
       expect(od.entityAspect.entityState.isDeleted()).toBe(true);
     });
   });
@@ -160,11 +165,11 @@ describe("Entity operations - no server", () => {
   test("delete entity children then parent - check children (guid ids)", function () {
     const em = TestFns.newEntityManager();
     const customer = createCustomerAndOrders(em, true);
-    const custID = customer.getProperty("customerID");
-    const orders = customer.getProperty("orders");
+    const custID = customer.customerID;
+    const orders = customer.orders;
     const copyOrders = orders.slice(0);
     expect(copyOrders.length).toBeGreaterThan(0);
-    copyOrders.forEach(function (order: Entity) {
+    copyOrders.forEach(function (order: Order) {
       order.entityAspect.setDeleted();
     });
     customer.entityAspect.setDeleted();
@@ -172,9 +177,9 @@ describe("Entity operations - no server", () => {
 
     expect(orders.length).toBe(0);
 
-    copyOrders.forEach(function (order: Entity) {
-      expect(order.getProperty("customer")).toBeNull();
-      expect(order.getProperty("customerID")).toBe(custID);
+    copyOrders.forEach(function (order: Order) {
+      expect(order.customer).toBeNull();
+      expect(order.customerID).toBe(custID);
       expect(order.entityAspect.entityState.isDeleted()).toBe(true);
     });
   });
@@ -183,7 +188,7 @@ describe("Entity operations - no server", () => {
   test("delete entity - check parent", function () {
     const em = TestFns.newEntityManager();
     const order = createOrderAndDetails(em, true);
-    const details = order.getProperty("orderDetails");
+    const details = order.orderDetails;
     const od = details[0];
     expect(details.indexOf(od) !== -1).toBe(true);
     const copyDetails = details.slice(0);
@@ -194,11 +199,11 @@ describe("Entity operations - no server", () => {
     expect(details.length).toBe(copyDetails.length - 1);
     expect(details.indexOf(od)).toBe(-1);
 
-    expect(od.getProperty("order")).toBeNull();
-    const defaultOrderId = od.entityType.getProperty("orderID").defaultValue;
+    expect(od.order).toBeNull();
+    const defaultOrderId = od.entityType.getDataProperty("orderID").defaultValue;
     // we deliberately leave the orderID alone after a delete - we are deleting the entity and do not want a 'mod' to cloud the issue
     // ( but we do 'detach' the Order itself.)
-    expect(od.getProperty("orderID")).toBe(order.getProperty("orderID"));
+    expect(od.orderID).toBe(order.orderID);
   });
 
 
@@ -207,7 +212,7 @@ describe("Entity operations - no server", () => {
     const order = createOrderAndDetails(em);
     const orderKeyName = TestFns.wellKnownData.keyNames.order;
     const orderId = order.getProperty(orderKeyName);
-    const details = order.getProperty("orderDetails");
+    const details = order.orderDetails;
     const copyDetails = details.slice(0);
     expect(details.length).toBeGreaterThan(0);
     em.detachEntity(order);
@@ -215,8 +220,8 @@ describe("Entity operations - no server", () => {
 
     expect(details.length).toBe(0);
 
-    copyDetails.forEach(function (od: Entity) {
-      expect(od.getProperty("order")).toBeNull();
+    copyDetails.forEach(function (od: OrderDetail) {
+      expect(od.order).toBeNull();
       expect(od.getProperty(orderKeyName)).toBe(orderId);
       expect(od.entityAspect.entityState.isUnchanged()).toBe(true);
     });
@@ -280,7 +285,7 @@ describe("Entity operations - no server", () => {
     }
     valid = em.hasChanges([orderType, orderDetailType]);
     expect(valid).toBe(true);
-    em.getChanges(orderType).forEach(function (e) {
+    em.getChanges(Order).forEach(function (e) {
       e.entityAspect.acceptChanges();
     });
     valid = !em.hasChanges(orderType);
@@ -307,12 +312,12 @@ describe("Entity operations - no server", () => {
     });
     expect(count).toBe(0);
     expect(em.hasChanges()).toBe(false);
-    const order1 = orderType.createEntity();
+    const order1 = orderType.createEntity() as Order;
     // attach - no event
     em.attachEntity(order1);
     expect(count).toBe(0);
     expect(em.hasChanges()).toBe(false);
-    const order2 = orderType.createEntity();
+    const order2 = orderType.createEntity() as Order;
     // add - event 
     em.addEntity(order2);
     expect(count).toBe(1);
@@ -325,8 +330,8 @@ describe("Entity operations - no server", () => {
 
   test("hasChanges filtering by type", function () {
     const em = TestFns.newEntityManager(TestFns.sampleMetadataStore);
-    em.createEntity('Order');
-    em.createEntity('Product', null, breeze.EntityState.Unchanged);
+    em.createEntity(Order);
+    em.createEntity(Product, null, breeze.EntityState.Unchanged);
     // There are Order changes but there are no Product changes
     expect(em.hasChanges()).toBe(true);
     expect(em.hasChanges(['Order'])).toBe(true);
@@ -336,7 +341,7 @@ describe("Entity operations - no server", () => {
   // D#2663
   test("hasChanges is false when filter for a type that is not in cache", function () {
     const em = TestFns.newEntityManager(TestFns.sampleMetadataStore);
-    em.createEntity('Order');
+    em.createEntity(Order);
     // While 'Product' is a defined type, there are no Products in cache this time.
     // There are changes but there are no Product changes
     const hasChanges = em.hasChanges();
@@ -346,7 +351,7 @@ describe("Entity operations - no server", () => {
 
   test("hasChanges throws error when filter for a type that doesn't exist", function () {
     const em = TestFns.newEntityManager(TestFns.sampleMetadataStore);
-    em.createEntity('Order');
+    em.createEntity(Order);
 
     expect(em.hasChanges()).toBe(true);
     // There are changes but there is no 'Foo' type
@@ -359,11 +364,11 @@ describe("Entity operations - no server", () => {
     const em = TestFns.newEntityManager(TestFns.sampleMetadataStore);
     const orderType = em.metadataStore.getAsEntityType("Order");
     expect(em.hasChanges()).toBe(false);
-    const order1 = orderType.createEntity();
+    const order1 = orderType.createEntity() as Order;
     em.attachEntity(order1);
     // attach causes no changes
     expect(em.hasChanges()).toBe(false);
-    const order2 = orderType.createEntity();
+    const order2 = orderType.createEntity() as Order;
     em.addEntity(order2);
     // but add does
     expect(em.hasChanges()).toBe(true);
@@ -380,12 +385,12 @@ describe("Entity operations - no server", () => {
     });
     expect(count).toBe(0);
     expect(em.hasChanges()).toBe(false);
-    const order1 = orderType.createEntity();
+    const order1 = orderType.createEntity() as Order;
     em.attachEntity(order1);
     order1.entityAspect.setModified();
     expect(count).toBe(1);
     expect(em.hasChanges()).toBe(true);
-    const order2 = orderType.createEntity();
+    const order2 = orderType.createEntity() as Order;
     em.addEntity(order2);
     expect(count).toBe(1);
     expect(em.hasChanges()).toBe(true);
@@ -412,19 +417,19 @@ describe("Entity operations - no server", () => {
       lastAction = args.entityAction;
       lastEntity = args.entity;
     });
-    const order = orderType.createEntity();
+    const order = orderType.createEntity() as Order;
 
     em.addEntity(order);
     expect(lastAction).toBe(EntityAction.Attach);
     expect(lastEntity).toBe(order);
 
-    const emp = empType.createEntity();
+    const emp = empType.createEntity() as Employee;
     changedArgs = [];
     em.attachEntity(emp);
     expect(lastAction).toBe(EntityAction.Attach);
     expect(lastEntity).toBe(emp);
 
-    emp.setProperty("lastName", "Smith");
+    emp.lastName = "Smith";
     expect(lastAction).toBe(EntityAction.PropertyChange);
     expect(lastEntity).toBe(emp);
     expect(lastArgs.args.propertyName).toBe("lastName");
@@ -435,7 +440,7 @@ describe("Entity operations - no server", () => {
     expect(changedArgs[1].entityAction).toBe(EntityAction.RejectChanges);
     expect(lastEntity).toBe(emp);
 
-    emp.setProperty("lastName", "Jones");
+    emp.lastName = "Jones";
     changedArgs = [];
     emp.entityAspect.acceptChanges();
     expect(changedArgs[0].entityAction).toBe(EntityAction.EntityStateChange);
@@ -477,13 +482,13 @@ describe("Entity operations - no server", () => {
   test("entityChanged event and hasChanges interop", function () {
     const em = TestFns.newEntityManager();
 
-    const emp = em.createEntity("Employee", { firstName: "Joe", lastName: "Smith", birthDate: new Date(2000, 1, 1) });
+    const emp = em.createEntity(Employee, { firstName: "Joe", lastName: "Smith", birthDate: new Date(2000, 1, 1) });
     emp.entityAspect.acceptChanges();
     em.entityChanged.subscribe(function (args) {
       const hasChanges = em.hasChanges();
       expect(hasChanges).toBe(true);
     });
-    emp.setProperty("firstName", "test");
+    emp.firstName = "test";
     expect(em.hasChanges());
   });
 
@@ -511,13 +516,13 @@ describe("Entity operations - no server", () => {
     em.entityChanged.subscribe(function (args) {
       changedArgs.push(args);
     });
-    const order = orderType.createEntity();
+    const order = orderType.createEntity() as Order;
     em.addEntity(order);
-    const emp = empType.createEntity();
+    const emp = empType.createEntity() as Employee;
     em.attachEntity(emp);
-    emp.setProperty("lastName", "Smith");
+    emp.lastName = "Smith";
     emp.entityAspect.rejectChanges();
-    emp.setProperty("lastName", "Jones");
+    emp.lastName = "Jones";
     emp.entityAspect.acceptChanges();
     em.clear();
     expect(changedArgs.length).toBe(0);
@@ -533,13 +538,13 @@ describe("Entity operations - no server", () => {
     em.entityChanged.subscribe(function (args) {
       changedArgs.push(args);
     });
-    const order = orderType.createEntity();
+    const order = orderType.createEntity() as Order;
     em.addEntity(order);
-    const emp = empType.createEntity();
+    const emp = empType.createEntity() as Employee;
     em.attachEntity(emp);
-    emp.setProperty("lastName", "Smith");
+    emp.lastName = "Smith";
     emp.entityAspect.rejectChanges();
-    emp.setProperty("lastName", "Jones");
+    emp.lastName = "Jones";
     emp.entityAspect.acceptChanges();
     em.clear();
     expect(changedArgs.length).toBe(0);
@@ -559,9 +564,9 @@ describe("Entity operations - no server", () => {
     expect(valid).toBe(true);
     valid = em.hasChanges([orderType, orderDetailType]);
     expect(valid).toBe(true);
-    em.getChanges(orderType).forEach(function (e) {
+    em.getChanges(Order).forEach(function (e) {
       e.entityAspect.acceptChanges();
-      e.setProperty("freight", 100);
+      e.freight = 100;
       expect(e.entityAspect.entityState.isModified()).toBe(true);
     });
     const rejects = em.rejectChanges();
@@ -584,7 +589,7 @@ describe("Entity operations - no server", () => {
 
     const orderType = em.metadataStore.getAsEntityType("Order");
     const orderKeyName = TestFns.wellKnownData.keyNames.order;
-    const order = orderType.createEntity() as Entity;
+    const order = orderType.createEntity() as Order;
     order.setProperty(orderKeyName, 1);
     em.attachEntity(order);
     let count = 0;
@@ -594,7 +599,7 @@ describe("Entity operations - no server", () => {
       count++;
       lastArgs = args;
     });
-    order.setProperty("freight", 55.55);
+    order.freight = 55.55;
     expect(count).toBe(1);
     expect(lastArgs.entity).toBe(order);
     expect(lastArgs.propertyName).toBe("freight");
@@ -615,12 +620,12 @@ describe("Entity operations - no server", () => {
     const custType = em1.metadataStore.getAsEntityType("Customer");
     const cust = custType.createEntity();
     em1.addEntity(cust);
-    cust.setProperty("companyName", "foo2");
-    cust.setProperty("miscData", "zzz");
+    cust.companyName = "foo2";
+    cust.miscData = "zzz";
     cust.entityAspect.acceptChanges();
-    cust.setProperty("miscData", "xxx");
+    cust.miscData = "xxx";
     cust.entityAspect.rejectChanges();
-    const miscData = cust.getProperty("miscData");
+    const miscData = cust.miscData;
     expect(miscData).toBe('zzz');
   });
 
@@ -633,15 +638,15 @@ describe("Entity operations - no server", () => {
     const custType = em1.metadataStore.getAsEntityType("Customer");
     const cust = custType.createEntity();
     em1.addEntity(cust);
-    cust.setProperty("companyName", "foo2");
-    let companyName = cust.getProperty("companyName");
+    cust.companyName = "foo2";
+    let companyName = cust.companyName;
     expect(companyName).toBe("FOO2");
     cust.entityAspect.acceptChanges();
-    cust.setProperty("companyName", "foo3");
-    companyName = cust.getProperty("companyName");
+    cust.companyName = "foo3";
+    companyName = cust.companyName;
     expect(companyName).toBe("FOO3");
     cust.entityAspect.rejectChanges();
-    companyName = cust.getProperty("companyName");
+    companyName = cust.companyName;
     expect(companyName).toBe('FOO2');
   });
 
@@ -650,13 +655,13 @@ describe("Entity operations - no server", () => {
     const em = TestFns.newEntityManager();
 
     const orderType = em.metadataStore.getAsEntityType("Order");
-    const parent = orderType.createEntity();
-    parent.setProperty("orderID", 1);
+    const parent = orderType.createEntity() as Order;
+    parent.orderID = 1;
     em.attachEntity(parent);
 
     const orderDetailType = em.metadataStore.getAsEntityType("OrderDetail");
-    const child = orderDetailType.createEntity();
-    child.setProperty("orderID", 42);
+    const child = orderDetailType.createEntity() as OrderDetail;
+    child.orderID = 42;
     child.setProperty("order", parent); // adds child to parent's manager
     child.entityAspect.setUnchanged();
 
@@ -665,51 +670,51 @@ describe("Entity operations - no server", () => {
     child.entityAspect.setDeleted();
 
     // child should still have the parent's FK Id after delete
-    expect(parent.getProperty("orderID")).toBe(child.getProperty("orderID"));
-    expect(child.getProperty("order")).toBeNull();
+    expect(parent.orderID).toBe(child.orderID);
+    expect(child.order).toBeNull();
     // parent should no longer have the child after child delete
-    expect(parent.getProperty("orderDetails").length).toBe(0);
+    expect(parent.orderDetails.length).toBe(0);
     em.rejectChanges();
 
     expect(em.hasChanges()).toBe(false);
-    expect(parent.getProperty("orderID")).toBe(child.getProperty("orderID"));
-    expect(parent).toBe(child.getProperty("order"));
-    expect(parent.getProperty("orderDetails")[0]).toBe(child);
+    expect(parent.orderID).toBe(child.orderID);
+    expect(parent).toBe(child.order);
+    expect(parent.orderDetails[0]).toBe(child);
   });
 
   test("rejectChanges of a child entity restores it to its parent - v2", function () {
     const em = TestFns.newEntityManager();
 
-    const parent = em.createEntity("Customer", { customerID: breeze.core.getUuid(), companyName: "Test 111" });
+    const parent = em.createEntity(Customer, { customerID: breeze.core.getUuid(), companyName: "Test 111" });
     parent.entityAspect.acceptChanges();
 
-    const child = em.createEntity("Order", { orderID: 1 });
-    child.setProperty("customerID", parent.getProperty("customerID"));
+    const child = em.createEntity(Order, { orderID: 1 });
+    child.customerID = parent.customerID;
     child.entityAspect.acceptChanges();
     // parent and child are now unchanged ... as if freshly queried
 
-    expect(child.getProperty("customer")).toBe(parent);
+    expect(child.customer).toBe(parent);
     expect(em.hasChanges()).toBe(false);
 
     child.entityAspect.setDeleted();
 
-    expect(parent.getProperty("customerID")).toBe(child.getProperty("customerID"));
-    expect(child.getProperty("customer")).toBeNull();
-    expect(parent.getProperty("orders").length).toBe(0);
+    expect(parent.customerID).toBe(child.customerID);
+    expect(child.customer).toBeNull();
+    expect(parent.orders.length).toBe(0);
 
     em.rejectChanges();
 
     expect(em.hasChanges()).toBe(false);
-    expect(parent.getProperty("customerID")).toBe(child.getProperty("customerID"));
-    expect(parent).toBe(child.getProperty("customer"));
-    expect(parent.getProperty("orders")[0]).toBe(child);
+    expect(parent.customerID).toBe(child.customerID);
+    expect(parent).toBe(child.customer);
+    expect(parent.orders[0]).toBe(child);
   });
 
 
   test("rejectChanges with boolean values", () => {
     const em = TestFns.newEntityManager();
     const propName = "isDiscontinued"; // 'discontinued'
-    const emp1 = em.createEntity("Product", null, EntityState.Detached);
+    const emp1 = em.createEntity(Product, null, EntityState.Detached);
     emp1.setProperty(propName, false);
     em.attachEntity(emp1);
     emp1.setProperty(propName, true);
@@ -722,12 +727,12 @@ describe("Entity operations - no server", () => {
 
   test("rejectChanges twice on Added entity", () => {
     const em = TestFns.newEntityManager(); // new empty EntityManager
-    const cust = em.createEntity("Customer", { companyName: "Acme" });
+    const cust = em.createEntity(Customer, { companyName: "Acme" });
     const aspect = cust.entityAspect;
 
-    cust.setProperty("companyName", "TestCo");
+    cust.companyName = "TestCo";
     aspect.rejectChanges();
-    cust.setProperty("companyName", "TestCo2");
+    cust.companyName = "TestCo2";
 
     // prior to Breeze v2.1.3, second rejectChanges() throws error in core.using() because entityAspect.entityManager is null
     // now it properly throws "You cannot set the 'entityState' of an entity when it is detached"
@@ -738,7 +743,7 @@ describe("Entity operations - no server", () => {
   test("detached entity - setting another EntityState on a detached entity throws exception",
     () => {
       const em = TestFns.newEntityManager(); // new empty EntityManager
-      const order = em.createEntity('Order', { OrderID: 1 });
+      const order = em.createEntity(Order, { OrderID: 1 });
 
       const aspect = order.entityAspect;
 
@@ -753,27 +758,27 @@ describe("Entity operations - no server", () => {
 
   test("detached entity retains its foreign keys", () => {
     const em = TestFns.newEntityManager();
-    const cust = em.createEntity("Customer", { companyName: "TestXXX" });
-    const emp = em.createEntity("Employee", { firstName: "John", lastName: "Smith" });
-    const order = em.createEntity('Order', {
+    const cust = em.createEntity(Customer, { companyName: "TestXXX" });
+    const emp = em.createEntity(Employee, { firstName: "John", lastName: "Smith" });
+    const order = em.createEntity(Order, {
       orderID: 1,
       customer: cust,
       employee: emp
     });
 
     // Pre-detach asserts
-    expect(order.getProperty('customerID')).toBe(cust.getProperty('customerID'));
-    expect(order.getProperty('employeeID')).toBe(emp.getProperty('employeeID'));
-    expect(order.getProperty('customer')).toBe(cust);
-    expect(order.getProperty('employee')).toBe(emp);
+    expect(order.customerID).toBe(cust.customerID);
+    expect(order.employeeID).toBe(emp.employeeID);
+    expect(order.customer).toBe(cust);
+    expect(order.employee).toBe(emp);
 
     order.entityAspect.setDetached();
 
     // Post-detach asserts
-    expect(order.getProperty('customerID')).toBe(cust.getProperty('customerID'));
-    expect(order.getProperty('employeeID')).toBe(emp.getProperty('employeeID'));
-    expect(order.getProperty('customer')).toBe(null);
-    expect(order.getProperty('employee')).toBe(null);
+    expect(order.customerID).toBe(cust.customerID);
+    expect(order.employeeID).toBe(emp.employeeID);
+    expect(order.customer).toBe(null);
+    expect(order.employee).toBe(null);
     expect(order.entityAspect.originalValues).toEqual({});
   });
 
@@ -800,29 +805,29 @@ describe("Entity operations - no server", () => {
     const metadataStore = em.metadataStore;
     const orderType = em.metadataStore.getAsEntityType("Order");
     const orderDetailType = em.metadataStore.getAsEntityType("OrderDetail");
-    const order = em.createEntity(orderType);
+    const order = em.createEntity(orderType) as Order;
 
     expect(order.entityAspect.entityState.isAdded()).toBe(true);
     for (let i = 0; i < 3; i++) {
-      const od = orderDetailType.createEntity();
+      const od = orderDetailType.createEntity() as OrderDetail;
       od.setProperty("productID", i + 1); // part of pk
-      order.getProperty("orderDetails").push(od);
+      order.orderDetails.push(od);
       expect(od.entityAspect.entityState.isAdded()).toBe(true);
     }
-    const orderId = order.getProperty("orderID");
+    const orderId = order.orderID;
     expect(orderId).not.toBe(0);
     if (shouldAttachUnchanged) {
       order.entityAspect.acceptChanges();
-      order.getProperty("orderDetails").forEach(function (od: Entity) {
+      order.orderDetails.forEach(function (od) {
         od.entityAspect.acceptChanges();
-        expect(od.getProperty("order")).toBe(order);
-        expect(od.getProperty("orderID")).toBe(orderId);
+        expect(od.order).toBe(order);
+        expect(od.orderID).toBe(orderId);
         expect(od.entityAspect.entityState.isUnchanged()).toBe(true);
       });
     } else {
-      order.getProperty("orderDetails").forEach(function (od: Entity) {
-        expect(od.getProperty("order")).toBe(order);
-        expect(od.getProperty("orderID")).toBe(orderId);
+      order.orderDetails.forEach(function (od) {
+        expect(od.order).toBe(order);
+        expect(od.orderID).toBe(orderId);
         expect(od.entityAspect.entityState.isAdded()).toBe(true);
       });
     }
@@ -834,28 +839,28 @@ describe("Entity operations - no server", () => {
     const customerType = em.metadataStore.getAsEntityType("Customer");
     const orderType = em.metadataStore.getAsEntityType("Order");
 
-    const customer = em.createEntity(customerType);
+    const customer = em.createEntity(customerType) as Customer;
     expect(customer.entityAspect.entityState.isAdded()).toBe(true);
     for (let i = 0; i < orderCount; i++) {
-      const order = em.createEntity(orderType);
-      customer.getProperty("orders").push(order);
+      const order = em.createEntity(orderType) as Order;
+      customer.orders.push(order);
       expect(order.entityAspect.entityState.isAdded()).toBe(true);
     }
 
     if (shouldAttachUnchanged) {
       customer.entityAspect.acceptChanges();
-      const custId = customer.getProperty("customerID");
-      customer.getProperty("orders").forEach((order: Entity) => {
+      const custId = customer.customerID;
+      customer.orders.forEach((order) => {
         order.entityAspect.acceptChanges();
-        expect(order.getProperty("customer")).toBe(customer);
-        expect(order.getProperty("customerID")).toBe(custId);
+        expect(order.customer).toBe(customer);
+        expect(order.customerID).toBe(custId);
         expect(order.entityAspect.entityState.isUnchanged()).toBe(true);
       });
     } else {
-      const custId = customer.getProperty("customerID");
-      customer.getProperty("orders").forEach((order: Entity) => {
-        expect(order.getProperty("customer")).toBe(customer);
-        expect(order.getProperty("customerID")).toBe(custId);
+      const custId = customer.customerID;
+      customer.orders.forEach((order) => {
+        expect(order.customer).toBe(customer);
+        expect(order.customerID).toBe(custId);
         expect(order.entityAspect.entityState.isAdded()).toBe(true);
       });
     }

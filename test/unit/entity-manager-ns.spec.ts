@@ -1,10 +1,15 @@
 import { EntityManager, EntityType, ComplexType, EntityState, EntityAction, EntityChangedEventArgs, breeze, MetadataStore, SaveOptions, QueryOptions, ValidationOptions, Entity, DataType, core, EntityKey, RelationArray, PropertyChangedEventArgs } from '../../src/breeze';
 import { ModelLibraryBackingStoreAdapter } from '../../src/adapters/adapter-model-library-backing-store';
 import { TestFns } from '../test-fns';
+import { Customer, Employee, Order, OrderDetail, TimeGroup, TimeLimit, registerModelClasses } from '../model';
 
 ModelLibraryBackingStoreAdapter.register();
 
 TestFns.initNonServerEnv();
+// Types the calls below; see test/model/README.md. A constructor stands for its type name, so one
+// registration covers every manager in this file whatever store it was given. The unregistered
+// default-constructor path has its own coverage in test/unit/unregistered-types.spec.ts.
+registerModelClasses(TestFns.sampleMetadataStore);
 
 describe("EntityManager - no server", () => {
 
@@ -52,20 +57,20 @@ describe("EntityManager - no server", () => {
     let custID = "88888888-4444-4444-4444-121212121212";
     let ordID = 22;
 
-    let order = em.createEntity("Order", { orderID: ordID, shipName: "Barnum"});
+    let order = em.createEntity(Order, { orderID: ordID, shipName: "Barnum"});
     expect(order).toBeTruthy();   
-    let cust = em.createEntity("Customer", { customerID: custID, companyName: "Wishbone"});
+    let cust = em.createEntity(Customer, { customerID: custID, companyName: "Wishbone"});
     expect(cust).toBeTruthy();
 
-    let orderCust = order.getProperty("customer");
+    let orderCust = order.customer;
     expect(orderCust).toBeNull();
 
-    order.setProperty("customerID", custID);
+    order.customerID = custID;
 
-    orderCust = order.getProperty("customer");
+    orderCust = order.customer;
     expect(orderCust).toEqual(cust);
 
-    let custOrders = cust.getProperty("orders");
+    let custOrders = cust.orders;
     expect(custOrders).toBeTruthy();
     expect(custOrders.length).toEqual(1);
     expect(custOrders[0]).toEqual(order);
@@ -81,18 +86,18 @@ describe("EntityManager - no server", () => {
     let custID = "88888888-4444-4444-4444-121212121212";
     let ordID = 22;
 
-    let order = em.createEntity("Order", { orderID: ordID, shipName: "Barnum"});
+    let order = em.createEntity(Order, { orderID: ordID, shipName: "Barnum"});
     expect(order).toBeTruthy();   
-    let cust = em.createEntity("Customer", { customerID: custID, companyName: "Wishbone"});
+    let cust = em.createEntity(Customer, { customerID: custID, companyName: "Wishbone"});
     expect(cust).toBeTruthy();
 
-    let custOrders = cust.getProperty("orders");
+    let custOrders = cust.orders;
     expect(custOrders).toBeTruthy();
     expect(custOrders.length).toEqual(0);
 
     custOrders.push(order);
 
-    let orderCust = order.getProperty("customer");
+    let orderCust = order.customer;
     expect(orderCust).toEqual(cust);
 
     expect(custOrders.length).toEqual(1);
@@ -105,18 +110,18 @@ describe("EntityManager - no server", () => {
     const customerType = em.metadataStore.getAsEntityType("Customer");
     const customer = customerType.createEntity();
     const orderType = em.metadataStore.getAsEntityType("Order");
-    const order = orderType.createEntity();
+    const order = orderType.createEntity() as Order;
     em.attachEntity(customer);
-    const origOrders = customer.getProperty("orders");
+    const origOrders = customer.orders;
     expect(origOrders.length).toBe(0);
     origOrders.push(order);
     expect(origOrders.length).toBe(1);
     try {
-      customer.setProperty("orders", ["foo", "bar"]);
+      customer.orders = ["foo", "bar"];
       throw new Error("should not get here");
     } catch (e) {
       expect(e.message).toMatch(/navigation/);
-      expect(customer.getProperty("orders")).toBe(origOrders);
+      expect(customer.orders).toBe(origOrders);
     }
   });
 
@@ -128,11 +133,11 @@ describe("EntityManager - no server", () => {
     let custID = "88888888-4444-4444-4444-121212121212";
     let ordID = 22;
 
-    let cust = em.createEntity("Customer", { customerID: custID, companyName: "Wishbone"});
-    let order = em.createEntity("Order", { orderID: ordID, customerID: custID, shipName: "Barnum"});
+    let cust = em.createEntity(Customer, { customerID: custID, companyName: "Wishbone"});
+    let order = em.createEntity(Order, { orderID: ordID, customerID: custID, shipName: "Barnum"});
 
-    let custOrders = cust.getProperty("orders");
-    let orderCust = order.getProperty("customer");
+    let custOrders = cust.orders;
+    let orderCust = order.customer;
     expect(orderCust).toEqual(cust);
 
     expect(custOrders.length).toEqual(1);
@@ -144,40 +149,40 @@ describe("EntityManager - no server", () => {
     const dummyCustID = breeze.core.getUuid();
 
     // create a parent Customer and its child order
-    const parentCustomer = em.createEntity("Customer", {
+    const parentCustomer = em.createEntity(Customer, {
       customerID: dummyCustID,
       companyName: 'TestCo'
     }, EntityState.Unchanged);
 
-    const order = em.createEntity("Order", {
-      customerID: parentCustomer.getProperty("customerID")
+    const order = em.createEntity(Order, {
+      customerID: parentCustomer.customerID
     }, EntityState.Unchanged);
 
 
-    let orderCustomer = order.getProperty("customer");
+    let orderCustomer = order.customer;
     expect(orderCustomer).toBeTruthy();
 
     // change FK to ID of an entity not-in-cache
-    order.setProperty("customerID", TestFns.wellKnownData.alfredsID);
+    order.customerID = TestFns.wellKnownData.alfredsID;
 
-    orderCustomer = order.getProperty("customer");
+    orderCustomer = order.customer;
     expect(orderCustomer).toBeNull();
   });
 
   test("connect entities - unidirectional n-> 1", () => {
     const em = TestFns.newEntityManager();
     const orderDetailType = em.metadataStore.getAsEntityType("OrderDetail");
-    const orderDetail = orderDetailType.createEntity();
+    const orderDetail = orderDetailType.createEntity() as OrderDetail;
     const productType = em.metadataStore.getAsEntityType("Product");
     const product = productType.createEntity();
-    orderDetail.setProperty("productID", -99);
+    orderDetail.productID = -99;
     em.attachEntity(orderDetail);
     em.attachEntity(product);
-    const nullProduct = orderDetail.getProperty("product");
+    const nullProduct = orderDetail.product;
     expect(nullProduct).toBeNull();
-    product.setProperty("productID", 7);
-    orderDetail.setProperty("productID", 7);
-    const sameProduct = orderDetail.getProperty("product");
+    product.productID = 7;
+    orderDetail.productID = 7;
+    const sameProduct = orderDetail.product;
     expect(product).toBe(sameProduct);
 
   });
@@ -185,30 +190,30 @@ describe("EntityManager - no server", () => {
   test("connect entities - unidirectional 1-> n", () => {
     const em = TestFns.newEntityManager();
 
-    const tl1 = em.createEntity("TimeLimit");
-    const tl2 = em.createEntity("TimeLimit");
-    const tg1 = em.createEntity("TimeGroup");
-    const id = tg1.getProperty("id");
-    tl1.setProperty("timeGroupId", id);
-    const timeLimits = tg1.getProperty("timeLimits");
+    const tl1 = em.createEntity(TimeLimit);
+    const tl2 = em.createEntity(TimeLimit);
+    const tg1 = em.createEntity(TimeGroup);
+    const id = tg1.id;
+    tl1.timeGroupId = id;
+    const timeLimits = tg1.timeLimits;
     expect(timeLimits.length).toBe(1);
-    tl2.setProperty("timeGroupId", id);
+    tl2.timeGroupId = id;
     expect(timeLimits.length).toBe(2);
   });
 
   test("connect entities - unidirectional 1-> n - part 2", () => {
     const em = TestFns.newEntityManager();
 
-    const tl1 = em.createEntity("TimeLimit");
-    const tl2 = em.createEntity("TimeLimit");
-    const tg1 = em.createEntity("TimeGroup");
-    const timeLimits = tg1.getProperty("timeLimits");
+    const tl1 = em.createEntity(TimeLimit);
+    const tl2 = em.createEntity(TimeLimit);
+    const tg1 = em.createEntity(TimeGroup);
+    const timeLimits = tg1.timeLimits;
     expect(timeLimits.length).toBe(0);
     timeLimits.push(tl1);
     expect(timeLimits.length).toBe(1);
     timeLimits.push(tl2);
     expect(timeLimits.length).toBe(2);
-    const timeLimits2 = tg1.getProperty("timeLimits");
+    const timeLimits2 = tg1.timeLimits;
     expect(timeLimits).toBe(timeLimits2);
     // add one that is already there
     timeLimits.push(tl1);
@@ -240,10 +245,10 @@ describe("EntityManager - no server", () => {
     const customerType = em.metadataStore.getAsEntityType("Customer");
     const customer = customerType.createEntity();
     em.attachEntity(customer);
-    const newOrder = em.createEntity("Order", { customer: customer });
-    expect(customer.getProperty("orders").indexOf(newOrder) >= 0).toBe(true);
-    newOrder.setProperty("customerID", null);
-    expect(customer.getProperty("orders").indexOf(newOrder)).toBe(-1);
+    const newOrder = em.createEntity(Order, { customer: customer });
+    expect(customer.orders.indexOf(newOrder) >= 0).toBe(true);
+    newOrder.customerID = null;
+    expect(customer.orders.indexOf(newOrder)).toBe(-1);
   });
 
   test("connect entities - setting child's parent entity null removes it from old parent", () => {
@@ -252,27 +257,27 @@ describe("EntityManager - no server", () => {
     const customer = customerType.createEntity();
     em.attachEntity(customer);
 
-    const newOrder = em.createEntity("Order", { customer: customer });
-    let orders = customer.getProperty("orders");
+    const newOrder = em.createEntity(Order, { customer: customer });
+    let orders = customer.orders;
     expect(orders.indexOf(newOrder) >= 0).toBe(true);
 
     newOrder.setProperty("customer", null); // set null to decouple the order from a customer
-    orders = customer.getProperty("orders");
+    orders = customer.orders;
     expect(orders).not.toContain(newOrder);
   });
 
   test("connect entities - fk to nav - attached", () => {
     const em = TestFns.newEntityManager();
     const customerKeyName = TestFns.wellKnownData.keyNames.customer;
-    const cust1 = em.createEntity("Customer", null, EntityState.Detached);
-    const order1 = em.createEntity("Order", null, EntityState.Detached);
+    const cust1 = em.createEntity(Customer, null, EntityState.Detached);
+    const order1 = em.createEntity(Order, null, EntityState.Detached);
 
     em.attachEntity(order1);
     em.attachEntity(cust1);
 
     const custIdValue = cust1.getProperty(customerKeyName);
-    order1.setProperty("customerID", custIdValue);
-    const orderCustomer = order1.getProperty("customer");
+    order1.customerID = custIdValue;
+    const orderCustomer = order1.customer;
     expect(orderCustomer).toBe(cust1);
 
   });
@@ -280,15 +285,15 @@ describe("EntityManager - no server", () => {
   test("connect entities - nav to fk - attached", () => {
     const em = TestFns.newEntityManager();
     const customerKeyName = TestFns.wellKnownData.keyNames.customer;
-    const cust1 = em.createEntity("Customer", null, EntityState.Detached);
+    const cust1 = em.createEntity(Customer, null, EntityState.Detached);
     const orderType = em.metadataStore.getAsEntityType("Order");
-    const order1 = em.createEntity(orderType, null, EntityState.Detached);
+    const order1 = em.createEntity(orderType, null, EntityState.Detached) as Order;
 
     em.attachEntity(order1);
     em.attachEntity(cust1);
 
-    order1.setProperty("customer", cust1);
-    const orderCustId = order1.getProperty("customerID");
+    order1.customer = cust1;
+    const orderCustId = order1.customerID;
     const custId = cust1.getProperty(customerKeyName);
     expect(orderCustId).toBe(custId);
 
@@ -301,18 +306,18 @@ describe("EntityManager - no server", () => {
     const cust1 = custType.createEntity();
     const c1Id = em.generateTempKeyValue(cust1);
     const cust2 = custType.createEntity();
-    const order1 = orderType.createEntity();
+    const order1 = orderType.createEntity() as Order;
     em.attachEntity(order1);
     expect(order1.entityAspect.entityState.isUnchanged()).toBe(true);
     // assign an fk where the parent doesn't yet exist on  this em.
-    order1.setProperty("customerID", c1Id);
+    order1.customerID = c1Id;
     expect(order1.entityAspect.entityState.isModified()).toBe(true);
     order1.entityAspect.acceptChanges();
     expect(order1.entityAspect.entityState.isUnchanged()).toBe(true);
-    let order1Cust = order1.getProperty("customer");
+    let order1Cust = order1.customer;
     expect(order1Cust == null).toBe(true);
     em.attachEntity(cust1);
-    order1Cust = order1.getProperty("customer");
+    order1Cust = order1.customer;
     expect(order1Cust !== null).toBe(true);
     expect(order1.entityAspect.entityState.isUnchanged()).toBe(true);
   });
@@ -325,19 +330,19 @@ describe("EntityManager - no server", () => {
     const cust1 = custType.createEntity();
     const c1Id = em.generateTempKeyValue(cust1);
     const cust2 = custType.createEntity();
-    const order1 = orderType.createEntity();
+    const order1 = orderType.createEntity() as Order;
     em.attachEntity(order1);
     expect(order1.entityAspect.entityState.isUnchanged()).toBe(true);
     expect(cust1.entityAspect.entityState.isDetached()).toBe(true);
-    let order1Cust = order1.getProperty("customer");
+    let order1Cust = order1.customer;
     expect(order1Cust == null).toBe(true);
-    const cust1Orders = cust1.getProperty("orders");
+    const cust1Orders = cust1.orders;
     cust1Orders.push(order1);
     expect(order1.entityAspect.entityState.isModified()).toBe(true);
     expect(cust1.entityAspect.entityState.isAdded()).toBe(true);
-    order1Cust = order1.getProperty("customer");
+    order1Cust = order1.customer;
     expect(order1Cust !== null).toBe(true);
-    const order1CustId = order1.getProperty("customerID");
+    const order1CustId = order1.customerID;
     const custId = cust1.getProperty(customerKeyName);
     expect(order1CustId).toBe(custId);
 
@@ -346,15 +351,15 @@ describe("EntityManager - no server", () => {
   test("connect entities - recursive navigation fixup", () => {
     const em = TestFns.newEntityManager();
     const employeeKeyName = TestFns.wellKnownData.keyNames.employee;
-    const emp1 = em.createEntity("Employee", null, EntityState.Detached);
-    const emp2 = em.createEntity("Employee", null, EntityState.Detached);
-    const emp3 = em.createEntity("Employee", null, EntityState.Detached);
+    const emp1 = em.createEntity(Employee, null, EntityState.Detached);
+    const emp2 = em.createEntity(Employee, null, EntityState.Detached);
+    const emp3 = em.createEntity(Employee, null, EntityState.Detached);
 
     expect(emp1.entityAspect.entityState.isDetached()).toBe(true);
     expect(emp2.entityAspect.entityState.isDetached()).toBe(true);
     expect(emp3.entityAspect.entityState.isDetached()).toBe(true);
-    emp2.setProperty("manager", emp1);
-    emp2.getProperty("directReports").push(emp3);
+    emp2.manager = emp1;
+    emp2.directReports.push(emp3);
     em.addEntity(emp3);
     expect(emp1.entityAspect.entityState.isAdded()).toBe(true);
     expect(emp2.entityAspect.entityState.isAdded()).toBe(true);
@@ -362,16 +367,16 @@ describe("EntityManager - no server", () => {
     const emp1Id = emp1.getProperty(employeeKeyName);
     const emp2Id = emp2.getProperty(employeeKeyName);
     const emp3Id = emp3.getProperty(employeeKeyName);
-    expect(emp2.getProperty("reportsToEmployeeID")).toBe(emp1Id);
-    expect(emp3.getProperty("reportsToEmployeeID")).toBe(emp2Id);
-    expect(emp2.getProperty("directReports")[0]).toBe(emp3);
-    expect(emp1.getProperty("directReports")[0]).toBe(emp2);
+    expect(emp2.reportsToEmployeeID).toBe(emp1Id);
+    expect(emp3.reportsToEmployeeID).toBe(emp2Id);
+    expect(emp2.directReports[0]).toBe(emp3);
+    expect(emp1.directReports[0]).toBe(emp2);
   });
 
   test("connect entities - exception if set nav to entity with different manager", () => {
     const em1 = TestFns.newEntityManager();
     const orderType = em1.metadataStore.getAsEntityType("Order");
-    const o1 = orderType.createEntity();
+    const o1 = orderType.createEntity() as Order;
     em1.attachEntity(o1);
 
     const em2 = TestFns.newEntityManager();
@@ -390,25 +395,25 @@ describe("EntityManager - no server", () => {
     const orderType = em.metadataStore.getAsEntityType("Order");
     const cust1 = custType.createEntity();
     const cust2 = custType.createEntity();
-    const order1 = orderType.createEntity();
+    const order1 = orderType.createEntity() as Order;
 
     em.attachEntity(order1);
     expect(order1.entityAspect.entityState.isUnchanged()).toBe(true);
-    order1.setProperty("customer", cust1);
+    order1.customer = cust1;
     expect(cust1.entityAspect.entityState.isAdded()).toBe(true);
-    const cust1Orders = cust1.getProperty("orders");
+    const cust1Orders = cust1.orders;
     expect(cust1Orders.length).toBe(1);
     expect(cust1Orders).toContain(order1);
 
     // now change
-    order1.setProperty("customer", cust2);
+    order1.customer = cust2;
     expect(cust2.entityAspect.entityState.isAdded()).toBe(true);
-    const cust2Orders = cust2.getProperty("orders");
+    const cust2Orders = cust2.orders;
     expect(cust2Orders.length).toBe(1);
     expect(cust2Orders).toContain(order1);
-    expect(cust1Orders).toBe(cust1.getProperty("orders"));
+    expect(cust1Orders).toBe(cust1.orders);
     expect(cust1Orders).not.toContain(order1);
-    expect(order1.getProperty("customer")).toBe(cust2);
+    expect(order1.customer).toBe(cust2);
 
   });
 
@@ -420,27 +425,27 @@ describe("EntityManager - no server", () => {
     const cid1 = em.generateTempKeyValue(cust1);
     const cust2 = custType.createEntity();
     const cid2 = em.generateTempKeyValue(cust2);
-    const order1 = orderType.createEntity();
+    const order1 = orderType.createEntity() as Order;
 
     em.attachEntity(cust1);
 
     expect(cust1.entityAspect.entityState.isUnchanged()).toBe(true);
-    const cust1Orders = cust1.getProperty("orders");
+    const cust1Orders = cust1.orders;
     cust1Orders.push(order1);
     expect(cust1Orders.length).toBe(1);
 
     expect(order1.entityAspect.entityState.isAdded()).toBe(true);
     expect(cust1Orders).toContain(order1);
     // now change
-    const cust2Orders = cust2.getProperty("orders");
+    const cust2Orders = cust2.orders;
     cust2Orders.push(order1);
     expect(cust2Orders.length).toBe(1);
     expect(cust1Orders.length).toBe(0);
     expect(cust2.entityAspect.entityState.isAdded()).toBe(true);
     expect(cust2Orders).toContain(order1);
-    expect(cust1Orders).toBe(cust1.getProperty("orders"));
+    expect(cust1Orders).toBe(cust1.orders);
     expect(cust1Orders).not.toContain(order1);
-    expect(order1.getProperty("customer")).toBe(cust2);
+    expect(order1.customer).toBe(cust2);
   });
 
 
@@ -453,18 +458,18 @@ describe("EntityManager - no server", () => {
     let custID = "88888888-4444-4444-4444-121212121212";
     let ordID = 22;
 
-    let cust = em.createEntity("Customer", { customerID: custID, companyName: "Wishbone"});
-    let order = em.createEntity("Order", { orderID: ordID, customerID: custID, shipName: "Barnum"});
-    let orderCustId = order.getProperty("customerID");
+    let cust = em.createEntity(Customer, { customerID: custID, companyName: "Wishbone"});
+    let order = em.createEntity(Order, { orderID: ordID, customerID: custID, shipName: "Barnum"});
+    let orderCustId = order.customerID;
     expect(orderCustId).toEqual(custID);
 
-    order.setProperty("customer", null);
+    order.customer = null;
 
-    let custOrders = cust.getProperty("orders");
-    let orderCust = order.getProperty("customer");
+    let custOrders = cust.orders;
+    let orderCust = order.customer;
     expect(orderCust).toBeNull();
     expect(custOrders.length).toEqual(0);
-    orderCustId = order.getProperty("customerID");
+    orderCustId = order.customerID;
     expect(orderCustId).toBeNull();
   });
 
@@ -477,19 +482,19 @@ describe("EntityManager - no server", () => {
     let custID = "88888888-4444-4444-4444-121212121212";
     let ordID = 22;
 
-    let cust = em.createEntity("Customer", { customerID: custID, companyName: "Wishbone"});
-    let order = em.createEntity("Order", { orderID: ordID, customerID: custID, shipName: "Barnum"});
-    let orderCust = order.getProperty("customer");
+    let cust = em.createEntity(Customer, { customerID: custID, companyName: "Wishbone"});
+    let order = em.createEntity(Order, { orderID: ordID, customerID: custID, shipName: "Barnum"});
+    let orderCust = order.customer;
     expect(orderCust).toEqual(cust);
     // order.setProperty("customer", undefined);
     (order as any).customer = undefined;
 
-    let custOrders = cust.getProperty("orders");
-    // orderCust = order.getProperty("customer");
+    let custOrders = cust.orders;
+    // orderCust = order.customer;
     orderCust = (order as any).customer;
     expect(orderCust).toBeNull();
     expect(custOrders.length).toEqual(0);
-    let orderCustId = order.getProperty("customerID");
+    let orderCustId = order.customerID;
     expect(orderCustId).toBeNull();
   });
 
@@ -502,17 +507,17 @@ describe("EntityManager - no server", () => {
     let custID = "88888888-4444-4444-4444-121212121212";
     let ordID = 22;
 
-    let cust = em.createEntity("Customer", { customerID: custID, companyName: "Wishbone"});
-    let order = em.createEntity("Order", { orderID: ordID, shipName: "Barnum"});
+    let cust = em.createEntity(Customer, { customerID: custID, companyName: "Wishbone"});
+    let order = em.createEntity(Order, { orderID: ordID, shipName: "Barnum"});
     
-    order.setProperty("customer", undefined);
+    order.customer = undefined;
 
-    let custOrders = cust.getProperty("orders");
-    // orderCust = order.getProperty("customer");
+    let custOrders = cust.orders;
+    // orderCust = order.customer;
     let orderCust = (order as any).customer;
     expect(orderCust).toBeNull();
     expect(custOrders.length).toEqual(0);
-    let orderCustId = order.getProperty("customerID");
+    let orderCustId = order.customerID;
     expect(orderCustId).toBeNull();
   });
 
@@ -526,13 +531,13 @@ describe("EntityManager - no server", () => {
     let custID = "88888888-4444-4444-4444-121212121212";
     let ordID = 22;
 
-    let cust = em.createEntity("Customer", { customerID: custID, companyName: "Wishbone"});
-    let order = em.createEntity("Order", { orderID: ordID, customerID: custID, shipName: "Barnum"});
+    let cust = em.createEntity(Customer, { customerID: custID, companyName: "Wishbone"});
+    let order = em.createEntity(Order, { orderID: ordID, customerID: custID, shipName: "Barnum"});
 
-    order.setProperty("customerID", null);
+    order.customerID = null;
 
-    let custOrders = cust.getProperty("orders");
-    let orderCust = order.getProperty("customer");
+    let custOrders = cust.orders;
+    let orderCust = order.customer;
     expect(orderCust).toBeNull();
     expect(custOrders.length).toEqual(0);   
   });
@@ -546,13 +551,13 @@ describe("EntityManager - no server", () => {
     let custID = "88888888-4444-4444-4444-121212121212";
     let ordID = 22;
 
-    let cust = em.createEntity("Customer", { customerID: custID, companyName: "Wishbone"});
-    let order = em.createEntity("Order", { orderID: ordID, customerID: custID, shipName: "Barnum"});
+    let cust = em.createEntity(Customer, { customerID: custID, companyName: "Wishbone"});
+    let order = em.createEntity(Order, { orderID: ordID, customerID: custID, shipName: "Barnum"});
 
-    order.setProperty("customerID", undefined);
+    order.customerID = undefined;
 
-    let custOrders = cust.getProperty("orders");
-    let orderCust = order.getProperty("customer");
+    let custOrders = cust.orders;
+    let orderCust = order.customer;
     expect(orderCust).toBeNull();
     expect(custOrders.length).toEqual(0);   
   });
@@ -562,15 +567,15 @@ describe("EntityManager - no server", () => {
     const custType = em.metadataStore.getAsEntityType("Customer");
     const orderType = em.metadataStore.getAsEntityType("Order");
     const cust1 = custType.createEntity();
-    const order1 = orderType.createEntity();
+    const order1 = orderType.createEntity() as Order;
 
-    order1.setProperty("customer", cust1);
+    order1.customer = cust1;
     em.attachEntity(order1);
     expect(order1.entityAspect.entityState).toBe(EntityState.Unchanged);
     expect(cust1.entityAspect.entityState).toBe(EntityState.Unchanged);
-    const orders = cust1.getProperty("orders");
+    const orders = cust1.orders;
     expect(orders[0]).toBe(order1);
-    expect(orders[0].getProperty("customer")).toBe(cust1);
+    expect(orders[0].customer).toBe(cust1);
   });
 
   test("graph attach (1-n)- setProperties child, attach parent", () => {
@@ -578,13 +583,13 @@ describe("EntityManager - no server", () => {
     const custType = em.metadataStore.getAsEntityType("Customer");
     const orderType = em.metadataStore.getAsEntityType("Order");
     const cust1 = custType.createEntity();
-    const order1 = orderType.createEntity();
+    const order1 = orderType.createEntity() as Order;
 
-    order1.setProperty("customer", cust1);
+    order1.customer = cust1;
     em.attachEntity(cust1);
     expect(order1.entityAspect.entityState).toBe(EntityState.Unchanged);
     expect(cust1.entityAspect.entityState).toBe(EntityState.Unchanged);
-    const orders = cust1.getProperty("orders");
+    const orders = cust1.orders;
     expect(orders[0]).toBe(order1);
   });
 
@@ -593,15 +598,15 @@ describe("EntityManager - no server", () => {
     const custType = em.metadataStore.getAsEntityType("Customer");
     const orderType = em.metadataStore.getAsEntityType("Order");
     const cust1 = custType.createEntity();
-    const order1 = orderType.createEntity();
+    const order1 = orderType.createEntity() as Order;
 
-    const cust1Orders = cust1.getProperty("orders");
+    const cust1Orders = cust1.orders;
     cust1Orders.push(order1);
     expect(cust1Orders.length).toBe(1);
     em.attachEntity(cust1);
     expect(order1.entityAspect.entityState).toBe(EntityState.Unchanged);
     expect(cust1.entityAspect.entityState).toBe(EntityState.Unchanged);
-    expect(order1.getProperty("customer")).toBe(cust1);
+    expect(order1.customer).toBe(cust1);
   });
 
   test("graph attach (1-n) - setProperties parent, attach child", () => {
@@ -609,15 +614,15 @@ describe("EntityManager - no server", () => {
     const custType = em.metadataStore.getAsEntityType("Customer");
     const orderType = em.metadataStore.getAsEntityType("Order");
     const cust1 = custType.createEntity();
-    const order1 = orderType.createEntity();
+    const order1 = orderType.createEntity() as Order;
 
-    const cust1Orders = cust1.getProperty("orders");
+    const cust1Orders = cust1.orders;
     cust1Orders.push(order1);
     expect(cust1Orders.length).toBe(1);
     em.attachEntity(order1);
     expect(order1.entityAspect.entityState).toBe(EntityState.Unchanged);
     expect(cust1.entityAspect.entityState).toBe(EntityState.Unchanged);
-    expect(order1.getProperty("customer")).toBe(cust1);
+    expect(order1.customer).toBe(cust1);
   });
 
   test("graph attach (1-n) - parent detach", () => {
@@ -625,15 +630,15 @@ describe("EntityManager - no server", () => {
     const custType = em.metadataStore.getAsEntityType("Customer");
     const orderType = em.metadataStore.getAsEntityType("Order");
     const cust1 = custType.createEntity();
-    const order1 = orderType.createEntity();
+    const order1 = orderType.createEntity() as Order;
 
-    const cust1Orders = cust1.getProperty("orders");
+    const cust1Orders = cust1.orders;
     cust1Orders.push(order1);
     expect(cust1Orders.length).toBe(1);
     em.attachEntity(order1);
     expect(order1.entityAspect.entityState).toBe(EntityState.Unchanged);
     expect(cust1.entityAspect.entityState).toBe(EntityState.Unchanged);
-    expect(order1.getProperty("customer")).toBe(cust1);
+    expect(order1.customer).toBe(cust1);
     const orderCustId = order1.getProperty(TestFns.wellKnownData.keyNames.customer);
     em.detachEntity(cust1);
     expect(cust1.entityAspect.entityState.isDetached());
@@ -648,22 +653,22 @@ describe("EntityManager - no server", () => {
     const orderType = em.metadataStore.getAsEntityType("Order");
     const orderDetailType = em.metadataStore.getAsEntityType("OrderDetail");
 
-    const order = orderType.createEntity();
+    const order = orderType.createEntity() as Order;
     expect(order.entityAspect.entityState.isDetached()).toBe(true);
 
-    order.setProperty("orderID", 888);
+    order.orderID = 888;
 
     em.attachEntity(order);
-    const orderId = order.getProperty("orderID");
+    const orderId = order.orderID;
     expect(orderId);
     expect(order.entityAspect.entityState.isUnchanged()).toBe(true);
     for (let i = 0; i < 3; i++) {
-      const od = orderDetailType.createEntity();
+      const od = orderDetailType.createEntity() as OrderDetail;
       od.setProperty("productID", i + 1); // part of pk && not the default value
-      order.getProperty("orderDetails").push(od);
+      order.orderDetails.push(od);
       expect(od.entityAspect.entityState.isAdded()).toBe(true);
-      expect(od.getProperty("order")).toBe(order);
-      expect(od.getProperty("orderID")).toBe(orderId);
+      expect(od.order).toBe(order);
+      expect(od.orderID).toBe(orderId);
     }
   });
 
@@ -674,23 +679,23 @@ describe("EntityManager - no server", () => {
     const orderType = em.metadataStore.getAsEntityType("Order");
     const orderDetailType = em.metadataStore.getAsEntityType("OrderDetail");
 
-    const order = orderType.createEntity();
+    const order = orderType.createEntity() as Order;
     expect(order.entityAspect.entityState.isDetached()).toBe(true);
-    order.setProperty("orderID", 999);
+    order.orderID = 999;
 
     for (let i = 0; i < 3; i++) {
-      const od = orderDetailType.createEntity();
+      const od = orderDetailType.createEntity() as OrderDetail;
       od.setProperty("productID", i + 1); // part of pk and not the default value
-      order.getProperty("orderDetails").push(od);
+      order.orderDetails.push(od);
       expect(od.entityAspect.entityState.isDetached()).toBe(true);
     }
     em.attachEntity(order);
-    const orderId = order.getProperty("orderID");
+    const orderId = order.orderID;
     expect(orderId);
     expect(order.entityAspect.entityState.isUnchanged()).toBe(true);
-    order.getProperty("orderDetails").forEach((od: Entity) => {
-      expect(od.getProperty("order")).toBe(order);
-      expect(od.getProperty("orderID")).toBe(orderId);
+    order.orderDetails.forEach((od) => {
+      expect(od.order).toBe(order);
+      expect(od.orderID).toBe(orderId);
       expect(od.entityAspect.entityState.isUnchanged()).toBe(true);
     });
   });
@@ -700,23 +705,23 @@ describe("EntityManager - no server", () => {
     const orderType = em.metadataStore.getAsEntityType("Order");
     const orderDetailType = em.metadataStore.getAsEntityType("OrderDetail");
 
-    const order = orderType.createEntity();
+    const order = orderType.createEntity() as Order;
     expect(order.entityAspect.entityState.isDetached()).toBe(true);
-    order.setProperty("orderID", 999);
+    order.orderID = 999;
 
     for (let i = 0; i < 3; i++) {
-      const od = orderDetailType.createEntity();
+      const od = orderDetailType.createEntity() as OrderDetail;
       od.setProperty("productID", i); // part of pk
-      order.getProperty("orderDetails").push(od);
+      order.orderDetails.push(od);
       expect(od.entityAspect.entityState.isDetached()).toBe(true);
     }
     em.attachEntity(order);
     expect(order.entityAspect.entityState.isUnchanged()).toBe(true);
-    const orderId = order.getProperty("orderID");
+    const orderId = order.orderID;
     expect(orderId);
-    order.getProperty("orderDetails").forEach( (od: Entity) => {
-      expect(od.getProperty("order")).toBe(order);
-      expect(od.getProperty("orderID")).toBe(orderId);
+    order.orderDetails.forEach( (od) => {
+      expect(od.order).toBe(order);
+      expect(od.orderID).toBe(orderId);
       expect(od.entityAspect.entityState.isUnchanged()).toBe(true);
     });
   });

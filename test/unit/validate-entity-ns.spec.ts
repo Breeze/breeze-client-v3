@@ -2,11 +2,16 @@ import { EntityManager, EntityType, ComplexType, EntityState, EntityAction, Enti
 import { ModelLibraryBackingStoreAdapter } from '../../src/adapters/adapter-model-library-backing-store';
 import { TestFns, JsonObj } from '../test-fns';
 import 'jest-extended';
+import { Customer, Employee, Order, registerModelClasses } from '../model';
 
 
 ModelLibraryBackingStoreAdapter.register();
 
 TestFns.initNonServerEnv();
+// Types the calls below; see test/model/README.md. A constructor stands for its type name, so one
+// registration covers every manager in this file whatever store it was given. The unregistered
+// default-constructor path has its own coverage in test/unit/unregistered-types.spec.ts.
+registerModelClasses(TestFns.sampleMetadataStore);
 
 describe("Entity operations - no server", () => {
 
@@ -21,22 +26,22 @@ describe("Entity operations - no server", () => {
     const custProp = orderType.getProperty("customer");
     const valFn = function (v: any) {
       if (v == null) return true;
-      const companyName = v.getProperty("companyName");
+      const companyName = v.companyName;
       return breeze.core.stringStartsWith(companyName, "C");
     };
     const customerValidator = new Validator("customerValidator", valFn, { messageTemplate: "'%displayName%'.companyName must start with 'C'" });
     custProp.validators.push(customerValidator);
-    const cust1 = em.createEntity("Customer");
-    cust1.setProperty("companyName", "ABC");
-    const cust2 = em.createEntity("Customer");
-    cust2.setProperty("companyName", "CDE");
-    const order1 = em.createEntity("Order", { customer: cust1 });
+    const cust1 = em.createEntity(Customer);
+    cust1.companyName = "ABC";
+    const cust2 = em.createEntity(Customer);
+    cust2.companyName = "CDE";
+    const order1 = em.createEntity(Order, { customer: cust1 });
     const isOk = order1.entityAspect.validateEntity();
     expect(isOk).toBe(false);
     let valErrors = order1.entityAspect.getValidationErrors();
     expect(valErrors.length).toBe(1);
     expect(valErrors[0].errorMessage).toEndWith("with 'C'");
-    order1.setProperty("customer", cust2);
+    order1.customer = cust2;
     valErrors = order1.entityAspect.getValidationErrors();
     expect(valErrors.length).toBe(0);
 
@@ -60,16 +65,16 @@ describe("Entity operations - no server", () => {
     };
     const ordersValidator = new Validator("ordersValidator", valFn, { messageTemplate: "All of the orders for this customer must have a freight cost > 100" });
     ordersProp.validators.push(ordersValidator);
-    const cust1 = em.createEntity("Customer");
-    cust1.setProperty("companyName", "ABC");
-    const order1 = em.createEntity("Order", { customer: cust1, freight: 200 });
-    const order2 = em.createEntity("Order", { customer: cust1, freight: 99 });
+    const cust1 = em.createEntity(Customer);
+    cust1.companyName = "ABC";
+    const order1 = em.createEntity(Order, { customer: cust1, freight: 200 });
+    const order2 = em.createEntity(Order, { customer: cust1, freight: 99 });
     const isOk = cust1.entityAspect.validateEntity();
     expect(isOk).toBe(false);
     let valErrors = cust1.entityAspect.getValidationErrors();
     expect(valErrors.length).toBe(1);
     expect(valErrors[0].errorMessage).toStartWith("All of the orders");
-    order2.setProperty("freight", 101);
+    order2.freight = 101;
     // need to force a customer validation error
     cust1.entityAspect.validateEntity();
     valErrors = cust1.entityAspect.getValidationErrors();
@@ -82,7 +87,7 @@ describe("Entity operations - no server", () => {
     const emp = createNewEmp(em);
     let errs = emp.entityAspect.getValidationErrors();
     expect(errs.length).toBe(0);
-    emp.setProperty("rowVersion", 9999999999999);
+    emp.rowVersion = 9999999999999;
     errs = emp.entityAspect.getValidationErrors();
     expect(errs.length).toBe(1);
     expect(errs[0].errorMessage).toMatch(/integer between the values/);
@@ -91,12 +96,12 @@ describe("Entity operations - no server", () => {
     const newMs = MetadataStore.importMetadata(em.metadataStore.exportMetadata());
     const em2 = TestFns.newEntityManager(newMs);
     const emp2 = createNewEmp(em2);
-    emp2.setProperty("rowVersion", 8888888888888);
+    emp2.rowVersion = 8888888888888;
     errs = emp2.entityAspect.getValidationErrors();
     expect(errs.length).toBe(1);
     expect(errs[0].errorMessage).toMatch(/must be an int32/);
 
-    emp2.setProperty("rowVersion", 7);
+    emp2.rowVersion = 7;
     errs = emp2.entityAspect.getValidationErrors();
     expect(errs.length).toBe(0);
   });
@@ -111,7 +116,7 @@ describe("Entity operations - no server", () => {
   test("can call getValidationErrors('someProperty) when have entity errors", function () {
     const em = TestFns.newEntityManager();
 
-    const cust = em.createEntity('Customer', {
+    const cust = em.createEntity(Customer, {
       CustomerID: breeze.core.getUuid()
     }, breeze.EntityState.Unchanged);
 
@@ -157,7 +162,7 @@ describe("Entity operations - no server", () => {
     em.attachEntity(cust1);
     let s = "long value long value";
     s = s + s + s + s + s + s + s + s + s + s + s + s;
-    cust1.setProperty("companyName", s);
+    cust1.companyName = s;
     const errors = cust1.entityAspect.getValidationErrors();
     expect(errors[0].errorMessage).toMatch(/xxx Company name xxx/);
 
@@ -229,10 +234,10 @@ describe("Entity operations - no server", () => {
     const empType = em.metadataStore.getAsEntityType("Employee");
     const employeeKeyName = TestFns.wellKnownData.keyNames.employee;
 
-    const employee = empType.createEntity() as Entity; // created but not attached
+    const employee = empType.createEntity() as Employee; // created but not attached
     employee.setProperty(employeeKeyName, TestFns.wellKnownData.dummyEmployeeID);
-    employee.setProperty("firstName", "John");
-    employee.setProperty("lastName", "Doe");
+    employee.firstName = "John";
+    employee.lastName = "Doe";
 
     // enter the cache as 'Unchanged'
     em.attachEntity(employee);
@@ -264,12 +269,12 @@ describe("Entity operations - no server", () => {
     const em = TestFns.newEntityManager(ms);
     const empType = em.metadataStore.getAsEntityType("Employee");
     const extnProp = empType.getDataProperty("extension");
-    const emp = empType.createEntity();
+    const emp = empType.createEntity() as Employee;
     const vo = em.validationOptions.using({ validateOnAttach: false });
     em.setProperties({ validationOptions: vo });
     em.attachEntity(emp);
     extnProp.validators.push(Validator.number());
-    emp.setProperty("extension", "456");
+    emp.extension = "456";
     const valErrors = emp.entityAspect.getValidationErrors();
     expect(valErrors.length).toBe(1);
     expect(valErrors[0].errorMessage).toMatch(/number/);
@@ -280,15 +285,15 @@ describe("Entity operations - no server", () => {
     const em = TestFns.newEntityManager(ms);
     const empType = em.metadataStore.getAsEntityType("Employee");
     const extnProp = empType.getDataProperty("extension");
-    const emp = empType.createEntity();
+    const emp = empType.createEntity() as Employee;
     const vo = em.validationOptions.using({ validateOnAttach: false });
     em.setProperties({ validationOptions: vo });
     em.attachEntity(emp);
     extnProp.validators.push(Validator.number({ allowString: true }));
-    emp.setProperty("extension", "456");
+    emp.extension = "456";
     let valErrors = emp.entityAspect.getValidationErrors();
     expect(valErrors.length).toBe(0);
-    emp.setProperty("extension", "x456");
+    emp.extension = "x456";
     valErrors = emp.entityAspect.getValidationErrors();
     expect(valErrors.length).toBe(1);
     expect(valErrors[0].errorMessage).toMatch(/number/);
@@ -301,15 +306,15 @@ describe("Entity operations - no server", () => {
     em.attachEntity(cust1);
     let s = "long value long value";
     s = s + s + s + s + s + s + s + s + s + s + s + s;
-    cust1.setProperty("companyName", s);
+    cust1.companyName = s;
     expect(cust1.entityAspect.getValidationErrors().length).toBe(1);
     let valErrors = cust1.entityAspect.getValidationErrors();
     const errMessage = valErrors[0].errorMessage;
     expect(errMessage).toMatch(/must be a string with 40 characters or less/);
-    cust1.setProperty("companyName", "much shorter");
+    cust1.companyName = "much shorter";
     valErrors = cust1.entityAspect.getValidationErrors();
     expect(valErrors.length).toBe(0);
-    cust1.setProperty("companyName", "");
+    cust1.companyName = "";
     valErrors = cust1.entityAspect.getValidationErrors();
     expect(valErrors.length).toBe(1);
   });
@@ -325,13 +330,13 @@ describe("Entity operations - no server", () => {
       valErrorsChanged = args;
     });
 
-    cust1.setProperty("companyName", 222);
+    cust1.companyName = 222;
     // no longer a bug with DataType.parseString addition
     //expect(valErrorsChanged.added[0].property.name === "companyName");
 
-    cust1.setProperty("rowVersion", "asdf");
+    cust1.rowVersion = "asdf";
     expect(valErrorsChanged.added[0].property.name).toBe("rowVersion");
-    cust1.setProperty("rowVersion", 3);
+    cust1.rowVersion = 3;
     expect(valErrorsChanged.removed[0].property.name).toBe("rowVersion");
 
   });
@@ -355,18 +360,18 @@ describe("Entity operations - no server", () => {
     });
     let s = "long value long value";
     s = s + s + s + s + s + s + s + s + s + s + s + s;
-    cust1.setProperty("companyName", s);
+    cust1.companyName = s;
     expect(lastNotificationArgs.added.length).toBeGreaterThan(0);
     expect(lastNotificationArgs).toBe(emLastNotification);
     expect(lastNotificationArgs.added[0].property.name).toBe("companyName");
     expect(lastNotificationArgs.removed[0].property.name).toBe("companyName");
     expect(notificationCount).toBe(1);
-    cust1.setProperty("companyName", "much shorter");
+    cust1.companyName = "much shorter";
     expect(lastNotificationArgs).toBe(emLastNotification);
     expect(lastNotificationArgs.removed.length).toBeGreaterThan(0);
     expect(lastNotificationArgs.removed[0].property.name).toBe("companyName");
     expect(notificationCount).toBe(2);
-    cust1.setProperty("companyName", "");
+    cust1.companyName = "";
     expect(lastNotificationArgs).toBe(emLastNotification);
     expect(lastNotificationArgs.added.length).toBeGreaterThan(0);
     expect(lastNotificationArgs.added[0].property.name).toBe("companyName");
@@ -387,9 +392,9 @@ describe("Entity operations - no server", () => {
     });
     let s = "long value long value";
     s = s + s + s + s + s + s + s + s + s + s + s + s;
-    cust1.setProperty("companyName", s);
-    cust1.setProperty("companyName", "much shorter");
-    cust1.setProperty("companyName", "");
+    cust1.companyName = s;
+    cust1.companyName = "much shorter";
+    cust1.companyName = "";
     expect(cust1.entityAspect.hasValidationErrors).toBe(true);
     expect(notificationCount).toBe(0);
   });
@@ -407,7 +412,7 @@ describe("Entity operations - no server", () => {
     });
     let s = "long value long value";
     s = s + s + s + s + s + s + s + s + s + s + s + s;
-    cust1.setProperty("companyName", s);
+    cust1.companyName = s;
     expect(cust1.entityAspect.hasValidationErrors).toBe(true);
     let errors = cust1.entityAspect.getValidationErrors("companyName");
     expect(errors.length).toBe(1);
@@ -430,15 +435,15 @@ describe("Entity operations - no server", () => {
     const countryValidator = new Validator("countryIsUS", valFn, { displayName: "Country", messageTemplate: "'%displayName%' must start with 'US'" });
     prop.validators.push(countryValidator);
     const cust1 = custType.createEntity();
-    cust1.setProperty("country", "GER");
+    cust1.country = "GER";
     em.attachEntity(cust1);
     expect(cust1.entityAspect.hasValidationErrors).toBe(true);
     let valErrors = cust1.entityAspect.getValidationErrors();
     expect(valErrors.length).toBe(2);
-    cust1.setProperty("country", "US");
+    cust1.country = "US";
     valErrors = cust1.entityAspect.getValidationErrors();
     expect(valErrors.length).toBe(1);
-    cust1.setProperty("country", null);
+    cust1.country = null;
     valErrors = cust1.entityAspect.getValidationErrors();
     expect(valErrors.length).toBe(1);
     cust1.entityAspect.validateProperty("country");
@@ -454,12 +459,12 @@ describe("Entity operations - no server", () => {
     custType.validators.push(zipCodeValidator);
 
     const cust1 = custType.createEntity();
-    cust1.setProperty("companyName", "Test1Co");
-    cust1.setProperty("country", "GER");
+    cust1.companyName = "Test1Co";
+    cust1.country = "GER";
     em.attachEntity(cust1);
     let valErrors = cust1.entityAspect.getValidationErrors();
     expect(valErrors.length).toBe(0);
-    cust1.setProperty("country", "USA");
+    cust1.country = "USA";
     expect(cust1.entityAspect.hasValidationErrors).toBe(false);
     valErrors = cust1.entityAspect.getValidationErrors();
     expect(valErrors.length).toBe(0);
@@ -486,13 +491,13 @@ describe("Entity operations - no server", () => {
     const em2 = TestFns.newEntityManager(newMs);
     const custType2 = newMs.getAsEntityType("Customer");
     const cust1 = custType2.createEntity();
-    cust1.setProperty("companyName", "Test1Co");
-    cust1.setProperty("country", "GER");
+    cust1.companyName = "Test1Co";
+    cust1.country = "GER";
     em2.attachEntity(cust1);
     expect(cust1.entityAspect.hasValidationErrors).toBe(false);
     let valErrors = cust1.entityAspect.getValidationErrors();
     expect(valErrors.length).toBe(0);
-    cust1.setProperty("country", "USA");
+    cust1.country = "USA";
     valErrors = cust1.entityAspect.getValidationErrors();
     expect(cust1.entityAspect.hasValidationErrors).toBe(false);
     expect(valErrors.length).toBe(0);
@@ -513,17 +518,17 @@ describe("Entity operations - no server", () => {
     const numericRangeValidatorFactory = createNumericRangeValidatorFactory();
 
     freightProperty.validators.push(numericRangeValidatorFactory({ min: 100, max: 500 }));
-    const order1 = orderType.createEntity();
+    const order1 = orderType.createEntity() as Order;
     order1.setProperty(orderKeyName, TestFns.wellKnownData.dummyOrderID);
     em.attachEntity(order1);
     let valErrors = order1.entityAspect.getValidationErrors();
     expect(valErrors.length).toBe(0);
-    order1.setProperty("freight", 0);
+    order1.freight = 0;
     valErrors = order1.entityAspect.getValidationErrors();
     expect(valErrors.length).toBe(1);
     expect(order1.entityAspect.hasValidationErrors).toBe(true);
     const ix = valErrors[0].errorMessage.indexOf("between the values of 100 and 500");
-    order1.setProperty("freight", 200);
+    order1.freight = 200;
     valErrors = order1.entityAspect.getValidationErrors();
     expect(valErrors.length).toBe(0);
     expect(order1.entityAspect.hasValidationErrors).toBe(false);
@@ -549,11 +554,11 @@ describe("Entity operations - no server", () => {
     em2.attachEntity(order1);
     let valErrors = order1.entityAspect.getValidationErrors();
     expect(valErrors.length).toBe(0);
-    order1.setProperty("freight", 0);
+    order1.freight = 0;
     valErrors = order1.entityAspect.getValidationErrors();
     expect(valErrors.length).toBe(1);
     const ix = valErrors[0].errorMessage.indexOf("between the values of 100 and 500");
-    order1.setProperty("freight", 200);
+    order1.freight = 200;
     valErrors = order1.entityAspect.getValidationErrors();
     expect(valErrors.length).toBe(0);
 
@@ -564,8 +569,8 @@ describe("Entity operations - no server", () => {
       // v in this case will be a Customer entity
       const valFn = function (v: any) {
         // This validator only validates US Zip Codes.
-        if (v.getProperty("country") === "USA") {
-          const postalCode = v.getProperty("postalCode");
+        if (v.country === "USA") {
+          const postalCode = v.postalCode;
           return isValidZipCode(postalCode);
         }
         return true;
@@ -622,8 +627,8 @@ describe("Entity operations - no server", () => {
     const empType = em.metadataStore.getAsEntityType("Employee");
     const employee = empType.createEntity(); // created but not attached
     employee.setProperty(TestFns.wellKnownData.keyNames.employee, TestFns.wellKnownData.dummyEmployeeID);
-    employee.setProperty("firstName", "John");
-    employee.setProperty("lastName", "Doe");
+    employee.firstName = "John";
+    employee.lastName = "Doe";
     // enter the cache as 'Unchanged'
     em.attachEntity(employee);
     return employee;
