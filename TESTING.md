@@ -219,17 +219,20 @@ recreating the database by hand** — otherwise those tables are empty.
 
 | command | tier | tests | needs a server? | time |
 |---|---|---|---|---|
-| `npm run test:unit` | unit | 352 | **no** | a few seconds |
-| `npm run test:integration` | integration | ~457 † | yes | ~35s |
-| `npm test` | both | unit + integration | yes | ~50s |
-| `npm run test:browser` | both, in Chromium | unit + integration | yes | ~40s |
+| `npm run test:unit` | unit | 352, 27 files | **no** | a few seconds |
+| `npm run test:integration` | integration | 457 (450 + 7 skipped), 27 files | yes | ~46s |
+| `npm test` | both | 809 (802 + 7 skipped), 54 files † | yes | ~50s |
+| `npm run test:browser` | both, in Chromium | 758 (751 + 7 skipped), 53 files ‡ | yes | ~34s |
 | `npm run test:watch` | unit | 352 | no | watch mode |
 
-† The unit counts were measured on 2026-09-15. The integration count was last measured at
-`86ae317`; integration specs have changed since then (`dc06d85`, `f95df6d`, `cb94d23`)
-without it being re-measured, so treat it as approximate until you run the tier. This file's
-rule is that every number in it was observed, not derived — so the totals are left as a sum
-rather than stated as a figure nobody has seen.
+All of these were measured on 2026-09-15, on the same clean database, except the `npm test`
+row † — that is the sum of the unit and integration runs, which together are exactly what the
+command runs; it was not observed as a single run.
+
+‡ The browser tier is 51 tests and one file short of `npm test` because it excludes
+`side-effects.spec.ts`, which reads `src/` off disk and parses it with the TypeScript API.
+That is a check on the source tree rather than on runtime behaviour, and there is no `fs` in
+Chromium.
 
 7 tests are skipped by design. Five are skipped on the ASP.NET Core server: three need
 server-side validation, which that server does not perform; one needs a named-query endpoint
