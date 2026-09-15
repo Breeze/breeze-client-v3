@@ -121,6 +121,21 @@ describe("Typed API - the second round of typed overloads", () => {
     expect(em.getEntityByKey(Customer, 'no-such-id')).toBeNull();
   });
 
+  test("a missing entity is null, the same as everywhere else in Breeze", () => {
+    const em = newEntityManager();
+    const order = em.createEntity(Order, { orderID: 1 });
+
+    // Absence is null throughout Breeze: an uncached scalar navigation, a nullable data property,
+    // and a key lookup that misses. fetchEntityByKey's result used to be the one exception - it
+    // gave undefined - which is why IEntityByKeyResult.entity is `Entity | null` from 3.0 and no
+    // longer optional. The runtime half of that is asserted in query-alt.spec.ts, which can reach
+    // a server; this pins the ones that need no server.
+    expect(order.customer).toBeNull();                       // uncached scalar navigation
+    expect(order.shipName).toBeNull();                       // unset nullable data property
+    expect(em.getEntityByKey(Customer, 'no-such-id')).toBeNull();
+    expect(em.getEntityByKey('Customer', 'no-such-id')).toBeNull();
+  });
+
   test("attachEntity and addEntity give back what they were given", () => {
     const em = newEntityManager();
     const detached = em.createEntity(Customer, { companyName: 'Acme' }, EntityState.Detached);

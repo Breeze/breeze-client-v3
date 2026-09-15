@@ -744,3 +744,32 @@ exported.
 `test/unit/typed-api.spec.ts` is 23 tests now, including one asserting that a plain `Entity` into
 `fromEntities` still yields `any`, and five more `@ts-expect-error` lines so the new overloads
 cannot quietly stop being load-bearing.
+
+## fetchEntityByKey now reports absence as null (done)
+
+`fetchEntityByKey`'s result gave `entity: undefined` when there was no entity, while everything
+else in Breeze says `null` — an uncached scalar navigation, a nullable data property,
+`getEntityByKey`. Confirmed at runtime before changing anything:
+
+```
+absent scalar navigation  order.customer  -> null
+unset nullable data prop  order.shipName  -> null
+getEntityByKey miss                       -> null
+```
+
+So one method disagreed with the whole library, and its own doc comment had said "or null" since
+2.x — the documentation described the behaviour we have now, not the one we had.
+
+`IEntityByKeyResult.entity` is `Entity | null` instead of an optional `entity?: Entity`, which
+makes `result.entity === undefined` a **compile error** rather than a silently-always-false test.
+Truthiness, `!= null` and `?.` are unaffected. Written up as breaking change 7 in UPGRADE.md.
+
+Two assertions in `query-alt.spec.ts` covered the old sentinel (`expect(alfred3).toBeUndefined()`)
+and now assert `toBeNull()` — verified against the real server, not just typechecked. A unit test
+pins the wider rule: an uncached navigation, an unset nullable property and a missed key lookup
+are all `null`.
+
+The general point for anyone weighing `T | null` against `entity?: T` later: `undefined` is the
+cleaner default in modern TypeScript, and it is the one that works with destructuring defaults.
+In *this* library `null` wins, because Breeze models a database, where `null` is a value with
+meaning, and it already says `null` everywhere else.

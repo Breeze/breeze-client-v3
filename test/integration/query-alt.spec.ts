@@ -70,7 +70,8 @@ describe("Query Alternatives", () => {
 
     const alfred3 = fr3.entity;
     // alfred3 should not have been found because it was deleted.
-    expect(alfred3).toBeUndefined();
+    // null, not undefined: absence is null throughout Breeze, and from 3.0 this result agrees.
+    expect(alfred3).toBeNull();
     expect(fr3.fromCache).toBe(true);
 
     em1.setProperties({ queryOptions: em1.queryOptions.using(MergeStrategy.OverwriteChanges) });
@@ -98,7 +99,7 @@ describe("Query Alternatives", () => {
     const alfredsID = '885efa04-cbf2-4dd7-a7de-083ee17b6ad7'; // not a valid key
     const fr1 = await em1.fetchEntityByKey("Customer", alfredsID, true);
     const alfred = fr1.entity;
-    expect(alfred).toBeUndefined();
+    expect(alfred).toBeNull();
     expect(fr1.fromCache).toBe(false);
     expect(fr1.entityKey).not.toBeNull();
   });

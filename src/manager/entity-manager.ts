@@ -1298,7 +1298,7 @@ export class EntityManager {
   @param checkLocalCacheFirst - (default = false) - Whether to check this EntityManager first before going to the server. By default, the query will NOT do this.
   @returns {Promise}
     - Properties on the promise success result
-      - entity {Object} The entity returned or null
+      - entity {Object} The entity found, or null if there is none. (Before 3.0 this was undefined; see UPGRADE.md.)
       - entityKey {EntityKey} The entityKey of the entity to fetch.
       - fromCache {Boolean} Whether this entity was fetched from the server or was found in the local cache.
   **/
@@ -1795,15 +1795,21 @@ function processServerErrors(saveContext: SaveContext, saveError: SaveErrorFromS
 }
 
 export interface IEntityByKeyResult {
-  entity?: Entity;
+  /** The entity, or `null` if there is none.
+
+  `null` rather than `undefined`, because that is what absence means everywhere else in Breeze:
+  a scalar navigation property with nothing cached is `null`, a nullable data property is `null`,
+  and {@link EntityManager.getEntityByKey} returns `null`. Before 3.0 this one property was the
+  exception. See UPGRADE.md. */
+  entity: Entity | null;
   entityKey: EntityKey;
   fromCache: boolean;
 }
 
 /** {@link IEntityByKeyResult} for a known entity type - what the constructor overload of
-{@link EntityManager.fetchEntityByKey} and {@link EntityManager.getEntityByKey} return. */
+{@link EntityManager.fetchEntityByKey} returns. */
 export interface EntityByKeyResult<T extends Entity> extends IEntityByKeyResult {
-  entity?: T;
+  entity: T | null;
 }
 
 function fetchEntityByKeyCore(em: EntityManager, args: any[]): Promise<IEntityByKeyResult> {
@@ -1826,11 +1832,11 @@ function fetchEntityByKeyCore(em: EntityManager, args: any[]): Promise<IEntityBy
     }
   }
   if (foundIt) {
-    return Promise.resolve({ entity: entity || undefined, entityKey: entityKey, fromCache: true });
+    return Promise.resolve({ entity: entity, entityKey: entityKey, fromCache: true });
   } else {
     return EntityQuery.fromEntityKey(entityKey).using(em).execute().then(function (data: any) {
       entity = (data.results.length === 0) ? null : data.results[0];
-      return Promise.resolve({ entity: entity || undefined, entityKey: entityKey, fromCache: false });
+      return Promise.resolve({ entity: entity, entityKey: entityKey, fromCache: false });
     });
   }
 }

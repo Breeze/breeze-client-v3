@@ -277,6 +277,32 @@ under a policy without `'unsafe-eval'` and reports nothing at startup.
 ---
 
 
+## 7. `fetchEntityByKey` reports a missing entity as `null`, not `undefined`
+
+```ts
+const result = await em.fetchEntityByKey(Customer, id);
+result.entity;   // the Customer, or null
+```
+
+It was `undefined` in 2.x. Everywhere else in Breeze, an absent entity is `null` — an uncached
+scalar navigation property, a nullable data property, `getEntityByKey` — so this one result was
+the exception, and the exception was undocumented. Its own doc comment said "or null" and had
+been wrong since 2.x.
+
+**Most code is unaffected.** `if (result.entity)`, `result.entity != null` and optional chaining
+all behave the same. What changes:
+
+| your code | effect |
+|---|---|
+| `if (result.entity)` / `!= null` / `?.` | no change |
+| `result.entity === undefined` | now always false — **and a compile error**, since the property is no longer optional |
+| `const { entity = fallback } = result` | the default no longer fires; `??` or `\|\|` instead |
+
+`IEntityByKeyResult.entity` is now `Entity \| null` rather than an optional `entity?: Entity`, so
+TypeScript flags the cases that need attention rather than letting them fail silently at run time.
+
+---
+
 The public API is otherwise intended to be source-compatible with 2.x. `EntityManager`,
 `EntityQuery`, `Predicate`, `MetadataStore`, `EntityType`, `EntityAspect`, `Validator`,
 `DataType`, the `BreezeEnum` types, save/query options and the event model all keep their
