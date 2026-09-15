@@ -621,3 +621,55 @@ elements. The default argument makes every existing use compile unchanged.
 
 The 40 existing spec files still use untyped `Entity` and `getProperty`. Retrofitting them onto
 these classes is the follow-on, and it is worth doing file by file rather than in one sweep.
+
+## Typed API: generics on EntityQuery and EntityManager (done)
+
+Breeze's public surface had **no generics at all** — `executeQuery` returned `results: any[]`,
+`createEntity` returned `Entity`, `getEntities` returned `Entity[]`. That is the reason the spec
+retrofit was so unsatisfying: converting `o.getProperty("freight")` to `o.freight` on an `any`
+receiver compiles and checks nothing. This fixes it at the source.
+
+Prompted by `unit-of-work.ts` in the `rifm.sa` repo, whose `TypedQuery<T>` solves the same problem
+at application level. The typed facade is what came across; its RxJS layer did not (v3 has no
+runtime dependencies, and the three signals are already `BreezeEvent`s — that belongs in the
+Angular package parked in `deferred/`), nor its `_pendingSavePromise`, which drops the second
+caller's entities and tag where `mixin-save-queuing` queues them properly.
+
+| | |
+|---|---|
+| `EntityQuery<T = any>` | `from(ctor)`; every chaining method keeps `T`; `select()` drops to `any` |
+| `QueryResult<T = any>` | `results: T[]` |
+| `executeQuery`, `executeQueryLocally` | carry `T` through |
+| `createEntity`, `getEntities`, `getChanges`, `fetchEntityByKey` | constructor overloads returning `T` |
+| `entityTypeForCtor(ctor)` | exported, for building your own helpers |
+| `EntityQuery.executeCount()` | new; `take(0).inlineCount(true)` |
+
+### Two entry points, and only one is checked
+
+`EntityQuery.from(Customer)` infers `T` from a registered constructor and reads the resource name
+from metadata. `EntityQuery.from<Customer>('Customers')` is a claim nothing verifies — the docs say
+so plainly, because `EntityQuery.from<Customer>('Orders')` compiles. The unchecked form stays
+because projections, named server queries and anonymous results have no constructor to pass.
+
+The checked form **requires `registerEntityTypeCtor`**, which is what puts `entityType` on the
+prototype, and inherits the one-class-per-`MetadataStore` rule. An unregistered class throws a
+message naming the call to make rather than querying `undefined`.
+
+### Why it does not break existing code
+
+Every default reproduces that API's *current* type. `QueryResult` defaults to **`any`**, not
+`Entity`: measured, `T = Entity` produces 58 errors in this repo's own specs, `T = any` produces 0.
+Type parameters and overloads are erased, so the emitted JavaScript is unchanged.
+
+### Tests
+
+`test/unit/typed-api.spec.ts` — 14 runtime tests covering both entry points, the state filter,
+local execution, the unregistered-constructor error, and that untyped 2.x-style code still works.
+
+Alongside them, `compilerMustReject()` — a function nothing calls, full of `@ts-expect-error`. An
+unused `@ts-expect-error` is itself an error (TS2578), so `npm run typecheck` fails if any of them
+stops being rejected. That is what stops the type parameters quietly becoming decorative: without
+it, `EntityQuery<Order>` and `EntityQuery<Customer>` could become interchangeable and every runtime
+test would still pass. Verified by making one line legal and watching the build fail.
+
+Docs: `docs/guide/typed-entities.md`, plus a section in UPGRADE.md.

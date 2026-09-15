@@ -2645,6 +2645,30 @@ export function qualifyTypeName(shortName: string, ns?: string) {
   }
 }
 
+/**
+The {@link EntityType} a constructor stands for.
+
+{@link MetadataStore.registerEntityTypeCtor} puts the type on the class's prototype, and that is
+what the constructor-taking overloads of `EntityQuery.from`, `EntityManager.createEntity` and the
+rest read. A class that was never registered has nothing to read, so this throws rather than
+letting the caller build a query against `undefined`.
+
+>     em.metadataStore.registerEntityTypeCtor('Customer', Customer);
+>     entityTypeForCtor(Customer).defaultResourceName;   // 'Customers'
+@param entityCtor - A constructor registered with a MetadataStore.
+**/
+export function entityTypeForCtor(entityCtor: Function): EntityType {
+  const entityType = entityCtor && entityCtor.prototype && (entityCtor.prototype as any).entityType;
+  if (!entityType) {
+    const name = (entityCtor && entityCtor.name) || String(entityCtor);
+    throw new Error(core.formatString(
+      "'%1' is not registered with a MetadataStore, so its EntityType is unknown. Call " +
+      "metadataStore.registerEntityTypeCtor('%1', %1) before using the constructor with this API.",
+      name));
+  }
+  return entityType as EntityType;
+}
+
 // Used by both ComplexType and EntityType
 function addProperties(entityType: StructuralType, propObj: Object | undefined, ctor: any) {
   if (propObj == null) return;

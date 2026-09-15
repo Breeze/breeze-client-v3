@@ -57,6 +57,7 @@ export default defineConfig({
           text: 'Advanced',
           items: [
             { text: 'Extending entities', link: '/guide/extending-entities' },
+            { text: 'Typed entities', link: '/guide/typed-entities' },
             { text: 'Date and time', link: '/guide/date-and-time' },
             { text: 'Performance', link: '/guide/performance' },
             { text: 'Testing', link: '/guide/testing' },

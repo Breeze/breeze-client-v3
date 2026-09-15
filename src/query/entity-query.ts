@@ -6,7 +6,7 @@ import { EntityKey } from '../entity/entity-key.js';
 import { BreezeEnum } from '../core/enum.js';
 import { DataService, JsonResultsAdapter } from '../metadata/data-service.js';
 import { EntityManager, QueryResult } from '../manager/entity-manager.js';
-import { MetadataStore, EntityType, NavigationProperty, EntityProperty } from '../metadata/entity-metadata.js';
+import { MetadataStore, EntityType, NavigationProperty, EntityProperty, entityTypeForCtor } from '../metadata/entity-metadata.js';
 import { QueryOptions, MergeStrategy, FetchStrategy } from './query-options.js';
 import { Predicate } from './predicate.js';
 
@@ -25,7 +25,7 @@ An EntityQuery instance is used to query entities either from a remote datasourc
 EntityQueries are immutable - this means that all EntityQuery methods that return an EntityQuery actually create a new EntityQuery.  This means that
 EntityQueries can be 'modified' without affecting any current instances.
 **/
-export class EntityQuery {
+export class EntityQuery<T = any> {
   /** @hidden @internal */
   declare _$typeName: string; // actually placed on prototype
   // top = this.take; // TODO: consider
@@ -124,9 +124,21 @@ export class EntityQuery {
   >      let query = new EntityQuery("Customers");
   @param resourceName - The resource to query.
   **/
-  static from(resourceName: string) {
-    assertParam(resourceName, "resourceName").isString().check();
-    return new EntityQuery(resourceName);
+  static from<U extends Entity>(entityCtor: new () => U): EntityQuery<U>;
+  // `U` here is the caller's claim about what the resource returns - nothing checks it against
+  // the name. It defaults to `any`, so `from("Customers")` behaves exactly as it always has.
+  static from<U = any>(resourceName: string): EntityQuery<U>;
+  static from(arg: string | (new () => Entity)): EntityQuery<any> {
+    if (typeof arg === 'function') {
+      const entityType = entityTypeForCtor(arg);
+      if (!entityType.defaultResourceName) {
+        throw new Error(`'${entityType.name}' has no defaultResourceName, so a query cannot be built from the constructor. ` +
+          `Use EntityQuery.from(resourceName).toType(...) instead, or call metadataStore.setEntityTypeForResourceName.`);
+      }
+      return new EntityQuery(entityType.defaultResourceName);
+    }
+    assertParam(arg, "resourceName").isString().check();
+    return new EntityQuery(arg);
   }
 
   /**
@@ -144,14 +156,14 @@ export class EntityQuery {
   }
 
 
-  where(predicate?: Predicate): EntityQuery;
-  where(predicate: Object): EntityQuery;
-  where(property: string, operator: string, value: any): EntityQuery;
-  where(property: string, operator: FilterQueryOp, value: any): EntityQuery;
-  where(property: string, filterop: FilterQueryOp, property2: string, filterop2: FilterQueryOp, value: any): EntityQuery;  // for any/all clauses
-  where(property: string, filterop: string, property2: string, filterop2: string, value: any): EntityQuery;  // for any/all clauses
-  where(property: string, filterop: string, property2: string, filterop2: string, property3: string, filterop3: string, value: any): EntityQuery;  // for any/all clauses
-  where(anArray: RecursiveArray<string | number | FilterQueryOp | Predicate>): EntityQuery;
+  where(predicate?: Predicate): EntityQuery<T>;
+  where(predicate: Object): EntityQuery<T>;
+  where(property: string, operator: string, value: any): EntityQuery<T>;
+  where(property: string, operator: FilterQueryOp, value: any): EntityQuery<T>;
+  where(property: string, filterop: FilterQueryOp, property2: string, filterop2: FilterQueryOp, value: any): EntityQuery<T>;  // for any/all clauses
+  where(property: string, filterop: string, property2: string, filterop2: string, value: any): EntityQuery<T>;  // for any/all clauses
+  where(property: string, filterop: string, property2: string, filterop2: string, property3: string, filterop3: string, value: any): EntityQuery<T>;  // for any/all clauses
+  where(anArray: RecursiveArray<string | number | FilterQueryOp | Predicate>): EntityQuery<T>;
   /**
   Returns a new query with an added filter criteria; Can be called multiple times which means to 'and' with any existing
   Predicate or can be called with null to clear all predicates.
@@ -212,8 +224,8 @@ export class EntityQuery {
   }
 
 
-  orderBy(propertyPaths?: string, isDescending?: boolean): EntityQuery;
-  orderBy(propertyPaths: string[], isDescending?: boolean): EntityQuery;
+  orderBy(propertyPaths?: string, isDescending?: boolean): EntityQuery<T>;
+  orderBy(propertyPaths: string[], isDescending?: boolean): EntityQuery<T>;
   /**
   Returns a new query that orders the results of the query by property name.  By default sorting occurs is ascending order, but sorting in descending order is supported as well.
   OrderBy clauses may be chained.
@@ -250,8 +262,8 @@ export class EntityQuery {
   }
 
 
-  orderByDesc(propertyPaths: string): EntityQuery;
-  orderByDesc(propertyPaths: string[]): EntityQuery;
+  orderByDesc(propertyPaths: string): EntityQuery<T>;
+  orderByDesc(propertyPaths: string[]): EntityQuery<T>;
   /**
   Returns a new query that orders the results of the query by property name in descending order.
   >     let query = new EntityQuery("Customers")
@@ -302,9 +314,11 @@ export class EntityQuery {
   @param propertyPaths - A comma-separated (',') string of property paths or an array of property paths.
   If 'propertyPaths' is either null or omitted then any existing projection on the query is removed.
   **/
-  select(propertyPaths?: string | string[]) {
+  select(propertyPaths?: string | string[]): EntityQuery<any> {
     let selectClause = propertyPaths == null ? null : new SelectClause(normalizePropertyPaths(propertyPaths));
-    return clone(this, "selectClause", selectClause);
+    // A projection no longer returns the entity type, so the type parameter is dropped rather
+    // than carried forward as something the results will not be.
+    return clone(this, "selectClause", selectClause) as EntityQuery<any>;
   }
 
   /**
@@ -446,12 +460,12 @@ export class EntityQuery {
     return clone(this, "usePostEnabled", enabled);
   }
 
-  using(obj: EntityManager): EntityQuery;
-  using(obj: DataService): EntityQuery;
-  using(obj: JsonResultsAdapter): EntityQuery;
-  using(obj: QueryOptions): EntityQuery;
-  using(obj: MergeStrategy): EntityQuery;
-  using(obj: FetchStrategy): EntityQuery;
+  using(obj: EntityManager): EntityQuery<T>;
+  using(obj: DataService): EntityQuery<T>;
+  using(obj: JsonResultsAdapter): EntityQuery<T>;
+  using(obj: QueryOptions): EntityQuery<T>;
+  using(obj: MergeStrategy): EntityQuery<T>;
+  using(obj: FetchStrategy): EntityQuery<T>;
   /**
   Returns a copy of this EntityQuery with the specified {@link EntityManager}, {@link DataService},
   {@link JsonResultsAdapter}, {@link MergeStrategy} or {@link FetchStrategy} applied.
@@ -529,7 +543,7 @@ export class EntityQuery {
   @param errorCallback - Function called on failure.
   @returns Promise
   **/
-  execute(callback?: Callback, errorCallback?: ErrorCallback): Promise<QueryResult> {
+  execute(callback?: Callback, errorCallback?: ErrorCallback): Promise<QueryResult<T>> {
     if (!this.entityManager) {
       throw new Error("An EntityQuery must have its EntityManager property set before calling 'execute'");
     }
@@ -544,11 +558,27 @@ export class EntityQuery {
 
   Note that calling this method is the same as calling {@link EntityManager.executeQueryLocally}.
   **/
-  executeLocally() {
+  executeLocally(): T[] {
     if (!this.entityManager) {
       throw new Error("An EntityQuery must have its EntityManager property set before calling 'executeLocally'");
     }
     return this.entityManager.executeQueryLocally(this);
+  }
+
+  /**
+  Executes this query against the server and returns only the number of matching entities, without
+  materializing any of them. Requires an EntityManager, set via {@link EntityQuery.using}.
+  >      let count = await new EntityQuery("Orders").where("freight", ">", 100).using(em).executeCount();
+
+  It is `take(0).inlineCount(true)` and reads `inlineCount` off the result, so the server must
+  support inline count.
+  **/
+  async executeCount(): Promise<number> {
+    if (!this.entityManager) {
+      throw new Error("An EntityQuery must have its EntityManager property set before calling 'executeCount'");
+    }
+    const qr = await this.take(0).inlineCount(true).execute();
+    return qr.inlineCount!;
   }
 
   toJSON() {
@@ -793,7 +823,7 @@ function fromJSON(eq: EntityQuery, json: Object) {
   return eq;
 }
 
-function clone(eq: EntityQuery, propName?: string, value?: any) {
+function clone<T>(eq: EntityQuery<T>, propName?: string, value?: any): EntityQuery<T> {
   // immutable queries mean that we don't need to clone if no change in value.
   if (propName) {
     if ((eq as Record<string, any>)[propName] === value) return eq;
@@ -816,7 +846,7 @@ function clone(eq: EntityQuery, propName?: string, value?: any) {
     "entityManager",
     "dataService",
     "resultEntityType"
-  ]) as EntityQuery;
+  ]) as EntityQuery<T>;
   copy.parameters = core.extend({}, eq.parameters);
   if (propName) {
     (copy as Record<string, any>)[propName] = value;

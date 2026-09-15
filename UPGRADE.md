@@ -286,6 +286,28 @@ If you hit a difference that is not listed above, it is a bug — please file an
 
 ---
 
+## New, and entirely optional: typed entities
+
+`EntityQuery`, `QueryResult` and the `EntityManager` methods that take an entity type now carry a
+type parameter, so `results` can be `Customer[]` rather than `any[]`:
+
+```ts
+const custs = await EntityQuery.from(Customer).using(em).execute();
+custs.results[0].companyName;    // checked
+```
+
+**Nothing changes for existing code.** Every type parameter defaults to the type that API had
+before — `QueryResult<T = any>`, so `qr.results` stays `any[]` — and type parameters are erased by
+the compiler, so the emitted JavaScript is identical. Passing a constructor is a new *overload*
+alongside the existing name and `EntityType` ones.
+
+Using it does require [registering your classes](/guide/extending-entities#registering-a-constructor),
+which is what tells Breeze which type a constructor stands for. See
+[Typed entities](/guide/typed-entities) for what is checked, what is merely asserted, and why
+`EntityQuery.from<Customer>('Orders')` compiles.
+
+---
+
 ## Fixed along the way
 
 Small pre-existing defects corrected in v3:
