@@ -629,6 +629,52 @@ end to end — found two blocking defects.
 Source maps now use `inlineSources`, since the package ships `dist/` only, and declaration
 maps are off.
 
+### The package is staged in `dist/`, and `dist/` is the package root
+
+`npm run build` now also runs `scripts/prepare-dist.mjs`, which writes `dist/package.json`
+and copies `README.md` and `LICENSE` in. So `dist/` is a complete package:
+
+```bash
+npm run pack          # build, then npm pack ./dist -> breeze-client-3.0.0.tgz
+
+# in another repo, to try it without publishing:
+npm install /github/Breeze/breeze-client-v3/breeze-client-3.0.0.tgz
+```
+
+**`npm pack dist` does not do this.** npm reads a bare argument as a package spec, so it
+downloads the package *named* `dist` from the registry and writes `dist-0.1.2.tgz`. It needs
+the `./`: `npm pack ./dist`. That is what `npm run pack` does.
+
+The published manifest is derived from the root `package.json` rather than kept as a second
+file, because the exports map has nine entries and is the thing most likely to drift. Every
+path loses its `./dist/` prefix — `"./dist/breeze.js"` becomes `"./breeze.js"` — and
+`prepare-dist` throws if a path is not under `dist/`, since such a path could not be
+published from there.
+
+Three fields are deliberately dropped:
+
+| | |
+|---|---|
+| `files` | it lists `dist`, which from inside `dist` means `dist/dist`. The tarball would contain only the README and LICENSE |
+| `scripts` | meaningless in a published package, and a stray lifecycle script would run on every install |
+| `devDependencies` | not needed to consume the package |
+
+Two fields are added, for tooling that does not read `exports`: `main` and `types`, both
+pointing at `breeze.js` / `breeze.d.ts`.
+
+Verified by installing the tarball into a fresh app: the runtime works through both the root
+and a subpath, and a consumer compiles against the shipped `.d.ts` under `NodeNext` with
+`strict` and **`skipLibCheck: false`** — which type-checks the declarations themselves — with
+no errors. `moduleResolution: "bundler"` is clean too.
+
+**`moduleResolution: "node10"` resolves the root import but not the subpaths.** The `types`
+field is what makes the root work; node10 predates `exports` and cannot follow
+`breeze-client/adapter-ajax-fetch` to `adapters/adapter-ajax-fetch.d.ts`. Supporting it would
+mean shipping stub `.js` and `.d.ts` pairs at the package root for all seven subpaths, which
+bypasses the exports map. Not done: the package is ESM-only and declares `node >= 20`, so a
+node10 consumer has bigger problems. An `index.d.ts` would not help — `types` already covers
+the only case node10 can resolve.
+
 ## The tests have their own TypeScript project
 
 `tsconfig.json` covers `src/` only, so until now the specs were checked by nothing: VS Code

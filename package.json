@@ -70,7 +70,7 @@
     "LICENSE"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
+    "build": "tsc -p tsconfig.build.json && node scripts/prepare-dist.mjs",
     "docs:api": "typedoc",
     "docs:dev": "npm run docs:api && vitepress dev docs",
     "docs:build": "npm run docs:api && vitepress build docs",
@@ -78,6 +78,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p test/tsconfig.json",
     "typecheck:test": "tsc -p test/tsconfig.json",
     "clean": "rimraf dist",
+    "pack": "npm run build && npm pack ./dist",
     "gen:model": "npm run build && node scripts/generate-entity-classes.js --metadata test/support/NorthwindIBMetadata_ETNOPAYLOAD.json --out test/model",
     "test": "vitest run",
     "test:unit": "vitest run --config vitest.unit.config.ts",

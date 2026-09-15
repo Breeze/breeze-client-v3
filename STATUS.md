@@ -150,7 +150,8 @@ server repo is a proven, fast reset — prefer that over patching the cleanup sc
 ```bash
 npm install
 npm run typecheck      # tsc --noEmit
-npm run build          # -> dist/
+npm run build          # -> dist/, including a publishable dist/package.json
+npm run pack           # build, then npm pack ./dist -> breeze-client-3.0.0.tgz
 ```
 
 Integration tests need the server from `breeze-server-v3` on `http://localhost:34377`;
@@ -673,3 +674,25 @@ it, `EntityQuery<Order>` and `EntityQuery<Customer>` could become interchangeabl
 test would still pass. Verified by making one line legal and watching the build fail.
 
 Docs: `docs/guide/typed-entities.md`, plus a section in UPGRADE.md.
+
+## dist/ is a publishable package (done)
+
+`npm run build` stages `dist/` so it can be packed directly: `scripts/prepare-dist.mjs` writes
+`dist/package.json` and copies `README.md` and `LICENSE` in. `npm run pack` then produces
+`breeze-client-3.0.0.tgz`, which installs into another repo by path — a way to try the real
+package without publishing.
+
+The manifest is derived from the root `package.json`, not kept as a second file: every path
+loses its `./dist/` prefix, `files` / `scripts` / `devDependencies` are dropped, and `main` and
+`types` are added for tooling that does not read `exports`. Dropping `files` matters — it lists
+`dist`, which from inside `dist` means `dist/dist`, and the tarball would have held only the
+README and LICENSE.
+
+**`npm pack dist` silently does the wrong thing**: npm reads a bare argument as a package spec
+and downloads the registry package named `dist`. It needs `npm pack ./dist`. Hence the script.
+
+Verified by installing the tarball into a fresh app — runtime through the root and a subpath,
+and a consumer compiling against the shipped `.d.ts` under `NodeNext` + `strict` +
+`skipLibCheck: false` (so the declarations themselves are checked) with no errors; `bundler`
+resolution likewise. `node10` resolves the root import but not the subpaths, which is inherent
+to an `exports`-only package; see CHANGES-DEV.md for why that is left alone.
