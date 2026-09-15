@@ -1,12 +1,16 @@
 import { Entity, EntityQuery, Predicate } from '../../src/breeze';
 import { TestFns, skipDescribeIf } from '../test-fns';
 import { UtilFns } from '../util-fns';
+import { Customer, Employee, Region, registerModelClasses } from '../model';
 
 TestFns.initServerEnv();
 
 beforeAll(async () => {
   await TestFns.initDefaultMetadataStore();
-
+  // Registering types the queries below. Vitest gives each spec file its own module graph, so
+  // these classes bind only to this file's store. The unregistered default-constructor path has
+  // its own coverage in test/unit/unregistered-types.spec.ts.
+  registerModelClasses(TestFns.defaultMetadataStore);
 });
 
  
@@ -20,7 +24,7 @@ describe( "Query Any/All predicates", () => {
   test("any and gt", async function () {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
-    const query = EntityQuery.from("Employees")
+    const query = EntityQuery.from(Employee)
       .where("orders", "any", "freight", ">", 950);
     const qr1 = await em.executeQuery(query);
     const emps = qr1.results;
@@ -31,7 +35,7 @@ describe( "Query Any/All predicates", () => {
     expect.hasAssertions();
     const maxFreight = 800;
     const em = TestFns.newEntityManager();
-    const query = EntityQuery.from("Employees")
+    const query = EntityQuery.from(Employee)
       .where("orders", "any", "freight", ">", maxFreight)
       .expand("orders");
 
@@ -39,14 +43,14 @@ describe( "Query Any/All predicates", () => {
     const emps = qr1.results;
     expect(emps.length).toBeGreaterThan(0);
     emps.forEach(function (emp) {
-      const orders = emp.getProperty("orders");
+      const orders = emp.orders;
       // at least one order on each emp should be > maxFreight 
-      const isOk = orders.some((order: Entity) => order.getProperty("freight") > maxFreight);
+      const isOk = orders.some(order => order.freight > maxFreight);
       expect(isOk).toBe(true);
     });
     const p1 = new Predicate("freight", "<=", maxFreight).or("freight", "==", null);
     const predicate = new Predicate("orders", "all", p1).not();
-    const query2 = EntityQuery.from("Employees")
+    const query2 = EntityQuery.from(Employee)
       .where(predicate)
       .expand("orders");
 
@@ -61,23 +65,23 @@ describe( "Query Any/All predicates", () => {
     expect.hasAssertions();
     const maxFreight = 800;
     const em = TestFns.newEntityManager();
-    const query = EntityQuery.from("Regions")
+    const query = EntityQuery.from(Region)
       .where("territories", "any", "territoryDescription", "startsWith", "B")
       .expand("territories");
     const qr1 = await em.executeQuery(query);
     const regions = qr1.results;
     expect(regions.length).toBeGreaterThan(0);
     regions.forEach(function (region) {
-      const territories = region.getProperty("territories") as [];
-      const isOk = territories.some((territory: Entity) => {
-        const descr = territory.getProperty("territoryDescription");
+      const territories = region.territories;
+      const isOk = territories.some(territory => {
+        const descr = territory.territoryDescription;
         return descr.indexOf("B") === 0;
       });
       expect(isOk).toBe(true);
     });
     const p1 = new Predicate("territoryDescription", "startsWith", "B").not().or("territoryDescription", "==", null);
     const predicate = new Predicate("territories", "all", p1).not();
-    const query2 = EntityQuery.from("Regions")
+    const query2 = EntityQuery.from(Region)
       .where(predicate)
       .expand("territories");
     const qr2 = await em.executeQuery(query2);
@@ -92,7 +96,7 @@ describe( "Query Any/All predicates", () => {
   test("any and gt (local)", async function () {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
-    const query = EntityQuery.from("Employees")
+    const query = EntityQuery.from(Employee)
       .where("orders", "any", "freight", ">", 950)
       .expand("orders");
 
@@ -112,14 +116,14 @@ describe( "Query Any/All predicates", () => {
     const p2 = Predicate.create("freight", ">", 10);
     const p1 = Predicate.create("orders", "all", p2);
     const p0 = Predicate.create("companyName", "contains", "ar").and(p1);
-    const query = EntityQuery.from("Customers").where(p0).expand("orders");
+    const query = EntityQuery.from(Customer).where(p0).expand("orders");
 
     const qr1 = await em.executeQuery(query);
     const custs = qr1.results;
     custs.forEach(function (cust) {
-      expect(cust.getProperty("companyName").indexOf("ar") >= 0).toBe(true);
-      const orders = cust.getProperty("orders") as Entity[];
-      const isOk = orders.every(o => o.getProperty("freight") > 10);
+      expect(cust.companyName.indexOf("ar") >= 0).toBe(true);
+      const orders = cust.orders;
+      const isOk = orders.every(o => o.freight > 10);
       expect(isOk).toBe(true); //, "every order should have a freight value > 10");
     });
     const custs2 = em.executeQueryLocally(query);
@@ -133,12 +137,12 @@ describe( "Query Any/All predicates", () => {
     const em = TestFns.newEntityManager();
     // customers with no orders
     const p = Predicate.create("orders", "any", "rowVersion", ">=", 0).not();
-    const query = EntityQuery.from("Customers").where(p).expand("orders");
+    const query = EntityQuery.from(Customer).where(p).expand("orders");
 
     const data = await em.executeQuery(query);
     const custs = data.results;
     custs.forEach(function (cust) {
-      const orders = cust.getProperty("orders");
+      const orders = cust.orders;
       expect(orders.length).toBe(0);
     });
     const custs2 = em.executeQueryLocally(query);
@@ -151,12 +155,12 @@ describe( "Query Any/All predicates", () => {
     const em = TestFns.newEntityManager();
     // customers with no orders
     const p = Predicate.create("orders", "any", "rowVersion", "!=", null).not();
-    const query = EntityQuery.from("Customers").where(p).expand("orders");
+    const query = EntityQuery.from(Customer).where(p).expand("orders");
 
     const data = await em.executeQuery(query);
     const custs = data.results;
     custs.forEach(function (cust) {
-      const orders = cust.getProperty("orders");
+      const orders = cust.orders;
       expect(orders.length).toBe(0);
     });
     const custs2 = em.executeQueryLocally(query);
@@ -167,15 +171,15 @@ describe( "Query Any/All predicates", () => {
   test("any and gt with expand", async function () {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
-    const query = EntityQuery.from("Employees")
+    const query = EntityQuery.from(Employee)
       .where("orders", "any", "freight", ">", 950)
       .expand("orders");
     const qr1 = await em.executeQuery(query);
     const emps = qr1.results;
     expect(emps.length).toBeGreaterThan(0);
     emps.forEach(emp => {
-      const orders = emp.getProperty("orders") as Entity[];
-      const isOk = orders.some(order => order.getProperty("freight") > 950);
+      const orders = emp.orders;
+      const isOk = orders.some(order => order.freight > 950);
       expect(isOk).toBe(true); //, "should be some order with freight > 950");
     });
     const emps2 = em.executeQueryLocally(query);
@@ -186,7 +190,7 @@ describe( "Query Any/All predicates", () => {
   test("any and nested property", async function () {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
-    const query = EntityQuery.from("Employees")
+    const query = EntityQuery.from(Employee)
       .where("orders", "any", "customer.companyName", "startsWith", "Lazy")
       .expand("orders.customer");
 
@@ -194,10 +198,10 @@ describe( "Query Any/All predicates", () => {
     const emps = qr1.results;
     expect(emps.length).toBe(2);
     emps.slice(0, 5).forEach((emp) => {
-      const orders = emp.getProperty("orders") as Entity[];
+      const orders = emp.orders;
       const isOk = orders.some(function (order) {
-        const cust = order.getProperty("customer");
-        return cust && cust.getProperty("companyName").indexOf("Lazy") >= 0;
+        const cust = order.customer;
+        return cust && cust.companyName.indexOf("Lazy") >= 0;
       });
       expect(isOk).toBe(true); //, "should be some order with the right company name");
     });
@@ -210,7 +214,7 @@ describe( "Query Any/All predicates", () => {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
     const p = Predicate.create("freight", ">", 950).and("shipCountry", "startsWith", "G");
-    const query = EntityQuery.from("Employees")
+    const query = EntityQuery.from(Employee)
       .where("orders", "any", p)
       .expand("orders");
 
@@ -218,9 +222,9 @@ describe( "Query Any/All predicates", () => {
     const emps = qr1.results;
     expect(emps.length).toBe(1);
     emps.forEach((emp) => {
-      const orders = emp.getProperty("orders") as Entity[];
+      const orders = emp.orders;
       const isOk = orders.some((order) => {
-        return order.getProperty("freight") > 950 && order.getProperty("shipCountry").indexOf("G") === 0;
+        return order.freight > 950 && order.shipCountry.indexOf("G") === 0;
       });
       expect(isOk).toBe(true); //, "should be some order with freight > 950");
     });
@@ -235,18 +239,18 @@ describe( "Query Any/All predicates", () => {
     const em = TestFns.newEntityManager();
     const p = Predicate.create("orders", "any", "freight", ">", 950)
       .and("orders", "any", "shipCountry", "startsWith", "G");
-    const query = EntityQuery.from("Employees")
+    const query = EntityQuery.from(Employee)
       .where(p)
       .expand("orders");
     const qr1 = await em.executeQuery(query);
     const emps = qr1.results;
     expect(emps.length).toBeGreaterThan(0);
     emps.forEach((emp) => {
-      const orders = emp.getProperty("orders") as Entity[];
-      let isOk = orders.some(order => order.getProperty("freight") > 950);
+      const orders = emp.orders;
+      let isOk = orders.some(order => order.freight > 950);
       expect(isOk).toBe(true); //, "should be some order with freight > 950");
       isOk = orders.some(function (order) {
-        return order.getProperty("shipCountry").indexOf("G") === 0;
+        return order.shipCountry.indexOf("G") === 0;
       });
       expect(isOk).toBe(true); //, "should be some order with shipCountry starting with 'G'");
     });
@@ -259,11 +263,11 @@ describe( "Query Any/All predicates", () => {
     expect.hasAssertions();
     // different query than one above.
     const em = TestFns.newEntityManager();
-    const q1 = EntityQuery.from("Customers")
+    const q1 = EntityQuery.from(Customer)
       .where("orders", "any", "orderDetails", "some", "unitPrice", ">", 200);
 
     const p2 = new Predicate("unitPrice", ">", 200).and("quantity", ">", 50);
-    const q2 = EntityQuery.from("Customers")
+    const q2 = EntityQuery.from(Customer)
       .where("orders", "some", "orderDetails", "any", p2)
       .expand("orders.orderDetails");
 
@@ -287,7 +291,7 @@ describe( "Query Any/All predicates", () => {
     const p2 = new Predicate("unitPrice", ">", 200).and("quantity", ">", 50);
     const p1 = new Predicate("orders", "some", "orderDetails", "any", p2);
 
-    const q2 = EntityQuery.from("Customers")
+    const q2 = EntityQuery.from(Customer)
       .where("orders", "some", "orderDetails", "any", p2)
       .expand("orders.orderDetails");
     const s = q2.wherePredicate.toString();
@@ -299,7 +303,7 @@ describe( "Query Any/All predicates", () => {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
     const p2 = new Predicate("unitPrice", ">", 200).and("XXquantity", ">", 50);
-    const q2 = EntityQuery.from("Customers")
+    const q2 = EntityQuery.from(Customer)
       .where("orders", "some", "orderDetails", "any", p2)
       .expand("orders.orderDetails");
 
