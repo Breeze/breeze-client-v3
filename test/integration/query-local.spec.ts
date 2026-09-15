@@ -1,12 +1,16 @@
 import { Predicate, FilterQueryOp, MetadataStore, EntityType, OrderByClause, DataType, core, EntityQuery, EntityManager, QueryOptions, FetchStrategy } from '../../src/breeze';
 import { TestFns } from '../test-fns';
 import { ModelLibraryBackingStoreAdapter } from '../../src/adapters/adapter-model-library-backing-store';
+import { Customer, Employee, Order, Product, TimeLimit, registerModelClasses } from '../model';
 
 
 TestFns.initServerEnv();
 
 beforeAll(async () => {
   await TestFns.initDefaultMetadataStore();
+  // Types the queries below; see test/model/README.md. The unregistered default-constructor
+  // path has its own coverage in test/unit/unregistered-types.spec.ts.
+  registerModelClasses(TestFns.defaultMetadataStore);
 
 });
 
@@ -19,8 +23,8 @@ describe("Query Local", () => {
 
   test("local query with added entities", function () {
     const em = TestFns.newEntityManager();
-    const newEntity = em.createEntity('Customer');
-    const query = EntityQuery.from('Customers');
+    const newEntity = em.createEntity(Customer);
+    const query = EntityQuery.from(Customer);
     // Returns zero results
     const result = em.executeQueryLocally(query);
     expect(result.length).toBe(1);
@@ -29,8 +33,8 @@ describe("Query Local", () => {
   test("startsWith empty string", async function () {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
-    const q0 = EntityQuery.from("Customers").where("companyName", "startsWith", "C");
-    const q1 = EntityQuery.from("Customers").where("companyName", "startsWith", "");
+    const q0 = EntityQuery.from(Customer).where("companyName", "startsWith", "C");
+    const q1 = EntityQuery.from(Customer).where("companyName", "startsWith", "");
     
     const data = await em.executeQuery(q0);
     expect(data.results.length).toBeGreaterThanOrEqual(0);
@@ -44,18 +48,18 @@ describe("Query Local", () => {
   test("query property inference error", function () {
     const em = TestFns.newEntityManager();
     const orderKeyName = TestFns.wellKnownData.keyNames.order;
-    const q1 = EntityQuery.from("Orders")
+    const q1 = EntityQuery.from(Order)
         .where(orderKeyName, "==", "20140000");
     const r1 = em.executeQueryLocally(q1);
     expect(r1.length).toBe(0);
 
     const p1 = new Predicate(orderKeyName, "==", "2140000");
-    const q2 = EntityQuery.from("Orders").where(p1);
+    const q2 = EntityQuery.from(Order).where(p1);
     const r2 = em.executeQueryLocally(q2);
     expect(r2.length).toBe(0);
 
     const p2 = new Predicate("employeeID", "ne", orderKeyName);
-    const q3 = EntityQuery.from("Orders").where(p1.and(p2));
+    const q3 = EntityQuery.from(Order).where(p1.and(p2));
     const r3 = em.executeQueryLocally(q3);
     expect(r3.length).toBe(0);
   });
@@ -63,7 +67,7 @@ describe("Query Local", () => {
 
   test("empty em", function () {
     const em = new EntityManager();
-    const q = EntityQuery.from("Orders")
+    const q = EntityQuery.from(Order)
         .where("shippedDate", "==", null)
         .take(20);
     try {
@@ -78,7 +82,7 @@ describe("Query Local", () => {
   test("null dates", async function () {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
-    const q = EntityQuery.from("Orders")
+    const q = EntityQuery.from(Order)
         .where("shippedDate", "==", null)
         .take(20);
     
@@ -92,7 +96,7 @@ describe("Query Local", () => {
   test("timespan", async function () {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
-    const q = EntityQuery.from("TimeLimits")
+    const q = EntityQuery.from(TimeLimit)
         .where("maxTime", "<", "PT4H")
         .take(20);
     
@@ -106,7 +110,7 @@ describe("Query Local", () => {
     
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
-    const q = EntityQuery.from("TimeLimits")
+    const q = EntityQuery.from(TimeLimit)
         .where("maxTime", "<", "minTime")
         .take(20);
     
@@ -119,7 +123,7 @@ describe("Query Local", () => {
   test("null timespans", async function () {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
-    const q = EntityQuery.from("TimeLimits")
+    const q = EntityQuery.from(TimeLimit)
         .where("minTime", "!=", null)
         .take(20);
     
@@ -132,7 +136,7 @@ describe("Query Local", () => {
   test("compare dates", async function () {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
-    const q = EntityQuery.from("Orders")
+    const q = EntityQuery.from(Order)
         .where("requiredDate", "<", "shippedDate")
         .take(20);
     
@@ -145,7 +149,7 @@ describe("Query Local", () => {
   test("local query with two fields & contains", async function () {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
-    const q = EntityQuery.from("Employees")
+    const q = EntityQuery.from(Employee)
         .where("lastName", "startsWith", "firstName")
         .take(20);
     
@@ -158,7 +162,7 @@ describe("Query Local", () => {
   test("local query with two fields & contains literal", async function () {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
-    const q = EntityQuery.from("Employees")
+    const q = EntityQuery.from(Employee)
         .where("lastName", "startsWith", "test")
         .take(20);
     
@@ -171,7 +175,7 @@ describe("Query Local", () => {
   test("local query with two fields & contains literal forced", async function () {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
-    const q = EntityQuery.from("Employees")
+    const q = EntityQuery.from(Employee)
         .where("lastName", "startsWith", { value: "firstName", isLiteral: true })
         .take(20);
     
@@ -202,14 +206,13 @@ describe("Query Local", () => {
   test("local query with select", async function () {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
-    const query = EntityQuery.from("Customers")
+    const query = EntityQuery.from(Customer)
         .where("companyName", "startswith", "c");
     
     const data = await em.executeQuery(query);
     const r = data.results;
     expect(r.length).toBeGreaterThan(0);
-    const q2 = new EntityQuery()
-      .from("Customers")
+    const q2 = EntityQuery.from(Customer)
       .where("companyName", "startsWith", "C")
       .select("companyName");
     const r2 = em.executeQueryLocally(q2);
@@ -238,7 +241,7 @@ describe("Query Local", () => {
     const rx = r2[0];
     expect(rx.entityAspect).toBeUndefined();
     // named as the server names it: Customer_CompanyName through the camelCase convention
-    expect(rx["customer_CompanyName"]).toBe(rx["customer"].getProperty("companyName"));
+    expect(rx["customer_CompanyName"]).toBe(rx["customer"].companyName);
     expect(rx["customer"].entityAspect).not.toBeNull();
     expect(rx["orderDate"]).not.toBeNull();
   });
@@ -256,7 +259,7 @@ describe("Query Local", () => {
     expect(entityState.isDetached()).toBe(true);
 
     // FAILS with "TypeError: Unable to get property 'entityAspect' of undefined or null reference"
-    const orders = em.executeQueryLocally(EntityQuery.from("Orders"));
+    const orders = em.executeQueryLocally(EntityQuery.from(Order));
     expect(orders.length).toBe(0);
   });
 
@@ -265,16 +268,14 @@ describe("Query Local", () => {
     const em = TestFns.newEntityManager();
     const productKeyName = TestFns.wellKnownData.keyNames.product;    
 
-    const data = await EntityQuery.from("Products").take(5).using(em).execute();
+    const data = await EntityQuery.from(Product).take(5).using(em).execute();
     const id = data.results[0].getProperty(productKeyName).toString();
     
-    let query = new EntityQuery()
-        .from("Products").where(productKeyName, '==', id);
+    let query = EntityQuery.from(Product).where(productKeyName, '==', id);
     let r = em.executeQueryLocally(query);
     expect(r.length).toBe(1);
 
-    query = new EntityQuery()
-        .from("Products").where(productKeyName, '!=', id);
+    query = EntityQuery.from(Product).where(productKeyName, '!=', id);
     r = em.executeQueryLocally(query);
     expect(r.length).toBe(4);  
   });
@@ -282,7 +283,7 @@ describe("Query Local", () => {
   test("case sensitivity - startsWith", async function () {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
-    const query = EntityQuery.from("Customers")
+    const query = EntityQuery.from(Customer)
         .where("companyName", "startswith", "c");
     
     const data = await em.executeQuery(query);
@@ -296,7 +297,7 @@ describe("Query Local", () => {
   test("case sensitivity - endsWith", async function () {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
-    const query = EntityQuery.from("Customers")
+    const query = EntityQuery.from(Customer)
         .where("companyName", "endsWith", "OS");
     
     const data = await em.executeQuery(query);
@@ -310,7 +311,7 @@ describe("Query Local", () => {
   test("case sensitivity - contains", async function () {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
-    const query = EntityQuery.from("Customers")
+    const query = EntityQuery.from(Customer)
         .where("companyName", "contains", "SP");
     
     const data = await em.executeQuery(query);
@@ -325,19 +326,19 @@ describe("Query Local", () => {
     expect.hasAssertions();
     
     const em = TestFns.newEntityManager();
-    const query = EntityQuery.from("Customers")
+    const query = EntityQuery.from(Customer)
         .where("companyName", "startsWith", "F")
         .orderBy("companyName");
     
     const data = await em.executeQuery(query);
     const r = data.results;
     const comps1 = r.map(function (e) {
-      return e.getProperty("companyName");
+      return e.companyName;
     });
     expect(r.length).toBeGreaterThan(0);
     const r2 = em.executeQueryLocally(query);
     const comps2 = r2.map(function (e) {
-      return e.getProperty("companyName");
+      return e.companyName;
     });
     expect(r.length).toBe(r2.length);
     expect(core.arrayEquals(r, r2)).toBeTrue();
@@ -346,7 +347,7 @@ describe("Query Local", () => {
   test("case sensitivity - order by 2", async function () {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
-    const baseQuery = EntityQuery.from("Customers")
+    const baseQuery = EntityQuery.from(Customer)
         .where("companyName", "startsWith", "F");
     
     const data = await em.executeQuery(baseQuery);
@@ -355,7 +356,7 @@ describe("Query Local", () => {
     const query = baseQuery.orderBy("companyName");
     const r2 = em.executeQueryLocally(query);
     const names = r2.map(function (e) {
-      return e.getProperty("companyName");
+      return e.companyName;
     });
     const isSorted = TestFns.isSorted(r2, "companyName", DataType.String, false, false);
     expect(isSorted).toBeTrue();
@@ -364,7 +365,7 @@ describe("Query Local", () => {
   test("case sensitivity - order by 3", async function () {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
-    const baseQuery = EntityQuery.from("Customers")
+    const baseQuery = EntityQuery.from(Customer)
         .where("companyName", "startsWith", "F");
     
     const data = await em.executeQuery(baseQuery);
@@ -373,7 +374,7 @@ describe("Query Local", () => {
     const query = baseQuery.orderBy("city");
     const r2 = em.executeQueryLocally(query);
     const names = r2.map(function (e) {
-      return e.getProperty("city");
+      return e.city;
     });
     const isSorted = TestFns.isSorted(r2, "city", DataType.String, false, false);
     expect(isSorted).toBeTrue();
@@ -383,7 +384,7 @@ describe("Query Local", () => {
   test("case sensitivity - order by desc", async function () {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
-    const baseQuery = EntityQuery.from("Customers")
+    const baseQuery = EntityQuery.from(Customer)
         .where("companyName", "startsWith", "F");
     
     const data = await em.executeQuery(baseQuery);
@@ -392,7 +393,7 @@ describe("Query Local", () => {
     const query = baseQuery.orderBy("companyName desc");
     const r2 = em.executeQueryLocally(query);
     const names = r2.map(function (e) {
-      return e.getProperty("companyName");
+      return e.companyName;
     });
     const isSorted = TestFns.isSorted(r2, "companyName", DataType.String, true, false);
     expect(isSorted).toBeTrue();
@@ -401,7 +402,7 @@ describe("Query Local", () => {
   test("case sensitivity - order by multiple props", async function () {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
-    const baseQuery = EntityQuery.from("Customers")
+    const baseQuery = EntityQuery.from(Customer)
         .where("city", "startsWith", "B");
     
     const data = await em.executeQuery(baseQuery);
@@ -410,7 +411,7 @@ describe("Query Local", () => {
     const query = baseQuery.orderBy("city, companyName");
     const r2 = em.executeQueryLocally(query);
     const names = r2.map(function (e) {
-      return e.getProperty("city");
+      return e.city;
     });
     
     const isSorted = TestFns.isSorted(r2, "city", DataType.String, false, false);
@@ -420,7 +421,7 @@ describe("Query Local", () => {
   test("case sensitivity - order by multiple props desc", async function () {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
-    const baseQuery = EntityQuery.from("Customers")
+    const baseQuery = EntityQuery.from(Customer)
         .where("city", "startsWith", "B");
     
     const data = await em.executeQuery(baseQuery);
@@ -429,7 +430,7 @@ describe("Query Local", () => {
     const query = baseQuery.orderBy("city desc, companyName desc");
     const r2 = em.executeQueryLocally(query);
     const names = r2.map(function (e) {
-      return e.getProperty("city");
+      return e.city;
     });
     
     const isSorted = TestFns.isSorted(r2, "city", DataType.String, true, false);
@@ -439,7 +440,7 @@ describe("Query Local", () => {
   test("query for null values", async function () {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
-    const baseQuery = EntityQuery.from("Customers")
+    const baseQuery = EntityQuery.from(Customer)
         .where("city", "!=", null);
     
     const data = await em.executeQuery(baseQuery);
@@ -448,7 +449,7 @@ describe("Query Local", () => {
     const query = baseQuery.orderBy("city");
     const r2 = em.executeQueryLocally(query);
     const names = r2.map(function (e) {
-      return e.getProperty("city");
+      return e.city;
     });
     
     const isSorted = TestFns.isSorted(r2, "city", DataType.String, false, false);
@@ -460,20 +461,20 @@ describe("Query Local", () => {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
     const origCompName = "Simons bistro";
-    const q1 = EntityQuery.from("Customers")
+    const q1 = EntityQuery.from(Customer)
         .where("companyName", "startsWith", origCompName);
-    const q2 = EntityQuery.from("Customers")
+    const q2 = EntityQuery.from(Customer)
         .where("companyName", "==", origCompName);
     
     let saved = false;
     const data = await em.executeQuery(q1);
     const r = data.results;
     expect(r.length).toBe(1);
-    const compNm = r[0].getProperty("companyName");
+    const compNm = r[0].companyName;
     const ending = compNm.substr(compNm.length - 2);
     
     if (ending !== "  ") {
-      r[0].setProperty("companyName", origCompName + "  ");
+      r[0].companyName = origCompName + "  ";
       saved = true;
     }
     const sr = await em.saveChanges();
@@ -493,7 +494,7 @@ describe("Query Local", () => {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
     const origCompName = "Simons bistro";
-    const q = EntityQuery.from("Customers")
+    const q = EntityQuery.from(Customer)
         .where("companyName", "!=", origCompName);
     
     const saved = false;
@@ -510,11 +511,11 @@ describe("Query Local", () => {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
 
-    const query = EntityQuery.from("Orders").take(10);
+    const query = EntityQuery.from(Order).take(10);
     const qr = await em.executeQuery(query);
     expect(qr.results.length).toBeGreaterThan(0);
 
-    const q2 = EntityQuery.from("Orders").where("customer.companyName", "startsWith", "A");
+    const q2 = EntityQuery.from(Order).where("customer.companyName", "startsWith", "A");
     const rLocal = em.executeQueryLocally(q2);
     expect(rLocal.length).toBe(0);
     
@@ -528,7 +529,7 @@ describe("Query Local", () => {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
 
-    const query = new EntityQuery().from("Customers").take(5);
+    const query = EntityQuery.from(Customer).take(5);
     
     const qr1 = await em.executeQuery(query);
     expect(qr1.results.length).toBe(5);
@@ -545,7 +546,7 @@ describe("Query Local", () => {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
 
-    const query = new EntityQuery().from("Customers")
+    const query = EntityQuery.from(Customer)
         .where("companyName", "startsWith", "C");
     
     const data = await em.executeQuery(query);
@@ -564,12 +565,10 @@ describe("Query Local", () => {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
 
-    const query = new EntityQuery()
-        .from("Orders")
+    const query = EntityQuery.from(Order)
         .where("freight", ">", 100);
 
-    const query2 = new EntityQuery()
-        .from("Orders")
+    const query2 = EntityQuery.from(Order)
         .where("freight", ">=", 500);
 
     
@@ -581,7 +580,7 @@ describe("Query Local", () => {
       expect(orders2.length).toBeGreaterThan(0);
       expect(orders2.length < orders.length);
       expect(orders2.every(function (o) {
-        return o.getProperty("freight") >= 500;
+        return o.freight >= 500;
       }));
 
     });
@@ -591,12 +590,10 @@ describe("Query Local", () => {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
 
-    let query = new EntityQuery()
-        .from("Orders")
+    let query = EntityQuery.from(Order)
         .where("freight", ">", 100);
 
-    const query2 = new EntityQuery()
-        .from("Orders")
+    const query2 = EntityQuery.from(Order)
         .where("freight", ">=", 500);
 
     
@@ -614,7 +611,7 @@ describe("Query Local", () => {
     expect(orders2.length).toBeGreaterThan(0);
     expect(orders2.length).toBeLessThan(orders.length);
     expect(orders2.every(function (o) {
-      return o.getProperty("freight") >= 500;
+      return o.freight >= 500;
     }));
   });
 
@@ -663,7 +660,7 @@ describe("Query Local", () => {
   }
 
   function getQueryForCustomerA() {
-    return new EntityQuery("Customers")
+    return EntityQuery.from(Customer)
         .where("companyName", "startsWith", "A")
         .orderBy("companyName");
   }
@@ -671,7 +668,7 @@ describe("Query Local", () => {
   function addCustomer(em: EntityManager, name: string) {
     const customerType = em.metadataStore.getAsEntityType("Customer");
     const cust = customerType.createEntity();
-    cust.setProperty("companyName", name || "a-new-company");
+    cust.companyName = name || "a-new-company";
     em.addEntity(cust);
     return cust;
   }

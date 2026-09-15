@@ -1,5 +1,6 @@
 import { Entity, EntityQuery, EntityType, MetadataStore, Predicate, breeze, MergeStrategy, DataProperty, NavigationProperty, core } from '../../src/breeze';
 import { TestFns, skipTestIf } from '../test-fns';
+import { Customer, Order, registerModelClasses } from '../model';
 
 function ok(a: any, b?: any) {
   throw new Error('for test conversion purposes');
@@ -9,6 +10,9 @@ TestFns.initServerEnv();
 
 beforeAll(async () => {
   await TestFns.initDefaultMetadataStore();
+  // Types the queries below; see test/model/README.md. The unregistered default-constructor
+  // path has its own coverage in test/unit/unregistered-types.spec.ts.
+  registerModelClasses(TestFns.defaultMetadataStore);
 
 });
 
@@ -62,15 +66,14 @@ describe("Query Functions", () => {
   test("function expr - toLower", async function () {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
-    const query = new EntityQuery()
-      .from("Customers")
+    const query = EntityQuery.from(Customer)
       // .where("toLower(companyName)", "startsWith", "c");
       .where({ "toLower(companyName)": { startsWith: "C" } });
     const qr1 = await em.executeQuery(query);
     const custs = qr1.results;
     expect(custs.length).toBeGreaterThan(0);
     const isOk = custs.every(function (cust) {
-      const name = cust.getProperty("companyName").toLowerCase();
+      const name = cust.companyName.toLowerCase();
       return core.stringStartsWith(name, "c");
     });
     expect(isOk).toBe(true);
@@ -80,14 +83,13 @@ describe("Query Functions", () => {
   test("function expr - toUpper/substring", async function () {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
-    const query = new EntityQuery()
-      .from("Customers")
+    const query = EntityQuery.from(Customer)
       .where("toUpper(substring(companyName, 1, 2))", "startsWith", "OM");
     const qr1 = await em.executeQuery(query);
     const custs = qr1.results;
     expect(custs.length).toBeGreaterThan(0);
     const isOk = custs.every(function (cust) {
-      const val = cust.getProperty("companyName").substr(1, 2).toUpperCase();
+      const val = cust.companyName.substr(1, 2).toUpperCase();
       return val === "OM";
     });
     expect(isOk).toBe(true);
@@ -97,14 +99,13 @@ describe("Query Functions", () => {
   test("function expr - length", async function () {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
-    const query = new EntityQuery()
-      .from("Customers")
+    const query = EntityQuery.from(Customer)
       .where("length(contactTitle)", ">", 17);
     const qr1 = await em.executeQuery(query);
     const custs = qr1.results;
     expect(custs.length).toBeGreaterThan(0);
     const isOk = custs.every(function (cust) {
-      const val = cust.getProperty("contactTitle");
+      const val = cust.contactTitle;
       return val.length > 17;
     });
     expect(isOk).toBe(true);
@@ -114,16 +115,15 @@ describe("Query Functions", () => {
   test("function expr - navigation then length", async function () {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
-    const query = new EntityQuery()
-      .from("Orders")
+    const query = EntityQuery.from(Order)
       .where("length(customer.companyName)", ">", 30)
       .expand("customer");
     const qr1 = await em.executeQuery(query);
     const orders = qr1.results;
     expect(orders.length).toBeGreaterThan(0);
     const isOk = orders.every(function (order) {
-      const cust = order.getProperty("customer");
-      const val = cust.getProperty("companyName");
+      const cust = order.customer;
+      const val = cust.companyName;
       return val.length > 30;
     });
     expect(isOk).toBe(true);
@@ -133,8 +133,7 @@ describe("Query Functions", () => {
   test("bad query function expr -  bad property name", async function () {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
-    const query = new EntityQuery()
-      .from("Orders")
+    const query = EntityQuery.from(Order)
       .where("length(customer.fooName)", ">", 30);
     try {
       const data = await em.executeQuery(query);

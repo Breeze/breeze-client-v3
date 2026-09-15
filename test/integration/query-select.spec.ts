@@ -1,10 +1,14 @@
 import { Entity, EntityQuery, EntityType, MetadataStore, Predicate, breeze, MergeStrategy, DataProperty, NavigationProperty, core, QueryOptions, EntityManager, EntityKey, FetchStrategy, EntityState, FilterQueryOp } from '../../src/breeze';
 import { TestFns, skipDescribeIf } from '../test-fns';
+import { Customer, Order, Supplier, UnusualDate, registerModelClasses } from '../model';
 
 TestFns.initServerEnv();
 
 beforeAll(async () => {
   await TestFns.initDefaultMetadataStore();
+  // Types the queries below; see test/model/README.md. The unregistered default-constructor
+  // path has its own coverage in test/unit/unregistered-types.spec.ts.
+  registerModelClasses(TestFns.defaultMetadataStore);
 
 });
 
@@ -14,7 +18,7 @@ describe("Query Select clause", () => {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
 
-    let query = EntityQuery.from("Orders")
+    let query = EntityQuery.from(Order)
       .where("freight", FilterQueryOp.GreaterThan, 500)
       .select("customer.companyName")
       .orderBy("customer.companyName");
@@ -29,8 +33,7 @@ describe("Query Select clause", () => {
 
     const em = TestFns.newEntityManager();
 
-    const query = new EntityQuery()
-      .from("Suppliers")
+    const query = EntityQuery.from(Supplier)
       .select(TestFns.wellKnownData.keyNames.supplier + ", companyName, location")
       .noTracking();
 
@@ -62,8 +65,7 @@ describe("Query Select clause", () => {
         return null;
       }
     });
-    const query = new EntityQuery()
-      .from("UnusualDates")
+    const query = EntityQuery.from(UnusualDate)
       .where("creationDate", "!=", null)
       .select("creationDate, modificationDate")
       .take(3)
@@ -83,8 +85,7 @@ describe("Query Select clause", () => {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
 
-    const query = new EntityQuery()
-      .from("Customers")
+    const query = EntityQuery.from(Customer)
       .where("companyName", "startsWith", "C")
       .select("companyName");
     const queryUrl = query._toUri(em);
@@ -103,7 +104,7 @@ describe("Query Select clause", () => {
     expect.hasAssertions();
 
     const em = TestFns.newEntityManager();
-    let query = EntityQuery.from("Customers")
+    let query = EntityQuery.from(Customer)
       .where("companyName", "startsWith", "C")
       .select("orders");
 
@@ -126,7 +127,7 @@ describe("Query Select clause", () => {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
 
-    let query = new EntityQuery("Customers")
+    let query = EntityQuery.from(Customer)
       .where("companyName", "startsWith", "C")
       .orderBy("companyName")
       // .select(["companyName", "city", "orders"]) // also works

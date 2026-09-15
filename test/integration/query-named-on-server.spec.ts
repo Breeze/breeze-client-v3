@@ -170,7 +170,7 @@ describe("Queries with named endpoints on the server", function () {
     const r = qr1.results;
     expect(r.length).toBeGreaterThan(0);
     const allOk = r.every(function (r1) {
-      return r1.getProperty("companyName").toUpperCase().substr(0, 1) === "C";
+      return r1.companyName.toUpperCase().substr(0, 1) === "C";
     });
     expect(allOk).toBeTrue();
 
@@ -219,7 +219,7 @@ describe("Queries with named endpoints on the server", function () {
     const r = data.results;
     expect(r.length).toBeGreaterThan(0);
     const allOk = r.every(function (emp) {
-      return emp.getProperty("country") === "USA" && emp.getProperty("birthDate") >= born;
+      return emp.country === "USA" && emp.birthDate >= born;
     });
     expect(allOk).toBeTrue();
   });
@@ -236,7 +236,7 @@ describe("Queries with named endpoints on the server", function () {
     const r = qr1.results;
     expect(r.length).toBeGreaterThan(0);
     const allOk = r.every(function (emp) {
-      return emp.getProperty("country") === "USA" && emp.getProperty("birthDate") >= born;
+      return emp.country === "USA" && emp.birthDate >= born;
     });
     expect(allOk).toBeTrue();
   });
@@ -267,7 +267,7 @@ describe("Queries with named endpoints on the server", function () {
     const r = qr1.results;
     expect(r.length).toBeGreaterThan(0);
     const allOk = r.every(function (r1) {
-      return r1.getProperty("companyName").toUpperCase().substr(0, 1) === "C";
+      return r1.companyName.toUpperCase().substr(0, 1) === "C";
     });
     expect(allOk).toBeTrue();
   });
@@ -447,10 +447,10 @@ describe("Queries with named endpoints on the server", function () {
     const isSorted = TestFns.isSorted(customers, "companyName", breeze.DataType.String, false, em.metadataStore.localQueryComparisonOptions.isCaseSensitive);
     expect(isSorted).toBeTrue();
     customers.forEach(function (c) {
-      expect(c.getProperty("companyName")).toBeTruthy();
-      const orders = c.getProperty("orders");
+      expect(c.companyName).toBeTruthy();
+      const orders = c.orders;
       expect(orders.length).toBeGreaterThan(0);
-      const matchingCust = orders[0].getProperty("customer");
+      const matchingCust = orders[0].customer;
       expect(c).toBe(matchingCust);
       const ckey = c.entityAspect.getKey();
       expect(ckey).toBeTruthy();
@@ -477,7 +477,7 @@ describe("Queries with named endpoints on the server", function () {
     expect(qr1.results.length).toBe(1);
     const cust = qr1.results[0];
     const custKey = cust.entityAspect.getKey();
-    const orders = cust.getProperty("orders");
+    const orders = cust.orders;
     const orderKeys = orders.map(function (o: Entity) {
       return o.entityAspect.getKey();
     });
@@ -530,10 +530,10 @@ describe("Queries with named endpoints on the server", function () {
     const customers = qr1.results;
     expect(customers.length).toBe(4);
     customers.forEach(function (c) {
-      expect(c.getProperty("companyName")).toBeTruthy();
-      const orders = c.getProperty("orders");
+      expect(c.companyName).toBeTruthy();
+      const orders = c.orders;
       expect(orders.length).toBeGreaterThan(0);
-      const matchingCust = orders[0].getProperty("customer");
+      const matchingCust = orders[0].customer;
       expect(c).toBe(matchingCust);
       const ckey = c.entityAspect.getKey();
       expect(ckey).toBeTruthy();
@@ -578,14 +578,14 @@ describe("Queries with named endpoints on the server", function () {
     len = (len > 4) ? 4 : len;
     for (let i = 0; i < len; i++) {
       const c = customers[i];
-      const companyName = c.getProperty("companyName");
+      const companyName = c.companyName;
       expect(companyName).toBeTruthy();
       expect(companyName.indexOf('A') === 0).toBeTrue();
       const ckey = c.entityAspect.getKey();
       expect(ckey).toBeTruthy();
       const c2 = em.getEntityByKey(ckey);
       expect(c2).toBe(c);
-      const orders = c.getProperty("orders");
+      const orders = c.orders;
       expect(orders.length).toBeGreaterThan(1);
     }
   });

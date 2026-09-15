@@ -1,10 +1,14 @@
 import { breeze, EntityManager, EntityQuery, NamingConvention, Predicate, EntityType, EntityState, EntityKey, Entity, MergeStrategy, RelationArray, core, QueryOptions, FetchStrategy, FilterQueryOp } from '../../src/breeze';
 import { TestFns } from '../test-fns';
+import { Customer, Employee, Order, OrderDetail, Product, registerModelClasses } from '../model';
 
 TestFns.initServerEnv();
 
 beforeAll(async () => {
   await TestFns.initDefaultMetadataStore();
+  // Types the queries below; see test/model/README.md. The unregistered default-constructor path
+  // has its own coverage in test/unit/unregistered-types.spec.ts.
+  registerModelClasses(TestFns.defaultMetadataStore);
 });
 
 describe("Query Basics", () => {
@@ -19,7 +23,7 @@ describe("Query Basics", () => {
     let em = TestFns.newEntityManager();
     let ms = em.metadataStore;
 
-    let query = new EntityQuery("Customers");
+    let query = EntityQuery.from(Customer);
     expect(query.resourceName).toEqual("Customers");
 
     const qr = await em.executeQuery(query);
@@ -30,7 +34,7 @@ describe("Query Basics", () => {
   test("where with JSON syntax ", async () => {
     expect.assertions(1);
     let em = TestFns.newEntityManager();
-    const query = EntityQuery.from('Customers').using(em).where({ 'city': { '==': 'London' } });
+    const query = EntityQuery.from(Customer).using(em).where({ 'city': { '==': 'London' } });
     const url = query._toUri(em);
 
     const qr = await em.executeQuery(query);
@@ -49,7 +53,7 @@ describe("Query Basics", () => {
     };
 
     const p = Predicate.create(p2);
-    const q = new EntityQuery("Customers").where(p);
+    const q = EntityQuery.from(Customer).where(p);
     const em = TestFns.newEntityManager();
     const qr = await em.executeQuery(q);
     const r = qr.results;
@@ -62,7 +66,7 @@ describe("Query Basics", () => {
 
   test("where with parens in right hand side of predicate", async () => {
     const em = TestFns.newEntityManager();
-    const query = new EntityQuery("Customers");
+    const query = EntityQuery.from(Customer);
     // a valid query that returns no data
     const q2 = query.where('city', 'startsWith', 'Lon (don )');
 
@@ -77,14 +81,14 @@ describe("Query Basics", () => {
     const em1 = TestFns.newEntityManager();
 
     const countries = ['Austria', 'Italy', 'Norway'];
-    const query = EntityQuery.from("Customers")
+    const query = EntityQuery.from(Customer)
       .where("country", 'in', countries);
     const qr1 = await em1.executeQuery(query);
     const r = qr1.results;
     expect(r.length).toBeGreaterThan(0);
 
     const isOk = r.every((cust) => {
-      return countries.indexOf(cust.getProperty("country")) >= 0;
+      return countries.indexOf(cust.country) >= 0;
     });
     expect(isOk).toBe(true);
 
@@ -97,7 +101,7 @@ describe("Query Basics", () => {
     const em1 = TestFns.newEntityManager();
 
     var empIds = [1,3,5,8]
-    var query = EntityQuery.from("Employees")
+    var query = EntityQuery.from(Employee)
       .where("employeeID", 'in', empIds);
 
     const qr1 = await em1.executeQuery(query);
@@ -113,15 +117,14 @@ describe("Query Basics", () => {
   test("where with same field twice", async () => {
     const em1 = TestFns.newEntityManager();
     const p = Predicate.create("freight", ">", 100).and("freight", "<", 200);
-    const query = new EntityQuery()
-      .from("Orders")
+    const query = EntityQuery.from(Order)
       .where(p);
 
     const qr1 = await em1.executeQuery(query);
     const orders = qr1.results;
     expect(orders.length).toBeGreaterThan(0);
     orders.forEach(function (o) {
-      const f = o.getProperty("freight");
+      const f = o.freight;
       expect(f > 100 && f < 200).toBe(true);
     });
   });
@@ -129,16 +132,15 @@ describe("Query Basics", () => {
   test("where nested property", async () => {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
-    const query = new EntityQuery()
-      .from("Products")
+    const query = EntityQuery.from(Product)
       .where("category.categoryName", "startswith", "S")
       .expand("category");
     const queryUrl = query._toUri(em);
     const qr1 = await em.executeQuery(query);
     const products = qr1.results;
-    const cats = products.map(product => product.getProperty("category"));
+    const cats = products.map(product => product.category);
     cats.forEach(function (cat) {
-      const catName = cat.getProperty("categoryName");
+      const catName = cat.categoryName;
       expect(core.stringStartsWith(catName, "S")).toBe(true);
     });
   });
@@ -147,8 +149,7 @@ describe("Query Basics", () => {
   test("where nested property 2", async () => {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
-    const query = new EntityQuery()
-      .from("Orders")
+    const query = EntityQuery.from(Order)
       .where("customer.region", "==", "CA");
 
     const qr1 = await em.executeQuery(query);
@@ -160,8 +161,7 @@ describe("Query Basics", () => {
   test("where with startsWith op", async () => {
     expect.hasAssertions();
     const em1 = TestFns.newEntityManager();
-    const query = new EntityQuery()
-      .from("Customers")
+    const query = EntityQuery.from(Customer)
       .where("companyName", "startsWith", "C")
       .orderBy("companyName");
     const queryUrl = query._toUri(em1);
@@ -172,7 +172,7 @@ describe("Query Basics", () => {
     const isSorted = TestFns.isSorted(customers, "companyName", breeze.DataType.String, false, em1.metadataStore.localQueryComparisonOptions.isCaseSensitive);
     expect(isSorted).toBe(true);
     customers.forEach(c => {
-      expect(c.getProperty("companyName")).not.toBeNull();
+      expect(c.companyName).not.toBeNull();
       const key = c.entityAspect.getKey();
       expect(key).not.toBeNull();
       const c2 = em1.getEntityByKey(key);
@@ -183,7 +183,7 @@ describe("Query Basics", () => {
   test("where with greater than op", async () => {
     expect.hasAssertions();
     const em1 = TestFns.newEntityManager();
-    const query = EntityQuery.from("Orders")
+    const query = EntityQuery.from(Order)
       .where("freight", ">", 100);
     const queryUrl = query._toUri(em1);
     const qr1 = await em1.executeQuery(query);
@@ -195,7 +195,7 @@ describe("Query Basics", () => {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
 
-    const baseQuery = EntityQuery.from("Orders");
+    const baseQuery = EntityQuery.from(Order);
     const pred1 = new Predicate("freight", ">", 100);
     const pred2 = new Predicate("orderDate", ">", new Date(1998, 3, 1));
     const query = baseQuery.where(pred1.and(pred2));
@@ -212,8 +212,7 @@ describe("Query Basics", () => {
     const p1 = Predicate.create("companyName", "startsWith", "S");
     const p2 = Predicate.create("city", "contains", "er");
     const whereClause = p1.and(p2);
-    const query = new EntityQuery()
-      .from("Customers")
+    const query = EntityQuery.from(Customer)
       .where(whereClause);
     const qr1 = await em.executeQuery(query);
     expect(qr1.results.length).toBeGreaterThan(0);
@@ -222,7 +221,7 @@ describe("Query Basics", () => {
   test("where with with contains", async () => {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
-    const query = EntityQuery.from("Customers")
+    const query = EntityQuery.from(Customer)
       .where("companyName", FilterQueryOp.Contains, 'market');
     //.where("CompanyName", "contains", 'market'); // Alternative to FilterQueryOp
     const qr1 = await em.executeQuery(query);
@@ -234,7 +233,7 @@ describe("Query Basics", () => {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
 
-    const baseQuery = EntityQuery.from("Orders");
+    const baseQuery = EntityQuery.from(Order);
     const pred1 = Predicate.create("freight", ">", 100);
     const pred2 = Predicate.create("orderDate", ">", new Date(1998, 3, 1));
     const newPred = Predicate.and([pred1, pred2]);
@@ -248,7 +247,7 @@ describe("Query Basics", () => {
   test("where with predicate 3", async () => {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
-    const baseQuery = EntityQuery.from("Orders");
+    const baseQuery = EntityQuery.from(Order);
     const pred = Predicate.create("freight", ">", 100)
       .and("orderDate", ">", new Date(1998, 3, 1));
     const query = baseQuery.where(pred);
@@ -264,8 +263,7 @@ describe("Query Basics", () => {
 
     let pred = new Predicate("region", FilterQueryOp.Equals, null);
     pred = pred.not();
-    const query = new EntityQuery()
-      .from("Customers")
+    const query = EntityQuery.from(Customer)
       .where(pred)
       .take(10);
 
@@ -273,7 +271,7 @@ describe("Query Basics", () => {
     const customers = qr1.results;
     expect(customers.length).toBeGreaterThan(0);
     customers.forEach((customer) => {
-      const region = customer.getProperty("region");
+      const region = customer.region;
       expect(region != null).toBe(true);
     });
   });
@@ -281,7 +279,7 @@ describe("Query Basics", () => {
   test("where with quotes", async () => {
     expect.assertions(2);
     const em1 = TestFns.newEntityManager();
-    const q1 = EntityQuery.from("Customers")
+    const q1 = EntityQuery.from(Customer)
       .where("companyName", 'contains', "'")
       .using(em1);
     const qr1 = await q1.execute();
@@ -293,7 +291,7 @@ describe("Query Basics", () => {
   test("where with embedded ampersand", async () => {
     expect.hasAssertions();
     const em1 = TestFns.newEntityManager();
-    const q1 = EntityQuery.from("Customers")
+    const q1 = EntityQuery.from(Customer)
       .where('companyName', 'contains', '&')
       .using(em1);
     const qr1 = await q1.execute();
@@ -305,7 +303,7 @@ describe("Query Basics", () => {
   test("where with two fields", async () => {
     expect.hasAssertions();
     const em1 = TestFns.newEntityManager();
-    const q = EntityQuery.from("Orders")
+    const q = EntityQuery.from(Order)
       .where("requiredDate", "<", "shippedDate")
       .take(20);
 
@@ -313,8 +311,8 @@ describe("Query Basics", () => {
     const results = qr1.results;
     expect(results.length).toBeGreaterThan(0);
     results.forEach((r) => {
-      const reqDt = r.getProperty("requiredDate");
-      const shipDt = r.getProperty("shippedDate");
+      const reqDt = r.requiredDate;
+      const shipDt = r.shippedDate;
       // required dates should be before shipped dates
       expect(reqDt.getTime()).toBeLessThan(shipDt.getTime());
     });
@@ -323,15 +321,15 @@ describe("Query Basics", () => {
   test("where with two fields & contains", async () => {
     expect.hasAssertions();
     const em1 = TestFns.newEntityManager();
-    const q = EntityQuery.from("Employees")
+    const q = EntityQuery.from(Employee)
       .where("notes", "contains", "firstName")
       .take(20);
     const qr1 = await em1.executeQuery(q);
     const results = qr1.results;
     expect(results.length).toBeGreaterThan(0);
     results.forEach(function (r) {
-      const notes = r.getProperty("notes").toLowerCase();
-      const firstNm = r.getProperty("firstName").toLowerCase();
+      const notes = r.notes.toLowerCase();
+      const firstNm = r.firstName.toLowerCase();
       expect(notes.indexOf(firstNm) >= 0).toBe(true);
     });
   });
@@ -339,7 +337,7 @@ describe("Query Basics", () => {
   test("where with two fields & startsWith literal", async () => {
     expect.hasAssertions();
     const em1 = TestFns.newEntityManager();
-    const q = EntityQuery.from("Employees")
+    const q = EntityQuery.from(Employee)
       .where({ lastName: { "startsWith": "Dav" } })
       .take(20);
 
@@ -347,7 +345,7 @@ describe("Query Basics", () => {
     const results = qr1.results;
     expect(results.length).toBeGreaterThan(0);
     const isOk = results.every(e => {
-      return e.getProperty("lastName").toLowerCase().indexOf("dav") >= 0;
+      return e.lastName.toLowerCase().indexOf("dav") >= 0;
     });
     expect(isOk).toBe(true);
   });
@@ -355,7 +353,7 @@ describe("Query Basics", () => {
   test("where with two fields & startsWith literal forced", async () => {
     expect.hasAssertions();
     const em1 = TestFns.newEntityManager();
-    const q = EntityQuery.from("Employees")
+    const q = EntityQuery.from(Employee)
       .where("lastName", "startsWith", { value: "firstName", isLiteral: true })
       // .where("lastName", "startsWith", "firstName", true)
       .take(20);
@@ -368,7 +366,7 @@ describe("Query Basics", () => {
   test("where with two fields & contains property", async () => {
     expect.hasAssertions();
     const em1 = TestFns.newEntityManager();
-    const q = EntityQuery.from("Employees")
+    const q = EntityQuery.from(Employee)
       .where("notes", "contains", { value: "firstName", isProperty: true })
       // .where("lastName", "startsWith", "firstName", true)
       .take(5);
@@ -381,7 +379,7 @@ describe("Query Basics", () => {
   test("where with number field & equals literal forced", async () => {
     expect.hasAssertions();
     const em1 = TestFns.newEntityManager();
-    const q = EntityQuery.from("Products")
+    const q = EntityQuery.from(Product)
       .where("unitsInStock", "eq", { value: "35", isProperty: false, dataType: "Int32" });
       // .take(5);
 
@@ -403,8 +401,8 @@ describe("Query Basics", () => {
     const qr1 = await em1.executeQuery(query);
     expect(qr1.results.length).toBeGreaterThan(0);
     qr1.results.forEach((e) => {
-      const firstName = e.getProperty("firstName");
-      const lastName = e.getProperty("lastName");
+      const firstName = e.firstName;
+      const lastName = e.lastName;
       const ok1 = firstName && firstName.indexOf("A") === 0;
       const ok2 = lastName && lastName.indexOf("D") === 0;
       expect(ok1 || ok2).toBe(true);
@@ -455,7 +453,7 @@ describe("Query Basics", () => {
     const em1 = TestFns.newEntityManager();
     const prodKeyNm = TestFns.wellKnownData.keyNames.product;
 
-    const qr1 = await EntityQuery.from("Products").take(5).using(em1).execute();
+    const qr1 = await EntityQuery.from(Product).take(5).using(em1).execute();
     const id = qr1.results[0].getProperty(prodKeyNm).toString();
 
     const q2 = new breeze.EntityQuery()
@@ -478,7 +476,7 @@ describe("Query Basics", () => {
       .take(3);
     const qr1 = await em1.executeQuery(q1);
     const result = qr1.results[0];
-    const orderDate = result.getProperty("orderDate");
+    const orderDate = result.orderDate;
     expect(breeze.core.isDate(orderDate)).toBe(true);
 
     const em2 = TestFns.newEntityManager();
@@ -542,7 +540,7 @@ describe("Query Basics", () => {
   test("inlineCount", async () => {
     expect.hasAssertions();
     const em1 = TestFns.newEntityManager();
-    const q = EntityQuery.from("Customers")
+    const q = EntityQuery.from(Customer)
       .take(20)
       .inlineCount(true);
 
@@ -556,7 +554,7 @@ describe("Query Basics", () => {
   test("inlineCount (without)", async () => {
     expect.hasAssertions();
     const em1 = TestFns.newEntityManager();
-    const q = EntityQuery.from("Customers")
+    const q = EntityQuery.from(Customer)
       .take(5);
 
     const qr1 = await em1.executeQuery(q);
@@ -568,7 +566,7 @@ describe("Query Basics", () => {
   test("inlineCount 2", async () => {
     expect.hasAssertions();
     const em1 = TestFns.newEntityManager();
-    const q = EntityQuery.from("Orders")
+    const q = EntityQuery.from(Order)
       .where("customer.companyName", "startsWith", "C")
       .take(5)
       .inlineCount(true);
@@ -600,7 +598,7 @@ describe("Query Basics", () => {
     expect.hasAssertions();
     const em1 = TestFns.newEntityManager();
     const pred = new Predicate("shipCity", "startsWith", "A");
-    const query = breeze.EntityQuery.from("Orders")
+    const query = breeze.EntityQuery.from(Order)
       .where(pred)
       .orderBy("customer.companyName");
     const qr1 = await em1.executeQuery(query);
@@ -616,7 +614,7 @@ describe("Query Basics", () => {
   test("expand", async () => {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
-    let query = new EntityQuery().from("Products").where("categoryID", "!=", null);
+    let query = EntityQuery.from(Product).where("categoryID", "!=", null);
     query = query.expand("category").take(5);
     const qr1 = await em.executeQuery(query);
     expect(em.hasChanges()).toBe(false);
@@ -625,7 +623,7 @@ describe("Query Basics", () => {
     expect(products.length).toBe(5);
     let cats: any[] = [];
     products.map(function (product) {
-      const cat = product.getProperty("category");
+      const cat = product.category;
       if (cat) {
         cats.push(cats);
       }
@@ -637,7 +635,7 @@ describe("Query Basics", () => {
   test("expand multiple", async () => {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
-    let query = new EntityQuery("Orders").where("customerID", "!=", null).where("employeeID", "!=", null);
+    let query = EntityQuery.from(Order).where("customerID", "!=", null).where("employeeID", "!=", null);
     query = query.expand(["customer", "employee"]).take(20);
 
     const qr1 = await em.executeQuery(query);
@@ -647,11 +645,11 @@ describe("Query Basics", () => {
     const custs = [];
     const emps = [];
     orders.map(function (order) {
-      const cust = order.getProperty("customer");
+      const cust = order.customer;
       if (cust) {
         custs.push(cust);
       }
-      const emp = order.getProperty("employee");
+      const emp = order.employee;
       if (emp) {
         emps.push(emp);
       }
@@ -663,15 +661,15 @@ describe("Query Basics", () => {
   test("expand multiple nested", async () => {
     expect.hasAssertions();
     const em1 = TestFns.newEntityManager();
-    const query = EntityQuery.from("OrderDetails")
+    const query = EntityQuery.from(OrderDetail)
       .where("orderID", "==", 11069)
       .expand(["order.customer", "order.employee"]);
 
     const qr1 = await em1.executeQuery(query);
     const r = qr1.results[0];
-    const c = r.getProperty("order").getProperty("customer");
+    const c = r.order.customer;
     expect(c).not.toBeNull();
-    const e = r.getProperty("order").getProperty("employee");
+    const e = r.order.employee;
     expect(e).not.toBeNull();
   });
 
@@ -679,8 +677,7 @@ describe("Query Basics", () => {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
 
-    let query = new EntityQuery()
-      .from("Orders");
+    let query = EntityQuery.from(Order);
 
     query = query.expand("customer, orderDetails, orderDetails.product")
       .take(5);
@@ -693,15 +690,15 @@ describe("Query Basics", () => {
     let orderDetails: any[] = [];
     const products = [];
     orders.map(function (order) {
-      const cust = order.getProperty("customer");
+      const cust = order.customer;
       if (cust) {
         custs.push(cust);
       }
-      const orderDetailItems = order.getProperty("orderDetails");
+      const orderDetailItems = order.orderDetails;
       if (orderDetailItems) {
         Array.prototype.push.apply(orderDetails, orderDetailItems);
-        orderDetailItems.map((orderDetail: Entity) => {
-          const product = orderDetail.getProperty("product");
+        orderDetailItems.map((orderDetail) => {
+          const product = orderDetail.product;
           if (product) {
             products.push(product);
           }
@@ -717,15 +714,15 @@ describe("Query Basics", () => {
   test("expand nested - 2", async () => {
     expect.hasAssertions();
     const em1 = TestFns.newEntityManager();
-    const q1 = EntityQuery.from("OrderDetails").where("orderID", "<", 10255).expand("order.customer");
+    const q1 = EntityQuery.from(OrderDetail).where("orderID", "<", 10255).expand("order.customer");
     const qr1 = await em1.executeQuery(q1);
 
     const details = qr1.results;
     details.forEach((od) => {
-      const order = od.getProperty("order");
+      const order = od.order;
       expect(order).not.toBeNull();
-      if (order.getProperty("customerID")) {
-        const customer = order.getProperty("customer");
+      if (order.customerID) {
+        const customer = order.customer;
         expect(customer).not.toBeNull();
       }
     });
@@ -736,14 +733,14 @@ describe("Query Basics", () => {
   test("expand nested 3 level", async () => {
     expect.assertions(3);
     const em1 = TestFns.newEntityManager();
-    const q1 = EntityQuery.from("Orders").take(5).expand("orderDetails.product.category");
+    const q1 = EntityQuery.from(Order).take(5).expand("orderDetails.product.category");
     const qr1 = await em1.executeQuery(q1);
     const orders = qr1.results;
-    const orderDetails = orders[0].getProperty("orderDetails");
+    const orderDetails = orders[0].orderDetails;
     expect(orderDetails.length).toBeGreaterThan(0);
-    const product = orderDetails[0].getProperty("product");
+    const product = orderDetails[0].product;
     expect(product).not.toBeNull();
-    const category = product.getProperty("category");
+    const category = product.category;
     expect(category).not.toBeNull();
   });
 
@@ -751,7 +748,7 @@ describe("Query Basics", () => {
   test("expand nested 2 level - retrievedEntities", async () => {
     expect.hasAssertions();
     const em1 = TestFns.newEntityManager();
-    const q1 = EntityQuery.from("OrderDetails").take(5).expand("order.customer");
+    const q1 = EntityQuery.from(OrderDetail).take(5).expand("order.customer");
     const qr1 = await em1.executeQuery(q1);
     const entities = qr1.retrievedEntities;
     expect(entities).not.toBeNull();
@@ -760,9 +757,9 @@ describe("Query Basics", () => {
 
     const isOk = details.some(function (od) {
       expect(entities.indexOf(od) >= 0).toBe(true);
-      const order = od.getProperty("order");
+      const order = od.order;
       expect(entities.indexOf(order) >= 0).toBe(true);
-      const cust = order.getProperty("customer");
+      const cust = order.customer;
       if (cust) {
         expect(entities.indexOf(cust) >= 0).toBe(true);
         return true;
@@ -777,7 +774,7 @@ describe("Query Basics", () => {
   test("expand nested 3 level - retrievedEntities", async () => {
     expect.hasAssertions();
     const em1 = TestFns.newEntityManager();
-    const q1 = EntityQuery.from("Orders").take(5).expand("orderDetails.product.category");
+    const q1 = EntityQuery.from(Order).take(5).expand("orderDetails.product.category");
     const qr1 = await em1.executeQuery(q1);
 
     const entities = qr1.retrievedEntities;
@@ -785,11 +782,11 @@ describe("Query Basics", () => {
     const orders = qr1.results;
     for (let i = 0, ilen = orders.length; i < ilen; i++) {
       expect(entities.indexOf(orders[i]) >= 0).toBe(true);
-      const orderDetails = orders[i].getProperty("orderDetails");
+      const orderDetails = orders[i].orderDetails;
       for (let j = 0, jlen = orderDetails.length; j < jlen; j++) {
         expect(entities.indexOf(orderDetails[j]) >= 0).toBe(true);
-        expect(entities.indexOf(orderDetails[j].getProperty("product")) >= 0).toBe(true);
-        expect(entities.indexOf(orderDetails[j].getProperty("product").getProperty("category")) >= 0).toBe(true);
+        expect(entities.indexOf(orderDetails[j].product) >= 0).toBe(true);
+        expect(entities.indexOf(orderDetails[j].product.category) >= 0).toBe(true);
       }
     }
     const allEntities = em1.getEntities();
@@ -802,10 +799,9 @@ describe("Query Basics", () => {
     // Northwind ships no order without an employee; this used to find only orders other
     // spec files had created. Create one, then start from an empty cache.
     const seedEm = TestFns.newEntityManager();
-    seedEm.createEntity("Order", { shipName: "Test order with no employee" });
+    seedEm.createEntity(Order, { shipName: "Test order with no employee" });
     await seedEm.saveChanges();
-    let query = new EntityQuery()
-      .from("Orders")
+    let query = EntityQuery.from(Order)
       .where("employeeID", "eq", null);
     query = query.expand("employee, employee.manager, employee.directReports")
       .take(5);
@@ -815,7 +811,7 @@ describe("Query Basics", () => {
     const orders = qr1.results;
     expect(orders.length).toBeGreaterThan(0);
     orders.map(function (order) {
-      const emp = order.getProperty("employee");
+      const emp = order.employee;
       expect(emp == null).toBe(true);
     });
 
@@ -825,7 +821,7 @@ describe("Query Basics", () => {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
 
-    const query = new EntityQuery("Products")
+    const query = EntityQuery.from(Product)
       .orderBy("productName desc")
       .take(5);
 
@@ -839,16 +835,18 @@ describe("Query Basics", () => {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
 
-    const query = new EntityQuery("Customers")
+    const query = EntityQuery.from(Customer)
       .orderBy("country, city")
       .where("country", "!=", null).where("city", "!=", null)
       .take(30);
 
 
     const qr1 = await em.executeQuery(query);
-    const custs = qr1.results;
+    // The test decorates each customer with a scratch key for comparison. It is not a mapped
+    // property, so it is not on the generated class - say so rather than casting to any.
+    const custs = qr1.results as (Customer & { countryCity?: string })[];
     const countryCities = custs.map(function (p) {
-      const countryCity = TestFns.removeAccents(p.getProperty("country") + ":" + p.getProperty("city"));
+      const countryCity = TestFns.removeAccents(p.country + ":" + p.city);
       p.countryCity = countryCity;
       return countryCity;
     });
@@ -857,9 +855,9 @@ describe("Query Basics", () => {
     const q2 = query.orderBy(null);
     const q3 = q2.orderBy("country").orderBy("city");
     const qr2 = await em.executeQuery(q3);
-    const custs2 = qr2.results;
+    const custs2 = qr2.results as (Customer & { countryCity?: string })[];
     custs2.forEach(function (p) {
-      p.countryCity = TestFns.removeAccents(p.getProperty("country") + ":" + p.getProperty("city"));
+      p.countryCity = TestFns.removeAccents(p.country + ":" + p.city);
     });
     const isOk = breeze.core.arrayZip(custs, custs2, function (c1, c2) {
       return c1.countryCity === c2.countryCity;
@@ -873,8 +871,7 @@ describe("Query Basics", () => {
   test("orderBy nested", async () => {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
-    const query = new EntityQuery()
-      .from("Products")
+    const query = EntityQuery.from(Product)
       .orderBy("category.categoryName desc")
       .expand("category");
     const qr1 = await em.executeQuery(query);
@@ -882,7 +879,7 @@ describe("Query Basics", () => {
     expect(em.getChanges().length).toBe(0);
     const products = qr1.results;
     const cats = products.map(function (product) {
-      return product.getProperty("category");
+      return product.category;
     });
     const isSorted = TestFns.isSorted(cats, "categoryName", breeze.DataType.String, true, em.metadataStore.localQueryComparisonOptions.isCaseSensitive);
     expect(isSorted).toBe(true);
@@ -892,8 +889,7 @@ describe("Query Basics", () => {
   test("orderBy two part nested", async () => {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
-    const query = new EntityQuery()
-      .from("Products")
+    const query = EntityQuery.from(Product)
       .orderBy(["category.categoryName desc", "productName"])
       .expand("category");
     const qr1 = await em.executeQuery(query);
@@ -901,7 +897,7 @@ describe("Query Basics", () => {
     expect(em.getChanges().length).toBe(0);
     const products = qr1.results;
     const cats = products.map(function (product) {
-      return product.getProperty("category");
+      return product.category;
     });
     const isSorted = TestFns.isSorted(cats, "categoryName", breeze.DataType.String, true, em.metadataStore.localQueryComparisonOptions.isCaseSensitive);
     expect(isSorted).toBe(true);
@@ -933,8 +929,7 @@ describe("Query Basics", () => {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
 
-    const query = new EntityQuery()
-      .from("Products")
+    const query = EntityQuery.from(Product)
       .orderBy("productName");
 
     const skipTakeCount = 5;
@@ -964,7 +959,7 @@ describe("Query Basics", () => {
   test("take, orderby and expand", async () => {
     expect.hasAssertions();
     const em1 = TestFns.newEntityManager();
-    const q1 = EntityQuery.from("Products")
+    const q1 = EntityQuery.from(Product)
       .expand("category")
       .orderBy("category.categoryName desc, productName");
     const qr1 = await em1.executeQuery(q1);
@@ -979,7 +974,7 @@ describe("Query Basics", () => {
   test("take, skip, orderby and expand", async () => {
     expect.hasAssertions();
     const em1 = TestFns.newEntityManager();
-    const q1 = EntityQuery.from("Products")
+    const q1 = EntityQuery.from(Product)
       .expand("category")
       .orderBy("category.categoryName, productName");
       
@@ -1017,7 +1012,7 @@ describe("Query Basics", () => {
   test("hasChanges after query", async () => {
     expect.hasAssertions();
     const em1 = TestFns.newEntityManager();
-    const query = EntityQuery.from("Customers").take(20);
+    const query = EntityQuery.from(Customer).take(20);
     const qr1 = await em1.executeQuery(query);
     const r = qr1.results;
     expect(r.length).toBe(20);
@@ -1027,7 +1022,7 @@ describe("Query Basics", () => {
   test("hasChanges after query 2", async () => {
     expect.hasAssertions();
     const em1 = TestFns.newEntityManager();
-    const query = EntityQuery.from("Customers").where("companyName", "startsWith", "An").take(2);
+    const query = EntityQuery.from(Customer).where("companyName", "startsWith", "An").take(2);
     const qr1 = await em1.executeQuery(query);
     const r = qr1.results;
     expect(r.length).toBe(2);
@@ -1051,7 +1046,7 @@ describe("Query Basics", () => {
   test("hasChanges after query 3", async () => {
     expect.hasAssertions();
     const em1 = TestFns.newEntityManager();
-    const query = EntityQuery.from("Customers").take(20);
+    const query = EntityQuery.from(Customer).take(20);
     const qr1 = await em1.executeQuery(query);
     const r = qr1.results;
     expect(r.length).toBe(20);
@@ -1069,7 +1064,7 @@ describe("Query Basics", () => {
     expect.hasAssertions();
     const em1 = TestFns.newEntityManager();
     const alfredsID = '785efa04-cbf2-4dd7-a7de-083ee17b6ad2';
-    const query = EntityQuery.from("Customers")
+    const query = EntityQuery.from(Customer)
       .where(TestFns.wellKnownData.keyNames.customer, "==", alfredsID)
       .using(em1);
 
@@ -1077,7 +1072,7 @@ describe("Query Basics", () => {
     let adds: any[];
     const qr1 = await query.execute();
     const customer = qr1.results[0];
-    const orders = customer.getProperty("orders");
+    const orders = customer.orders;
     orders.arrayChanged.subscribe((args: any) => {
       arrayChangedCount++;
       adds = args.added;
@@ -1102,7 +1097,7 @@ describe("Query Basics", () => {
     expect.hasAssertions();
     const em1 = TestFns.newEntityManager();
     const alfredsID = '785efa04-cbf2-4dd7-a7de-083ee17b6ad2';
-    const query = EntityQuery.from("Customers")
+    const query = EntityQuery.from(Customer)
       .where(TestFns.wellKnownData.keyNames.customer, "==", alfredsID)
       .using(em1);
 
@@ -1111,7 +1106,7 @@ describe("Query Basics", () => {
 
     const qr1 = await query.execute();
     const customer = qr1.results[0];
-    // const orders = customer.getProperty("orders") as RelationArray;
+    // const orders = customer.orders as RelationArray;
     const orders = customer.orders as RelationArray;
     orders.arrayChanged.subscribe(function (args) {
       arrayChangedCount++;
@@ -1133,13 +1128,13 @@ describe("Query Basics", () => {
     expect.hasAssertions();
     const em1 = TestFns.newEntityManager();
     const alfredsID = '785efa04-cbf2-4dd7-a7de-083ee17b6ad2';
-    const query = EntityQuery.from("Customers")
+    const query = EntityQuery.from(Customer)
       .where(TestFns.wellKnownData.keyNames.customer, "==", alfredsID)
       .using(em1);
     let arrayChangedCount = 0;
     const qr1 = await query.execute();
     const customer = qr1.results[0];
-    const orders = customer.getProperty("orders");
+    const orders = customer.orders;
     orders.arrayChanged.subscribe((args: any) => {
       arrayChangedCount++;
     });
@@ -1192,7 +1187,7 @@ describe("Query Basics", () => {
     const em1 = TestFns.newEntityManager();
     const custType = em1.metadataStore.getAsEntityType("Customer");
     const customer = custType.createEntity();
-    customer.setProperty("companyName", "[don't know name yet]");
+    customer.companyName = "[don't know name yet]";
     const alfredsID = '785efa04-cbf2-4dd7-a7de-083ee17b6ad2';
     em1.attachEntity(customer);
     customer.setProperty(TestFns.wellKnownData.keyNames.customer, alfredsID);
@@ -1207,7 +1202,7 @@ describe("Query Basics", () => {
     const custType = em1.metadataStore.getAsEntityType("Customer");
     const custKeyName = TestFns.wellKnownData.keyNames.customer;
     const alfredsID = '785efa04-cbf2-4dd7-a7de-083ee17b6ad2';
-    const query = EntityQuery.from("Customers").where(custKeyName, "==", alfredsID);
+    const query = EntityQuery.from(Customer).where(custKeyName, "==", alfredsID);
 
     const qr1 = await query.using(em1).execute();
     expect(qr1.results.length).toBe(1);
@@ -1227,7 +1222,7 @@ describe("Query Basics", () => {
     expect.hasAssertions();
     const em1 = TestFns.newEntityManager();
 
-    const q1 = EntityQuery.from("Customers").take(5).expand("orders");
+    const q1 = EntityQuery.from(Customer).take(5).expand("orders");
     await em1.executeQuery(q1);
     const s1 = TestFns.sizeOf(em1);
     await em1.executeQuery(q1);
@@ -1255,7 +1250,7 @@ describe("Query Basics", () => {
   test("sizeof config", async () => {
     expect.hasAssertions();
     const em1 = TestFns.newEntityManager();
-    const q1 = EntityQuery.from("Customers").take(5).expand("orders");
+    const q1 = EntityQuery.from(Customer).take(5).expand("orders");
     await em1.executeQuery(q1);
     const s1 = TestFns.sizeOf(breeze.config);
     await em1.executeQuery(q1);
@@ -1280,7 +1275,7 @@ describe("Query Basics", () => {
     expect.hasAssertions();
     const em1 = TestFns.newEntityManager();
     const em2 = TestFns.newEntityManager();
-    const query = EntityQuery.from("Customers").take(5).expand("orders");
+    const query = EntityQuery.from(Customer).take(5).expand("orders");
 
     // just to make sure these next calls don't add to mem pressure
     const hasChanges = em1.hasChanges();
@@ -1296,8 +1291,8 @@ describe("Query Basics", () => {
     const qr1 = await em1.executeQuery(query);
     const custs = qr1.results;
     custs.forEach((c) => {
-      const rv = c.getProperty("rowVersion");
-      c.setProperty("rowVersion", rv + 1);
+      const rv = c.rowVersion;
+      c.rowVersion = rv + 1;
     });
     em1.rejectChanges();
     const s2 = TestFns.sizeOf(em1);

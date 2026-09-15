@@ -1,11 +1,15 @@
 import { Entity, EntityQuery, Predicate, EntityState, MergeStrategy, MetadataStore, EntityType } from '../../src/breeze';
 import { TestFns } from '../test-fns';
 import { UtilFns } from '../util-fns';
+import { Supplier, registerModelClasses } from '../model';
 
 TestFns.initServerEnv();
 
 beforeAll(async () => {
   await TestFns.initDefaultMetadataStore();
+  // Types the queries below; see test/model/README.md. The unregistered default-constructor
+  // path has its own coverage in test/unit/unregistered-types.spec.ts.
+  registerModelClasses(TestFns.defaultMetadataStore);
 
 });
 
@@ -85,8 +89,7 @@ describe("Query wih noTracking", () => {
       expect.hasAssertions();
       const em = TestFns.newEntityManager();
 
-      const query = new EntityQuery()
-        .from("Suppliers")
+      const query = EntityQuery.from(Supplier)
         .take(3)
         .noTracking();
       const queryUrl = query._toUri(em);

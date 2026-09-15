@@ -1,5 +1,6 @@
 import { Entity, EntityQuery, EntityType, MetadataStore, Predicate, breeze, MergeStrategy, DataProperty, NavigationProperty, core, QueryOptions, EntityManager, EntityKey, RelationArray } from '../../src/breeze';
 import { TestFns, skipTestIf, skipDescribeIf } from '../test-fns';
+import { Customer, Employee, Order, Region, registerModelClasses } from '../model';
 
 // function ok(a: any, b?: any) {
 //   throw new Error('for test conversion purposes');
@@ -9,6 +10,9 @@ TestFns.initServerEnv();
 
 beforeAll(async () => {
   await TestFns.initDefaultMetadataStore();
+  // Types the queries below; see test/model/README.md. The unregistered default-constructor
+  // path has its own coverage in test/unit/unregistered-types.spec.ts.
+  registerModelClasses(TestFns.defaultMetadataStore);
 
 });
 
@@ -148,12 +152,12 @@ describe("Query Alternatives", () => {
     const qr1 = await em.executeQuery(query);
     const emp = qr1.results[0];
     expect(emp.getProperty(TestFns.wellKnownData.keyNames.employee)).toBe(TestFns.wellKnownData.nancyID);
-    const np = emp.entityType.getProperty("orders");
+    const np = emp.entityType.getNavigationProperty("orders");
     const q2 = EntityQuery.fromEntityNavigation(emp, np);
     const qr2 = await em.executeQuery(q2);
     expect(qr2.results.length).toBeGreaterThan(0);
     expect(qr2.results.every(r => r.entityType === orderType)).toBe(true);
-    const orders = emp.getProperty("orders");
+    const orders = emp.orders;
     expect(orders.length).toBe(qr2.results.length);
   });
 
@@ -161,11 +165,11 @@ describe("Query Alternatives", () => {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
     const pred = Predicate.create("customerID", "!=", null).and("employeeID", "!=", null);
-    const query = EntityQuery.from("Orders").where(pred).take(1);
+    const query = EntityQuery.from(Order).where(pred).take(1);
     const qr1 = await em.executeQuery(query);
     const order = qr1.results[0];
     expect(order.entityType.shortName).toBe("Order");
-    const np = order.entityType.getProperty("employee");
+    const np = order.entityType.getNavigationProperty("employee");
     expect(np).toBeTruthy();
     const q2 = EntityQuery.fromEntityNavigation(order, np);
     const qr2 = await em.executeQuery(q2);
@@ -176,8 +180,7 @@ describe("Query Alternatives", () => {
   test("using EntityQuery.fromEntities", async () => {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
-    const query = new EntityQuery()
-      .from("Orders")
+    const query = EntityQuery.from(Order)
       .take(2);
     const qr1 = await em.executeQuery(query);
     const orders = qr1.results;
@@ -195,11 +198,11 @@ describe("Query Alternatives", () => {
     const query = EntityQuery.fromEntityKey(entityKey);
     
     const qr1 = await em.executeQuery(query);
-    const emp = qr1.results[0] as Entity;
+    const emp = qr1.results[0] as Employee;
     const qr2 = await emp.entityAspect.loadNavigationProperty("orders");
     expect(qr2.results.length).toBeGreaterThan(0);
-    expect(qr2.results.every( r => r.entityType.shortName = "Order")).toBe(true);
-    const orders = emp.getProperty("orders");
+    expect(qr2.results.every( (r: Entity) => r.entityType.shortName = "Order")).toBe(true);
+    const orders = emp.orders;
     expect(orders.length).toBe(qr2.results.length);
   });
 
@@ -207,20 +210,20 @@ describe("Query Alternatives", () => {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
     const pred = Predicate.create("customerID", "!=", null).and("employeeID", "!=", null);
-    const query = EntityQuery.from("Orders").where(pred).take(1);
+    const query = EntityQuery.from(Order).where(pred).take(1);
     (em as any)["tag"] = "xxxx";
 
     const qr1 = await em.executeQuery(query);
     const order = qr1.results[0];
     expect(order.entityType.shortName).toBe("Order");
-    const emp = order.getProperty("employee") as Entity;
+    const emp = order.employee as Entity;
     expect(emp).toBeNull();
     const qr2 = await order.entityAspect.loadNavigationProperty("employee");
     expect(qr2.results.length).toBe(1);
     expect(qr2.results[0].entityType.shortName).toBe("Employee");
-    const sameEmp = order.getProperty("employee");
+    const sameEmp = order.employee;
     expect(qr2.results[0]).toBe(sameEmp);
-    const orders = sameEmp.getProperty("orders");
+    const orders = sameEmp.orders;
     const ix = orders.indexOf(order);
     expect(ix >= 0).toBe(true);
   });
@@ -228,7 +231,7 @@ describe("Query Alternatives", () => {
   test("using EntityAspect.isNavigationPropertyLoaded on expand", async () => {
     expect.hasAssertions();
     const em1 = TestFns.newEntityManager();
-    const query = EntityQuery.from("Customers").where("companyName", "startsWith", "An").take(2).expand("orders.orderDetails");
+    const query = EntityQuery.from(Customer).where("companyName", "startsWith", "An").take(2).expand("orders.orderDetails");
     const qr1 = await em1.executeQuery(query);
     const r = qr1.results;
 
@@ -236,7 +239,7 @@ describe("Query Alternatives", () => {
     r.forEach((cust) => {
       const ordersLoaded = cust.entityAspect.isNavigationPropertyLoaded("orders");
       expect(ordersLoaded).toBe(true);
-      const orders = cust.getProperty("orders") as Entity[];
+      const orders = cust.orders as Entity[];
       expect(orders.length).toBeGreaterThan(0);
       orders.forEach((order) => {
         const detailsLoaded = order.entityAspect.isNavigationPropertyLoaded("orderDetails");
@@ -254,7 +257,7 @@ describe("Query Alternatives", () => {
     const query = EntityQuery.fromEntityKey(entityKey);
     const qr1 = await em.executeQuery(query);
     const emp = qr1.results[0];
-    const orders = emp.getProperty("orders") as RelationArray;
+    const orders = emp.orders as RelationArray;
     expect(orders.length).toBe(0);
     const qr2 = await orders.load();
     expect(qr2.results.length).toBeGreaterThan(0);
@@ -265,15 +268,14 @@ describe("Query Alternatives", () => {
   test("using RelationArray.load with uni (1-n) region and territories", async () => {
     expect.hasAssertions();
     const em1 = TestFns.newEntityManager();
-    const q = new EntityQuery()
-      .from("Regions")
+    const q = EntityQuery.from(Region)
       .where("regionDescription", "==", "Northern");
 
     const qr1 = await em1.executeQuery(q);
     expect(em1.hasChanges()).toBe(false);
     expect(em1.getChanges().length).toBe(0);
     const region = qr1.results[0];
-    const terrs = region.getProperty("territories") as RelationArray;
+    const terrs = region.territories as RelationArray;
     const lr1 = await terrs.load();
     expect(em1.hasChanges()).toBe(false);
     expect(em1.getChanges().length).toBe(0);

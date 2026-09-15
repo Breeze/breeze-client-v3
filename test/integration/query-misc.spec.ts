@@ -1,5 +1,6 @@
 import { Entity, EntityQuery, EntityType, MetadataStore, Predicate, breeze, MergeStrategy, DataProperty, NavigationProperty, core, QueryOptions, EntityManager, EntityKey, FetchStrategy, EntityState } from '../../src/breeze';
 import { TestFns, skipDescribeIf } from '../test-fns';
+import { Category, Customer, Employee, EmployeeTerritory, Order, Role, registerModelClasses } from '../model';
 
 function ok(a: any, b?: any) {
   throw new Error('for test conversion purposes');
@@ -9,6 +10,9 @@ TestFns.initServerEnv();
 
 beforeAll(async () => {
   await TestFns.initDefaultMetadataStore();
+  // Types the queries below; see test/model/README.md. The unregistered default-constructor
+  // path has its own coverage in test/unit/unregistered-types.spec.ts.
+  registerModelClasses(TestFns.defaultMetadataStore);
 
 });
 
@@ -27,7 +31,7 @@ describe("Query Misc", () => {
   test("getEntities after query", async () => {
     expect.hasAssertions();
     const em1 = TestFns.newEntityManager();
-    const query = breeze.EntityQuery.from("Categories");
+    const query = breeze.EntityQuery.from(Category);
     const qr1 = await em1.executeQuery(query);
     expect(qr1.results.length).toBeGreaterThan(0);
     const ents = em1.getEntities();
@@ -38,7 +42,7 @@ describe("Query Misc", () => {
   test("nullable int with in", async () => {
     expect.hasAssertions();
     const em1 = TestFns.newEntityManager();
-    const query = breeze.EntityQuery.from("Orders").where("employeeID", "in", [1,2,null]);
+    const query = breeze.EntityQuery.from(Order).where("employeeID", "in", [1,2,null]);
     const qr1 = await em1.executeQuery(query);
     expect(qr1.results.length).toBeGreaterThan(0);
     const ents = em1.getEntities();
@@ -49,7 +53,7 @@ describe("Query Misc", () => {
   test("enums with in", async () => {
     expect.hasAssertions();
     const em1 = TestFns.newEntityManager();
-    const query = breeze.EntityQuery.from("Roles").where("roleType", "in", [0,1,null]);
+    const query = breeze.EntityQuery.from(Role).where("roleType", "in", [0,1,null]);
     const qr1 = await em1.executeQuery(query);
     expect(qr1.results.length).toBeGreaterThan(0);
     const ents = em1.getEntities();
@@ -61,7 +65,7 @@ describe("Query Misc", () => {
     expect.hasAssertions();
     const em1 = TestFns.newEntityManager();
     const alfredsID = '785efa04-cbf2-4dd7-a7de-083ee17b6ad2';
-    const query = EntityQuery.from("Customers")
+    const query = EntityQuery.from(Customer)
       .where(TestFns.wellKnownData.keyNames.customer, "==", alfredsID)
       .using(em1);
 
@@ -90,13 +94,13 @@ describe("Query Misc", () => {
     const someDate = new Date();
     expect("object").toBe(typeof someDate);
 
-    const firstOrderQuery = new EntityQuery("Orders")
+    const firstOrderQuery = EntityQuery.from(Order)
       .where("orderDate", ">", new Date(1998, 3, 1))
       .take(1);
 
     const qr1 = await em1.executeQuery(firstOrderQuery);
     const order = qr1.results[0];
-    const orderDate = order.getProperty("orderDate");
+    const orderDate = order.orderDate;
     const ents = em1.getEntities();
 
     expect("object").toBe(typeof orderDate);
@@ -106,7 +110,7 @@ describe("Query Misc", () => {
   test("can run two queries in parallel for fresh EM w/ empty metadataStore", async () => {
     expect.hasAssertions();
     const em1 = TestFns.newEntityManager();
-    const query = breeze.EntityQuery.from("Customers");
+    const query = breeze.EntityQuery.from(Customer);
     let successCount = 0;
 
     const prom1 = em1.executeQuery(query).then(() => {
@@ -129,6 +133,8 @@ describe("Query Misc", () => {
     }
     const store = MetadataStore.importMetadata(emBase.metadataStore.exportMetadata());
 
+    // Deliberately untyped: this test registers its OWN Customer constructor, with unmapped
+    // properties the generated class does not have. It shadows the imported Customer on purpose.
     const Customer = function () {
       this.extraString = "fromClient";
       this.extraDouble = 0;
@@ -144,13 +150,13 @@ describe("Query Misc", () => {
     const extraDouble1 = cust.getProperty("extraDouble");
     expect(extraString1).toBe("fromClient");
     expect(extraDouble1).toBe(0);
-    const q1 = new EntityQuery().from("Customers").take(1);
+    const q1 = EntityQuery.from("Customers").take(1);
     
     const qr1 = await em.executeQuery(q1);
     const r1 = qr1.results;
     expect(r1.length).toBe(1);
-    const extraString2 = r1[0].getProperty("extraString");
-    const extraDouble2 = r1[0].getProperty("extraDouble");
+    const extraString2 = r1[0].extraString;
+    const extraDouble2 = r1[0].extraDouble;
     expect(extraString2).toBe("fromServer");
     expect(extraDouble2).toBe(3.14159);
 
@@ -168,7 +174,7 @@ describe("Query Misc", () => {
   test("getAlfred", async () => {
     expect.hasAssertions();
     const em1 = TestFns.newEntityManager();
-    const query = EntityQuery.from("Customers").where("companyName", "startsWith", "Alfreds");
+    const query = EntityQuery.from(Customer).where("companyName", "startsWith", "Alfreds");
     const qr1 = await em1.executeQuery(query);
     expect(qr1.results.length).toEqual(1);
     const alfred = qr1.results[0];
@@ -179,7 +185,7 @@ describe("Query Misc", () => {
   test("getAlfred - POST", async () => {
     expect.hasAssertions();
     const em1 = TestFns.newEntityManager();
-    let query = EntityQuery.from("Customers").where("companyName", "startsWith", "Alfreds");
+    let query = EntityQuery.from(Customer).where("companyName", "startsWith", "Alfreds");
     query = query.usePost();
     const qr1 = await em1.executeQuery(query);
     expect(qr1.results.length).toEqual(1);
@@ -213,7 +219,7 @@ describe("Query Misc", () => {
     const em1 = TestFns.newEntityManager();
     let alfred, alfredsID;
     {
-      const query = EntityQuery.from("Customers").where("companyName", "startsWith", "Alfreds");
+      const query = EntityQuery.from(Customer).where("companyName", "startsWith", "Alfreds");
       const qr1 = await em1.executeQuery(query);
       expect(qr1.results.length).toEqual(1);
       alfred = qr1.results[0];
@@ -222,7 +228,7 @@ describe("Query Misc", () => {
       alfred.entityAspect.setDeleted();
     }
 
-    const query2 = EntityQuery.from("Customers").where("companyName", "startsWith", "Alfreds");
+    const query2 = EntityQuery.from(Customer).where("companyName", "startsWith", "Alfreds");
     const qr2 = await em1.executeQuery(query2);
     // when entity is deleted, Breeze does not return it in qr.results (this is consistent with query locally)
     expect(qr2.results.length).toEqual(0);
@@ -236,7 +242,7 @@ describe("Query Misc", () => {
     const em1 = TestFns.newEntityManager();
     let alfred, alfredsID;
     {
-      const query = EntityQuery.from("Customers").where("companyName", "startsWith", "Alfreds");
+      const query = EntityQuery.from(Customer).where("companyName", "startsWith", "Alfreds");
       const qr1 = await em1.executeQuery(query);
       expect(qr1.results.length).toEqual(1);
       alfred = qr1.results[0];
@@ -245,7 +251,7 @@ describe("Query Misc", () => {
       alfred.entityAspect.setDeleted();
     }
 
-    const query2 = EntityQuery.from("Customers").where("companyName", "startsWith", "Alfreds").using(MergeStrategy.OverwriteChanges);
+    const query2 = EntityQuery.from(Customer).where("companyName", "startsWith", "Alfreds").using(MergeStrategy.OverwriteChanges);
     const qr2 = await em1.executeQuery(query2);
     expect(qr2.results.length).toEqual(1);
     expect(qr2.retrievedEntities.length).toEqual(1);
@@ -260,19 +266,19 @@ describe("Query Misc", () => {
     expect.hasAssertions();
     const em1 = TestFns.newEntityManager();
     {
-      const q1 = EntityQuery.from("Employees").where("employeeID", "eq", 2);
+      const q1 = EntityQuery.from(Employee).where("employeeID", "eq", 2);
       const qr1 = await em1.executeQuery(q1);
       expect(qr1.results.length).toEqual(1);
     } 
     {
-      const q2 = EntityQuery.from("EmployeeTerritories").where("employeeID", "eq", 2).take(3).expand("territory");
+      const q2 = EntityQuery.from(EmployeeTerritory).where("employeeID", "eq", 2).take(3).expand("territory");
       const qr2 = await em1.executeQuery(q2);
       expect(qr2.results.length).toEqual(3);
 
       qr2.results[0].entityAspect.setDeleted();
     }
 
-    const q3 = EntityQuery.from("EmployeeTerritories").where("employeeID", "eq", 2).take(3).expand("territory.region");
+    const q3 = EntityQuery.from(EmployeeTerritory).where("employeeID", "eq", 2).take(3).expand("territory.region");
     const qr3 = await em1.executeQuery(q3);
 
     // Deleted entity does not appear in the results, so length is now 2 instead of 3
@@ -298,12 +304,12 @@ describe("Query Misc", () => {
     expect.hasAssertions();
     const em1 = TestFns.newEntityManager();
     {
-      const q1 = EntityQuery.from("Employees").where("employeeID", "eq", 2);
+      const q1 = EntityQuery.from(Employee).where("employeeID", "eq", 2);
       const qr1 = await em1.executeQuery(q1);
       expect(qr1.results.length).toEqual(1);
     } 
     {
-      const q2 = EntityQuery.from("EmployeeTerritories").where("employeeID", "eq", 2).take(2).expand(["territory.region"]);
+      const q2 = EntityQuery.from(EmployeeTerritory).where("employeeID", "eq", 2).take(2).expand(["territory.region"]);
       const qr2 = await em1.executeQuery(q2);
       expect(qr2.results.length).toEqual(2);
 
@@ -311,7 +317,7 @@ describe("Query Misc", () => {
       qr2.results[1].entityAspect.setDeleted();
     }
 
-    const q3 = EntityQuery.from("EmployeeTerritories").where("employeeID", "eq", 2).take(2).expand(["territory.region"]);
+    const q3 = EntityQuery.from(EmployeeTerritory).where("employeeID", "eq", 2).take(2).expand(["territory.region"]);
     const qr3 = await em1.executeQuery(q3);
 
     // Deleted entity does not appear in the results, so length is now 1 instead of 2
@@ -337,15 +343,15 @@ describe("Query Misc", () => {
     {
       // Create the employee rather than look for one outside the pristine ids (1-10): the
       // only such employee used to be one bugs.spec.ts inserted earlier in the run.
-      const emp1 = em1.createEntity("Employee", {
+      const emp1 = em1.createEntity(Employee, {
         lastName: "Doe",
         firstName: "Jane",
         title: "Self-reporting",
         hireDate: new Date(1974, 1, 1),
       }) as any;
       await em1.saveChanges();
-      empId = emp1.getProperty("employeeID");
-      emp1.setProperty("reportsToEmployeeID", empId);
+      empId = emp1.employeeID;
+      emp1.reportsToEmployeeID = empId;
       const sr = await em1.saveChanges();
       expect(sr.entities.length).toEqual(1);
     }
@@ -355,9 +361,9 @@ describe("Query Misc", () => {
       expect(qr2.results.length).toEqual(1);
       const emp2 = qr2.results[0];
       expect(emp2.entityAspect.entityState).toEqual(EntityState.Unchanged);
-      const relId = emp2.getProperty("reportsToEmployeeID");
+      const relId = emp2.reportsToEmployeeID;
       expect(relId).toEqual(empId);
-      const mgr = emp2.getProperty("manager");
+      const mgr = emp2.manager;
       expect(mgr).toEqual(emp2);
     }
 

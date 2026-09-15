@@ -1,5 +1,6 @@
 import { Entity, EntityQuery, EntityType, MetadataStore, Predicate, breeze, MergeStrategy, DataProperty, NavigationProperty, core, QueryOptions, FilterQueryOp } from '../../src/breeze';
 import { TestFns, skipTestIf, skipDescribeIf } from '../test-fns';
+import { Customer, Employee, registerModelClasses } from '../model';
 
 function ok(a: any, b?: any) {
   throw new Error('for test conversion purposes');
@@ -9,6 +10,9 @@ TestFns.initServerEnv();
 
 beforeAll(async () => {
   await TestFns.initDefaultMetadataStore();
+  // Types the queries below; see test/model/README.md. The unregistered default-constructor
+  // path has its own coverage in test/unit/unregistered-types.spec.ts.
+  registerModelClasses(TestFns.defaultMetadataStore);
 
 });
 
@@ -38,8 +42,7 @@ describe("Entity Query Exceptions", () => {
   test("where with bad filter operator", function () {
     expect.hasAssertions();
     try {
-      const query = new EntityQuery()
-        .from("Customers")
+      const query = EntityQuery.from(Customer)
         .where("companyName", "startsXWith", "C");
       throw new Error("shouldn't get here");
     } catch (error) {
@@ -51,8 +54,7 @@ describe("Entity Query Exceptions", () => {
   test("where with bad field name", async function () {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
-    const query = new EntityQuery()
-      .from("Customers")
+    const query = EntityQuery.from(Customer)
       .where("badCompanyName", "startsWith", "C");
     try {
       await em.executeQuery(query);
@@ -69,8 +71,7 @@ describe("Entity Query Exceptions", () => {
   test("where with bad orderBy property ", async function () {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
-    const query = new EntityQuery()
-      .from("Customers")
+    const query = EntityQuery.from(Customer)
       .where("companyName", FilterQueryOp.StartsWith, "C")
       .orderBy("badCompanyName");
     try {
@@ -86,8 +87,7 @@ describe("Entity Query Exceptions", () => {
   test("where with bad criteria", async () => {
     expect.assertions(1);
     const em1 = TestFns.newEntityManager();
-    const query = new EntityQuery()
-      .from("Employees")
+    const query = EntityQuery.from(Employee)
       .where("badPropName", "==", "7");
     try {
       const qr = await em1.executeQuery(query);
