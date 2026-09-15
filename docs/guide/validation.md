@@ -82,14 +82,14 @@ new entities. `createEntity` attaches immediately, so it validates before you ha
 values:
 
 ```ts
-const cust = em.createEntity('Customer');
+const cust = em.createEntity(Customer);
 cust.entityAspect.getValidationErrors();   // "'companyName' is required"
 ```
 
 Pass the values to `createEntity` so they are in place when validation runs:
 
 ```ts
-const cust = em.createEntity('Customer', { companyName: 'Bravo Foods' });
+const cust = em.createEntity(Customer, { companyName: 'Bravo Foods' });
 ```
 
 Or create the entity detached, fill it in, then add it:
@@ -97,7 +97,7 @@ Or create the entity detached, fill it in, then add it:
 ```ts
 const custType = em.metadataStore.getAsEntityType('Customer');
 const cust = custType.createEntity();
-cust.setProperty('companyName', 'Bravo Foods');
+cust.companyName = 'Bravo Foods';
 em.addEntity(cust);   // validates now
 ```
 
@@ -260,13 +260,11 @@ validator receives the whole entity as its value. Add it to the entity type's
 `validators`:
 
 ```ts
-import type { Entity } from 'breeze-client';
-
 const zipCodeValidator = new Validator(
   'zipCodeValidator',
-  (cust: Entity, ctx: any) => {
-    if (cust.getProperty('country') !== 'USA') return true;
-    ctx.postalCode = cust.getProperty('postalCode');
+  (cust: Customer, ctx: any) => {
+    if (cust.country !== 'USA') return true;
+    ctx.postalCode = cust.postalCode;
     return /^\d{5}([\-]\d{4})?$/.test(ctx.postalCode ?? '');
   },
   { messageTemplate: "'%postalCode%' is not a valid US zip code" });

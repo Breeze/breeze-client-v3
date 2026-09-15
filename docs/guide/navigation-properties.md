@@ -15,14 +15,15 @@ There are two kinds:
 ## Reading
 
 ```ts
-const customer = order.getProperty('customer');   // Customer or null
-const orders = customer.getProperty('orders');    // array of Order
+const customer = order.customer;   // Customer or null
+const orders = customer.orders;    // RelationArray<Order>
 ```
 
-With the backing-store model library, which is the only one in Breeze 3, these are also
-plain properties. If you give your entities TypeScript interfaces, you can write
-`order.customer` and `customer.orders`. The examples on this page use `getProperty` so
-they compile without interfaces.
+With the backing-store model library, which is the only one in Breeze 3, navigation
+properties are plain properties. The examples on this page assume you have registered
+entity classes, so they are type-checked — see [Typed entities](/guide/typed-entities).
+Without classes the same reads are `order.getProperty('customer')` and
+`customer.getProperty('orders')`, which work identically and return `any`.
 
 A navigation property returns only entities that are **in the cache**. If
 `order.customer` is `null`, the customer isn't cached. It may still exist on the server.
@@ -37,7 +38,7 @@ with an `arrayChanged` event and a `load()` method (see
 Set a scalar navigation property as you would any other property:
 
 ```ts
-order.setProperty('customer', anotherCustomer);
+order.customer = anotherCustomer;
 ```
 
 Breeze keeps both ends of the association in step. After that line, `order` has left the
@@ -47,7 +48,7 @@ now holds the new customer's key.
 You can make the same change from the other end, by pushing to the collection:
 
 ```ts
-anotherCustomer.getProperty('orders').push(order);
+anotherCustomer.orders.push(order);
 // order.customer === anotherCustomer
 // order.customerID === anotherCustomer's key
 ```
@@ -58,10 +59,14 @@ navigation property to `null`, and clears its foreign key.
 You can't replace the collection itself:
 
 ```ts
-customer.setProperty('orders', []);
+customer.orders = [];
 // Error: Nonscalar navigation properties are readonly - entities can be added or
 // removed but the collection may not be changed.
 ```
+
+With a registered class the compiler stops this first: a generated collection navigation is
+declared `RelationArray<Order>`, which a plain array is not. Without classes it throws at
+run time, as above.
 
 ### Attaching as a side effect
 
@@ -100,9 +105,9 @@ associations, the way Northwind does with `Employee` → `employeeTerritories` �
 Setting the foreign key has the same effect as setting the navigation property:
 
 ```ts
-order.setProperty('customerID', someCustomerID);
+order.customerID = someCustomerID;
 
-const customer = order.getProperty('customer');
+const customer = order.customer;
 // the cached Customer with that key, or null if it isn't in the cache
 ```
 
@@ -128,7 +133,7 @@ on demand when you need them.
 `expand` includes related entities in a query's response:
 
 ```ts
-const query = EntityQuery.from('Orders')
+const query = EntityQuery.from(Order)
   .where('customerID', '==', customerID)
   .expand('orderDetails');
 
@@ -143,7 +148,7 @@ To expand several paths, separate them with commas, or pass an array. Dots follo
 through several associations:
 
 ```ts
-EntityQuery.from('Orders')
+EntityQuery.from(Order)
   .where('customerID', '==', customerID)
   .expand('customer, orderDetails.product');
 ```
@@ -179,7 +184,7 @@ the query's promise. When the results arrive, they are merged into the cache, an
 `order.orderDetails` fills in. A relation array has the same operation, as `load()`:
 
 ```ts
-await order.getProperty('orderDetails').load();
+await order.orderDetails.load();
 ```
 
 After a successful `loadNavigationProperty`,
@@ -193,8 +198,8 @@ property whenever its value is not null.
 product, write the query yourself:
 
 ```ts
-const query = EntityQuery.from('OrderDetails')
-  .where('orderID', '==', order.getProperty('orderID'))
+const query = EntityQuery.from(OrderDetail)
+  .where('orderID', '==', order.orderID)
   .expand('product');
 
 await em.executeQuery(query);
@@ -228,7 +233,7 @@ import { EntityQuery, Predicate } from 'breeze-client';
 const predicates = orders.map(o =>
   EntityQuery.fromEntityNavigation(o, 'orderDetails').wherePredicate!);
 
-const query = EntityQuery.from('OrderDetails')
+const query = EntityQuery.from(OrderDetail)
   .where(Predicate.or(predicates))
   .expand('product');
 
@@ -249,7 +254,7 @@ but none of the customer's own properties did. The collection raises `arrayChang
 instead:
 
 ```ts
-customer.getProperty('orders').arrayChanged.subscribe(args => {
+customer.orders.arrayChanged.subscribe(args => {
   // args.array, args.added?, args.removed?
 });
 ```

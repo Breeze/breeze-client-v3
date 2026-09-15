@@ -68,7 +68,7 @@ from the temporary `-1` to the new order's real ID. You do not have to do anythi
 Pass an array to save only those entities:
 
 ```ts
-await em.saveChanges([order, ...order.getProperty('orderDetails')]);
+await em.saveChanges([order, ...order.orderDetails]);
 ```
 
 The entities must belong to this manager. Each one is sent as it is, whatever its state,

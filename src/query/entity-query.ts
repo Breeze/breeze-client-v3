@@ -117,16 +117,36 @@ export class EntityQuery<T = any> {
   }
 
   /**
-  This is a static version of the "from" method and it creates a 'base' entityQuery for the specified resource name.
+  Creates a 'base' entityQuery, either for a registered entity class or for a resource name.
+
+  Given a class, the resource name comes from the metadata and the query carries the type, so the
+  results are typed:
+  >      let query = EntityQuery.from(Customer);            // EntityQuery<Customer>
+  >      let custs = (await query.using(em).execute()).results;   // Customer[]
+
+  The class must be registered with {@link MetadataStore.registerEntityTypeCtor}; that is what
+  tells Breeze which type it stands for, and an unregistered class throws.
+
+  Given a resource name, the query is untyped, as it always was:
   >      let query = EntityQuery.from("Customers");
 
   is the same as
   >      let query = new EntityQuery("Customers");
-  @param resourceName - The resource to query.
+
+  A type argument may be supplied with a resource name, for a projection or a named server query
+  that no entity class describes. **Nothing checks it against the resource** - it is an assertion,
+  not a guarantee, and `EntityQuery.from<Customer>("Orders")` compiles:
+  >      let query = EntityQuery.from<CustomerDto>("CompanyNamesAndIds");
+  @param entityCtor - A constructor registered for the EntityType to query.
   **/
   static from<U extends Entity>(entityCtor: new () => U): EntityQuery<U>;
-  // `U` here is the caller's claim about what the resource returns - nothing checks it against
-  // the name. It defaults to `any`, so `from("Customers")` behaves exactly as it always has.
+  /**
+  Creates a 'base' entityQuery for the specified resource name.
+
+  `U` is the caller's claim about what the resource returns; nothing checks it against the name.
+  It defaults to `any`, so `from("Customers")` behaves exactly as it always has.
+  @param resourceName - The resource to query.
+  **/
   static from<U = any>(resourceName: string): EntityQuery<U>;
   static from(arg: string | (new () => Entity)): EntityQuery<any> {
     if (typeof arg === 'function') {

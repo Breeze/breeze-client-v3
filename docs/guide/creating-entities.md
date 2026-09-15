@@ -13,7 +13,7 @@ The usual way to make a new entity is `createEntity` on an
 [`EntityManager`](/api/classes/EntityManager):
 
 ```ts
-const order = em.createEntity('Order', {
+const order = em.createEntity(Order, {
   shipName: 'Alfreds Futterkiste',
   orderDate: new Date(),
 });
@@ -51,10 +51,10 @@ Pass an `EntityState` as the third argument to create the entity in a different 
 import { EntityState } from 'breeze-client';
 
 // Not in the cache yet. Finish configuring it and add it later.
-const draft = em.createEntity('Employee', { lastName: 'Smith' }, EntityState.Detached);
+const draft = em.createEntity(Employee, { lastName: 'Smith' }, EntityState.Detached);
 
 // In the cache as if it had been queried. You must supply the key.
-const existing = em.createEntity('Employee', { employeeID: 42, lastName: 'Jones' },
+const existing = em.createEntity(Employee, { employeeID: 42, lastName: 'Jones' },
   EntityState.Unchanged);
 ```
 
@@ -69,7 +69,7 @@ same key. The default, `MergeStrategy.Disallowed`, throws.
 An initializer can set navigation properties, as well as data properties:
 
 ```ts
-const detail = em.createEntity('OrderDetail', {
+const detail = em.createEntity(OrderDetail, {
   order: existingOrder,
   product: existingProduct,
   quantity: 5,
@@ -82,7 +82,7 @@ Setting `order` sets the detail's `orderID` foreign key and adds the detail to
 A complex property can be initialized with a nested object:
 
 ```ts
-const supplier = em.createEntity('Supplier', {
+const supplier = em.createEntity(Supplier, {
   companyName: 'Exotic Liquids',
   location: { city: 'London', country: 'UK' },
 });
@@ -107,8 +107,8 @@ When you add an entity whose key is store-generated and still has its default va
 Breeze generates a temporary key:
 
 ```ts
-const order = em.createEntity('Order');
-order.getProperty('orderID');       // -1
+const order = em.createEntity(Order);
+order.orderID;       // -1
 order.entityAspect.hasTempKey;      // true
 ```
 
@@ -134,7 +134,7 @@ composite key, `orderID` plus `productID`, which you must set before the detail 
 the cache:
 
 ```ts
-const detail = em.createEntity('OrderDetail', { orderID: 10248, productID: 11 });
+const detail = em.createEntity(OrderDetail, { orderID: 10248, productID: 11 });
 ```
 
 If you leave the key unset, `createEntity` throws:

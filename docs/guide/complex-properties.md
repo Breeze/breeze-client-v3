@@ -29,7 +29,7 @@ Every complex object has two members that Breeze adds:
 | `complexAspect` | `entity.entityAspect` | the [`ComplexAspect`](/api/classes/ComplexAspect): `parent`, `parentProperty`, `originalValues`, `getEntityAspect()` |
 
 ```ts
-const location = supplier.getProperty('location');
+const location = supplier.location;
 
 location.complexType.shortName;              // 'Location'
 location.complexAspect.parent === supplier;  // true
@@ -42,10 +42,9 @@ interface, which includes `getProperty` and `setProperty`.
 ## Reading and writing
 
 ```ts
-const location = supplier.getProperty('location');
-location.setProperty('city', 'Oslo');
-// or, with the backing-store model library
-location.city = 'Oslo';
+supplier.location.city = 'Oslo';
+// or, without registered classes
+supplier.getProperty('location').setProperty('city', 'Oslo');
 ```
 
 `getProperty` takes a single property name, not a path. `supplier.getProperty('location.city')`
@@ -60,9 +59,9 @@ import { ComplexType } from 'breeze-client';
 const locationType = em.metadataStore.getAsEntityType('Location') as ComplexType;
 const newLocation = locationType.createInstance({ city: 'Paris', country: 'France' });
 
-supplier.setProperty('location', newLocation);
+supplier.location = newLocation;
 
-supplier.getProperty('location') === newLocation;  // false: values were copied
+supplier.location === newLocation;  // false: values were copied
 ```
 
 `ComplexType.createInstance` makes a standalone complex object, with no parent. Use it to
@@ -72,7 +71,7 @@ affect the supplier.
 A complex property can't be set to `null`:
 
 ```ts
-supplier.setProperty('location', null);
+supplier.location = null;
 // Error: You cannot set the 'location' property to null because its datatype is the
 // ComplexType: 'Location:#...'
 ```
@@ -80,7 +79,7 @@ supplier.setProperty('location', null);
 An initializer passed to `createEntity` can set a complex property with a plain object:
 
 ```ts
-em.createEntity('Supplier', { companyName: 'Exotic Liquids', location: { city: 'London' } });
+em.createEntity(Supplier, { companyName: 'Exotic Liquids', location: { city: 'London' } });
 ```
 
 ## Change tracking

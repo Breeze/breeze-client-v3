@@ -77,15 +77,15 @@ there is nothing on the server to delete.
 Changing a value back by hand doesn't undo the change; the entity stays `Modified`:
 
 ```ts
-const name = customer.getProperty('companyName');       // entity is Unchanged
-customer.setProperty('companyName', 'Something else');  // Modified
-customer.setProperty('companyName', name);              // still Modified
+const name = customer.companyName;                // entity is Unchanged
+customer.companyName = 'Something else';         // Modified
+customer.companyName = name;                      // still Modified
 ```
 
 `rejectChanges` restores the original values and returns the entity to `Unchanged`:
 
 ```ts
-customer.setProperty('companyName', 'Something else');
+customer.companyName = 'Something else';
 customer.entityAspect.rejectChanges();
 // companyName is back to its original value; entityState is Unchanged
 ```

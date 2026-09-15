@@ -159,18 +159,18 @@ from the cache.
 Once you change an entity, it stays changed, even if you set the old value back by hand:
 
 ```ts
-const name = customer.getProperty('companyName');       // Unchanged
-customer.setProperty('companyName', 'Something new');   // Modified
-customer.setProperty('companyName', name);              // still Modified
+const name = customer.companyName;              // Unchanged
+customer.companyName = 'Something new';         // Modified
+customer.companyName = name;                    // still Modified
 ```
 
 `rejectChanges` cancels pending changes. It restores the original values, and sets the
 entity's state back to `Unchanged` (an `Added` entity becomes `Detached`):
 
 ```ts
-customer.setProperty('companyName', 'Something new');   // Modified
-customer.entityAspect.rejectChanges();                  // Unchanged
-customer.getProperty('companyName') === name;           // true
+customer.companyName = 'Something new';         // Modified
+customer.entityAspect.rejectChanges();          // Unchanged
+customer.companyName === name;                  // true
 ```
 
 A deleted entity whose changes are rejected goes back into the collections it was removed

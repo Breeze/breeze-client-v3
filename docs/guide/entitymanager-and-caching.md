@@ -212,7 +212,7 @@ import { EntityQuery, Predicate } from 'breeze-client';
 async function getOrders(where?: Predicate) {
   em.getEntities('Order').forEach(o => em.detachEntity(o));
 
-  let query = EntityQuery.from('Orders');
+  let query = EntityQuery.from(Order);
   if (where) query = query.where(where);
   const { results } = await em.executeQuery(query);
   return results;
@@ -249,7 +249,7 @@ entities that were deleted on the server, compare the query results with the cac
 ```ts
 async function refreshAllOrders() {
   const cached = new Set(em.getEntities('Order'));
-  const { results } = await em.executeQuery(EntityQuery.from('Orders'));
+  const { results } = await em.executeQuery(EntityQuery.from(Order));
   results.forEach(o => cached.delete(o));
 
   // What is left was deleted on the server, or is new and not yet saved.

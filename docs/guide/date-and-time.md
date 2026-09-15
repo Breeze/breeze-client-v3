@@ -71,7 +71,7 @@ A `DateOnly` value is a calendar date with no time.
 
 ```ts
 // Suppose Task.dueDate is a DateOnly property.
-task.setProperty('dueDate', new Date(2024, 2, 15));   // 15 March 2024
+task.dueDate = new Date(2024, 2, 15);   // 15 March 2024
 ```
 
 A string assigned to a `DateOnly` property is parsed as a local date, so `'2024-03-15'`
@@ -110,7 +110,7 @@ To start with something else, such as the current time, either pass the value to
 `createEntity`:
 
 ```ts
-const order = em.createEntity('Order', { orderDate: new Date() });
+const order = em.createEntity(Order, { orderDate: new Date() });
 ```
 
 or set it in a custom constructor. See [Extending entities](/guide/extending-entities).
@@ -123,7 +123,7 @@ or set it in a custom constructor. See [Extending entities](/guide/extending-ent
 new value to the property counts:
 
 ```ts
-const d = order.getProperty('orderDate') as Date;
+const d = order.orderDate;
 d.setDate(d.getDate() + 1);
 // The entity's own Date has changed, but it is still Unchanged.
 // A save will not include it.
@@ -132,9 +132,9 @@ d.setDate(d.getDate() + 1);
 Copy the date, change the copy, then assign it:
 
 ```ts
-const d = new Date(order.getProperty('orderDate'));
+const d = new Date(order.orderDate);
 d.setDate(d.getDate() + 1);
-order.setProperty('orderDate', d);   // now Modified
+order.orderDate = d;   // now Modified
 ```
 
 The order matters. If you mutate first and then assign a copy, the entity's `Date` already

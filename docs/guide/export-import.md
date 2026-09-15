@@ -82,7 +82,7 @@ em.exportEntities([cust1, cust2]);
 em.exportEntities(em.getChanges());      // all pending changes
 
 const cCustomers = em.executeQueryLocally(
-  EntityQuery.from('Customers').where('companyName', 'startsWith', 'C'));
+  EntityQuery.from(Customer).where('companyName', 'startsWith', 'C'));
 em.exportEntities(cCustomers);
 ```
 
@@ -168,16 +168,16 @@ an imported new entity may not have the same temporary key it had when exported:
 
 ```ts
 // Session 1: a new order with temporary key -1
-const acme = em1.createEntity('Order', { shipName: 'Acme' });
+const acme = em1.createEntity(Order, { shipName: 'Acme' });
 const exported = em1.exportEntities([acme], { includeMetadata: false });
 
 // Session 2: another new order already has -1
-const beta = em2.createEntity('Order', { shipName: 'Beta' });
+const beta = em2.createEntity(Order, { shipName: 'Beta' });
 const { entities, tempKeyMapping } = em2.importEntities(exported);
 const acme2 = entities[0];
 
-acme2.getProperty('shipName');   // 'Acme'
-acme2.getProperty('orderID');    // not -1: that key was taken by 'beta'
+acme2.shipName;   // 'Acme'
+acme2.orderID;    // not -1: that key was taken by 'beta'
 ```
 
 `tempKeyMapping` maps each original key, as a string, to the `EntityKey` it was given.

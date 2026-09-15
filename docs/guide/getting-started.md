@@ -61,18 +61,55 @@ const em = new EntityManager('/breeze/NorthwindIBModel');
 The string is the service root. Breeze fetches metadata from `/breeze/NorthwindIBModel/Metadata`
 the first time you query, and uses it to build entity types, keys and relationships.
 
+## Give Breeze your entity classes
+
+Optional, but it is what makes everything below type-checked, so it is worth two lines now.
+Write a class per entity type and register it:
+
+```ts
+import type { Entity, EntityAspect, EntityType } from 'breeze-client';
+
+export class Customer implements Entity {
+  declare entityAspect: EntityAspect;
+  declare entityType: EntityType;
+  declare getProperty: (prop: string) => any;
+  declare setProperty: (prop: any, value: any) => any;
+
+  declare customerID: string;
+  declare companyName: string;
+  declare orders: Order[];
+}
+
+em.metadataStore.registerEntityTypeCtor('Customer', Customer);
+```
+
+You don't have to write these by hand — Breeze ships a generator that produces one file per
+type from your service's metadata. See [Typed entities](/guide/typed-entities).
+
+Skip this and everything still works; you reach properties through `getProperty('companyName')`
+instead, and results come back as `any`. The rest of this page shows both.
+
 ## Query
 
 ```ts
 import { EntityQuery } from 'breeze-client';
 
 const query = EntityQuery
-  .from('Customers')
+  .from(Customer)                      // resource name comes from the metadata
   .where('companyName', 'startsWith', 'B')
   .orderBy('companyName')
   .take(10);
 
-const { results } = await em.executeQuery(query);
+const { results } = await em.executeQuery(query);   // results: Customer[]
+
+results.forEach(c => console.log(c.companyName));
+```
+
+Without classes, name the resource and reach for properties by name:
+
+```ts
+const query = EntityQuery.from('Customers').where('companyName', 'startsWith', 'B');
+const { results } = await em.executeQuery(query);   // results: any[]
 
 results.forEach(c => console.log(c.getProperty('companyName')));
 ```
@@ -86,7 +123,7 @@ See [Querying](/query/) for the full query surface.
 
 ```ts
 const customer = results[0];
-customer.setProperty('companyName', 'Bravo Foods');
+customer.companyName = 'Bravo Foods';       // or customer.setProperty('companyName', …)
 
 console.log(customer.entityAspect.entityState.name);  // "Modified"
 
@@ -100,8 +137,8 @@ one transaction. You can also save a subset — see [Saving changes](/guide/savi
 ## Create a new entity
 
 ```ts
-const order = em.createEntity('Order', {
-  customerID: customer.getProperty('customerID'),
+const order = em.createEntity(Order, {
+  customerID: customer.customerID,
   orderDate: new Date(),
 });
 

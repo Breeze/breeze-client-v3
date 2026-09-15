@@ -452,14 +452,22 @@ export class EntityManager {
   but you can also optionally specify an EntityState.  An EntityState of 'Detached' will insure that the entity is created but not yet added
   to the EntityManager. 
   >      // assume em1 is an EntityManager containing a number of preexisting entities.
-  >      // create and add an entity;
-  >      let emp1 = em1.createEntity("Employee");
+  >      // create and add an entity. Passing the registered class types the result:
+  >      let emp1 = em1.createEntity(Employee);            // Employee
   >      // create and add an initialized entity;
-  >      let emp2 = em1.createEntity("Employee", { lastName: "Smith", firstName: "John" });
+  >      let emp2 = em1.createEntity(Employee, { lastName: "Smith", firstName: "John" });
   >      // create and attach (not add) an initialized entity
-  >      let emp3 = em1.createEntity("Employee", { id: 435, lastName: "Smith", firstName: "John" }, EntityState.Unchanged);
+  >      let emp3 = em1.createEntity(Employee, { id: 435, lastName: "Smith", firstName: "John" }, EntityState.Unchanged);
   >      // create but don't attach an entity;
-  >      let emp4 = em1.createEntity("Employee", { id: 435, lastName: "Smith", firstName: "John" }, EntityState.Detached);
+  >      let emp4 = em1.createEntity(Employee, { id: 435, lastName: "Smith", firstName: "John" }, EntityState.Detached);
+  >
+  >      // the type name and the EntityType both still work, and return Entity:
+  >      let emp5 = em1.createEntity("Employee", { lastName: "Smith" });
+
+  The constructor overload needs the class to have been registered with
+  {@link MetadataStore.registerEntityTypeCtor}; that is what tells Breeze which type it stands
+  for. An unregistered class throws. See the Typed entities guide.
+  @param entityCtor - A constructor registered for the EntityType to create.
   @param typeName - The name of the EntityType for which an instance should be created.
   @param entityType - The EntityType of the type for which an instance should be created.
   @param initialValues - (default=null) Configuration object of the properties to set immediately after creation.
@@ -918,7 +926,7 @@ export class EntityManager {
   >     let em = new EntityManager(serviceName);
   >     let query = new EntityQuery("Orders");
   >     em.executeQuery(query).then( function(data) {
-  >         let orders = data.results;
+  >         let orders = data.results;   // typed when the query was built from a class
   >         ... query results processed here
   >     }).catch( function(err) {
   >         ... query failure processed here
@@ -940,7 +948,7 @@ export class EntityManager {
   >     let em = new EntityManager(serviceName);
   >     let query = new EntityQuery("Orders").using(em);
   >     query.execute().then( function(data) {
-  >         let orders = data.results;
+  >         let orders = data.results;   // typed when the query was built from a class
   >         ... query results processed here
   >     }).catch( function(err) {
   >         ... query failure processed here
@@ -993,7 +1001,7 @@ export class EntityManager {
   >     let em = new EntityManager(serviceName);
   >     let query = new EntityQuery("Orders").using(FetchStrategy.FromLocalCache);
   >     em.executeQuery(query).then( function(data) {
-  >         let orders = data.results;
+  >         let orders = data.results;   // typed when the query was built from a class
   >         ... query results processed here
   >     }).catch( function(err) {
   >         ... query failure processed here
@@ -1409,7 +1417,7 @@ export class EntityManager {
   or you can specify that you only want the changes on a specific {@link EntityType}
   >      // assume em1 is an EntityManager containing a number of preexisting entities.
   >      let custType = em1.metadataStore.getAsEntityType("Customer");
-  >      let changedCustomers = em1.getChanges(custType);
+  >      let changedCustomers = em1.getChanges(Customer);   // Customer[], from the registered class
 
   or to a collection of {@link EntityType}s
   >      // assume em1 is an EntityManager containing a number of preexisting entities.
@@ -1461,7 +1469,7 @@ export class EntityManager {
   or you can specify that you only want the changes on a specific {@link EntityType}
   >      // assume em1 is an EntityManager containing a number of preexisting entities.
   >      let custType = em1.metadataStore.getAsEntityType("Customer");
-  >      let customers = em1.getEntities(custType);
+  >      let customers = em1.getEntities(Customer);          // Customer[]
 
   or to a collection of {@link EntityType}s
   >      // assume em1 is an EntityManager containing a number of preexisting entities.

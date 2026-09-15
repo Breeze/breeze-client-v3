@@ -100,13 +100,13 @@ import { newEntityManager } from './breeze-helpers';
 describe('customers and orders', () => {
   test('a new order is linked to its customer', () => {
     const em = newEntityManager();
-    const cust = em.createEntity('Customer', {
+    const cust = em.createEntity(Customer, {
       customerID: crypto.randomUUID(),
       companyName: 'Acme',
     });
-    const order = em.createEntity('Order', { customerID: cust.getProperty('customerID') });
+    const order = em.createEntity(Order, { customerID: cust.customerID });
 
-    expect(cust.getProperty('orders')).toContain(order);
+    expect(cust.orders).toContain(order);
     expect(order.entityAspect.entityState).toBe(EntityState.Added);
     expect(em.getChanges()).toHaveLength(2);
   });
@@ -119,7 +119,7 @@ describe('customers and orders', () => {
       EntityState.Unchanged,
     );
 
-    cust.setProperty('companyName', 'Bravo');
+    cust.companyName = 'Bravo';
 
     expect(cust.entityAspect.entityState).toBe(EntityState.Modified);
     expect(cust.entityAspect.originalValues).toEqual({ companyName: 'Acme' });
@@ -127,7 +127,7 @@ describe('customers and orders', () => {
 
   test('a customer needs a company name', () => {
     const em = newEntityManager();
-    const cust = em.createEntity('Customer', { customerID: crypto.randomUUID() });
+    const cust = em.createEntity(Customer, { customerID: crypto.randomUUID() });
 
     expect(cust.entityAspect.validateEntity()).toBe(false);
     expect(cust.entityAspect.getValidationErrors()[0].errorMessage)
@@ -136,10 +136,10 @@ describe('customers and orders', () => {
 
   test('the cache can be queried', () => {
     const em = newEntityManager();
-    em.createEntity('Customer', { customerID: crypto.randomUUID(), companyName: 'Acme' });
+    em.createEntity(Customer, { customerID: crypto.randomUUID(), companyName: 'Acme' });
 
     const found = em.executeQueryLocally(
-      EntityQuery.from('Customers').where('companyName', 'startsWith', 'Ac'),
+      EntityQuery.from(Customer).where('companyName', 'startsWith', 'Ac'),
     );
 
     expect(found).toHaveLength(1);
@@ -166,11 +166,11 @@ let seed: string;
 
 beforeAll(() => {
   const em = newEntityManager();
-  const alfreds = em.createEntity('Customer', {
+  const alfreds = em.createEntity(Customer, {
     customerID: crypto.randomUUID(), companyName: 'Alfreds Futterkiste',
   }, EntityState.Unchanged);
-  em.createEntity('Order', {
-    orderID: 10643, customerID: alfreds.getProperty('customerID'),
+  em.createEntity(Order, {
+    orderID: 10643, customerID: alfreds.customerID,
   }, EntityState.Unchanged);
 
   seed = em.exportEntities(undefined, { includeMetadata: false }) as string;
@@ -237,10 +237,10 @@ beforeAll(() => {
 test('customer search', async () => {
   const em = newEntityManager();
   const { results } = await em.executeQuery(
-    EntityQuery.from('Customers').where('companyName', 'startsWith', 'A'),
+    EntityQuery.from(Customer).where('companyName', 'startsWith', 'A'),
   );
 
-  expect(results[0].getProperty('companyName')).toBe('Alfreds Futterkiste');
+  expect(results[0].companyName).toBe('Alfreds Futterkiste');
 
   const sent = JSON.parse(decodeURIComponent(requests[0].split('?')[1]));
   expect(sent).toEqual({ where: { CompanyName: { startswith: 'A' } } });
