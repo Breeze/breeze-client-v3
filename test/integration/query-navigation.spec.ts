@@ -1,5 +1,8 @@
 import { Entity, EntityQuery, EntityType, MetadataStore, Predicate, breeze, MergeStrategy, DataProperty, NavigationProperty } from '../../src/breeze';
 import { TestFns, skipTestIf } from '../test-fns';
+// Typed views of the Northwind test model; see test/model/README.md. The classes are used as
+// types only - nothing is registered, so these tests still exercise the default constructors.
+import type { Employee, OrderDetail, Product, Region } from '../model';
 
 function ok(a: any, b?: any) {
   throw new Error('for test conversion purposes');
@@ -39,14 +42,14 @@ describe("Query Navigation", () => {
     const query = EntityQuery.from("OrderDetails").take(count);
     
     const qr1 = await query.using(em).execute();
-    const orderDetails = qr1.results;
+    const orderDetails = qr1.results as OrderDetail[];
     expect(orderDetails.length).toBe(count);
-    const promises = orderDetails.map(async (od: Entity) => {
+    const promises = orderDetails.map(async (od) => {
       const qr2 = await od.entityAspect.loadNavigationProperty("product");
-      const products = qr2.results;
+      const products = qr2.results as Product[];
       expect(products.length).toBe(1);
       const product = products[0];
-      expect(od.getProperty("product")).toBe(product);
+      expect(od.product).toBe(product);
     });
     await Promise.all(promises);
   });
@@ -57,17 +60,17 @@ describe("Query Navigation", () => {
     const query = EntityQuery.from("OrderDetails")
       .where("product.productID", "==", 1);
     const qr1 = await query.using(em).execute();
-    const orderDetails = qr1.results;
+    const orderDetails = qr1.results as OrderDetail[];
     expect(orderDetails.length).toBeGreaterThan(0);
     orderDetails.forEach(function (od) {
-      expect(od.getProperty("productID")).toBe(1);
+      expect(od.productID).toBe(1);
     });
     const q2 = EntityQuery.from("Products")
       .where("productID", "==", 1);
     const qr2 = await em.executeQuery(q2);
-    const product = qr2.results[0];
+    const product = qr2.results[0] as Product;
     orderDetails.forEach(function (od) {
-      expect(od.getProperty("product")).toBe(product);
+      expect(od.product).toBe(product);
     });
   });
 
@@ -94,11 +97,11 @@ describe("Query Navigation", () => {
       .where("employeeID", "le", 10)
       .where("reportsToEmployeeID", "!=", null);
     const qr1 = await query.using(em).execute();
-    const emps = qr1.results;
+    const emps = qr1.results as Employee[];
     // check using well-known data.  Map of employeeId : reportsToEmployeeID
-   
+
     emps.forEach(function (emp) {
-      expect(employeeMap[emp.getProperty("employeeID")]).toBe(emp.getProperty("reportsToEmployeeID"));
+      expect(employeeMap[emp.employeeID]).toBe(emp.reportsToEmployeeID);
     });
   });
 
@@ -111,30 +114,33 @@ describe("Query Navigation", () => {
     let isOk;
     await query.using(em).execute();
     const qr2 = await query2.using(em).execute();
-    let regions = qr2.results;
+    let regions = qr2.results as Region[];
     regions.forEach(function (region) {
-      const terrs = region.getProperty("territories");
-      isOk = terrs.every(function (terr: Entity) {
-        return terr.getProperty("regionID") === region.getProperty("regionID");
+      const terrs = region.territories;
+      isOk = terrs.every(function (terr) {
+        return terr.regionID === region.regionID;
       });
       expect(isOk).toBe(true);
     });
 
     em = TestFns.newEntityManager();
     const qr3 = await query2.using(em).execute();
-    regions = qr3.results;
+    regions = qr3.results as Region[];
     await query.using(em).execute();
-    
+
     regions.forEach(function (region) {
-      const regTerrs = region.getProperty("territories");
-      isOk = regTerrs.every(function (terr: Entity) {
-        return terr.getProperty("regionID") === region.getProperty("regionID");
+      const regTerrs = region.territories;
+      isOk = regTerrs.every(function (terr) {
+        return terr.regionID === region.regionID;
       });
       expect(isOk).toBe(true);
     });
   });
 
   
+  // The next two build their own Employee type, with a `boss` or `directReports` navigation the
+  // Northwind one does not have. They keep getProperty: the generated Employee class describes
+  // the real type, and typing a synthetic one with it would be a lie the compiler could not catch.
   test("unidirectional navigation of same entity type (1-1)", async function () {
     expect.hasAssertions();
     // create metadata manually so we don't have the bidirectional directReports navigation
