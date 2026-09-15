@@ -484,7 +484,7 @@ class PassthruPredicate extends Predicate {
 
   // _validate = core.noop;
 }
-(Error as any)['x'] = PassthruPredicate.prototype._initialize('passthruPredicate');
+PassthruPredicate.prototype._initialize('passthruPredicate');
 
 /** For use by breeze plugin authors only. The class is for use in building a {@link UriBuilderAdapter} implementation. 
 @adapter (see {@link UriBuilderAdapter})    
@@ -503,7 +503,7 @@ export class UnaryPredicate extends Predicate {
   }
 }
 
-(Error as any)['x'] = UnaryPredicate.prototype._initialize('unaryPredicate', {
+UnaryPredicate.prototype._initialize('unaryPredicate', {
   'not': { aliases: ['!', '~'] },
 });
 
@@ -555,7 +555,7 @@ export class BinaryPredicate extends Predicate {
 
 }
 
-(Error as any)['x'] = BinaryPredicate.prototype._initialize('binaryPredicate', {
+BinaryPredicate.prototype._initialize('binaryPredicate', {
   'eq': {
     aliases: ["==", "equals", "equal"]
   },
@@ -623,7 +623,7 @@ export class AndOrPredicate extends Predicate {
   }
 }
 
-(Error as any)['x'] = AndOrPredicate.prototype._initialize("andOrPredicate", {
+AndOrPredicate.prototype._initialize("andOrPredicate", {
   'and': { aliases: ['&&'] },
   'or': { aliases: ['||'] }
 } );
@@ -657,7 +657,7 @@ export class AnyAllPredicate extends Predicate {
 
 }
 
-(Error as any)['x'] = AnyAllPredicate.prototype._initialize("anyAllPredicate", {
+AnyAllPredicate.prototype._initialize("anyAllPredicate", {
   'any': { aliases: ['some'] },
   'all': { aliases: ["every"] }
 });

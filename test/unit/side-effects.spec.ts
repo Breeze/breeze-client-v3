@@ -81,7 +81,7 @@ const allowed: [file: string, statement: string, why: string][] = [
   ['core/event.ts', '(core as any).Event = BreezeEvent;', legacyCore],
   ['entity/key-generator.ts', 'config.registerType(KeyGenerator,', "brands its own class; readers pass the class"],
   ['mixins/mixin-get-entity-graph.ts', 'mixinEntityGraph(EntityManager);', "imported for its effect by design: listed in package.json sideEffects"],
-  ['validation/validate.ts', "(Error as any)['x'] = core.objectForEach(Validator,", "registers its own validators; only Validator.fromJSON reads them"],
+  ['validation/validate.ts', 'core.objectForEach(Validator,', "registers its own validators; only Validator.fromJSON reads them"],
 ];
 
 function rootName(e: ts.Expression): string | undefined {
@@ -95,8 +95,6 @@ function rootName(e: ts.Expression): string | undefined {
 function touchesImport(e: ts.Expression, imported: Set<string>): boolean {
   while (ts.isParenthesizedExpression(e)) e = e.expression;
   if (ts.isBinaryExpression(e) && e.operatorToken.kind === ts.SyntaxKind.EqualsToken) {
-    // (Error as any)['x'] = f(): the assignment only keeps a minifier from dropping f().
-    if (rootName(e.left) === 'Error') return touchesImport(e.right, imported);
     return imported.has(rootName(e.left)!) || (ts.isCallExpression(e.right) && touchesImport(e.right, imported));
   }
   if (ts.isCallExpression(e)) {

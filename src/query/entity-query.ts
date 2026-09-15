@@ -940,7 +940,7 @@ export class FilterQueryOp extends BreezeEnum implements QueryOp {
   static In = new FilterQueryOp({ operator: "in" });
 }
 FilterQueryOp.prototype._$typeName = "FilterQueryOp";
-(Error as any)['x'] = FilterQueryOp.resolveSymbols();
+FilterQueryOp.resolveSymbols();
 
 
 /**
@@ -957,7 +957,7 @@ export class BooleanQueryOp extends BreezeEnum implements QueryOp {
 
 }
 BooleanQueryOp.prototype._$typeName = "BooleanQueryOp";
-(Error as any)['x'] = BooleanQueryOp.resolveSymbols();
+BooleanQueryOp.resolveSymbols();
 
 
 /** For use by breeze plugin authors only.  The class is used in most {@link UriBuilderAdapter} implementations

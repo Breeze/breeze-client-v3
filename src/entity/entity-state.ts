@@ -115,4 +115,4 @@ export class EntityState extends BreezeEnum {
 
 }
 EntityState.prototype._$typeName = "EntityState";
-(Error as any)['x'] = EntityState.resolveSymbols();
+EntityState.resolveSymbols();

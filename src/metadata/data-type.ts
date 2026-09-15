@@ -291,9 +291,9 @@ export class DataType extends BreezeEnum {
 
 }
 DataType.prototype._$typeName = "DataType";
-(Error as any)['x'] = DataType._resetConstants();
-(Error as any)['x'] = DataType.resolveSymbols();
-(Error as any)['x'] = DataType.getSymbols().forEach((sym: DataType) => sym.validatorCtor = getValidatorCtor(sym));
+DataType._resetConstants();
+DataType.resolveSymbols();
+DataType.getSymbols().forEach((sym: DataType) => sym.validatorCtor = getValidatorCtor(sym));
 
 // private functions;
 

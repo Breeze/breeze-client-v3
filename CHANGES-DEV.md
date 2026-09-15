@@ -70,9 +70,18 @@ is worth knowing before adding any top-level code.
 **Import-time code that is safe** acts only on the module's own declarations: branding
 `_$typeName` onto a class declared there, `resolveSymbols()` on its own enum,
 `BreezeEvent.bubbleEvent(EntityManager.prototype)`. Whoever needs the result uses one of
-that module's exports, which is exactly what keeps the module in the bundle. (The
-`Error['x'] =` prefix on the ten `resolveSymbols` calls is not meaningful - it is an idiom
-that stops Terser treating the call as dead code. See `src/core/enum.ts`.)
+that module's exports, which is exactly what keeps the module in the bundle.
+
+Sixteen of those calls used to be written `Error['x'] = MyEnum.resolveSymbols()`. The
+comment in `enum.ts` blamed Terser, which was wrong - Terser never drops a call it cannot
+prove pure, and it keeps the bare form untouched. The prefix defended against *Rollup*, and
+only while the package said `"sideEffects": true`: Rollup can see that
+`MyEnum.resolveSymbols()` writes to nothing but `MyEnum`, so if `MyEnum` is being dropped it
+deletes the call too, whereas a write to the global `Error` is observable and has to stay.
+
+Once `sideEffects` named only the mixin, that stopped mattering - a module whose exports
+nothing uses is dropped either way, and a module something does use keeps both forms. So
+the prefix was removed, along with the special case it needed in `side-effects.spec.ts`.
 
 **What is not safe** is a statement that reaches into *another* module, because the bundler
 may drop the module that holds it while keeping the one that needs the effect:

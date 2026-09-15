@@ -44,7 +44,11 @@ Unlike enums in some other environments, each 'symbol' can have both methods and
 >         expect(DayOfWeek.Friday.toString()).toBe("Friday");
 >       });
 >   });
-Note that we have (Error as any)['x'] = ... in some places in the code to prevent Terser from optimizing out some important calls.
+Each enum module calls `resolveSymbols()` at import time. Until v3 those calls were written as
+`Error['x'] = MyEnum.resolveSymbols()`, to keep a bundler from discarding a call whose result
+nothing uses. That is no longer needed: `package.json` declares every module but the entity-graph
+mixin side-effect free, so a module is kept exactly when something uses one of its exports - and
+whatever needs the resolved symbols does. See the sideEffects section of CHANGES-DEV.md.
 */
 export class BreezeEnum {
   // // TODO: think about CompositeEnum (flags impl).
