@@ -88,8 +88,36 @@ EntityQuery.from(Customer)          // EntityQuery<Customer>
 | `EntityManager.getEntities(ctor, …)` | `T[]` |
 | `EntityManager.getChanges(ctor)` | `T[]` |
 | `EntityManager.fetchEntityByKey(ctor, …)` | `EntityByKeyResult<T>` |
+| `EntityManager.getEntityByKey(ctor, …)` | `T \| null` |
+| `EntityManager.attachEntity(entity)`, `addEntity(entity)` | gives back what it was given, rather than widening to `Entity` |
+| `EntityManager.hasChanges(ctor)` | accepts a constructor, like `getChanges` |
+| `EntityQuery.fromEntities(entities)` | `EntityQuery<T>` |
+| `EntityQuery.toType(ctor)` | `EntityQuery<T>` — and unlike a type argument on `from(name)`, this one **is** checked |
+| `RelationArray<T>.load()` | `Promise<QueryResult<T>>` |
+| `EntityType.createEntity<T>()` | `T` (defaults to `any`, which is what it always returned) |
 
 `entityTypeForCtor(ctor)` is exported too, for writing your own helpers over the same mechanism.
+
+::: tip `toType` is the checked way to type a named query
+`EntityQuery.from<Customer>('CustomersAndOrders')` is an assertion. `EntityQuery
+.from('CustomersAndOrders').toType(Customer)` names the type through metadata, so it is verified
+— and it is what `toType` was always for.
+:::
+
+### Passing a plain `Entity` never narrows anything
+
+`fromEntities` and `RelationArray.load()` take their type from what you give them. Give them a
+`Customer` and you get a `Customer` query; give them a plain `Entity` — which is all anyone had
+before these type parameters existed — and the result stays `any`:
+
+```ts
+const entity: Entity = em.createEntity(Customer, { companyName: 'Acme' });
+const q = EntityQuery.fromEntities(entity);          // EntityQuery<any>, not EntityQuery<Entity>
+q.using(em).execute().then(d => d.results[0].anything);   // still compiles
+```
+
+Letting it infer `EntityQuery<Entity>` there would break every existing caller — it broke nine
+lines of Breeze's own specs before this was fixed.
 
 ### `executeCount`
 

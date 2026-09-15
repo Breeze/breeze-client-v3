@@ -301,6 +301,13 @@ before — `QueryResult<T = any>`, so `qr.results` stays `any[]` — and type pa
 the compiler, so the emitted JavaScript is identical. Passing a constructor is a new *overload*
 alongside the existing name and `EntityType` ones.
 
+The same treatment reaches `getEntityByKey`, `hasChanges`, `EntityQuery.fromEntities`,
+`EntityQuery.toType`, `RelationArray.load()` and `EntityType.createEntity`. `attachEntity` and
+`addEntity` now give back the type they were handed instead of widening it to `Entity`.
+
+Where a type is *inferred* from something you pass in — `fromEntities`, `load()` — a plain
+`Entity` still yields `any`, not `Entity`, so existing callers are untouched.
+
 Using it does require [registering your classes](/guide/extending-entities#registering-a-constructor),
 which is what tells Breeze which type a constructor stands for. See
 [Typed entities](/guide/typed-entities) for what is checked, what is merely asserted, and why

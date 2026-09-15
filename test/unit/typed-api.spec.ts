@@ -1,4 +1,5 @@
 import { EntityManager, EntityQuery, EntityState, MetadataStore, entityTypeForCtor } from '../../src/breeze';
+import type { Entity } from '../../src/breeze';
 import { Customer, Employee, Order, registerModelClasses } from '../model';
 import northwindMetadata from '../support/NorthwindIBMetadata_ETNOPAYLOAD.json';
 
@@ -107,6 +108,94 @@ describe("Typed API - the constructor path", () => {
 
 });
 
+describe("Typed API - the second round of typed overloads", () => {
+
+  test("getEntityByKey(ctor) returns that type", () => {
+    const em = newEntityManager();
+    const id = '22222222-2222-2222-2222-222222222222';
+    em.createEntity(Customer, { customerID: id, companyName: 'Acme' }, EntityState.Unchanged);
+
+    const found = em.getEntityByKey(Customer, id);
+    expect(found).not.toBeNull();
+    expect(found!.companyName).toBe('Acme');          // typed
+    expect(em.getEntityByKey(Customer, 'no-such-id')).toBeNull();
+  });
+
+  test("attachEntity and addEntity give back what they were given", () => {
+    const em = newEntityManager();
+    const detached = em.createEntity(Customer, { companyName: 'Acme' }, EntityState.Detached);
+
+    // These return the entity passed in, so they should not widen it to Entity.
+    const attached = em.attachEntity(detached, EntityState.Added);
+    expect(attached.companyName).toBe('Acme');        // typed
+    expect(attached).toBe(detached);
+
+    const em2 = newEntityManager();
+    const another = em2.createEntity(Customer, { companyName: 'Beta' }, EntityState.Detached);
+    expect(em2.addEntity(another).companyName).toBe('Beta');
+  });
+
+  test("hasChanges(ctor) filters by type", () => {
+    const em = newEntityManager();
+    em.createEntity(Customer, { companyName: 'Acme' });
+
+    expect(em.hasChanges(Customer)).toBe(true);
+    expect(em.hasChanges(Order)).toBe(false);
+  });
+
+  test("EntityQuery.fromEntities keeps the entity's type", () => {
+    const em = newEntityManager();
+    const cust = em.createEntity(Customer, { companyName: 'Acme' }, EntityState.Unchanged);
+
+    const q = EntityQuery.fromEntities(cust);
+    expect(q.resourceName).toBe('Customers');
+    const found = em.executeQueryLocally(q);
+    expect(found[0].companyName).toBe('Acme');        // typed
+  });
+
+  test("toType(ctor) names the type and types the query", () => {
+    const em = newEntityManager();
+    em.createEntity(Customer, { companyName: 'Acme' }, EntityState.Unchanged);
+
+    // The usual reason for toType: a resource no entity class is bound to.
+    const q = EntityQuery.from('Customers').toType(Customer);
+    expect(q.resultEntityType).toBe(metadataStore.getAsEntityType('Customer'));
+    expect(em.executeQueryLocally(q)[0].companyName).toBe('Acme');   // typed
+  });
+
+  test("entityType.createEntity<T>() carries the type argument", () => {
+    const orderType = metadataStore.getAsEntityType('Order');
+    const order = orderType.createEntity<Order>({ shipName: 'Acme' });
+    expect(order.shipName).toBe('Acme');              // typed
+  });
+
+});
+
+describe("Typed API - the second round does not widen existing code", () => {
+
+  test("fromEntities on a plain Entity stays untyped", () => {
+    const em = newEntityManager();
+    // What a caller had before any of this existed: a variable typed Entity.
+    const entity: Entity = em.createEntity(Customer, { companyName: 'Acme' }, EntityState.Unchanged);
+
+    // QueriedAs maps Entity back to any, so `.results[0].anything` still compiles. Inferring
+    // EntityQuery<Entity> here would break every existing caller - it did, in 9 places in
+    // datatypes.spec.ts, before the conditional type was added.
+    const q = EntityQuery.fromEntities(entity);
+    const found = em.executeQueryLocally(q);
+    expect(found[0].companyName).toBe('Acme');
+    expect(found[0].anythingAtAll).toBeUndefined();
+  });
+
+  test("entityType.createEntity() with no type argument is still any", () => {
+    const orderType = metadataStore.getAsEntityType('Order');
+    const order = orderType.createEntity({ shipName: 'Acme' });
+    expect(order.shipName).toBe('Acme');
+    expect(order.nothingLikeThis).toBeUndefined();    // any, as it has always been
+  });
+
+});
+
 describe("Typed API - the resource-name path", () => {
 
   test("a resource name with an explicit type argument is accepted as given", () => {
@@ -175,6 +264,18 @@ function compilerMustReject() {
   EntityQuery.from(NotAnEntity);
   // @ts-expect-error - same, for createEntity
   em.createEntity(NotAnEntity);
+
+  // the second round of overloads has to be load-bearing too
+  // @ts-expect-error - getEntityByKey(Customer, ...) is Customer | null, not an Order
+  em.getEntityByKey(Customer, 'id')!.freight;
+  // @ts-expect-error - attachEntity gives back what it was given, so still a Customer
+  em.attachEntity(cust).freight;
+  // @ts-expect-error - fromEntities(Customer) makes a Customer query
+  em.executeQueryLocally(EntityQuery.fromEntities(cust))[0].freight;
+  // @ts-expect-error - toType(Customer) says the results are Customers
+  em.executeQueryLocally(EntityQuery.from('Orders').toType(Customer))[0].freight;
+  // @ts-expect-error - the type argument on createEntity is honoured
+  em.metadataStore.getAsEntityType('Order').createEntity<Order>().companyName;
 
   return [mislabelled, wrong];
 }

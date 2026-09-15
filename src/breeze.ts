@@ -10,7 +10,7 @@ import type { DataServiceConfig, JsonResultsAdapterConfig, NodeContext, NodeMeta
 import { DataType } from './metadata/data-type.js';
 import { EntityAction } from './entity/entity-action.js';
 import { EntityAspect, ComplexAspect } from './entity/entity-aspect.js';
-import type { Entity, ComplexObject, StructuralObject, PropertyChangedEventArgs } from './entity/entity-aspect.js';
+import type { Entity, ComplexObject, StructuralObject, PropertyChangedEventArgs, QueriedAs } from './entity/entity-aspect.js';
 import { EntityKey } from './entity/entity-key.js';
 import { EntityManager } from './manager/entity-manager.js';
 import type { EntityManagerConfig, EntityError, EntityChangedEventArgs, SaveContext, SaveBundle, HttpResponse, KeyMapping, ServerError, SaveResult, QueryResult, ValidationErrorsChangedEventArgs, HasChangesChangedEventArgs } from './manager/entity-manager.js';
@@ -134,6 +134,7 @@ export type {
   NodeContext,
   NodeMeta,
   PropertyChangedEventArgs,
+  QueriedAs,
   QueryResult,
   SaveBundle,
   SaveContext,

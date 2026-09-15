@@ -2,7 +2,7 @@ import { BreezeEvent } from '../core/event.js';
 import { ObservableArray, ObservableArrayOps, observableArray } from './observable-array.js';
 import { EntityState } from './entity-state.js';
 import { EntityQuery } from '../query/entity-query.js';
-import type { Entity } from './entity-aspect.js';
+import type { Entity, QueriedAs } from './entity-aspect.js';
 import type { QueryErrorCallback, QueryResult, QuerySuccessCallback } from '../manager/entity-manager.js';
 import type { DataProperty, NavigationProperty } from '../metadata/entity-metadata.js';
 
@@ -10,7 +10,7 @@ export interface RelationArray<T extends Entity = Entity> extends ObservableArra
   parentEntity: Entity;
   parentProperty?: DataProperty;
   navigationProperty: NavigationProperty;
-  load(querySuccessCallback?: QuerySuccessCallback, queryErrorCallback?: QueryErrorCallback): Promise<QueryResult>;
+  load(querySuccessCallback?: QuerySuccessCallback, queryErrorCallback?: QueryErrorCallback): Promise<QueryResult<QueriedAs<T>>>;
 }
 
 /**

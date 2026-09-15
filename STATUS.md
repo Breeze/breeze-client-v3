@@ -696,3 +696,51 @@ and a consumer compiling against the shipped `.d.ts` under `NodeNext` + `strict`
 `skipLibCheck: false` (so the declarations themselves are checked) with no errors; `bundler`
 resolution likewise. `node10` resolves the root import but not the subpaths, which is inherent
 to an `exports`-only package; see CHANGES-DEV.md for why that is left alone.
+
+## Typed API, second round (done)
+
+A review of the rest of the public surface for methods that could carry a type. Nine more
+signatures, all additive:
+
+| | |
+|---|---|
+| `getEntityByKey(ctor, keys)` | `T \| null`; goes through the same `createEntityKey` helper as `fetchEntityByKey`, so the two cannot drift |
+| `attachEntity(entity)`, `addEntity(entity)` | `<T extends Entity>(entity: T) => T`. They already returned the entity they were handed; the signature was throwing that away |
+| `hasChanges(ctor)` | for consistency with `getChanges` / `getEntities` |
+| `EntityQuery.fromEntities(entities)` | `EntityQuery<T>` |
+| `EntityQuery.toType(ctor)` | `EntityQuery<T>` — the **checked** way to type a named query, as against the assertion `from<T>(name)` makes |
+| `RelationArray<T>.load()` | `Promise<QueryResult<T>>` |
+| `EntityType.createEntity<T>()` | `T`, defaulting to `any` — which is what it has always returned |
+
+### The widening trap, again, and the fix
+
+`fromEntities` inferring from its argument looked free until the test tier reported **9 errors**:
+where the caller's variable is typed plain `Entity`, `U` infers as `Entity`, and the query became
+`EntityQuery<Entity>` where it had been `EntityQuery<any>`. Every `results[0].whatever` in
+existing code stops compiling — the same mistake as `QueryResult<T = Entity>` would have been.
+
+`QueriedAs<U> = Entity extends U ? any : U` fixes it: a specific class maps to itself, plain
+`Entity` maps back to `any`. Applied to `fromEntities` and to `RelationArray.load()`, which had
+the same latent problem — `RelationArray` defaults `T` to `Entity`, so an untyped relation array's
+`load()` would have started returning `Entity[]`.
+
+It lives next to `Entity` in entity-aspect.ts and is exported from the barrel, because it appears
+in a public signature — the rule this repo already follows for the 26 types the docs work
+exported.
+
+### Not done, with reasons
+
+- **`SaveResult.entities`, `ImportResult.entities`, `QueryResult.retrievedEntities`** are
+  heterogeneous by nature. A save returns whatever changed; `retrievedEntities` includes
+  everything `expand` pulled in. `Entity[]` is the honest type and typing them would be a lie the
+  caller then has to cast away.
+- **`EntityAspect<T>`** would type `entityAspect.entity`, but `EntityAspect` is on every entity and
+  threading a parameter through it is a large change for something already reachable via the class.
+- **`registerEntityTypeCtor(ctor)`** deriving the name from `ctor.name` breaks under minification.
+  The current design avoids exactly that by going through `prototype.entityType`.
+- **`loadNavigationProperty(name)`** cannot be checked — a property name carries no type. Only an
+  asserted form is possible, which is not worth a new overload.
+
+`test/unit/typed-api.spec.ts` is 23 tests now, including one asserting that a plain `Entity` into
+`fromEntities` still yields `any`, and five more `@ts-expect-error` lines so the new overloads
+cannot quietly stop being load-bearing.

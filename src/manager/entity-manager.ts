@@ -788,7 +788,7 @@ export class EntityManager {
   @param entity - The entity to add.
   @returns The added entity.
   **/
-  addEntity(entity: Entity) {
+  addEntity<T extends Entity>(entity: T): T {
     return this.attachEntity(entity, EntityState.Added);
   }
 
@@ -803,7 +803,7 @@ export class EntityManager {
   @param mergeStrategy - (default = MergeStrategy.Disallowed) How the specified entity should be merged into the EntityManager if this EntityManager already contains an entity with the same key.
   @returns The attached entity.
   **/
-  attachEntity(entity: Entity, entityState?: EntityState, mergeStrategy?: MergeStrategy) {
+  attachEntity<T extends Entity>(entity: T, entityState?: EntityState, mergeStrategy?: MergeStrategy): T {
     assertParam(entity, "entity").isRequired().check();
     this.metadataStore._checkEntityType(entity);
     let esSymbol = assertParam(entityState, "entityState").isEnumOf(EntityState).isOptional().check(EntityState.Unchanged) as EntityState;
@@ -816,7 +816,7 @@ export class EntityManager {
     let aspect = entity.entityAspect;
     if (aspect) {
       // to avoid reattaching an entity in progress
-      if (aspect._inProcessEntity) return aspect._inProcessEntity;
+      if (aspect._inProcessEntity) return aspect._inProcessEntity as T;
     } else {
       // this occur's when attaching an entity created via new instead of via createEntity.
       aspect = new EntityAspect(entity);
@@ -854,7 +854,7 @@ export class EntityManager {
     }
     this.entityChanged.publish({ entityAction: EntityAction.Attach, entity: attachedEntity });
 
-    return attachedEntity;
+    return attachedEntity as T;
   }
 
 
@@ -1229,6 +1229,13 @@ export class EntityManager {
   >      let employee = em1.getEntityByKey(employeeKey);
   >      // employee will either be an entity or null.
   **/
+  /**
+  >      // assume em1 is an EntityManager containing a number of preexisting entities,
+  >      // and that Employee is registered with its MetadataStore.
+  >      let employee = em1.getEntityByKey(Employee, 1);   // Employee | null
+  **/
+  getEntityByKey<T extends Entity>(entityCtor: new () => T, keyValues: any | any[]): T | null;
+
   getEntityByKey(entityKey: EntityKey): Entity | null;
 
   /**  
@@ -1358,6 +1365,7 @@ export class EntityManager {
     return nextKeyValue;
   }
 
+  hasChanges<T extends Entity>(entityCtor: new () => T): boolean;
   hasChanges(): boolean;
   hasChanges(entityTypeNames: string | string[]): boolean;
   hasChanges(entityTypes: EntityType | EntityType[]): boolean;
@@ -1389,7 +1397,7 @@ export class EntityManager {
   @param entityTypeNames - The {@link EntityType} name or names for which 'changed' entities will be found.
   @returns Whether there are any changed entities that match the types specified..
   **/
-  hasChanges(entityTypes?: EntityType | EntityType[] | string | string[]) {
+  hasChanges(entityTypes?: EntityTypeArg | EntityTypeArg[]) {
     if (!this._hasChanges) return false;
     if (entityTypes === undefined) return this._hasChanges;
     return this._hasChangesCore(entityTypes);
@@ -1398,7 +1406,7 @@ export class EntityManager {
 
   /** @hidden @internal */
   // backdoor to "really" check for changes.
-  _hasChangesCore(entityTypes?: EntityType | EntityType[] | string | string[]) {
+  _hasChangesCore(entityTypes?: EntityTypeArg | EntityTypeArg[]) {
     let ets = checkEntityTypes(this, entityTypes);
     let entityGroups = getEntityGroups(this, ets);
     return entityGroups.some(function (eg) {

@@ -46,6 +46,15 @@ export interface ComplexObject {
 
 export type StructuralObject = Entity | ComplexObject;
 
+/**
+ * The type a query derived from existing entities should carry.
+ *
+ * Given `Customer`, the query is a `Customer` query. Given plain `Entity` - which is all a caller
+ * had before the type parameters existed - it stays `any`, so `results[0].whatever` keeps
+ * compiling. Widening that case to `Entity` would break every existing caller.
+ */
+export type QueriedAs<U> = Entity extends U ? any : U;
+
 export interface PropertyChangedEventArgs {
   entity: Entity;
   propertyName: string | null;

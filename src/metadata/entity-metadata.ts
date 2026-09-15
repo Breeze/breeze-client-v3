@@ -1218,6 +1218,13 @@ export class EntityType {
   @param initialValues - Configuration object of the properties to set immediately after creation.
   @returns The new entity.
   **/
+  /**
+  Creates a new instance of this type. `T` is the caller's claim about what this type is - nothing
+  checks it, because an EntityType knows its metadata, not your class. It defaults to `any`, which
+  is what this has always returned, so existing calls are unaffected.
+  >      let order = orderType.createEntity<Order>({ shipName: "Acme" });
+  **/
+  createEntity<T = any>(initialValues?: any): T;
   createEntity(initialValues?: any): any {
     // ignore the _$eref once the entity is attached to an entityManager.
     if (initialValues && initialValues._$eref && !initialValues._$eref.entityAspect.entityManager) return initialValues._$eref;

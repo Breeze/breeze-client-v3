@@ -2,6 +2,7 @@
 import { assertParam } from '../core/assert-param.js';
 import { DataType } from '../metadata/data-type.js';
 import { EntityAspect, Entity } from '../entity/entity-aspect.js';
+import type { QueriedAs } from '../entity/entity-aspect.js';
 import { EntityKey } from '../entity/entity-key.js';
 import { BreezeEnum } from '../core/enum.js';
 import { DataService, JsonResultsAdapter } from '../metadata/data-service.js';
@@ -13,6 +14,7 @@ import { Predicate } from './predicate.js';
 export interface RecursiveArray<T> {
   [i: number]: T | RecursiveArray<T>;
 }
+
 
 export interface EntityQueryJsonContext {
   entityType?: EntityType;
@@ -162,6 +164,15 @@ export class EntityQuery<T = any> {
   }
 
   /**
+  Specifies the top level type this query will return, as a registered constructor. The query then
+  carries that type, so its results are typed - and because the constructor is resolved through
+  metadata, this is *checked*, unlike a type argument on {@link EntityQuery.from}:
+  >      let query = EntityQuery.from("CustomersAndOrders").toType(Customer);   // EntityQuery<Customer>
+  @param entityCtor - A constructor registered for the EntityType this query will return.
+  @summary If the json result consists of more than a simple entity or array of entities, consider using a {@link JsonResultsAdapter} instead.
+  **/
+  toType<U extends Entity>(entityCtor: new () => U): EntityQuery<U>;
+  /**
   Specifies the top level EntityType that this query will return.  Only needed when a query returns a json result that does not include type information,
   or when using a resource name that is not associated to an EntityType.
   >      let query = new EntityQuery()
@@ -170,9 +181,16 @@ export class EntityQuery<T = any> {
   @param entityType - The top level EntityType that this query will return.
   @summary If the json result consists of more than a simple entity or array of entities, consider using a {@link JsonResultsAdapter} instead.
   **/
-  toType(entityType: string | EntityType) {
+  toType(entityType: string | EntityType): EntityQuery<any>;
+  toType(entityType: string | EntityType | (new () => Entity)): EntityQuery<any> {
+    // Naming the type is what `toType` is for, so a registered constructor names it *and* types
+    // the query - and unlike a type argument on `from(resourceName)`, this one is checked against
+    // the metadata.
+    if (typeof entityType === 'function') {
+      entityType = entityTypeForCtor(entityType);
+    }
     assertParam(entityType, "entityType").isString().or().isInstanceOf(EntityType).check();
-    return clone(this, "resultEntityType", entityType);
+    return clone(this, "resultEntityType", entityType) as EntityQuery<any>;
   }
 
 
@@ -642,8 +660,8 @@ export class EntityQuery<T = any> {
 
   }
 
-  static fromEntities(entity: Entity): EntityQuery;
-  static fromEntities(entities: Entity[]): EntityQuery;
+  static fromEntities<U extends Entity>(entity: U): EntityQuery<QueriedAs<U>>;
+  static fromEntities<U extends Entity>(entities: U[]): EntityQuery<QueriedAs<U>>;
   /**
   Static method that creates an EntityQuery that will allow 'requerying' an entity or a collection of entities by primary key. This can be useful
   to force a requery of selected entities, or to restrict an existing collection of entities according to some filter.
