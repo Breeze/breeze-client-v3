@@ -11,7 +11,7 @@ The suite lives in this repo. Most of it also needs the **.NET test server** and
 ## TL;DR
 
 ```bash
-npm run test:unit      # 268 tests, a few seconds, needs nothing at all
+npm run test:unit      # 352 tests, a few seconds, needs nothing at all
 ```
 
 That is the loop to work in. For everything else, one command creates the database if
@@ -217,13 +217,19 @@ recreating the database by hand** — otherwise those tables are empty.
 
 ## 3. Run the tests
 
-| command | tests | needs a server? | time |
-|---|---|---|---|
-| `npm run test:unit` | 268 | **no** | a few seconds |
-| `npm run test:integration` | 457 | yes | ~35s |
-| `npm test` | 725 (unit + integration) | yes | ~50s |
-| `npm run test:browser` | 725 | yes | ~40s |
-| `npm run test:watch` | 268 | no | watch mode |
+| command | tier | tests | needs a server? | time |
+|---|---|---|---|---|
+| `npm run test:unit` | unit | 352 | **no** | a few seconds |
+| `npm run test:integration` | integration | ~457 † | yes | ~35s |
+| `npm test` | both | unit + integration | yes | ~50s |
+| `npm run test:browser` | both, in Chromium | unit + integration | yes | ~40s |
+| `npm run test:watch` | unit | 352 | no | watch mode |
+
+† The unit counts were measured on 2026-09-15. The integration count was last measured at
+`86ae317`; integration specs have changed since then (`dc06d85`, `f95df6d`, `cb94d23`)
+without it being re-measured, so treat it as approximate until you run the tier. This file's
+rule is that every number in it was observed, not derived — so the totals are left as a sum
+rather than stated as a figure nobody has seen.
 
 7 tests are skipped by design. Five are skipped on the ASP.NET Core server: three need
 server-side validation, which that server does not perform; one needs a named-query endpoint
@@ -233,7 +239,7 @@ yet. The other two are always skipped: one is awaiting review, and one covers a 
 
 ### The unit tier
 
-`test/unit/` — 23 files that need nothing. They work against checked-in metadata fixtures.
+`test/unit/` — 27 files that need nothing. They work against checked-in metadata fixtures.
 Where a test needs a server response, it supplies a fake `fetch` through
 `configureBreeze({ fetch })` (`fetch-transport.spec.ts` shows how), or, to cover the
 deprecated ajax adapter path, registers `AjaxFakeAdapter` from `test/support/`. No
