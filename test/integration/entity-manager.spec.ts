@@ -1,10 +1,14 @@
 import { Entity, EntityQuery, EntityType, MetadataStore, EntityChangedEventArgs, EntityAction, MergeStrategy, QueryOptions, FetchStrategy, EntityManager } from '../../src/breeze';
 import { TestFns } from '../test-fns';
+import { Customer, Employee, registerModelClasses } from '../model';
 
 TestFns.initServerEnv();
 
 beforeAll(async () => {
   await TestFns.initDefaultMetadataStore();
+  // Types the calls below; see test/model/README.md. The unregistered default-constructor
+  // path has its own coverage in test/unit/unregistered-types.spec.ts.
+  registerModelClasses(TestFns.defaultMetadataStore);
 
 });
 
@@ -18,7 +22,7 @@ describe("Entity Manager", () => {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
     const em2 = em.createEmptyCopy();
-    const q = EntityQuery.from("Customers").take(1);
+    const q = EntityQuery.from(Customer).take(1);
     
     const data = await em2.executeQuery(q);
     expect(data.results.length).toBe(1);
@@ -34,17 +38,17 @@ describe("Entity Manager", () => {
 
     let em = TestFns.newEntityManager();
     em.setProperties( { queryOptions: queryOptions });
-    const q = EntityQuery.from("Customers").take(2).using(em);
+    const q = EntityQuery.from(Customer).take(2).using(em);
     const val = Date.now().toString();
     
     const data = await q.execute();
     const custs = data.results;
-    custs[0].setProperty("companyName", val);
-    custs[1].setProperty("city", val);
+    custs[0].companyName = val;
+    custs[1].city = val;
     const data2 = await q.execute();
     const custs2 = data2.results;
-    const companyName = custs2[0].getProperty("companyName");
-    const city = custs2[1].getProperty("city");
+    const companyName = custs2[0].companyName;
+    const city = custs2[1].city;
     expect(companyName).not.toEqual(val);
     expect(city).not.toEqual(val);
   });
@@ -55,7 +59,7 @@ describe("Entity Manager", () => {
     const em = TestFns.newEntityManager();
     em.queryOptions = em.queryOptions.using(MergeStrategy.OverwriteChanges);
     const alfredsID = '785efa04-cbf2-4dd7-a7de-083ee17b6ad2';
-    const query = EntityQuery.from("Customers")
+    const query = EntityQuery.from(Customer)
         .where(TestFns.wellKnownData.keyNames.customer, "==", alfredsID);
 
     const entityChangedArgs = [];
@@ -71,7 +75,7 @@ describe("Entity Manager", () => {
     const data = await query.using(em).execute();
     expect(em.hasChanges()).toBe(false);
     const customer = data.results[0];
-    customer.setProperty("companyName", "Foo");
+    customer.companyName = "Foo";
     expect(em.hasChanges()).toBe(true);
     hasChangesChangedArgs.length = 0;
     entityChangedArgs.length = 0;
@@ -97,8 +101,7 @@ describe("Entity Manager", () => {
       lastAction = args.entityAction;
       lastEntity = args.entity;
     });
-    const q1 = new EntityQuery()
-        .from("Employees")
+    const q1 = EntityQuery.from(Employee)
         .orderBy("lastName")
         .take(2);
     
@@ -109,7 +112,7 @@ describe("Entity Manager", () => {
     });
     const emps = qr1.results;
     expect(emps.length).toBe(2);
-    emps[0].setProperty("lastName", "Smith");
+    emps[0].lastName = "Smith";
     changedArgs = [];
 
     const qr2 = await em.executeQuery(q1);
@@ -150,10 +153,10 @@ describe("Entity Manager", () => {
     expect(count).toBe(0);
     expect(em.hasChanges()).toBe(false);
     
-    const qr1 = await EntityQuery.from("Customers").take(3).using(em).execute();
+    const qr1 = await EntityQuery.from(Customer).take(3).using(em).execute();
     const custs = qr1.results;
     expect(em.hasChanges()).toBe(false);
-    custs[0].setProperty("companyName", "xxx");
+    custs[0].companyName = "xxx";
     custs[1].entityAspect.setDeleted();
     custs[2].entityAspect.setModified();
     expect(count).toBe(1);

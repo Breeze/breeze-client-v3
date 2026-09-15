@@ -1,11 +1,15 @@
 import { breeze, EntityManager, EntityQuery, NamingConvention, Predicate, EntityType, EntityState, EntityKey, Entity, DataService, MappingContext, NodeContext, NodeMeta } from '../../src/breeze';
 import { TestFns, expectPass } from '../test-fns';
+import { OrderDetail, registerModelClasses } from '../model';
 
 
 TestFns.initServerEnv();
 
 beforeAll(async () => {
   await TestFns.initDefaultMetadataStore();
+  // Types the calls below; see test/model/README.md. The unregistered default-constructor
+  // path has its own coverage in test/unit/unregistered-types.spec.ts.
+  registerModelClasses(TestFns.defaultMetadataStore);
 });
 
 const jsonResultsAdapter = new breeze.JsonResultsAdapter({
@@ -40,10 +44,10 @@ describe("JsonResultsAdapter", () => {
   test("using jsonResultsAdapter", async () => {
       expect.assertions(2);
       const em1 = TestFns.newEntityManager();
-      const q1 = EntityQuery.from("OrderDetails").take(5).using(jsonResultsAdapter);
+      const q1 = EntityQuery.from(OrderDetail).take(5).using(jsonResultsAdapter);
       const qr1 = await em1.executeQuery(q1);
       expect(qr1.results.length).toBe(5);
-      const rv = qr1.results[0].getProperty("rowVersion");
+      const rv = qr1.results[0].rowVersion;
       expect(rv).toBe(77);
     });
 
@@ -52,10 +56,10 @@ describe("JsonResultsAdapter", () => {
       const em1 = TestFns.newEntityManager();
       const oldDs = em1.dataService;
       const newDs = new DataService({ serviceName: oldDs.serviceName, jsonResultsAdapter: jsonResultsAdapter });
-      const q1 = EntityQuery.from("OrderDetails").take(5).using(newDs);
+      const q1 = EntityQuery.from(OrderDetail).take(5).using(newDs);
       const qr1 = await em1.executeQuery(q1);
       expect(qr1.results.length).toBe(5);
-      const rv = qr1.results[0].getProperty("rowVersion");
+      const rv = qr1.results[0].rowVersion;
       expect(rv).toBe(77);
     });
 
@@ -63,10 +67,10 @@ describe("JsonResultsAdapter", () => {
       expect.assertions(2);
       const newDs = new DataService({ serviceName: TestFns.defaultServiceName, jsonResultsAdapter: jsonResultsAdapter });
       const em1 = new EntityManager({ dataService: newDs });
-      const q1 = EntityQuery.from("OrderDetails").take(5);
+      const q1 = EntityQuery.from(OrderDetail).take(5);
       const qr1 = await em1.executeQuery(q1);
       expect(qr1.results.length).toBe(5);
-      const rv = qr1.results[0].getProperty("rowVersion");
+      const rv = qr1.results[0].rowVersion;
       expect(rv).toBe(77);
     });
 });

@@ -1,10 +1,14 @@
 import { Entity, EntityQuery, EntityType, MetadataStore, EntityChangedEventArgs, EntityAction, MergeStrategy, QueryOptions, FetchStrategy, EntityManager, breeze } from '../../src/breeze';
 import { TestFns } from '../test-fns';
+import { Product, registerModelClasses } from '../model';
 
 TestFns.initServerEnv();
 
 beforeAll(async () => {
   await TestFns.initDefaultMetadataStore();
+  // Types the calls below; see test/model/README.md. The unregistered default-constructor
+  // path has its own coverage in test/unit/unregistered-types.spec.ts.
+  registerModelClasses(TestFns.defaultMetadataStore);
 
 });
 
@@ -16,7 +20,7 @@ describe("Entity Operations", () => {
 
   test("set foreign key property to null", async function () {
     expect.hasAssertions();
-    const productQuery = new EntityQuery("Products").where("supplierID", "ne", null).take(1);
+    const productQuery = EntityQuery.from(Product).where("supplierID", "ne", null).take(1);
 
     const em = TestFns.newEntityManager();
     const qr = await em.executeQuery(productQuery);
@@ -36,16 +40,16 @@ describe("Entity Operations", () => {
     const productType = em.metadataStore.getAsEntityType("Product");
     let product = productType.createEntity();
     em.attachEntity(product);
-    product.setProperty("productName", "foo");
-    product.setProperty('supplierID', null);
+    product.productName = "foo";
+    product.supplierID = null;
     let errs = product.entityAspect.getValidationErrors();
     expect(errs.length).toBe(0);
-    const q = EntityQuery.from("Products").take(1);
+    const q = EntityQuery.from(Product).take(1);
 
     const qr1 = await em.executeQuery(q);
     const products = qr1.results;
     product = products[0];
-    product.setProperty('supplierID', null);
+    product.supplierID = null;
     errs = product.entityAspect.getValidationErrors();
     expect(errs.length).toBe(0);
   });

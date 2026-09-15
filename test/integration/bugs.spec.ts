@@ -1,12 +1,18 @@
 import { Entity, EntityQuery, EntityType, MetadataStore, Predicate, breeze, MergeStrategy, EntityState, QueryResult } from '../../src/breeze';
 import { TestFns, skipTestIf } from '../test-fns';
 import exportImportSample1 from '../support/export-import-1.json';
+import { Category, Employee, EmployeeTerritory, Order, OrderDetail, Product, Region, registerModelClasses } from '../model';
 
 TestFns.initServerEnv();
 
 beforeAll(async () => {
   // MetadataStore.importMetadata(metadata);
   await TestFns.initDefaultMetadataStore();
+  // Types the calls below; see test/model/README.md. The unregistered default-constructor
+  // path has its own coverage in test/unit/unregistered-types.spec.ts.
+  // NB: Customer is not imported here - this file declares its own for the custom-constructor
+  // tests, and that local declaration shadows an import for the whole block.
+  registerModelClasses(TestFns.defaultMetadataStore);
 
 });
 
@@ -60,8 +66,7 @@ describe("Old Fixed Bugs", () => {
     const em1 = TestFns.newEntityManager();
     const predicate = Predicate.create(TestFns.wellKnownData.keyNames.order, "<", 10500);
 
-    const query = new EntityQuery()
-      .from("Orders")
+    const query = EntityQuery.from(Order)
       .expand("orderDetails, orderDetails.product")
       .where(predicate)
       .inlineCount()
@@ -74,11 +79,11 @@ describe("Old Fixed Bugs", () => {
     expect(qr1.results.length).toBeGreaterThan(0);
     expect(qr1.inlineCount).toBeGreaterThan(0);
 
-    const localQuery = EntityQuery.from('OrderDetails');
+    const localQuery = EntityQuery.from(OrderDetail);
     const orderDetails = em1.executeQueryLocally(localQuery);
     expect(orderDetails.length).toBeGreaterThan(0);
 
-    const localQuery2 = EntityQuery.from('Products');
+    const localQuery2 = EntityQuery.from(Product);
     const products = em1.executeQueryLocally(localQuery2);
     expect(products.length).toBeGreaterThan(0);
 
@@ -114,22 +119,22 @@ describe("Old Fixed Bugs", () => {
         .expand("orders");
       let newOrder = orderType.createEntity(); // call the factory function for the Customer type
       em1.addEntity(newOrder);
-      newOrder.setProperty("customerID", "729de505-ea6d-4cdf-89f6-0360ad37bde7");
+      newOrder.customerID = "729de505-ea6d-4cdf-89f6-0360ad37bde7";
 
       let items = em1.rejectChanges();
 
       const qr1 = await em1.executeQuery(query);
-      let orders = qr1.results[0].getProperty("orders");
+      let orders = qr1.results[0].orders;
       // the bug was that this included the previously detached order above. ( making a length of 11).
       expect(orders.length).toBe(10);
 
       newOrder = orderType.createEntity(); // call the factory function for the Customer type
       em1.addEntity(newOrder);
-      newOrder.setProperty("customerID", "729de505-ea6d-4cdf-89f6-0360ad37bde7");
+      newOrder.customerID = "729de505-ea6d-4cdf-89f6-0360ad37bde7";
 
       items = em1.rejectChanges();
       const qr2 = await em1.executeQuery(query);
-      orders = qr2.results[0].getProperty("orders");
+      orders = qr2.results[0].orders;
       expect(orders.length).toBe(10);
     });
 
@@ -145,14 +150,14 @@ describe("Old Fixed Bugs", () => {
 
     const qr1 = await query.using(em1).execute();
     const customer = qr1.results[0];
-    const q2 = EntityQuery.from("Orders")
+    const q2 = EntityQuery.from(Order)
       .where("customerID", "==", alfredsID)
       .expand("customer"); // bug goes away if you remove this
     await q2.using(em1).execute();
 
     expect(em1.hasChanges()).toBe(false);
     expect(em1.getChanges().length).toBe(0);
-    const details = customer.getProperty("orders");
+    const details = customer.orders;
     const dups = TestFns.getDups(details);
     expect(dups.length).toBe(0);
   });
@@ -163,7 +168,7 @@ describe("Old Fixed Bugs", () => {
     const custType = em1.metadataStore.getAsEntityType("Customer");
     const custKeyName = TestFns.wellKnownData.keyNames.customer;
     const customer = custType.createEntity();
-    customer.setProperty("companyName", "[don't know name yet]");
+    customer.companyName = "[don't know name yet]";
     const alfredsID = '785efa04-cbf2-4dd7-a7de-083ee17b6ad2';
     // TEST PASSES (NO DUPLICATE) IF SET ID HERE ... BEFORE ATTACH
     // customer.CustomerID(testFns.wellKnownData.alfredsID); // 785efa04-cbf2-4dd7-a7de-083ee17b6ad2
@@ -191,11 +196,11 @@ describe("Old Fixed Bugs", () => {
       const c1 = inCache[0], c2 = inCache[1];
       throw new Error("Two custs in cache with same ID");
       // "Two custs in cache with same ID, ({0})-{1} and ({2})-{3}".format(// format is my extension to String
-      //   c1.getProperty(custKeyName), c1.getProperty("companyName"), c2.getProperty(custKeyName), c2.getProperty("companyName")));
+      //   c1.getProperty(custKeyName), c1.companyName, c2.getProperty(custKeyName), c2.companyName));
     }
 
     // refresh query result is the same as the customer in cache" +
-    // whose updated name is " + customer.getProperty("companyName"));
+    // whose updated name is " + customer.companyName);
     // This test should succeed; it fails because of above bug!!!
     expect(results[0]).toBe(customer);
       
@@ -209,8 +214,7 @@ describe("Old Fixed Bugs", () => {
     const em1 = TestFns.newEntityManager();
     const em2 = TestFns.newEntityManager();
     const p = Predicate.create("freight", ">", 100).and("customerID", "!=", null);
-    const query = new EntityQuery()
-      .from("Orders")
+    const query = EntityQuery.from(Order)
       .where(p)
       .orderBy("orderID")
       .expand("customer")
@@ -220,7 +224,7 @@ describe("Old Fixed Bugs", () => {
     const qr1 = await em1.executeQuery(query);
 
     order1 = qr1.results[0];
-    oldCust = order1.getProperty("customer");
+    oldCust = order1.customer;
     expect(oldCust).not.toBeNull();
     const qr2 = await em2.executeQuery(EntityQuery.fromEntityKey(order1.entityAspect.getKey()));
 
@@ -229,8 +233,8 @@ describe("Old Fixed Bugs", () => {
 
     const customerType = em2.metadataStore.getAsEntityType("Customer");
     newCust1a = customerType.createEntity();
-    newCust1a.setProperty("companyName", "Test_compName");
-    order1a.setProperty("customer", newCust1a);
+    newCust1a.companyName = "Test_compName";
+    order1a.customer = newCust1a;
 
     const sr = await em2.saveChanges();
 
@@ -244,7 +248,7 @@ describe("Old Fixed Bugs", () => {
 
     order1b = qr3.results[0];
     expect(order1b).toBe(order1);
-    newCust1b = order1b.getProperty("customer");
+    newCust1b = order1b.customer;
     expect(newCust1a.entityAspect.getKey()).toEqual(newCust1b.entityAspect.getKey());
     expect(newCust1b).not.toBeNull();
     expect(newCust1b.entityAspect.entityState.isUnchanged()).toBe(true);
@@ -270,7 +274,7 @@ describe("Old Fixed Bugs", () => {
     const order = data2.results[0];
     //uncomment line below and the relationship is resolved
     //manager._linkRelatedEntities(order);
-    const orderShipments = order.getProperty("orderShipments");
+    const orderShipments = order.orderShipments;
     expect(orderShipments.length).toBeGreaterThan(0);
   });
 
@@ -279,7 +283,7 @@ describe("Old Fixed Bugs", () => {
     // Bug - D2460
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
-    const q = EntityQuery.from("Employees").where("employeeID", "==", 1)
+    const q = EntityQuery.from(Employee).where("employeeID", "==", 1)
         .expand("orders");
     
     const qr = await em.executeQuery(q);
@@ -351,7 +355,7 @@ describe("Old Fixed Bugs", () => {
   test("bug updating keys with many-to-many no payload", async () => {
     const em1 = TestFns.newEntityManager();
 
-    const employee = em1.createEntity('Employee', {
+    const employee = em1.createEntity(Employee, {
       lastName: 'Doe',
       firstName: 'John',
       title: 'VP',
@@ -359,7 +363,7 @@ describe("Old Fixed Bugs", () => {
       reportsToEmployeeID: 4, // known existing value
     }) as any;
 
-    const empter = em1.createEntity('EmployeeTerritory', {
+    const empter = em1.createEntity(EmployeeTerritory, {
       employeeID: employee.employeeID,
       territoryID: 3049 // known existing value
     }) as any;
@@ -385,7 +389,7 @@ describe("Old Fixed Bugs", () => {
     expect (qr1.results.length).toEqual(2);
 
     const cust1 = qr1.results[0];
-    const id1 = cust1.getProperty("customerID");
+    const id1 = cust1.customerID;
     expect(id1).toEqualCaseInsensitive("729DE505-EA6D-4CDF-89F6-0360AD37BDE7");
 
   });
@@ -396,15 +400,15 @@ describe("Old Fixed Bugs", () => {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
     // lookup queries
-    const lq1 = EntityQuery.from("Regions").where("regionID", "lt", 100); 
-    const lq2 = EntityQuery.from("Categories"); 
+    const lq1 = EntityQuery.from(Region).where("regionID", "lt", 100); 
+    const lq2 = EntityQuery.from(Category); 
     const [lr1, lr2] = await Promise.all([em.executeQuery(lq1), em.executeQuery(lq2)]);
     expect(lr1.results).toHaveLength(4);
     expect(lr2.results).toHaveLength(8);
 
-    const q2 = EntityQuery.from("Employees").where("employeeID", "lt", 100)
+    const q2 = EntityQuery.from(Employee).where("employeeID", "lt", 100)
         .expand(["employeeTerritories.territory","manager"]);
-    const q3 = EntityQuery.from("Orders").expand(["orderDetails.product.supplier"]);
+    const q3 = EntityQuery.from(Order).expand(["orderDetails.product.supplier"]);
     const q4 = EntityQuery.from("Customers").expand(["orders.orderDetails.product"]);
 
     // const [qr2, qr3] = await Promise.all([em.executeQuery(q2), em.executeQuery(q3), em.executeQuery(q4)]);
@@ -432,7 +436,7 @@ describe("Old Fixed Bugs", () => {
     for (const order of qr3.results) {
       for (const det of order.orderDetails) {
         expect(det.product).not.toBeNull();
-        if (det.product.categoryId) {
+        if (det.product.categoryID) {
           expect(det.product.category).not.toBeNull();
         }
       }
@@ -445,17 +449,17 @@ describe("Old Fixed Bugs", () => {
     // lookup entitymanager
     const lem = TestFns.newEntityManager();
     // lookup queries
-    const lq1 = EntityQuery.from("Regions").where("regionID", "lt", 100); 
-    const lq2 = EntityQuery.from("Categories"); 
+    const lq1 = EntityQuery.from(Region).where("regionID", "lt", 100); 
+    const lq2 = EntityQuery.from(Category); 
     const [lr1, lr2] = await Promise.all([lem.executeQuery(lq1), lem.executeQuery(lq2)]);
     expect(lr1.results).toHaveLength(4);
     expect(lr2.results).toHaveLength(8);
 
     const em = TestFns.newEntityManager();
 
-    const q2 = EntityQuery.from("Employees").where("employeeID", "lt", 100)
+    const q2 = EntityQuery.from(Employee).where("employeeID", "lt", 100)
         .expand(["employeeTerritories.territory","manager"]);
-    const q3 = EntityQuery.from("Orders").expand(["orderDetails.product.supplier","orderDetails.product"]);
+    const q3 = EntityQuery.from(Order).expand(["orderDetails.product.supplier","orderDetails.product"]);
 
     const [qr2, qr3] = await Promise.all([em.executeQuery(q2), em.executeQuery(q3)]);
 
@@ -476,7 +480,7 @@ describe("Old Fixed Bugs", () => {
     for (const order of qr3.results) {
       for (const det of order.orderDetails) {
         expect(det.product).not.toBeNull();
-        if (det.product.categoryId) {
+        if (det.product.categoryID) {
           expect(det.product.category).not.toBeNull();
         }
       }

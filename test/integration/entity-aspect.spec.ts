@@ -1,10 +1,13 @@
 import { Entity, EntityQuery, EntityType, MetadataStore, EntityChangedEventArgs, EntityAction, MergeStrategy } from '../../src/breeze';
-import { TestFns } from '../test-fns';
+import { TestFns } from '../test-fns';
+import { Employee, registerModelClasses } from '../model';
 
 TestFns.initServerEnv();
 
 beforeAll(async () => {
   await TestFns.initDefaultMetadataStore();
+  // Types the calls below; see test/model/README.md.
+  registerModelClasses(TestFns.defaultMetadataStore);
 
 });
 
@@ -21,7 +24,7 @@ describe("Entity Aspect", () => {
     expect(order1.entityAspect.wasLoaded).toBeFalsy();
     const emp1 = em.attachEntity(empType.createEntity());
     expect(emp1.entityAspect.wasLoaded).toBeFalsy();
-    const q = new EntityQuery().from("Employees").take(2);
+    const q = EntityQuery.from(Employee).take(2);
     
     const qr1 = await em.executeQuery(q);
     expect(qr1.results.length).toBe(2);

@@ -1,10 +1,16 @@
 import { Entity, EntityQuery, EntityType, MetadataStore } from '../../src/breeze';
 import { TestFns } from '../test-fns';
+import { Employee, registerModelClasses } from '../model';
 
 TestFns.initServerEnv();
 
 beforeAll(async () => {
   await TestFns.initDefaultMetadataStore();
+  // Types the calls below; see test/model/README.md. The unregistered default-constructor
+  // path has its own coverage in test/unit/unregistered-types.spec.ts.
+  // NB: Customer is not imported here - this file declares its own for the custom-constructor
+  // tests, and that local declaration shadows an import for the whole block.
+  registerModelClasses(TestFns.defaultMetadataStore);
 
 });
 
@@ -28,8 +34,8 @@ describe("Entity Creation", () => {
     em.attachEntity(cust1);
     expect(cust1.entityType).toBe(custType);
     expect(cust1.entityAspect.entityState.isUnchanged()).toBe(true);
-    expect(cust1.getProperty("miscData")).toBe("asdf");
-    cust1.setProperty("companyName", "testxxx");
+    expect(cust1.miscData).toBe("asdf");
+    cust1.companyName = "testxxx";
     expect(cust1.getNameLength()).toBe(7);
   });
 
@@ -52,9 +58,9 @@ describe("Entity Creation", () => {
     em.attachEntity(cust1);
     expect(cust1.entityType).toBe(custType);
     expect(cust1.entityAspect.entityState.isUnchanged()).toBe(true);
-    expect(cust1.getProperty("miscData")).toBe("asdf");
-    cust1.setProperty("companyName", "testxxx");
-    const custName = cust1.getProperty("companyName");
+    expect(cust1.miscData).toBe("asdf");
+    cust1.companyName = "testxxx";
+    const custName = cust1.companyName;
     expect(custName).toBe("TESTXXX");
     expect(cust1.getNameLength()).toBe(7);
   });
@@ -83,8 +89,8 @@ describe("Entity Creation", () => {
     em.attachEntity(cust1);
     expect(cust1.entityType).toBe(custType);
     expect(cust1.entityAspect.entityState.isUnchanged()).toBe(true);
-    expect(cust1.getProperty("miscData")).toBe("asdf");
-    cust1.setProperty("companyName", "testxxx");
+    expect(cust1.miscData).toBe("asdf");
+    cust1.companyName = "testxxx";
     expect(cust1.getNameLength()).toBe(7);
   });
 
@@ -107,8 +113,8 @@ describe("Entity Creation", () => {
     em.attachEntity(cust1);
     expect(cust1.entityType).toBe(custType);
     expect(cust1.entityAspect.entityState.isUnchanged()).toBe(true);
-    expect(cust1.getProperty("miscData")).toBe("asdf");
-    cust1.setProperty("companyName", "testxxx");
+    expect(cust1.miscData).toBe("asdf");
+    cust1.companyName = "testxxx";
     expect(cust1.getNameLength()).toBe(7);
   });
 
@@ -134,9 +140,9 @@ describe("Entity Creation", () => {
     em.attachEntity(cust1);
     expect(cust1.entityType).toBe(custType);
     expect(cust1.entityAspect.entityState.isUnchanged()).toBe(true);
-    expect(cust1.getProperty("miscData")).toBe("asdf");
-    cust1.setProperty("companyName", "testxxx");
-    const custName = cust1.getProperty("companyName");
+    expect(cust1.miscData).toBe("asdf");
+    cust1.companyName = "testxxx";
+    const custName = cust1.companyName;
     expect(custName).toBe("TESTXXX");
     expect(cust1.getNameLength()).toBe(7);
   });
@@ -165,9 +171,9 @@ describe("Entity Creation", () => {
     em.attachEntity(cust1);
     expect(cust1.entityType).toBe(custType);
     expect(cust1.entityAspect.entityState.isUnchanged()).toBe(true);
-    expect(cust1.getProperty("miscData")).toBe("asdf");
-    cust1.setProperty("companyName", "testxxx");
-    const custName = cust1.getProperty("companyName");
+    expect(cust1.miscData).toBe("asdf");
+    cust1.companyName = "testxxx";
+    const custName = cust1.companyName;
     expect(custName).toBe("TESTXXX");
     expect(cust1.getNameLength()).toBe(7);
   });
@@ -190,7 +196,7 @@ describe("Entity Creation", () => {
     const qr1 = await em1.executeQuery(newCustomerQuery());
 
     const cust = qr1.results[0];
-    expect(cust.getProperty("miscData")).toBe("asdf");
+    expect(cust.miscData).toBe("asdf");
     testEntityState(cust, false);
 
   });
@@ -205,8 +211,8 @@ describe("Entity Creation", () => {
     // use a different metadata store for this em - so we don't polute other tests
 
     const cust = qr1.results[0];
-    expect(cust.getProperty("miscData")).toBe("asdf");
-    const custName = cust.getProperty("companyName");
+    expect(cust.miscData).toBe("asdf");
+    const custName = cust.companyName;
     expect(custName.length).toBeGreaterThan(1);
     expect(custName.toUpperCase()).toBe(custName);
     testEntityState(cust, true);
@@ -226,8 +232,8 @@ describe("Entity Creation", () => {
     const qr1 = await em.executeQuery(query);
     const products = qr1.results;
     products.forEach((p) => {
-      expect(p.getProperty("productName")).not.toBeUndefined();
-      expect(p.getProperty("isObsolete")).toBe(true);
+      expect(p.productName).not.toBeUndefined();
+      expect(p.isObsolete).toBe(true);
     });
   });
 
@@ -251,7 +257,7 @@ describe("Entity Creation", () => {
     const qr1 = await em.executeQuery(query);
     const cust = qr1.results[0];
     // 'foo' property, created in initializer, performed as expected
-    expect(cust.foo).toEqual("Foo " + cust.getProperty("companyName"));
+    expect(cust.foo).toEqual("Foo " + cust.companyName);
   });
 
   test("post create init with no ctor", async () => {
@@ -265,11 +271,11 @@ describe("Entity Creation", () => {
     };
     em.metadataStore.registerEntityTypeCtor("Employee", null, empInitializer);
 
-    const query = EntityQuery.from("Employees").top(1);
+    const query = EntityQuery.from(Employee).top(1);
     const qr1 = await em.executeQuery(query);
     const emp = qr1.results[0];
-    expect(emp.foo).not.toBeNull();
-    const sameDt = emp.getProperty("hireDate");
+    expect((emp as any).foo).not.toBeNull();
+    const sameDt = emp.hireDate;
     expect(dt.getTime()).toBe(sameDt.getTime());
   });
 
@@ -281,6 +287,8 @@ describe("Entity Creation", () => {
       .orderBy("companyName");
   }
 
+  // Takes a bare Entity on purpose: it is called with both the generated Customer and the ES5
+  // custom constructor, so it cannot assume either shape.
   function testEntityState(c: Entity, isES5: boolean) {
     const testVal = isES5 ? "TEST" : "Test";
     const test2Val = isES5 ? "TEST2" : "Test2";
@@ -302,8 +310,8 @@ describe("Entity Creation", () => {
   function createProductCtor() {
     const init = function (entity: any) {
       expect(entity.entityType.shortName).toBe("Product");
-      expect(entity.getProperty("isObsolete")).toBe(false);
-      entity.setProperty("isObsolete", true);
+      expect(entity.isObsolete).toBe(false);
+      entity.isObsolete = true;
     };
     return function () {
       this.isObsolete = false;
