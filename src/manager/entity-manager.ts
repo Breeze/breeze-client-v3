@@ -476,10 +476,13 @@ export class EntityManager {
   @returns {Entity} A new Entity of the specified type. 
   */
   createEntity(entityType: EntityType | string | (new () => Entity), initialValues: Object, entityState: EntityState, mergeStrategy: MergeStrategy) {
-    // A constructor resolves to the EntityType registered for it; everything after this point is
-    // the 2.x path unchanged.
+    // A constructor stands for its type *name*, which is then looked up in this manager's own
+    // MetadataStore. Using the EntityType hanging off the constructor's prototype would tie the
+    // call to whichever store the class was registered with, and a manager with an equivalent
+    // store - a copy, or one built from the same metadata - would fail deep inside attachEntity
+    // with a store-mismatch error.
     if (typeof entityType === "function") {
-      entityType = entityTypeForCtor(entityType);
+      entityType = entityTypeForCtor(entityType).name;
     }
     assertParam(entityType, "entityType").isString().or().isInstanceOf(EntityType).check();
     assertParam(entityState, "entityState").isEnumOf(EntityState).isOptional().check();
@@ -1830,12 +1833,13 @@ function fetchEntityByKeyCore(em: EntityManager, args: any[]): Promise<IEntityBy
 // takes in entityTypes as either strings or entityTypes or arrays of either
 // and returns either an entityType or an array of entityTypes or throws an error
 function checkEntityTypes(em: EntityManager, entityTypes?: EntityTypeArg | EntityTypeArg[]) {
-  // A registered constructor stands for its EntityType; normalize before the assertions, so the
-  // rest of this - and every caller - is the 2.x path unchanged.
+  // A registered constructor stands for its type name, which is resolved against this manager's
+  // own store - see the note in createEntity. Normalized before the assertions, so the rest of
+  // this, and every caller, is the 2.x path unchanged.
   if (typeof entityTypes === "function") {
-    entityTypes = entityTypeForCtor(entityTypes);
+    entityTypes = entityTypeForCtor(entityTypes).name;
   } else if (Array.isArray(entityTypes) && entityTypes.some(t => typeof t === "function")) {
-    entityTypes = (entityTypes as EntityTypeArg[]).map(t => typeof t === "function" ? entityTypeForCtor(t) : t) as EntityType[];
+    entityTypes = (entityTypes as EntityTypeArg[]).map(t => typeof t === "function" ? entityTypeForCtor(t).name : t) as string[];
   }
   assertParam(entityTypes as any, "entityTypes").isString().isOptional().or().isNonEmptyArray().isString()
     .or().isInstanceOf(EntityType).or().isNonEmptyArray().isInstanceOf(EntityType).check();
@@ -1896,7 +1900,7 @@ function createEntityKey(em: EntityManager, args: any[]) {
       return { entityKey: args[0] as EntityKey, remainingArgs: core.arraySlice(args, 1) };
     } else if (args.length >= 2) {
       let entityType = (typeof args[0] === 'string') ? em.metadataStore._getStructuralType(args[0], false)
-        : (typeof args[0] === 'function') ? entityTypeForCtor(args[0]) : args[0];
+        : (typeof args[0] === 'function') ? em.metadataStore._getStructuralType(entityTypeForCtor(args[0]).name, false) : args[0];
       return { entityKey: new EntityKey(entityType, args[1]), remainingArgs: core.arraySlice(args, 2) };
     }
   } catch (e) {/* throw below */

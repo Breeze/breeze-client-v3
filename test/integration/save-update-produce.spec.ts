@@ -1,11 +1,15 @@
 import { EntityManager, EntityQuery, SaveOptions } from '../../src/breeze';
 import { TestFns } from '../test-fns';
 import { SaveTestFns } from '../save-test-fns';
+import { Order, registerModelClasses } from '../model';
 
 TestFns.initServerEnv();
 
 beforeAll(async () => {
   await TestFns.initDefaultMetadataStore();
+  // Types the calls below; see test/model/README.md. The unregistered default-constructor
+  // path has its own coverage in test/unit/unregistered-types.spec.ts.
+  registerModelClasses(TestFns.defaultMetadataStore);
 });
 
 afterAll(async () => {
@@ -25,7 +29,7 @@ async function produceDescription(): Promise<string> {
   const em = new EntityManager(produceService);
   const qr = await em.executeQuery(EntityQuery.from("ItemsOfProduce").where("id", "==", produceId));
   expect(qr.results.length).toBe(1);
-  return qr.results[0].getProperty("description");
+  return qr.results[0].description;
 }
 
 describe("Save hooks that update the Produce data", () => {
@@ -34,7 +38,7 @@ describe("Save hooks that update the Produce data", () => {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
     const shipAddress = "Produce hook " + Date.now();
-    em.createEntity("Order", { shipAddress });
+    em.createEntity(Order, { shipAddress });
 
     const sr = await em.saveChanges(null, new SaveOptions({ tag: "UpdateProduceShipAddress.Before" }));
 
@@ -45,11 +49,11 @@ describe("Save hooks that update the Produce data", () => {
   test("UpdateProduceKeyMapping.After writes the order's new key to the produce item", async () => {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
-    const order = em.createEntity("Order", { shipAddress: "Produce key mapping hook" });
+    const order = em.createEntity(Order, { shipAddress: "Produce key mapping hook" });
 
     await em.saveChanges(null, new SaveOptions({ tag: "UpdateProduceKeyMapping.After" }));
 
-    const orderID = order.getProperty("orderID");
+    const orderID = order.orderID;
     expect(orderID).toBeGreaterThan(0);
     expect(await produceDescription()).toMatch(new RegExp(":" + orderID + "$"));
   });

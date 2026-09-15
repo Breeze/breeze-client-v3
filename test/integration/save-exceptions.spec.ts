@@ -1,11 +1,15 @@
 import { Entity, EntityQuery, EntityType, MetadataStore, EntityChangedEventArgs, EntityAction, MergeStrategy, QueryOptions, FetchStrategy, EntityManager, SaveOptions, ValidationErrorsChangedEventArgs } from '../../src/breeze';
 import { TestFns, JsonObj, skipTestIf } from '../test-fns';
 import { SaveTestFns } from '../save-test-fns';
+import { Customer, Employee, registerModelClasses } from '../model';
 
 TestFns.initServerEnv();
 
 beforeAll(async () => {
   await TestFns.initDefaultMetadataStore();
+  // Types the calls below; see test/model/README.md. The unregistered default-constructor
+  // path has its own coverage in test/unit/unregistered-types.spec.ts.
+  registerModelClasses(TestFns.defaultMetadataStore);
 });
 
 afterAll( async () => {
@@ -27,18 +31,18 @@ describe("Save exception handling", () => {
     // Fails D#2649 "Internal Error in key fixup - unable to locate entity"
     const em = TestFns.newEntityManager();
     // Surround target emp (emp2) with other adds to see the effect on the cached adds
-    const emp1 = em.createEntity("Employee", { firstName: 'Test fn1', lastName: 'Test ln1' });
-    const emp2 = em.createEntity("Employee", { firstName: 'Test fn2', lastName: 'Test fn2' });
-    const emp3 = em.createEntity("Employee", { firstName: 'Test fn3', lastName: 'Test fn3' });
+    const emp1 = em.createEntity(Employee, { firstName: 'Test fn1', lastName: 'Test ln1' });
+    const emp2 = em.createEntity(Employee, { firstName: 'Test fn2', lastName: 'Test fn2' });
+    const emp3 = em.createEntity(Employee, { firstName: 'Test fn3', lastName: 'Test fn3' });
 
     // deliberately left as a promise impl
     // We expect the saveChanges to succeed AND for the code in the try block to fail
     em.saveChanges().then(function (sr) {
-      expect(emp1.getProperty("employeeID")).toBeGreaterThan(-1);
+      expect(emp1.employeeID).toBeGreaterThan(-1);
       expect(emp1.entityAspect.entityState.isUnchanged()).toBe(true);
-      expect(emp2.getProperty("employeeID")).toBeGreaterThan(-1);
+      expect(emp2.employeeID).toBeGreaterThan(-1);
       expect(emp2.entityAspect.entityState.isUnchanged()).toBe(true);
-      expect(emp3.getProperty("employeeID")).toBeGreaterThan(-1);
+      expect(emp3.employeeID).toBeGreaterThan(-1);
       expect(emp3.entityAspect.entityState.isUnchanged()).toBe(true);
     }).catch(function (e) {
       throw new Error('should not get here');
@@ -59,18 +63,18 @@ describe("Save exception handling", () => {
     // Fails D#2650 fixupKeys: "Internal Error in key fixup - unable to locate entity"
     const em = TestFns.newEntityManager();
     // Surround target emp (emp2) with other adds to see the effect on the cached adds
-    const emp1 = em.createEntity("Employee", { firstName: 'Test fn1', lastName: 'Test ln1' });
-    const emp2 = em.createEntity("Employee", { firstName: 'Test fn2', lastName: 'Test fn2' });
-    const emp3 = em.createEntity("Employee", { firstName: 'Test fn3', lastName: 'Test fn3' });
+    const emp1 = em.createEntity(Employee, { firstName: 'Test fn1', lastName: 'Test ln1' });
+    const emp2 = em.createEntity(Employee, { firstName: 'Test fn2', lastName: 'Test fn2' });
+    const emp3 = em.createEntity(Employee, { firstName: 'Test fn3', lastName: 'Test fn3' });
 
     // deliberately left as a promise impl
     // We expect the saveChanges to succeed AND for the code in the try block to fail
     em.saveChanges().then(function (sr) {
-      expect(emp1.getProperty("employeeID")).toBeGreaterThan(-1);
+      expect(emp1.employeeID).toBeGreaterThan(-1);
       expect(emp1.entityAspect.entityState.isUnchanged()).toBe(true);
-      expect(emp2.getProperty("employeeID")).toBeGreaterThan(-1);
+      expect(emp2.employeeID).toBeGreaterThan(-1);
       expect(emp2.entityAspect.entityState.isUnchanged()).toBe(true);
-      expect(emp3.getProperty("employeeID")).toBeGreaterThanOrEqual(-1);
+      expect(emp3.employeeID).toBeGreaterThanOrEqual(-1);
       expect(emp3.entityAspect.entityState.isUnchanged()).toBe(true);
     }).catch(function (e) {
       throw new Error('should not get here');
@@ -90,16 +94,16 @@ describe("Save exception handling", () => {
     // Fails D#2649 fixupKeys: "Internal Error in key fixup - unable to locate entity"
     const em = TestFns.newEntityManager();
     // Surround target emp (emp2) with other adds to see the effect on the cached adds
-    const emp1 = em.createEntity("Employee", { firstName: 'Test fn1', lastName: 'Test ln1' });
-    const emp2 = em.createEntity("Employee", { firstName: 'Test fn2', lastName: 'Test fn2' });
-    const emp3 = em.createEntity("Employee", { firstName: 'Test fn3', lastName: 'Test fn3' });
+    const emp1 = em.createEntity(Employee, { firstName: 'Test fn1', lastName: 'Test ln1' });
+    const emp2 = em.createEntity(Employee, { firstName: 'Test fn2', lastName: 'Test fn2' });
+    const emp3 = em.createEntity(Employee, { firstName: 'Test fn3', lastName: 'Test fn3' });
 
     em.saveChanges().then(function (sr) {
-      expect(emp1.getProperty("employeeID")).toBeGreaterThan(-1);
+      expect(emp1.employeeID).toBeGreaterThan(-1);
       expect(emp1.entityAspect.entityState.isUnchanged()).toBe(true);
-      expect(emp2.getProperty("employeeID")).toBeGreaterThan(-1);
+      expect(emp2.employeeID).toBeGreaterThan(-1);
       expect(emp2.entityAspect.entityState.isUnchanged()).toBe(true);
-      expect(emp3.getProperty("employeeID")).toBeGreaterThanOrEqual(-1);
+      expect(emp3.employeeID).toBeGreaterThanOrEqual(-1);
       expect(emp3.entityAspect.entityState.isUnchanged()).toBe(true);
     }).catch(function (e) {
       throw new Error('should not get here');
@@ -120,10 +124,10 @@ describe("Save exception handling", () => {
     expect.assertions(3);
     // Fails D#2650 fixupKeys: "Unable to locate the following fully qualified EntityType..."
     const em = TestFns.newEntityManager();
-    const emp1 = em.createEntity("Employee", { firstName: 'Test fn1', lastName: 'Test ln1' });
+    const emp1 = em.createEntity(Employee, { firstName: 'Test fn1', lastName: 'Test ln1' });
 
     em.saveChanges().then(function (sr) {
-      expect(emp1.getProperty("employeeID")).toBeGreaterThan(-1);
+      expect(emp1.employeeID).toBeGreaterThan(-1);
       expect(emp1.entityAspect.entityState.isUnchanged()).toBe(true);
     }).catch(function (e) {
       throw new Error('should not get here');
@@ -143,9 +147,9 @@ describe("Save exception handling", () => {
   test("can clear manager before server save response when no fixup needed", async function () {
     expect.hasAssertions();
     // See D#2650. What should be the behavior?
-    const query = EntityQuery.from('Employees').take(1);
+    const query = EntityQuery.from(Employee).take(1);
     const em = TestFns.newEntityManager();
-    let emp1: Entity;
+    let emp1: Employee;
     return em.executeQuery(query).then(function (data) {
       emp1 = data.results[0];
       emp1.entityAspect.setModified();
@@ -166,7 +170,7 @@ describe("Save exception handling", () => {
       expect(emp1.entityAspect.entityState.isUnchanged()).toBe(true);
     }).catch(function (e) {
       throw new Error('should not get here');
-      const id1 = emp1 && emp1.getProperty('employeeID');
+      const id1 = emp1 && emp1.employeeID;
       // D#2650: Break here to see state of the emp.
       // handleFail(e);
     });
@@ -176,16 +180,16 @@ describe("Save exception handling", () => {
   test("reverts to saved values when save an added entity then modify it before save response", () => new Promise<void>((done) => {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
-    const emp1 = em.createEntity("Employee", { firstName: 'Test fn1', lastName: 'Test ln1' });
+    const emp1 = em.createEntity(Employee, { firstName: 'Test fn1', lastName: 'Test ln1' });
 
     em.saveChanges().then(function (sr) {
       expect(sr.entities.length).toBeGreaterThan(0);
       expect(emp1.entityAspect.entityState.isUnchanged()).toBe(true);
-      expect(emp1.getProperty('firstName')).toBe('Test fn1');
+      expect(emp1.firstName).toBe('Test fn1');
     }).finally(done);
 
     // modify it while save is in-flight
-    emp1.setProperty('firstName', 'Test fn1 mod');
+    emp1.firstName = 'Test fn1 mod';
   }));
 
   // This test passes when the server returns the saved entity
@@ -193,20 +197,20 @@ describe("Save exception handling", () => {
   test("reverts to saved values when save modifed entity then modify it again before save response", () => new Promise<void>((done) => {
     expect.assertions(4);
     const em = TestFns.newEntityManager();
-    const emp1 = em.createEntity("Employee", { firstName: 'Test fn1', lastName: 'Test ln1' });
+    const emp1 = em.createEntity(Employee, { firstName: 'Test fn1', lastName: 'Test ln1' });
 
     em.saveChanges().then(function (sr) {
       expect(sr.entities.length).toBeGreaterThan(0);
-      emp1.setProperty('firstName', 'Test fn1 mod1');
+      emp1.firstName = 'Test fn1 mod1';
       const promise = em.saveChanges(); // save modified emp
 
       // modify it again while save is in-flight
-      emp1.setProperty('firstName', 'Test fn1 mod2');
+      emp1.firstName = 'Test fn1 mod2';
       return promise;
     }).then(function (sr) {
       expect(sr.entities.length).toBeGreaterThan(0);
       expect(emp1.entityAspect.entityState.isUnchanged()).toBe(true);
-      expect(emp1.getProperty('firstName')).toBe('Test fn1 mod1');
+      expect(emp1.firstName).toBe('Test fn1 mod1');
     }).finally(done);
 
   }));
@@ -217,21 +221,21 @@ describe("Save exception handling", () => {
   test("reverts to saved values when save modified entity then modify a different value before save response", () => new Promise<void>((done) => {
     expect.assertions(4);
     const em = TestFns.newEntityManager();
-    const emp1 = em.createEntity("Employee", { firstName: 'Test fn1', lastName: 'Test ln1' });
+    const emp1 = em.createEntity(Employee, { firstName: 'Test fn1', lastName: 'Test ln1' });
 
     em.saveChanges().then(function (sr) {
       expect(sr.entities.length).toBeGreaterThan(0);
-      emp1.setProperty('firstName', 'Test fn1 mod1');
+      emp1.firstName = 'Test fn1 mod1';
       const promise = em.saveChanges(); // save modified emp
 
       // modify a different property while save is in-flight
-      emp1.setProperty('lastName', 'Test ln1 mod2');
+      emp1.lastName = 'Test ln1 mod2';
 
       return promise;
     }).then(function (sr) {
       expect(sr.entities.length).toBeGreaterThan(0);
       expect(emp1.entityAspect.entityState.isUnchanged()).toBe(true);
-      expect(emp1.getProperty('lastName')).toBe('Test ln1');
+      expect(emp1.lastName).toBe('Test ln1');
     }).finally(done);
 
   }));
@@ -242,7 +246,7 @@ describe("Save exception handling", () => {
     // D#2651
     expect(2);
     const em = TestFns.newEntityManager();
-    const emp1 = em.createEntity("Employee", { firstName: 'Test fn1', lastName: 'Test ln1' });
+    const emp1 = em.createEntity(Employee, { firstName: 'Test fn1', lastName: 'Test ln1' });
 
     em.saveChanges().then(function (sr) {
       const hasChanges = em.hasChanges();
@@ -252,7 +256,7 @@ describe("Save exception handling", () => {
     }).finally(done);
 
     // Create another entity while save is in progress
-    const emp2 = em.createEntity("Employee", { firstName: 'Test fn2', lastName: 'Test fn2' });
+    const emp2 = em.createEntity(Employee, { firstName: 'Test fn2', lastName: 'Test fn2' });
 
   }));
 
@@ -303,10 +307,10 @@ describe("Save exception handling", () => {
 
     try {
       const sr = await em.saveChanges();
-      zzz.cust1.setProperty("contactName", "foo");
-      zzz.cust2.setProperty("contactName", "foo");
-      zzz.order1.setProperty("freight", 888.11);
-      zzz.order2.setProperty("freight", 888.11);
+      zzz.cust1.contactName = "foo";
+      zzz.cust2.contactName = "foo";
+      zzz.order1.freight = 888.11;
+      zzz.order2.freight = 888.11;
       expect(zzz.cust1.entityAspect.entityState.isModified()).toBe(true);
       expect(zzz.order1.entityAspect.entityState.isModified()).toBe(true);
       const so = new SaveOptions({ resourceName: "SaveWithEntityErrorsException", tag: "entityErrorsException" });
@@ -331,7 +335,7 @@ describe("Save exception handling", () => {
     const em = TestFns.newEntityManager();
     const zzz = SaveTestFns.createParentAndChildren(em);
     const cust1 = zzz.cust1;
-    cust1.setProperty("companyName", null);
+    cust1.companyName = null;
 
     try {
       await em.saveChanges();
@@ -352,7 +356,7 @@ describe("Save exception handling", () => {
       const em = TestFns.newEntityManager();
       const zzz = SaveTestFns.createParentAndChildren(em);
       const cust1 = zzz.cust1;
-      cust1.setProperty("companyName", "error");
+      cust1.companyName = "error";
 
       try {
         await em.saveChanges();
@@ -374,7 +378,7 @@ describe("Save exception handling", () => {
       const em = TestFns.newEntityManager();
       const zzz = SaveTestFns.createParentAndChildren(em);
       const cust1 = zzz.cust1;
-      cust1.setProperty("companyName", "error");
+      cust1.companyName = "error";
 
       try {
         await em.saveChanges();
@@ -405,16 +409,16 @@ describe("Save exception handling", () => {
     // This is because ObjectContext.SaveChanges() does not automatically validate
     // entities. It must be done manually.
     const em = TestFns.newEntityManager();
-    const q = new EntityQuery("Customers").skip(20).take(1).orderBy("contactName");
+    const q = EntityQuery.from(Customer).skip(20).take(1).orderBy("contactName");
 
     let cust1;
     try {
       const qr1 = await q.using(em).execute();
       expect(qr1.results.length).toBe(1);
       cust1 = qr1.results[0];
-      const region = cust1.getProperty("contactName");
+      const region = cust1.contactName;
       const newRegion = region === "Error" ? "Error again" : "Error";
-      cust1.setProperty("contactName", newRegion);
+      cust1.contactName = newRegion;
       await em.saveChanges();
 
       throw new Error("should not get here - except with servers that do not perform validation");
@@ -456,8 +460,7 @@ describe("Save exception handling", () => {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
     const em2 = TestFns.newEntityManager();
-    const q = new EntityQuery()
-      .from("Customers")
+    const q = EntityQuery.from(Customer)
       .take(2);
 
     const qr1 = await em.executeQuery(q);

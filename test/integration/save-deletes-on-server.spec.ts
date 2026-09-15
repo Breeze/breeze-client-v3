@@ -1,10 +1,14 @@
 import { breeze, core, Entity, EntityKey, EntityQuery, FilterQueryOp, SaveOptions, EntityManager } from '../../src/breeze';
 import { skipTestIf, TestFns } from '../test-fns';
+import { Product, Supplier, registerModelClasses } from '../model';
 
 TestFns.initServerEnv();
 
 beforeAll(async () => {
   await TestFns.initDefaultMetadataStore();
+  // Types the calls below; see test/model/README.md. The unregistered default-constructor
+  // path has its own coverage in test/unit/unregistered-types.spec.ts.
+  registerModelClasses(TestFns.defaultMetadataStore);
 
 });
 
@@ -16,7 +20,7 @@ describe("Saves with deletions on the server", function () {
 
     const em = TestFns.newEntityManager();
     const product = createSupplierAndProduct(em);
-    const supplier = product.getProperty("supplier");
+    const supplier = product.supplier;
     const saveOptions = new SaveOptions({ tag: "deleteProductOnServer.Before" });
 
     const sr = await em.saveChanges(null, saveOptions);
@@ -33,7 +37,7 @@ describe("Saves with deletions on the server", function () {
 
     const em = TestFns.newEntityManager();
     const product = createSupplierAndProduct(em);
-    const supplier = product.getProperty("supplier");
+    const supplier = product.supplier;
     const saveOptions = new SaveOptions({ tag: "deleteProductOnServer" });
 
     const sr = await em.saveChanges(null, saveOptions);
@@ -50,13 +54,13 @@ describe("Saves with deletions on the server", function () {
 
     const em = TestFns.newEntityManager();
     const product = createSupplierAndProduct(em);
-    const supplier = product.getProperty("supplier");
+    const supplier = product.supplier;
 
     const sr = await em.saveChanges();
     expect(product.entityAspect.entityState.isUnchanged()).toBeTrue();
     expect(supplier.entityAspect.entityState.isUnchanged()).toBeTrue();
-    supplier.setProperty("contactName", "Harry Arms");
-    const saveOptions = new SaveOptions({ tag: "deleteProductOnServer:" + product.getProperty("productID") });
+    supplier.contactName = "Harry Arms";
+    const saveOptions = new SaveOptions({ tag: "deleteProductOnServer:" + product.productID });
     const sr_1 = await em.saveChanges(null, saveOptions);
     expect(product.entityAspect.entityState.isDetached()).toBeTrue();
     expect(supplier.entityAspect.entityState.isUnchanged()).toBeTrue();
@@ -71,7 +75,7 @@ describe("Saves with deletions on the server", function () {
 
     const em = TestFns.newEntityManager();
     const product = createSupplierAndProduct(em);
-    const supplier = product.getProperty("supplier");
+    const supplier = product.supplier;
     const saveOptions = new SaveOptions({ tag: "deleteSupplierAndProductOnServer" });
 
     const sr = await em.saveChanges(null, saveOptions);
@@ -88,7 +92,7 @@ describe("Saves with deletions on the server", function () {
 
     const em = TestFns.newEntityManager();
     const product = createSupplierAndProduct(em);
-    const supplier = product.getProperty("supplier");
+    const supplier = product.supplier;
 
     const sr = await em.saveChanges();
     expect(product.entityAspect.entityState.isUnchanged()).toBeTrue();
@@ -108,13 +112,13 @@ describe("Saves with deletions on the server", function () {
 
     const em = TestFns.newEntityManager();
     const product = createSupplierAndProduct(em);
-    const supplier = product.getProperty("supplier");
+    const supplier = product.supplier;
 
     const sr = await em.saveChanges();
     expect(product.entityAspect.entityState.isUnchanged()).toBeTrue();
     expect(supplier.entityAspect.entityState.isUnchanged()).toBeTrue();
-    supplier.setProperty("contactName", "Harry Arms");
-    product.setProperty("unitsInStock", 25);
+    supplier.contactName = "Harry Arms";
+    product.unitsInStock = 25;
     const saveOptions = new SaveOptions({ tag: "deleteSupplierAndProductOnServer" });
     const sr_1 = await em.saveChanges(null, saveOptions);
     expect(product.entityAspect.entityState.isDetached()).toBeTrue();
@@ -130,13 +134,13 @@ describe("Saves with deletions on the server", function () {
 
     const em = TestFns.newEntityManager();
     const product = createSupplierAndProduct(em);
-    const supplier = product.getProperty("supplier");
+    const supplier = product.supplier;
 
     const sr = await em.saveChanges();
     expect(product.entityAspect.entityState.isUnchanged()).toBeTrue();
     expect(supplier.entityAspect.entityState.isUnchanged()).toBeTrue();
     supplier.entityAspect.setDeleted();
-    const saveOptions = new SaveOptions({ tag: "deleteProductOnServer:" + product.getProperty("productID") });
+    const saveOptions = new SaveOptions({ tag: "deleteProductOnServer:" + product.productID });
     const sr_1 = await em.saveChanges(null, saveOptions);
     expect(product.entityAspect.entityState.isDetached()).toBeTrue();
     expect(supplier.entityAspect.entityState.isDetached()).toBeTrue();
@@ -151,7 +155,7 @@ describe("Saves with deletions on the server", function () {
 
     const em = TestFns.newEntityManager();
     const product = createSupplierAndProduct(em);
-    const supplier = product.getProperty("supplier");
+    const supplier = product.supplier;
 
     const sr = await em.saveChanges();
     expect(product.entityAspect.entityState.isUnchanged()).toBeTrue();
@@ -169,9 +173,9 @@ describe("Saves with deletions on the server", function () {
 
   function createSupplierAndProduct(em: EntityManager) {
     const dt = new Date();
-    const supplier = em.createEntity("Supplier", { companyName: "Sup-" + dt.getTime(), contactName: "Phillip Wiggs", location: { region: "Cornwall", country: "UK" } });
-    const supplierID = supplier.getProperty("supplierID");
-    const product = em.createEntity("Product", { productName: "Prod-" + dt.getTime(), supplierID: supplierID, quantityPerUnit: "EA", unitsInStock: 30 });
+    const supplier = em.createEntity(Supplier, { companyName: "Sup-" + dt.getTime(), contactName: "Phillip Wiggs", location: { region: "Cornwall", country: "UK" } });
+    const supplierID = supplier.supplierID;
+    const product = em.createEntity(Product, { productName: "Prod-" + dt.getTime(), supplierID: supplierID, quantityPerUnit: "EA", unitsInStock: 30 });
     return product;
   }
 

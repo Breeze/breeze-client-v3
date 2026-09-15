@@ -81,6 +81,25 @@ describe("Typed API - the constructor path", () => {
     expect(() => newEntityManager().createEntity(NeverRegistered as any)).toThrow(/is not registered/);
   });
 
+  test("a constructor works against an equivalent store it was not registered with", () => {
+    // The class stands for its type *name*, resolved against whichever store the manager has.
+    // Using the EntityType off the prototype would tie every call to the one store the class was
+    // registered with, and a manager built from the same metadata would fail inside attachEntity
+    // with a store mismatch. Several save specs create managers exactly that way.
+    const otherStore = new MetadataStore();
+    otherStore.importMetadata(JSON.stringify(northwindMetadata));
+    const em = new EntityManager({ serviceName: 'http://localhost:0/x', metadataStore: otherStore });
+
+    const cust = em.createEntity(Customer, { companyName: 'Acme' });
+    expect(cust.companyName).toBe('Acme');
+    expect(cust.entityType.metadataStore).toBe(otherStore);
+    // Built by that store's own constructor, so not an instance of the registered class.
+    expect(cust).not.toBeInstanceOf(Customer);
+
+    expect(em.getEntities(Customer).length).toBe(1);
+    expect(em.getChanges(Customer).length).toBe(1);
+  });
+
   test("entityTypeForCtor resolves a registered one", () => {
     expect(entityTypeForCtor(Customer).name).toBe('Customer:#Foo');
     expect(entityTypeForCtor(Customer).defaultResourceName).toBe('Customers');
