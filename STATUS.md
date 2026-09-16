@@ -111,6 +111,53 @@ split, explicit registration + `@deprecated` string API) are done — see the se
    flight and any breakage had one possible cause. See *`src/` grouped by concern* in
    CHANGES-DEV.md.
 
+
+## Test coverage gaps (identified)
+
+Found by listing the public methods of the exported classes and checking which names never appear
+anywhere under `test/`. Not a substitute for line coverage — no coverage package is installed — but
+it finds the methods nothing calls at all, which is the sharper signal.
+
+`test/unit/untested-api.spec.ts` now covers the pure ones as characterisation tests:
+`MetadataStore.getEntityType` / `parseTypeName` / `getEntityTypeNameForResourceName`,
+`EntityType.getPropertyNames` / `isSubtypeOf` / `getSelfAndSubtypes` / `getEntityKeyFromRawEntity`,
+`EntityKey.createKeyString`, `EntityAspect.setAdded` / `setEntityState` / `clearValidationErrors` /
+`getParentKey` / `getPropertyPathValue` / `markNavigationPropertyAsLoaded`, and
+`EntityManager.findEntityByKey`.
+
+Writing them found one bug: `EntityAspect.isNavigationPropertyLoaded` is declared `boolean` by its
+overloads but returned `undefined` when `_loadedNps` was unset, and again when the aspect had no
+entity. TypeScript does not check an implementation signature against its own overloads, so callers
+were told `boolean` and could be handed `undefined`. Fixed.
+
+### Still uncovered
+
+| Member | Why it is not covered here |
+|---|---|
+| `EntityQuery.executeCount` | needs the server; no integration test calls it |
+| `EntityQuery.useNameOnServer` | needs a naming convention set up |
+| `MetadataStore.getIncompleteNavigationProperties` | needs a partially-imported metadata fixture |
+| `MetadataStore.trackUnmappedType` | unmapped-type registration |
+| `MetadataStore.makeTypeHash`, `mergeProps` | plausibly internal; neither is marked `@hidden` |
+| `EntityType.addValidator`, `getAllValidators` | type-level validators; only property-level ones are tested |
+| `Predicate.extendFuncMap` | the extension point for custom query functions |
+
+Also never referenced by a test, though several are hard to exercise directly: the predicate node
+classes `AndOrPredicate`, `BinaryPredicate`, `UnaryPredicate`, the expression nodes `LitExpr`,
+`FnExpr`, `PropExpr`, plus `ExpandClause`, `ComplexArray`, `InterfaceRegistry` and
+`makeRelationArray`. They are reached indirectly through `Predicate.create` and query execution, so
+the gap is that nothing pins their own behaviour.
+
+The remaining 50-odd never-mentioned exports are type-only (`…Config` interfaces, callback types,
+the path types) and have nothing to execute.
+
+### Two tests are skipped, both deliberately
+
+- `bugs.spec.ts` — "executeQuery returns before in-cache entities are all attached". A known issue.
+- `query-named-on-server.spec.ts` — "with parameter - null", marked `// TODO: need to review this
+  one later`.
+
+
 ## Known issues
 
 - ~~`noImplicitAny`~~ **done** - see the section below. It is on, and the 105

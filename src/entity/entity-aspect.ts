@@ -503,13 +503,17 @@ export class EntityAspect {
   >     var wasLoaded = emp.entityAspect.isNavigationPropertyLoaded("Orders");
   @param navigationProperty - The NavigationProperty or name of NavigationProperty to 'load'.
   **/
-  isNavigationPropertyLoaded(navigationProperty: NavigationProperty | string) {
-    if (!this.entity) return;
+  isNavigationPropertyLoaded(navigationProperty: NavigationProperty | string): boolean {
+    // Both returns below used to hand back `undefined` - a bare `return`, and `this._loadedNps &&`
+    // when nothing has been marked yet - while the overload signatures above promise `boolean`.
+    // TypeScript does not check an implementation signature against its own overloads, so callers
+    // were told `boolean` and could be given `undefined`.
+    if (!this.entity) return false;
     let navProperty = this.entity.entityType._checkNavProperty(navigationProperty);
     if (navProperty.isScalar && this.entity.getProperty(navProperty.name) != null) {
       return true;
     }
-    return this._loadedNps && this._loadedNps.indexOf(navProperty.name) >= 0;
+    return !!this._loadedNps && this._loadedNps.indexOf(navProperty.name) >= 0;
   }
 
   /** @hidden @internal */
