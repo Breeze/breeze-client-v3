@@ -131,6 +131,46 @@ Breeze converts the server's property names with the naming convention, so
 `"Freight"` arrives as `propertyName: 'freight'`. The response status defaults to
 403 Forbidden.
 
+### The shape of a server error response
+
+The Breeze ASP.NET Core server returns an [RFC 9457](https://www.rfc-editor.org/rfc/rfc9457)
+problem details document, `Content-Type: application/problem+json`:
+
+```json
+{
+  "type":   "https://breeze.github.io/problems/entity-errors",
+  "title":  "Forbidden",
+  "status": 403,
+  "detail": "Order validation failed",
+
+  "Code":    403,
+  "Message": "Order validation failed",
+  "EntityErrors": [ { "ErrorName": "FreightLimit", "EntityTypeName": "Northwind.Models.Order", … } ]
+}
+```
+
+The first four members are the standard ones, and they are what to read. The capitalised
+members below them are what Breeze sent before 3.0, kept so that an application on an older
+client reads the error unchanged — RFC 9457 §3.2 permits extension members and requires
+consumers to ignore ones they do not recognise, so the document is conformant either way.
+
+Breeze understands all of it for you: `e.message` comes from `detail`, falling back to
+`title`, and entity errors are read from either spelling. You only need this if you are
+writing your own client, or reading the response in a browser's network tab.
+
+Two server settings control it:
+
+| `BreezeConfig` | default | |
+|---|---|---|
+| `IncludeStackTraceInErrors` | `false` | a stack trace names source files, line numbers and the build machine's directory layout — turn it on for development only |
+| `IncludeLegacyErrorMembers` | `true` | set `false` once every client reads the RFC 9457 members |
+
+::: tip Changed in 3.0
+Before 3.0 the response was `{ Code, Message, StackTrace, EntityErrors }` with no content type
+of its own, the stack trace was always included, and `Code` was `0` for anything that was not
+an `EntityErrorsException`.
+:::
+
 ## SaveOptions
 
 A [`SaveOptions`](/api/classes/SaveOptions) instance controls how a save is made.

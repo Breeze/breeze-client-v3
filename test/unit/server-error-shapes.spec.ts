@@ -11,13 +11,17 @@ import metadata from '../support/NorthwindIBMetadata.json';
 // that matters most - a ValidationError on the offending entity, which is how a server-side rule
 // reaches the UI.
 //
-//   A. what Breeze servers have always sent: { Code, Message, EntityErrors } in PascalCase
-//   B. RFC 9457 problem+json carrying those same members as extensions, so old clients still work
-//   C. problem+json with a camelCase `entityErrors` extension and no legacy members
+//   A. what Breeze servers sent before 3.0: { Code, Message, EntityErrors } in PascalCase
+//   B. what a 3.0 server sends by default: RFC 9457 problem+json carrying those same members as
+//      extensions, so an application on an older client still reads it
+//   C. what it sends once BreezeConfig.IncludeLegacyErrorMembers is off: problem+json with a
+//      camelCase `entityErrors` extension and nothing capitalised
 //   D. as C, but with the entity type name already in Breeze's internal spelling
 //
-// B is what lets a server become RFC 9457 conformant without a flag or a coordinated release:
-// section 3.2 allows extension members, and requires consumers to ignore ones they do not know.
+// The RFC members - type, title, status, detail - are the ones to read; the capitalised ones are
+// legacy, and C is where this is heading. B is what lets a server become conformant without a
+// flag or a coordinated release: section 3.2 allows extension members, and requires consumers to
+// ignore ones they do not recognize.
 
 let respond: () => Response;
 
