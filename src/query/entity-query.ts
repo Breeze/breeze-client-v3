@@ -198,13 +198,6 @@ export class EntityQuery<T = any> {
   // The checked forms come first, so they are tried first. They engage only when the query has a
   // concrete entity type. EntityQuery<T = any> means many queries do not, and for those
   // PropertyPath<T> is plain `string` and these are no narrower than what was always here.
-  where<P extends PropertyPath<T>, O extends FilterOpFor<PropertyValue<T, P>>>(
-    property: P, operator: O, value: FilterValueFor<T, PropertyValue<T, P>, O>): EntityQuery<T>;
-  where<P extends CollectionPath<T>,
-    P2 extends PropertyPath<CollectionElement<T, P>>,
-    O2 extends FilterOpFor<PropertyValue<CollectionElement<T, P>, P2>>>(
-    collection: P, quantifier: QuantifierOp, property: P2, operator: O2,
-    value: FilterValueFor<CollectionElement<T, P>, PropertyValue<CollectionElement<T, P>, P2>, O2>): EntityQuery<T>;
   where(collection: CollectionPath<T>, quantifier: QuantifierOp | FilterQueryOp,
     predicate: Predicate): EntityQuery<T>;
   where(collection: CollectionPath<T>, quantifier: QuantifierOp | FilterQueryOp,
@@ -233,6 +226,17 @@ export class EntityQuery<T = any> {
     operator: string extends O2 ? O2 : never, value: any): EntityQuery<T>;  // any/all
   where(property: string, filterop: string, property2: string, filterop2: string, property3: string, filterop3: string, value: any): EntityQuery<T>;  // nested any/all
   where(anArray: RecursiveArray<string | number | FilterQueryOp | Predicate>): EntityQuery<T>;
+  // Last on purpose, not by accident. When no overload matches, TypeScript reports the error from
+  // the *last* one - so with the escapes last, a misspelled path was reported as 'not assignable to
+  // never', which says nothing. With the checked forms last it names the type that was expected.
+  // Resolution is unaffected: the escapes reject a literal, so a literal still lands here.
+  where<P extends PropertyPath<T>, O extends FilterOpFor<PropertyValue<T, P>>>(
+    property: P, operator: O, value: FilterValueFor<T, PropertyValue<T, P>, O>): EntityQuery<T>;
+  where<P extends CollectionPath<T>,
+    P2 extends PropertyPath<CollectionElement<T, P>>,
+    O2 extends FilterOpFor<PropertyValue<CollectionElement<T, P>, P2>>>(
+    collection: P, quantifier: QuantifierOp, property: P2, operator: O2,
+    value: FilterValueFor<CollectionElement<T, P>, PropertyValue<CollectionElement<T, P>, P2>, O2>): EntityQuery<T>;
   /**
   Returns a new query with an added filter criteria; Can be called multiple times which means to 'and' with any existing
   Predicate or can be called with null to clear all predicates.
