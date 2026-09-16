@@ -1,10 +1,11 @@
 ﻿import { core } from '../core/core.js';
 import { EntityType, StructuralType, DataProperty  } from '../metadata/entity-metadata.js';
 import { QueryOp } from './entity-query.js';
+import type { FilterQueryOp, RecursiveArray } from './entity-query.js';
 import { DataType  } from '../metadata/data-type.js';
 import { EntityAspect, Entity } from '../entity/entity-aspect.js';
 import { LocalQueryComparisonOptions } from '../metadata/local-query-comparison-options.js';
-import type { CollectionElement, CollectionPath, FilterOpFor, FilterValueFor, PropertyPath, PropertyValue, QuantifierOp } from './property-path.js';
+import type { CollectionElement, CollectionPath, FilterOpFor, FilterValueFor, FunctionExpressionPath, PropertyPath, PropertyValue, QuantifierOp, WhereObject } from './property-path.js';
 
 export interface Op {
   key: string;
@@ -60,6 +61,13 @@ The predicates it produces are ordinary Predicates, so combining them with `and`
 works as it always has; those combinators take any Predicate and are not themselves checked.
 */
 export interface TypedPredicateFactory<T> {
+  // Escapes first, checked forms last - when no signature matches, the compiler reports the last
+  // one, and its message is the useful one. Same arrangement as EntityQuery.where().
+  /** A path only known at run time, or a query function, neither of which can be checked. */
+  <P extends string>(property: P extends FunctionExpressionPath ? P : (string extends P ? P : never),
+    operator: string | FilterQueryOp, value: any): Predicate;
+  <P extends string>(collection: string extends P ? P : never, quantifier: string | FilterQueryOp,
+    property: string, operator: string | FilterQueryOp, value: any): Predicate;
   /** A property, an operator that suits its type, and a matching value. */
   <P extends PropertyPath<T>, O extends FilterOpFor<PropertyValue<T, P>>>(
     property: P, operator: O, value: FilterValueFor<T, PropertyValue<T, P>, O>): Predicate;
@@ -69,6 +77,8 @@ export interface TypedPredicateFactory<T> {
     O2 extends FilterOpFor<PropertyValue<CollectionElement<T, P>, P2>>>(
     collection: P, quantifier: QuantifierOp, property: P2, operator: O2,
     value: FilterValueFor<CollectionElement<T, P>, PropertyValue<CollectionElement<T, P>, P2>, O2>): Predicate;
+  /** The object form, checked in full. */
+  (predicate: WhereObject<T>): Predicate;
 }
 
 export class Predicate {
@@ -103,9 +113,36 @@ export class Predicate {
     if (!(this instanceof Predicate)) {
       return new Predicate(...<any>args);
     }
-    return Predicate.create(...<any>args);
+    return (Predicate.create as (...a: any[]) => Predicate)(...args);
   }
 
+  // Naming the entity type checks the predicate against it. The checked overloads come last, so
+  // that when none matches it is their error the compiler reports rather than an escape's.
+  //
+  // How much is checked depends on which form you use, and it is a limit of the language rather
+  // than a choice: supplying T explicitly stops TypeScript inferring the remaining type
+  // parameters, so the three-argument form cannot tie its value back to the property named in
+  // its first argument. The object form has only T to infer, so it is checked in full - operator
+  // and value included, with a spelling suggestion for a misspelled key. Predicate.for() is the
+  // other way to get the whole check, by inferring T from a constructor instead of being told it.
+  static create(predicate: Predicate): Predicate;
+  static create(rawFilterString: string): Predicate;
+  static create(anArray: RecursiveArray<string | number | FilterQueryOp | Predicate>): Predicate;
+  static create<P extends string>(property: P extends FunctionExpressionPath ? P : (string extends P ? P : never),
+    operator: string | FilterQueryOp, value: any): Predicate;
+  static create<P extends string>(collection: string extends P ? P : never,
+    quantifier: string | FilterQueryOp, property: string,
+    operator: string | FilterQueryOp, value: any): Predicate;
+  static create(property: string, filterop: string, property2: string, filterop2: string,
+    property3: string, filterop3: string, value: any): Predicate;
+  /** Checks the property path against `T`. The operator and the value are not tied to that
+  property - see the note above - so use the object form or {@link Predicate.for} for those. */
+  static create<T = any>(property: PropertyPath<T>, operator: string | FilterQueryOp, value: any): Predicate;
+  /** Checks the collection path against `T`. */
+  static create<T = any>(collection: CollectionPath<T>, quantifier: QuantifierOp | FilterQueryOp,
+    property: string, operator: string | FilterQueryOp, value: any): Predicate;
+  /** The object form, checked in full against `T`. */
+  static create<T = any>(predicate: WhereObject<T>): Predicate;
   /**
   Same as using the ctor.
   >      // so 

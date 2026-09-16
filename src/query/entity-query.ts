@@ -289,7 +289,7 @@ export class EntityQuery<T = any> {
   where(...args: any[]) {
     let wherePredicate: Predicate | undefined;
     if (args.length > 0 && args[0] != null) {
-      wherePredicate = Predicate.create(...<any>args);
+      wherePredicate = (Predicate.create as (...a: any[]) => Predicate)(...args);
       if (this.fromEntityType) wherePredicate._validate(this.fromEntityType);
       if (this.wherePredicate) {
         wherePredicate = this.wherePredicate.and(wherePredicate);

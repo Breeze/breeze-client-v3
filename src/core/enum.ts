@@ -72,8 +72,11 @@ export class BreezeEnum {
   >     let symbols = DayOfWeek.getSymbols();
   @returns All of the symbols contained within this Enum.
   **/
-  static getSymbols() {
-    return this.resolveSymbols().map(ks => ks.symbol);
+  static getSymbols<T extends typeof BreezeEnum>(this: T): InstanceType<T>[] {
+    // Typed through `this` so a subclass gets its own instances: FilterQueryOp.getSymbols() is
+    // FilterQueryOp[], not BreezeEnum[]. The example above depends on that - nextDay() returns a
+    // DayOfWeek - and so does passing a symbol to anything that wants the specific enum.
+    return this.resolveSymbols().map(ks => ks.symbol) as InstanceType<T>[];
   }
 
   /**

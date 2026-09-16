@@ -246,3 +246,72 @@ function compilerMustRejectObjects() {
 }
 
 export const _compileTimeOnlyObjects = compilerMustRejectObjects;
+
+// Predicate.create can be told the entity type instead of being handed a constructor. How much
+// that checks depends on the form, and the reason is a limit of TypeScript rather than a choice:
+// supplying T explicitly stops the remaining type parameters being inferred, so the three-argument
+// form cannot tie its value back to the property in its first argument. The object form has only T
+// to infer, so it is checked in full.
+
+describe("Predicate.create with an entity type", () => {
+
+  test("the three-argument form checks the property path", () => {
+    const p = Predicate.create<Customer>('companyName', 'startsWith', 'C');
+    expect(p).toBeInstanceOf(Predicate);
+    expect(EntityQuery.from(Customer).where(p).wherePredicate).toBe(p);
+  });
+
+  test("the object form is checked in full", () => {
+    const p = Predicate.create<Order>({ freight: { gt: 100 } });
+    expect(p).toBeInstanceOf(Predicate);
+  });
+
+  test("the any/all form checks the collection path", () => {
+    expect(Predicate.create<Customer>('orders', 'any', 'freight', 'gt', 100)).toBeInstanceOf(Predicate);
+  });
+
+  test("without a type argument it is exactly what it always was", () => {
+    // The 80-odd existing call sites. T defaults to any, and every path type collapses to string.
+    expect(Predicate.create('anything at all', 'eq', 1)).toBeInstanceOf(Predicate);
+    expect(Predicate.create('freight gt 100')).toBeInstanceOf(Predicate);
+    expect(Predicate.create(['freight', '>', 100])).toBeInstanceOf(Predicate);
+    expect(Predicate.create({ whatever: { eq: 1 } })).toBeInstanceOf(Predicate);
+    const inner = Predicate.create('a', 'eq', 1);
+    expect(Predicate.create(inner)).toBe(inner);
+  });
+
+  test("Predicate.for takes a computed path and a query function", () => {
+    const p = Predicate.for(Customer);
+    const path: string = 'companyName';
+    expect(p(path, 'eq', 'x')).toBeInstanceOf(Predicate);
+    expect(p('toLower(companyName)', 'startsWith', 'c')).toBeInstanceOf(Predicate);
+    expect(p({ city: 'London' })).toBeInstanceOf(Predicate);
+  });
+
+});
+
+/** As compilerMustReject above, for Predicate.create with an entity type. */
+function compilerMustRejectCreate() {
+  // @ts-expect-error - misspelled path
+  Predicate.create<Customer>('compnyName', 'startsWith', 'C');
+
+  // @ts-expect-error - misspelled key, and this one suggests the correction
+  Predicate.create<Customer>({ compnyName: { startsWith: 'C' } });
+
+  // @ts-expect-error - the object form ties the operator to the property type
+  Predicate.create<Order>({ freight: { startsWith: 1 } });
+
+  // @ts-expect-error - and the value to it as well
+  Predicate.create<Order>({ freight: { gt: 'one hundred' } });
+
+  // @ts-expect-error - a collection is filtered with any/all
+  Predicate.create<Order>({ orderDetails: { gt: 5 } });
+
+  // The three-argument form cannot do those last three: naming T explicitly stops TypeScript
+  // inferring the property, so the operator and value are not tied to it. Both of these compile,
+  // and the object form above is how to catch them.
+  Predicate.create<Order>('freight', 'startsWith', 1);
+  Predicate.create<Order>('freight', 'gt', 'one hundred');
+}
+
+export const _compileTimeOnlyCreate = compilerMustRejectCreate;

@@ -133,8 +133,10 @@ of the element shapes, which makes them the longest of the set.
 
 ## Standalone predicates
 
-A `Predicate` built on its own has no query to take an entity type from. `Predicate.for` supplies
-one:
+A `Predicate` built on its own has no query to take an entity type from. There are two ways to give
+it one, and they check different amounts.
+
+### `Predicate.for(ctor)` — checks everything
 
 ```ts
 const p = Predicate.for(Customer);
@@ -143,10 +145,54 @@ const pred = p('companyName', 'startsWith', 'C').and(p('city', 'eq', 'Vienna'));
 EntityQuery.from(Customer).where(pred);
 ```
 
+Path, operator and value, exactly as `where(path, op, value)` does — including the escapes for a
+path only known at run time and for query functions, and the object form:
+
+```ts
+p(userChosenColumn, 'eq', value)              // computed path
+p('toLower(companyName)', 'startsWith', 'c')  // query function
+p({ city: 'London', country: 'UK' })          // object form
+```
+
 The constructor is read for its type only — nothing about it is kept, and it does not have to be
 registered with a `MetadataStore`. Hoist the factory and reuse it. The predicates it returns are
 ordinary `Predicate`s, so `and`, `or` and `not` behave as they always have; those combinators take
 any predicate and are not themselves checked.
+
+### `Predicate.create<T>(…)` — checks the path, and the object form in full
+
+If you would rather name the type than build a factory:
+
+```ts
+Predicate.create<Customer>('companyName', 'startsWith', 'C')   // path is checked
+Predicate.create<Customer>('compnyName', 'startsWith', 'C')    // error
+
+Predicate.create<Order>({ freight: { gt: 100 } })              // checked in full
+Predicate.create<Order>({ freight: { startsWith: 1 } })        // error
+Predicate.create<Order>({ freight: { gt: 'one hundred' } })    // error
+Predicate.create<Customer>({ compnyName: { startsWith: 'C' } })
+// 'compnyName' does not exist in type '{ … }'. Did you mean to write 'companyName'?
+```
+
+**The three-argument form checks only the path.** These compile:
+
+```ts
+Predicate.create<Order>('freight', 'startsWith', 1)        // not caught
+Predicate.create<Order>('freight', 'gt', 'one hundred')    // not caught
+```
+
+That is a limit of the language, not a choice. Supplying `T` explicitly stops TypeScript inferring
+the *remaining* type parameters, so the signature cannot tie the value back to the property named
+in the first argument. The object form has only `T` to infer, which is why it stays fully checked —
+and `Predicate.for` is fully checked for the same reason, since `T` comes from the constructor
+rather than from you.
+
+So: **`Predicate.for` when you want the three-argument form checked, `Predicate.create<T>` with the
+object form, or `Predicate.create<T>` with three arguments when catching a misspelled path is
+enough.**
+
+Without a type argument, `Predicate.create` is exactly what it always was — `T` defaults to `any`
+and nothing is restricted.
 
 ## orderBy and expand
 
