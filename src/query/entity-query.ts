@@ -10,7 +10,7 @@ import { EntityManager, QueryResult } from '../manager/entity-manager.js';
 import { MetadataStore, EntityType, NavigationProperty, EntityProperty, entityTypeForCtor } from '../metadata/entity-metadata.js';
 import { QueryOptions, MergeStrategy, FetchStrategy } from './query-options.js';
 import { Predicate } from './predicate.js';
-import type { CollectionElement, CollectionPath, FilterOpFor, FilterValueFor, FunctionExpressionPath, NavigationPath, OrderByPath, PropertyPath, PropertyValue, QuantifierOp } from './property-path.js';
+import type { CollectionElement, CollectionPath, FilterOpFor, FilterValueFor, FunctionExpressionPath, WhereObject, NavigationPath, OrderByPath, PropertyPath, PropertyValue, QuantifierOp } from './property-path.js';
 
 export interface RecursiveArray<T> {
   [i: number]: T | RecursiveArray<T>;
@@ -204,8 +204,10 @@ export class EntityQuery<T = any> {
     property: string, quantifier2: QuantifierOp | FilterQueryOp,
     predicate: Predicate): EntityQuery<T>;  // nested any/all over a prebuilt Predicate
 
+  // The object form, checked against T. WhereObject<T> is `object` for an untyped query, so this
+  // is exactly the `where(predicate: Object)` overload it replaces wherever T is not concrete.
+  where(predicate: WhereObject<T>): EntityQuery<T>;
   where(predicate?: Predicate): EntityQuery<T>;
-  where(predicate: Object): EntityQuery<T>;
 
   // Escapes, for what cannot be checked: a property path or an operator that is only known at
   // run time. Each one takes the unknowable part as a type parameter and demands that it really

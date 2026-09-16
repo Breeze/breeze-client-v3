@@ -163,3 +163,86 @@ function compilerMustReject() {
 
 // Referenced so the function is not dead code to a linter; never invoked.
 export const _compileTimeOnly = compilerMustReject;
+
+// The object form - what the docs call the JSON form - is checked against the same paths,
+// operators and values as the three-argument form. It is enumerated rather than inferred (see
+// WhereObject in src/query/property-path.ts) so that a misspelled key is an ordinary
+// excess-property error, which is the diagnostic that carries a spelling suggestion.
+
+describe("Typed predicates - the object form", () => {
+
+  test("a bare value means equality, and several keys are and-ed", () => {
+    const q = EntityQuery.from(Customer).where({ city: 'London', country: 'UK' });
+    expect(q.wherePredicate).toBeTruthy();
+  });
+
+  test("an operator clause, including on a nested path", () => {
+    expect(EntityQuery.from(Order).where({ freight: { gt: 100 } }).wherePredicate).toBeTruthy();
+    expect(EntityQuery.from(Order).where({ 'customer.companyName': { startsWith: 'A' } }).wherePredicate).toBeTruthy();
+    expect(EntityQuery.from(Supplier).where({ 'location.city': { eq: 'Vienna' } }).wherePredicate).toBeTruthy();
+  });
+
+  test("and, or and not, with objects or prebuilt Predicates", () => {
+    expect(EntityQuery.from(Customer).where({ or: [{ city: 'London' }, { city: 'Berlin' }] }).wherePredicate).toBeTruthy();
+    expect(EntityQuery.from(Customer).where({ not: { city: 'London' } }).wherePredicate).toBeTruthy();
+    const pre = Predicate.create('city', 'eq', 'Paris');
+    expect(EntityQuery.from(Customer).where({ and: [pre, { country: 'FR' }] }).wherePredicate).toBeTruthy();
+  });
+
+  test("any and all over a collection", () => {
+    const q = EntityQuery.from(Customer).where({ orders: { any: { freight: { gt: 100 } } } });
+    expect(q.wherePredicate).toBeTruthy();
+    expect(EntityQuery.from(Order).where({ orderDetails: { all: { unitPrice: { '<': 5 } } } }).wherePredicate).toBeTruthy();
+  });
+
+  test("null, `in`, the escape hatch and query functions", () => {
+    expect(EntityQuery.from(Order).where({ shippedDate: null }).wherePredicate).toBeTruthy();
+    expect(EntityQuery.from(Order).where({ freight: { in: [1, 2] } }).wherePredicate).toBeTruthy();
+    expect(EntityQuery.from(Order).where({ freight: { value: 35, dataType: 'Decimal' } }).wherePredicate).toBeTruthy();
+    expect(EntityQuery.from(Customer).where({ 'toLower(companyName)': { startsWith: 'c' } }).wherePredicate).toBeTruthy();
+  });
+
+  test("an untyped query still takes any object", () => {
+    // Any property name, because an untyped query has no type to check it against. The operator
+    // still has to be a real one - that is the runtime's rule, not the type system's.
+    const q = new EntityQuery('Customers').where({ somethingUnmapped: { eq: 1 } });
+    expect(q.wherePredicate).toBeTruthy();
+  });
+
+  test("the object form and the three-argument form build the same predicate", () => {
+    const a = EntityQuery.from(Customer).where('companyName', 'startsWith', 'C');
+    const b = EntityQuery.from(Customer).where({ companyName: { startsWith: 'C' } });
+    expect(b.wherePredicate!.toString()).toBe(a.wherePredicate!.toString());
+  });
+
+});
+
+/** As compilerMustReject above, for the object form. */
+function compilerMustRejectObjects() {
+  const cust = EntityQuery.from(Customer);
+  const order = EntityQuery.from(Order);
+
+  // @ts-expect-error - misspelled key. This one also suggests: "Did you mean to write
+  // 'companyName'?", which the three-argument form cannot produce.
+  cust.where({ compnyName: { startsWith: 'C' } });
+
+  // @ts-expect-error - startsWith is not an operator on a number
+  order.where({ freight: { startsWith: 1 } });
+
+  // @ts-expect-error - a number property compared against something that is not a number or a path
+  order.where({ freight: { gt: 'one hundred' } });
+
+  // @ts-expect-error - misspelled key behind a navigation
+  order.where({ 'customer.nope': { eq: 'x' } });
+
+  // @ts-expect-error - the object inside any is checked against the element type
+  cust.where({ orders: { any: { nope: 1 } } });
+
+  // @ts-expect-error - and every element of an and/or array is checked too
+  cust.where({ and: [{ city: 'London' }, { nope: 1 }] });
+
+  // @ts-expect-error - a collection takes a quantifier, not an operator
+  order.where({ orderDetails: { gt: 5 } });
+}
+
+export const _compileTimeOnlyObjects = compilerMustRejectObjects;

@@ -216,7 +216,8 @@ export type { LocalQueryComparisonOptionsConfig } from './metadata/local-query-c
 export type { NamingConventionConfig } from './metadata/naming-convention.js';
 export type {
   CollectionElement, CollectionPath, FilterOpFor, FilterValueExpression, FilterValueFor, FunctionExpressionPath,
-  NavigationPath, OrderByPath, PropertyPath, PropertyValue, QuantifierOp,
+  FilterClause, FilterOpsObject, FilterOpNameFor, NavigationPath, OrderByPath,
+  PropertyPath, PropertyValue, QuantifierOp, WhereObject,
 } from './query/property-path.js';
 export type { TypedPredicateFactory } from './query/predicate.js';
 export type { QueryOptionsConfig } from './query/query-options.js';

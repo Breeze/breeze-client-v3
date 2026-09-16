@@ -2,6 +2,7 @@ import type { ComplexObject, Entity } from '../entity/entity-aspect.js';
 import type { ComplexArray } from '../entity/complex-array.js';
 import type { RelationArray } from '../entity/relation-array.js';
 import type { FilterQueryOp } from './entity-query.js';
+import type { Predicate } from './predicate.js';
 
 /**
 The types behind the checked form of {@link EntityQuery.where}, {@link EntityQuery.orderBy},
@@ -162,13 +163,20 @@ Only the string form is checked. A {@link FilterQueryOp} instance is accepted ag
 property type, because they are all one type: `FilterQueryOp.StartsWith` is not distinguishable
 from `FilterQueryOp.GreaterThan` at compile time.
 */
-export type FilterOpFor<V> =
-  | FilterQueryOp
-  | ([NonNullable<V>] extends [string] ? EqualityOps | ComparisonOps | StringOps | InOp
-    : [NonNullable<V>] extends [number] ? EqualityOps | ComparisonOps | InOp
-    : [NonNullable<V>] extends [Date] ? EqualityOps | ComparisonOps | InOp
-    : [NonNullable<V>] extends [boolean] ? EqualityOps | InOp
-    : EqualityOps | ComparisonOps | StringOps | InOp);
+export type FilterOpFor<V> = FilterQueryOp | FilterOpNameFor<V>;
+
+/**
+The operator *names* that make sense for a value of type `V`, without {@link FilterQueryOp}.
+
+The object form of a filter needs these on their own, because an object key can only be a string:
+`{ freight: { gt: 100 } }`.
+*/
+export type FilterOpNameFor<V> =
+  [NonNullable<V>] extends [string] ? EqualityOps | ComparisonOps | StringOps | InOp
+  : [NonNullable<V>] extends [number] ? EqualityOps | ComparisonOps | InOp
+  : [NonNullable<V>] extends [Date] ? EqualityOps | ComparisonOps | InOp
+  : [NonNullable<V>] extends [boolean] ? EqualityOps | InOp
+  : EqualityOps | ComparisonOps | StringOps | InOp;
 
 /**
 The object form of a filter value, which forces an interpretation Breeze would otherwise infer:
@@ -208,3 +216,68 @@ A query function applied to a property, rather than a plain property path - `toU
 what is inside one is a small expression language of its own, not a property path.
 */
 export type FunctionExpressionPath = `${string}(${string})`;
+
+// ---------------------------------------------------------------------------------------------
+// The object form
+// ---------------------------------------------------------------------------------------------
+
+/**
+The operator clause of an object filter: `{ gt: 100 }`, `{ startsWith: 'C' }`, `{ in: [1, 2] }`.
+Several operators in one clause are and-ed, which is what the runtime does with them.
+*/
+export type FilterOpsObject<T, V> = { [O in FilterOpNameFor<V>]?: FilterValueFor<T, V, O> };
+
+/**
+What may stand to the right of a property key in an object filter: a bare value, which means
+equality, or an operator clause, or a {@link FilterValueExpression}.
+*/
+export type FilterClause<T, V> =
+  | V | null
+  | FilterValueExpression
+  | FilterOpsObject<T, V>;
+
+/** The keys an object filter on `T` may carry. */
+type WhereKey<T> =
+  | PropertyPath<T>
+  | CollectionPath<T>
+  | FunctionExpressionPath
+  | 'and' | 'or' | 'not';
+
+/**
+The object - "JSON" - form of a filter, checked against `T`.
+
+```ts
+EntityQuery.from(Customer).where({ city: 'London', country: 'UK' });
+EntityQuery.from(Order).where({ freight: { gt: 100 } });
+EntityQuery.from(Order).where({ 'customer.companyName': { startsWith: 'A' } });
+EntityQuery.from(Customer).where({ or: [{ city: 'London' }, { city: 'Berlin' }] });
+EntityQuery.from(Customer).where({ orders: { any: { freight: { gt: 100 } } } });
+```
+
+Several keys in one object are and-ed, as the runtime does with them.
+
+This deliberately enumerates the model's paths as keys rather than validating the object the
+caller wrote. Both check the same mistakes, but only this shape makes a bad key an ordinary
+excess-property error - which is the diagnostic that carries a spelling suggestion:
+
+```
+Object literal may only specify known properties, but 'compnyName' does not exist
+in type '{ ... }'. Did you mean to write 'companyName'?
+```
+
+The cost is that the compiler prints that type in the message, so these are longer than the
+errors from the three-argument form. It is the better trade: the suggestion names the fix.
+
+`object` for an untyped query, which restricts nothing - see {@link PropertyPath}.
+*/
+export type WhereObject<T> =
+  Entity extends T ? object
+  : {
+    [K in WhereKey<T>]?:
+        K extends 'and' | 'or' ? readonly (Predicate | WhereObject<T>)[]
+      : K extends 'not' ? Predicate | WhereObject<T>
+      : K extends FunctionExpressionPath ? FilterClause<T, any>
+      : K extends CollectionPath<T>
+        ? { [Q in QuantifierOp]?: Predicate | WhereObject<CollectionElement<T, K>> }
+      : FilterClause<T, PropertyValue<T, K>>
+  };

@@ -5,9 +5,16 @@ sort and expand on:
 
 ```ts
 EntityQuery.from(Customer).where('companyName', 'startsWith', 'C')   // fine
+
 EntityQuery.from(Customer).where('compnyName', 'startsWith', 'C')
-//                               ~~~~~~~~~~~~ Did you mean '"companyName"'?
+// Argument of type '"compnyName"' is not assignable to parameter of type 'DataKeys<Customer>'.
+
+EntityQuery.from(Customer).where({ compnyName: { startsWith: 'C' } })
+// 'compnyName' does not exist in type '{ … }'. Did you mean to write 'companyName'?
 ```
+
+The two forms are equally strict. Only the object form can suggest the correction, for reasons
+explained under [The object form](#the-object-form).
 
 None of this exists at run time. A query is still assembled from the same strings it always was,
 and the same wire format goes to the server. These are types only — see
@@ -75,6 +82,54 @@ A prebuilt `Predicate` works in the same position:
 const inner = Predicate.create('unitPrice', '>', 200).and('quantity', '>', 50);
 EntityQuery.from(Customer).where('orders', 'any', 'orderDetails', 'any', inner)
 ```
+
+## The object form
+
+The object form — the docs also call it the JSON form — is checked against the same paths,
+operators and values:
+
+```ts
+EntityQuery.from(Customer).where({ city: 'London', country: 'UK' });   // keys are and-ed
+EntityQuery.from(Order).where({ freight: { gt: 100 } });
+EntityQuery.from(Order).where({ 'customer.companyName': { startsWith: 'A' } });
+EntityQuery.from(Customer).where({ or: [{ city: 'London' }, { city: 'Berlin' }] });
+EntityQuery.from(Customer).where({ not: { city: 'London' } });
+EntityQuery.from(Customer).where({ orders: { any: { freight: { gt: 100 } } } });
+```
+
+A bare value means equality, several keys in one object are and-ed, `and`/`or`/`not` take objects
+or prebuilt `Predicate`s, and a collection takes `any` or `all` whose body is checked against the
+element type. `null`, `in`, the `{ value, dataType }` escape hatch and query-function keys all work
+as they do in the three-argument form.
+
+### It gives the better error message
+
+This is the one place where the object form is *better* than `where(path, op, value)`. A
+misspelled key is an ordinary excess-property error, and that is the diagnostic that carries a
+spelling suggestion:
+
+```
+Object literal may only specify known properties, but 'compnyName' does not exist
+in type '{ … }'. Did you mean to write 'companyName'?
+```
+
+The three-argument form cannot produce that, because a failed overload match reports differently.
+A wrong operator is also clearer:
+
+```
+Object literal may only specify known properties, and 'startsWith' does not exist
+in type 'FilterValueExpression | FilterOpsObject<Order, number>'.
+```
+
+The cost is length: the compiler prints the target type into the message, so these run two to four
+times longer than the equivalent from the three-argument form. The useful part — the offending key
+and the suggestion — is at the start and the end.
+
+### What it does not catch
+
+Misspelling a *nested* key (`'customer.nope'`) is reported, but without a suggestion: the edit
+distance across a dotted path does not trigger one. Errors inside `and`/`or` arrays print the union
+of the element shapes, which makes them the longest of the set.
 
 ## Standalone predicates
 
