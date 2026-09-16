@@ -80,6 +80,10 @@ default.
 
 ## Save errors
 
+This section covers errors specific to saving. For the shape of a Breeze error in general,
+telling a network failure from a rejected request, and handling errors in your own `fetch`, see
+[Error handling](/guide/error-handling).
+
 A failed save rejects with an `Error`. When the failure concerns particular entities, the
 error has an `entityErrors` array of [`EntityError`](/api/interfaces/EntityError)
 objects:

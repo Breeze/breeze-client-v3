@@ -50,6 +50,7 @@ export default defineConfig({
             { text: 'EntityManager and caching', link: '/guide/entitymanager-and-caching' },
             { text: 'Saving changes', link: '/guide/saving-changes' },
             { text: 'Validation', link: '/guide/validation' },
+            { text: 'Error handling', link: '/guide/error-handling' },
             { text: 'Export and import', link: '/guide/export-import' },
           ],
         },

@@ -1,5 +1,8 @@
 # Validation
 
+For what a failed save looks like as an error object, and for failures that are not validation
+at all, see [Error handling](/guide/error-handling).
+
 Data must be validated on the server. Client-side validation does not replace that. It
 exists for the user's benefit: tell them now that a name is required or too long, instead
 of after they submit the form.
