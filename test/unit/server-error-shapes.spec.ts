@@ -1,5 +1,6 @@
 import {
   configureBreeze, EntityManager, EntityQuery, EntityState, MetadataStore, DataService, NamingConvention,
+  ProblemTypes, isConcurrencyError,
 } from '../../src/breeze';
 import { DataServiceWebApiAdapter } from '../../src/adapters/adapter-data-service-webapi';
 import { UriBuilderJsonAdapter } from '../../src/adapters/adapter-uri-builder-json';
@@ -203,6 +204,114 @@ describe("Server error shapes", () => {
 
     await expect(em.executeQuery(EntityQuery.from('Customers')))
       .rejects.toThrow('That query is not valid');
+  });
+
+});
+
+// A concurrency conflict has to be tellable from every other save failure without matching on the
+// message, because the recovery is specific: re-read and let the user decide, rather than fix the
+// data and retry. The status code cannot carry that on its own - a duplicate key is also 409 - so
+// the discriminator is the RFC 9457 `type` member, which is stable across ORMs and server
+// versions in a way that EF Core's or NHibernate's wording is not.
+
+const CONCURRENCY_ERRORS = [{
+  errorName: 'ConcurrencyError', entityTypeName: 'Foo.Customer', keyValues: [CUST_ID],
+  propertyName: null as any,
+  errorMessage: 'This record was changed or deleted by another user after it was read.',
+}];
+
+function concurrencyResponse(extra: any = {}) {
+  return problemResponse({
+    type: 'https://breeze.github.io/problems/concurrency-conflict',
+    title: 'Conflict',
+    status: 409,
+    detail: 'The save failed because 1 record was changed or deleted by another user after it was read.',
+    entityErrors: CONCURRENCY_ERRORS,
+    ...extra,
+  }, 'application/problem+json', 409);
+}
+
+describe("Concurrency conflicts", () => {
+
+  test("are recognized, and name the entities that went stale", async () => {
+    respond = () => concurrencyResponse();
+    const { err, cust } = await failedSave();
+
+    expect(err.status).toBe(409);
+    expect(err.problemType).toBe(ProblemTypes.concurrencyConflict);
+    expect(isConcurrencyError(err)).toBe(true);
+
+    // Which rows conflicted, not just that something did - so an application can show the user
+    // the records to look at instead of failing the whole save with one message.
+    expect(err.entityErrors).toHaveLength(1);
+    expect(err.entityErrors[0].entity).toBe(cust);
+    expect(err.entityErrors[0].errorName).toBe('ConcurrencyError');
+
+    // The error is on the entity, not on a property: the row is stale as a whole, and the
+    // concurrency column is not something the user edited or can usually see.
+    const ves = cust.entityAspect.getValidationErrors();
+    expect(ves).toHaveLength(1);
+    expect(ves[0].property).toBeUndefined();
+    expect(ves[0].isServerError).toBe(true);
+
+    // The changes survive, so the caller can merge them against a fresh read.
+    expect(cust.entityAspect.entityState.isModified()).toBe(true);
+  });
+
+  test("are not confused with the other 409", async () => {
+    // The isolation this whole mechanism exists for. Same status, same content type, different
+    // recovery - only `type` separates them.
+    respond = () => problemResponse({
+      type: 'about:blank',
+      title: 'Conflict',
+      status: 409,
+      detail: "Violation of UNIQUE KEY constraint 'IX_Customer_CompanyName'.",
+    }, 'application/problem+json', 409);
+
+    const { err } = await failedSave();
+    expect(err.status).toBe(409);
+    expect(isConcurrencyError(err)).toBe(false);
+  });
+
+  test("the problem type survives alongside the legacy members", async () => {
+    // The default server configuration: RFC members and the pre-3.0 capitalised ones together.
+    // The legacy branch of createError must not lose `type` on its way past.
+    respond = () => concurrencyResponse({
+      Code: 409,
+      Message: 'The save failed because 1 record was changed or deleted by another user after it was read.',
+      EntityErrors: [{
+        ErrorName: 'ConcurrencyError', EntityTypeName: 'Foo.Customer', KeyValues: [CUST_ID],
+        PropertyName: null, ErrorMessage: 'This record was changed or deleted by another user after it was read.',
+      }],
+      entityErrors: undefined,
+    });
+    const { err, cust } = await failedSave();
+
+    expect(isConcurrencyError(err)).toBe(true);
+    expect(err.entityErrors[0].entity).toBe(cust);
+  });
+
+  test("a server that sends no problem type is reported as not a concurrency error", async () => {
+    // What a pre-3.0 Breeze server does with a stale row: a 500 carrying the ORM's own words.
+    // There is nothing dependable to infer from, so the answer is false rather than a guess -
+    // an application talking to such a server has to keep matching on the message, and should
+    // know that it is doing so.
+    respond = () => problemResponse({
+      Code: 500,
+      Message: 'The database operation was expected to affect 1 row(s), but actually affected 0 row(s)...',
+    }, 'application/json', 500);
+
+    const { err } = await failedSave();
+    expect(err.problemType).toBeUndefined();
+    expect(isConcurrencyError(err)).toBe(false);
+  });
+
+  test("isConcurrencyError tolerates whatever it is handed", async () => {
+    expect(isConcurrencyError(undefined)).toBe(false);
+    expect(isConcurrencyError(null)).toBe(false);
+    expect(isConcurrencyError(new Error('boom'))).toBe(false);
+    expect(isConcurrencyError({ status: 409 })).toBe(false);
+    expect(isConcurrencyError('a string')).toBe(false);
   });
 
 });

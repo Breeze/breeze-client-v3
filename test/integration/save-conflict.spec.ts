@@ -1,4 +1,4 @@
-import { EntityQuery, EntityState, SaveOptions } from '../../src/breeze';
+import { EntityQuery, EntityState, SaveOptions, isConcurrencyError } from '../../src/breeze';
 import { TestFns } from '../test-fns';
 import { Order, registerModelClasses } from '../model';
 
@@ -35,6 +35,9 @@ describe("Save conflicts", () => {
     } catch (e: any) {
       expect(e.status).toBe(409);
       expect(e.message).toMatch(/FOREIGN KEY constraint/i);
+      // Same status as a concurrency conflict, and a different recovery: this one will fail
+      // the same way until the data changes, so nothing should mistake it for a stale read.
+      expect(isConcurrencyError(e)).toBe(false);
     }
   });
 

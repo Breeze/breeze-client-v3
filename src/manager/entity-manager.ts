@@ -53,6 +53,17 @@ export interface ServerError extends Error {
   /** The URL the request was sent to (`httpResponse.config.url`). Query parameters added with
   `EntityQuery.withParameters` are not included. */
   url?: string;
+  /** The RFC 9457 `type` member of the problem document, when the server sent one: a URI naming
+  what kind of problem this is.
+
+  Read it rather than the message when the recovery depends on the kind of failure. The status
+  code is often not enough on its own - an optimistic concurrency conflict and a duplicate key are
+  both `409`, and they are recovered from differently - and message text is not something to match
+  on, since it varies by ORM, database and server version.
+
+  Undefined when the server sent no `type`, which is every pre-3.0 Breeze server and most
+  non-Breeze ones. See {@link ProblemTypes} and {@link isConcurrencyError}. */
+  problemType?: string;
 }
 
 /** Shape of a save error returned from the server. 
@@ -62,6 +73,55 @@ For use by breeze plugin authors only. The class is for use in building a {@link
 */
 export interface SaveErrorFromServer extends ServerError {
   entityErrors: EntityErrorFromServer[];
+}
+
+/** The RFC 9457 `type` URIs a Breeze server sends on {@link ServerError.problemType}.
+
+A problem type is a stable identifier for a *kind* of failure, which is what a status code often
+is not: `409` covers both a concurrency conflict and a duplicate key, and the two call for
+different recovery. */
+export const ProblemTypes = {
+  /** A row was changed or deleted by someone else after this client read it. */
+  concurrencyConflict: "https://breeze.github.io/problems/concurrency-conflict",
+  /** The save was rejected by validation; see `entityErrors`. */
+  entityErrors: "https://breeze.github.io/problems/entity-errors",
+  /** An unhandled exception on the server. */
+  serverError: "https://breeze.github.io/problems/server-error",
+} as const;
+
+/** Whether an error is an optimistic concurrency conflict - a row changed or deleted by someone
+else after this client read it.
+
+```ts
+try {
+  await em.saveChanges();
+} catch (e) {
+  if (isConcurrencyError(e)) {
+    // re-read and let the user decide; retrying the same save would fail the same way
+  }
+}
+```
+
+This is exact rather than approximate: it is true only when the server said so with
+{@link ProblemTypes.concurrencyConflict}, never inferred from the status code or the message. A
+`409` from a duplicate key is not a concurrency conflict, and matching on message text breaks
+when the ORM, database or server version changes.
+
+A Breeze .NET server sends this for EF Core's `DbUpdateConcurrencyException` and NHibernate's
+`StaleObjectStateException`. A server that does not send a `type` - any pre-3.0 Breeze server, and
+most non-Breeze ones - returns false here, and there is nothing reliable to use instead.
+
+When the conflict names the rows involved, they are on `entityErrors` with the entities attached:
+
+```ts
+const stale = (e.entityErrors ?? [])
+  .filter(ee => ee.errorName === "ConcurrencyError")
+  .map(ee => ee.entity);
+```
+@param error The rejection value from a Breeze call - typically a {@link SaveError}.
+@returns true if the server identified this as a concurrency conflict. */
+export function isConcurrencyError(error: any): boolean {
+  return !!error && error.problemType === ProblemTypes.concurrencyConflict;
 }
 
 /** Shape of a save error when returned to the client. */

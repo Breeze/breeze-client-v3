@@ -1,4 +1,4 @@
-import { Entity, EntityQuery, EntityType, MetadataStore, EntityChangedEventArgs, EntityAction, MergeStrategy, QueryOptions, FetchStrategy, EntityManager, SaveOptions, ValidationErrorsChangedEventArgs } from '../../src/breeze';
+import { Entity, EntityQuery, EntityType, MetadataStore, EntityChangedEventArgs, EntityAction, MergeStrategy, QueryOptions, FetchStrategy, EntityManager, SaveOptions, ValidationErrorsChangedEventArgs, isConcurrencyError } from '../../src/breeze';
 import { TestFns, JsonObj, skipTestIf } from '../test-fns';
 import { SaveTestFns } from '../save-test-fns';
 import { Customer, Employee, registerModelClasses } from '../model';
@@ -483,7 +483,10 @@ describe("Save exception handling", () => {
     } catch (error) {
       expect(em.hasChanges()).toBeTrue();
       if (TestFns.isAspCoreServer) {
-        expect(error.message).toMatch(/optimistic concurrency/);
+        expect(isConcurrencyError(error)).toBe(true);
+        expect(error.status).toBe(409);
+        // the conflict names the row, resolved back to the instance this manager holds
+        expect(error.entityErrors[0].entity).toBe(cust);
       } else {
         expect(error.message).toMatch('need to determine correct error message for this server type');
       }

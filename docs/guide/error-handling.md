@@ -34,13 +34,17 @@ try {
 
 ## Telling failures apart
 
-The three cases worth separating, in the order you should test for them:
+The cases worth separating, in the order you should test for them:
 
 ```ts
+import { isConcurrencyError } from 'breeze-client';
+
 try {
   await em.saveChanges();
 } catch (e: any) {
-  if (e.entityErrors) {
+  if (isConcurrencyError(e)) {
+    // someone else changed the row after you read it — re-read and let the user decide
+  } else if (e.entityErrors) {
     // the server rejected specific entities — usually validation
   } else if (e.status === 0) {
     // the request never arrived: offline, DNS, CORS, server down
@@ -49,6 +53,10 @@ try {
   }
 }
 ```
+
+Concurrency comes first because a conflict carries `entityErrors` too — it names the rows that went
+stale — so testing for those first would file it under validation and retry something that cannot
+succeed. See [Concurrency conflicts](#concurrency-conflicts).
 
 `status === 0` is the one people miss. The request failed before any response existed, so there is
 no status to report and no body to read. Breeze wraps the transport's own text, which is usually
@@ -139,7 +147,7 @@ Send `{ "message": "…" }` and that works too.
 |---|---|
 | `0` | no response — offline, CORS, DNS, server down |
 | `403` | the default for `EntityErrorsException` |
-| `409` | a conflict, such as a duplicate key, if the server maps it |
+| `409` | a conflict: a concurrency conflict, or a duplicate key if the server maps it. Read `problemType`, not the status, to tell which |
 | `4xx` | the request was rejected |
 | `5xx` | the server failed |
 
@@ -197,17 +205,75 @@ usual error.
 
 ## Concurrency conflicts
 
-An optimistic-concurrency failure is an ordinary save error: the server detects the stale row and
-throws, and it arrives with whatever status the server chose. Breeze does not resolve it for you.
-The usual recovery is to re-query the entity and let the user decide:
+An optimistic concurrency conflict — someone else changed or deleted the row after you read it —
+is the one save failure a client is normally expected to *recover* from rather than report. So it
+has to be identifiable without guessing:
 
 ```ts
-catch (e: any) {
-  if (isConcurrencyError(e)) {          // your own check, on message or status
-    await em.fetchEntityByKey(Order, orderId);   // refreshes from the server
+import { isConcurrencyError } from 'breeze-client';
+
+try {
+  await em.saveChanges();
+} catch (e) {
+  if (isConcurrencyError(e)) {
+    // re-read and let the user decide; retrying the same save fails the same way
   }
 }
 ```
 
-See [Change tracking](/guide/change-tracking) for `rejectChanges` and the rest of the recovery
-surface.
+`isConcurrencyError` is exact. It is true only when the server said so, with the RFC 9457 problem
+type `https://breeze.github.io/problems/concurrency-conflict`, available as
+`ProblemTypes.concurrencyConflict`. It is never inferred from the status code or the message,
+because neither is dependable:
+
+- **The status is 409, but so is a duplicate key**, and the two need opposite responses — re-read
+  for one, change the data for the other.
+- **The message is the ORM's.** EF Core says "expected to affect 1 row(s), but actually affected 0
+  row(s)"; NHibernate says something else entirely; both change between versions.
+
+The raw value is on `error.problemType` if you want to switch on it yourself.
+
+### Which entities went stale
+
+The conflict names them, and Breeze resolves each back to the instance your manager already holds:
+
+```ts
+const stale = (e.entityErrors ?? [])
+  .filter(ee => ee.errorName === 'ConcurrencyError')
+  .map(ee => ee.entity);
+```
+
+Each also gets a validation error on the entity itself — not on a property, since the row is stale
+as a whole and the concurrency column is not something the user edited. Nothing is rolled back, so
+the pending changes are still there to merge.
+
+### Recovering
+
+Re-read, then decide. `MergeStrategy.OverwriteChanges` takes the server's row — concurrency column
+included, which is what lets the next save through — and discards the local edit:
+
+```ts
+const q = EntityQuery.from(Order).where('orderID', 'eq', orderID);
+await q.using(em).using(MergeStrategy.OverwriteChanges).execute();
+// the entity now holds the server's values; reapply what the user wanted and save again
+```
+
+To show both versions before overwriting anything, read into a second `EntityManager` and compare
+there, leaving the user's pending changes untouched in the first. See
+[Change tracking](/guide/change-tracking) for `rejectChanges` and the rest of the recovery surface.
+
+### What the server has to do
+
+A Breeze .NET server does this out of the box, for both ORMs: EF Core's
+`DbUpdateConcurrencyException` and NHibernate's `StaleObjectStateException` are both turned into a
+`ConcurrencyErrorsException`, which is 409 with that problem type and one entity error per
+conflicting row. No configuration, and nothing to opt into.
+
+It does need something to detect the conflict with — a `[ConcurrencyCheck]` property or a
+`rowversion`/`timestamp` column, which Breeze surfaces in metadata as `concurrencyMode: "Fixed"`
+and bumps for you on the way out.
+
+A server that sends no `type` member — any pre-3.0 Breeze server, and most non-Breeze ones — leaves
+`problemType` undefined and `isConcurrencyError` false. There is nothing reliable to infer from in
+that case; an application talking to such a server has to match on the message, and should know
+that is what it is doing.

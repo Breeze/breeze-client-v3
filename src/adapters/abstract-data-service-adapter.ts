@@ -370,6 +370,12 @@ function createError(httpResponse: HttpResponse) {
     }
   }
 
+  // The RFC 9457 `type` member, taken before the branch below because it is spelled the same
+  // whichever shape the rest of the document has: a Breeze server sends it alongside the
+  // capitalised pre-3.0 members as well as instead of them. This is what lets a caller tell a
+  // concurrency conflict from a duplicate key, which share a status code.
+  if (typeof errObj.type === "string") err.problemType = errObj.type;
+
   let saveContext = httpResponse.saveContext;
 
   // if any of the follow properties exist the source is .NET

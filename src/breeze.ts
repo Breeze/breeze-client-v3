@@ -12,7 +12,7 @@ import { EntityAction } from './entity/entity-action.js';
 import { EntityAspect, ComplexAspect } from './entity/entity-aspect.js';
 import type { Entity, ComplexObject, StructuralObject, PropertyChangedEventArgs, QueriedAs } from './entity/entity-aspect.js';
 import { EntityKey } from './entity/entity-key.js';
-import { EntityManager } from './manager/entity-manager.js';
+import { EntityManager, ProblemTypes, isConcurrencyError } from './manager/entity-manager.js';
 import type { EntityManagerConfig, EntityError, EntityChangedEventArgs, SaveContext, SaveBundle, HttpResponse, KeyMapping, ServerError, SaveResult, QueryResult, ValidationErrorsChangedEventArgs, HasChangesChangedEventArgs } from './manager/entity-manager.js';
 import { EntityQuery, FilterQueryOp, BooleanQueryOp, OrderByClause, ExpandClause, SelectClause } from './query/entity-query.js';
 import { EntityState } from './entity/entity-state.js';
@@ -98,6 +98,8 @@ export {
   ValidationError,
   ValidationOptions,
   Validator,
+  ProblemTypes,
+  isConcurrencyError,
 };
 
 // Type-only exports. These are erased at runtime, so they must be re-exported
