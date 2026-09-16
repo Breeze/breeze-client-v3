@@ -34,6 +34,9 @@ what you use for an endpoint with no class of its own, such as the `'Lookups'` a
 The results are entities. They are now in the manager's cache, tracking their own changes,
 with navigation properties wired to any related entities already cached.
 
+This section is the reference. For the shorter tour - what a query is, filtering, sorting, paging,
+expand, the cache - start with [Querying](/guide/querying) in the guide.
+
 The rest of this section covers:
 
 - [Query examples](/query/examples) — a catalogue of common queries

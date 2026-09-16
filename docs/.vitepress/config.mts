@@ -43,6 +43,7 @@ export default defineConfig({
           text: 'Core concepts',
           items: [
             { text: 'Inside the entity', link: '/guide/inside-the-entity' },
+            { text: 'Querying', link: '/guide/querying' },
             { text: 'Creating entities', link: '/guide/creating-entities' },
             { text: 'Navigation properties', link: '/guide/navigation-properties' },
             { text: 'Complex properties', link: '/guide/complex-properties' },
