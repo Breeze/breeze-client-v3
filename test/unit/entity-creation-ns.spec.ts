@@ -91,7 +91,7 @@ describe("Entity Creation - no server", () => {
 
     const emp = em.createEntity(Employee, { firstName: "Joe", lastName: "Smith", birthDate: new Date(2000, 1, 1) });
     const bd = emp.birthDate;
-    expect(bd != null);
+    expect(bd != null).toBeTruthy();
     emp.setProperty("birthDate", "");   // deliberately invalid
     const b2 = emp.birthDate;
     expect(b2).toBeNull;
@@ -173,7 +173,6 @@ describe("Entity Creation - no server", () => {
   });
 
   test("createEntity - can add unmapped 'foo' property directly to EntityType", function () {
-    expect(3);
     const store = MetadataStore.importMetadata(TestFns.sampleMetadata);
     assertFooPropertyDefined(store, false);
 
@@ -584,7 +583,7 @@ describe("Entity Creation - no server", () => {
     em.addEntity(order1);
     expect(order1.entityAspect.entityState.isAdded()).toBe(true);
     const emptyCust = order1.customer;
-    expect(!emptyCust);
+    expect(!emptyCust).toBeTruthy();
     let changeArgs: PropertyChangedEventArgs = null;
     order1.entityAspect.propertyChanged.subscribe((args) => {
       changeArgs = args;

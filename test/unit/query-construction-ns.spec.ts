@@ -26,7 +26,6 @@ describe("Query Construction", () => {
   });
 
   test('constructor', function () {
-    expect(2);
     //throw new Error("test error"); // prove that test would fail if Predicate throws
     // Ex1
     const p1 = new Predicate("CompanyName", "StartsWith", "B");
@@ -37,7 +36,6 @@ describe("Query Construction", () => {
   });
 
   test('and - class method', function () {
-    expect(1);
     // Ex1
     const dt = new Date(Date.UTC(1988, 9, 12));
     const p1 = Predicate.create("OrderDate", "ne", dt);
@@ -53,7 +51,6 @@ describe("Query Construction", () => {
 
   // D#2674
   test('and - instance method', function () {
-    expect(2);
     // Ex1
     const dt = new Date(Date.UTC(1988, 9, 12));
     const p1 = Predicate.create("OrderDate", "ne", dt);
@@ -74,7 +71,6 @@ describe("Query Construction", () => {
 
   // D#2674
   test('create - class method', function () {
-    expect(3);
     const a = 'ShipCity';
     const b = 'startswith';
     const c = 'F';
@@ -103,7 +99,6 @@ describe("Query Construction", () => {
   });
 
   test('not - class method', function () {
-    expect(1);
     // Ex1
     const p1 = Predicate.create("Freight", "gt", 100);
     const not_p1 = Predicate.not(p1);
@@ -112,7 +107,6 @@ describe("Query Construction", () => {
   });
 
   test('not - instance method', function () {
-    expect(1);
     // Ex1
     const p1 = Predicate.create("Freight", "gt", 100);
     const not_p1 = p1.not();
@@ -120,7 +114,6 @@ describe("Query Construction", () => {
   });
 
   test('or - class method', function () {
-    expect(2);
     // Ex1
     const dt = new Date(Date.UTC(88, 9, 12));
     const p1 = Predicate.create("OrderDate", "ne", dt);
@@ -137,7 +130,6 @@ describe("Query Construction", () => {
 
   // D#2674
   test('or - instance method', function () {
-    expect(2);
     // Ex1
     const dt = new Date(Date.UTC(88, 9, 12));
     const p1 = Predicate.create("OrderDate", "ne", dt);
@@ -158,7 +150,6 @@ describe("Query Construction", () => {
   });
 
   test("JSON can handle 'startswith'", function () {
-    expect(1);
     const p2 = { companyName: { startswith: 'B' } };
 
     const p = Predicate.create(p2);
@@ -166,7 +157,6 @@ describe("Query Construction", () => {
   });
 
   test("JSON can handle 'and' with 'startswith'", function () {
-    expect(1);
     const p2 = {
       and: [
         { companyName: { startswith: 'B' } },
@@ -182,7 +172,6 @@ describe("Query Construction", () => {
   });
 
   test("JSON can handle 'and' with 'in'", function () {
-    expect(1);
     const p2 = {
       and: [
         { companyName: { startswith: 'B' } },
@@ -195,7 +184,6 @@ describe("Query Construction", () => {
   });
 
   test("JSON can handle 'not': expr: 'in'", function () {
-    expect(1);
     // const p2 = { country: { not: { in: [ 'Belgium', 'Germany'] } } };
     const p2 = { not: { country: { in: ['Belgium', 'Germany'] } } };
 
@@ -204,7 +192,6 @@ describe("Query Construction", () => {
   });
 
   test("JSON can handle 'and' with 'not':'in'", function () {
-    expect(1);
     const p2 = {
       and: [
         { companyName: { startswith: 'B' } },

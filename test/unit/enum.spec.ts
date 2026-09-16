@@ -43,10 +43,10 @@ describe("Breeze Enums", () => {
     });
 
     test("EntityAction - should have static members", () => {
-      expect(EntityAction.contains(EntityAction.Attach));
+      expect(EntityAction.contains(EntityAction.Attach)).toBeTruthy();
       // expect(EntityAction.name).toBe("EntityAction");
       expect(EntityAction.Attach.name).toBe("Attach");
-      expect(EntityAction.Attach instanceof EntityAction);
+      expect(EntityAction.Attach instanceof EntityAction).toBeTruthy();
       expect(EntityAction.Attach.isAttach()).toBe(true);
       expect(EntityAction.Attach.isDetach()).toBe(false);
       expect(EntityAction.Detach.isAttach()).toBe(false);
@@ -54,7 +54,7 @@ describe("Breeze Enums", () => {
     });
 
     test("EntityState - should have static members", () => {
-      expect(EntityState.contains(EntityState.Modified));
+      expect(EntityState.contains(EntityState.Modified)).toBeTruthy();
       expect(EntityState.fromName('Added')).toBe(EntityState.Added);
       let est = EntityState;
       let nm = est.Added.name;

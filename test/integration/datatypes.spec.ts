@@ -1,10 +1,6 @@
 import { Entity, EntityQuery, EntityType, MetadataStore, Predicate, breeze, MergeStrategy, DataProperty, NavigationProperty, core, QueryOptions, EntityManager, EntityKey, FetchStrategy, EntityState, FilterQueryOp, DataType } from '../../src/breeze';
-import { TestFns, skipDescribeIf } from '../test-fns';
+import { TestFns } from '../test-fns';
 import { Comment, Customer, Employee, Order, Product, Role, TimeLimit, UnusualDate, User, registerModelClasses } from '../model';
-
-function ok(a: any, b?: any) {
-  throw new Error('for test conversion purposes');
-}
 
 TestFns.initServerEnv();
 

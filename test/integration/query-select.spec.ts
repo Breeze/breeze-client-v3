@@ -1,5 +1,5 @@
 import { Entity, EntityQuery, EntityType, MetadataStore, Predicate, breeze, MergeStrategy, DataProperty, NavigationProperty, core, QueryOptions, EntityManager, EntityKey, FetchStrategy, EntityState, FilterQueryOp } from '../../src/breeze';
-import { TestFns, skipDescribeIf } from '../test-fns';
+import { TestFns } from '../test-fns';
 import { Customer, Order, Supplier, UnusualDate, registerModelClasses } from '../model';
 
 TestFns.initServerEnv();
@@ -133,10 +133,7 @@ describe("Query Select clause", () => {
       // .select(["companyName", "city", "orders"]) // also works
       .select("companyName, city, orders");
 
-    // expand is not needed and will FAIL in this care for ASPCORE.          
-    if (!TestFns.isAspCoreServer) {
-      query = query.expand("orders");
-    }
+    // expand is neither needed nor allowed here: the select already returns the orders.
 
     const qr1 = await em.executeQuery(query);
     expect(em.metadataStore.isEmpty()).toBe(false);
@@ -173,12 +170,7 @@ describe("Query Select clause", () => {
     anons.forEach(function (a) {
 
       expect(Object.keys(a).length).toBe(3);
-      if (TestFns.isAspCoreServer || TestFns.isAspWebApiServer) {
-        expect(typeof (a.customer_CompanyName)).toBe('string');
-      }
-      else {
-        expect(typeof (a["customer.companyName"])).toBe('string');
-      }
+      expect(typeof (a.customer_CompanyName)).toBe('string');
 
       expect(a.customer.entityType).toBe(customerType);
       expect(a.orderDate).not.toBeUndefined();
@@ -212,11 +204,7 @@ describe("Query Select clause", () => {
       const qr1 = await em.executeQuery(query);
       throw new Error('should not get here');
     } catch (e) {
-      if (TestFns.isAspCoreServer) {
-        expect(e.message).toMatch(/Unable to cast/);
-      } else {
-        expect(e.message).toMatch(/expand/);
-      }
+      expect(e.message).toMatch(/Unable to cast/);
     }
   });
 

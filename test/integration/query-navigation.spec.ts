@@ -1,12 +1,8 @@
 import { Entity, EntityQuery, EntityType, MetadataStore, Predicate, breeze, MergeStrategy, DataProperty, NavigationProperty } from '../../src/breeze';
-import { TestFns, skipTestIf } from '../test-fns';
+import { TestFns } from '../test-fns';
 // Typed views of the Northwind test model; see test/model/README.md. The classes are used as
 // types only - nothing is registered, so these tests still exercise the default constructors.
 import type { Employee, OrderDetail, Product, Region } from '../model';
-
-function ok(a: any, b?: any) {
-  throw new Error('for test conversion purposes');
-}
 
 TestFns.initServerEnv();
 

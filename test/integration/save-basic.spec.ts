@@ -222,18 +222,12 @@ describe("Save Basics", () => {
       throw 'should not get here';
     } catch (e) {
       const msg = e.message.toLowerCase();
-      if (TestFns.isAspCoreServer) {
-        // EF Core cannot tell a changed key from a stale read - either way the UPDATE matches
-        // no row - so this arrives as a concurrency conflict. It is the same
-        // DbUpdateConcurrencyException the server has always got here; only the wording and
-        // the status have changed.
-        expect(isConcurrencyError(e)).toBe(true);
-        expect(msg).toMatch(/changed or deleted by another user/);
-      }
-      else {
-        expect(msg).toMatch(/part of the entity's key/);
-      }
-      
+      // EF Core cannot tell a changed key from a stale read - either way the UPDATE matches
+      // no row - so this arrives as a concurrency conflict. It is the same
+      // DbUpdateConcurrencyException the server has always got here; only the wording and
+      // the status have changed.
+      expect(isConcurrencyError(e)).toBe(true);
+      expect(msg).toMatch(/changed or deleted by another user/);
     }
   });
 
@@ -709,7 +703,7 @@ describe("Save Basics", () => {
     zzz.cust1.entityAspect.setDeleted();
     const sr = await em1.saveChanges();
     const r = sr.entities;
-    expect(zzz.cust1.entityAspect.entityState.isDetached());
+    expect(zzz.cust1.entityAspect.entityState.isDetached()).toBeTruthy();
     expect(r.length).toBe(3);
 
   });
@@ -952,7 +946,7 @@ describe("Save Basics", () => {
 
     const data = await q.using(em).execute();
     const sr = await em.saveChanges();
-    expect(Array.isArray(sr.entities));
+    expect(Array.isArray(sr.entities)).toBeTruthy();
     expect(sr.entities.length).toBe(0);
     expect(em.hasChanges()).toBeFalse();
   });
@@ -1024,7 +1018,7 @@ describe("Save Basics", () => {
     expect(r.length).toBeGreaterThan(0);
     const order = r[0];
     const orderDate = order.orderDate;
-    expect(core.isDate(orderDate));
+    expect(core.isDate(orderDate)).toBeTruthy();
     let day = orderDate.getDate();
     day = day < 31 ? day + 1 : 1;
     const newOrderDate = new Date(orderDate.getTime());
@@ -1034,7 +1028,7 @@ describe("Save Basics", () => {
     const sr = await em.saveChanges();
     expect(Array.isArray(sr.entities)).toBeTrue();
     expect(sr.entities.length).toBe(1);
-    expect(!em.hasChanges());
+    expect(!em.hasChanges()).toBeTruthy();
     expect(sr.entities[0]).toBe(order);
     const newOrderDate2 = order.orderDate;
     expect(core.isDate(newOrderDate2)).toBeTrue();
@@ -1111,10 +1105,10 @@ describe("Save Basics", () => {
 
     const saveResult = await em.saveChanges(null, null);
     expect(recentArgs.hasChanges).toBe(false);
-    expect(zzz.cust1.entityAspect.entityState.isUnchanged());
-    expect(zzz.cust2.entityAspect.entityState.isUnchanged());
-    expect(zzz.order1.entityAspect.entityState.isUnchanged());
-    expect(zzz.order2.entityAspect.entityState.isUnchanged());
+    expect(zzz.cust1.entityAspect.entityState.isUnchanged()).toBeTruthy();
+    expect(zzz.cust2.entityAspect.entityState.isUnchanged()).toBeTruthy();
+    expect(zzz.order1.entityAspect.entityState.isUnchanged()).toBeTruthy();
+    expect(zzz.order2.entityAspect.entityState.isUnchanged()).toBeTruthy();
     expect(zzz.cust1.getProperty(customerKeyName)).not.toBe(zzz.keyValues[0]);
     expect(zzz.cust2.getProperty(customerKeyName)).not.toBe(zzz.keyValues[1]);
     expect(zzz.order1.getProperty(orderKeyName)).not.toBe(zzz.keyValues[2]);
@@ -1142,16 +1136,9 @@ describe("Save Basics", () => {
       throw new Error('should not get here');
       // one save should have failed for concurrency reasons
     } catch (e) {
-      const msg = e.message;
-      if (TestFns.isAspCoreServer) {
-        // One of the two saves loses: it sends the rowVersion the other has already moved on.
-        expect(isConcurrencyError(e)).toBe(true);
-        expect(e.status).toBe(409);
-      } else if (TestFns.isAspWebApiServer) {
-        expect(msg).toMatch(/Store update, insert/);
-      } else {
-        throw new Error('unknown server');
-      }
+      // One of the two saves loses: it sends the rowVersion the other has already moved on.
+      expect(isConcurrencyError(e)).toBe(true);
+      expect(e.status).toBe(409);
     }
 
   });
@@ -1281,13 +1268,13 @@ describe("Save Basics", () => {
     const zzz = SaveTestFns.createParentAndChildren(em);
 
     const saveResult = await em.saveChanges();
-    expect(!em.hasChanges());
+    expect(!em.hasChanges()).toBeTruthy();
     zzz.cust1.entityAspect.setDeleted();
     zzz.order1.entityAspect.setDeleted();
     zzz.order2.entityAspect.setDeleted();
     expect(zzz.order1.entityAspect.entityState.isDeleted()).toBeTrue();
     expect(zzz.cust1.entityAspect.entityState.isDeleted()).toBeTrue();
-    expect(em.hasChanges());
+    expect(em.hasChanges()).toBeTruthy();
     const sr = await em.saveChanges();
     expect(sr).toBeTruthy();
     // just to insure that 'clear' works 
@@ -1301,15 +1288,15 @@ describe("Save Basics", () => {
     const zzz = SaveTestFns.createParentAndChildren(em);
 
     const saveResult = await em.saveChanges();
-    expect(!em.hasChanges());
+    expect(!em.hasChanges()).toBeTruthy();
     zzz.cust1.entityAspect.setDeleted();
     zzz.order1.entityAspect.setDeleted();
     zzz.order2.entityAspect.setDeleted();
     expect(zzz.order1.entityAspect.entityState.isDeleted()).toBeTrue();
     expect(zzz.cust1.entityAspect.entityState.isDeleted()).toBeTrue();
-    expect(em.hasChanges());
+    expect(em.hasChanges()).toBeTruthy();
     const sr = await em.saveChanges();
-    expect(!em.hasChanges());
+    expect(!em.hasChanges()).toBeTruthy();
     expect(sr.entities.length).toBe(3);
     expect(zzz.order1.entityAspect.entityState.isDetached()).toBeTrue();
     expect(zzz.order2.entityAspect.entityState.isDetached()).toBeTrue();
@@ -1332,7 +1319,7 @@ describe("Save Basics", () => {
     expect(zzz.order1.entityAspect.entityState.isDeleted()).toBeTrue();
     expect(zzz.cust1.entityAspect.entityState.isDeleted()).toBeTrue();
     const sr = await em.saveChanges();
-    expect(!em.hasChanges());
+    expect(!em.hasChanges()).toBeTruthy();
     expect(sr.entities.length).toBe(3);
     expect(zzz.order1.entityAspect.entityState.isDetached()).toBeTrue();
     expect(zzz.order2.entityAspect.entityState.isDetached()).toBeTrue();
@@ -1380,7 +1367,7 @@ describe("Save Basics", () => {
     expect(zzz.order1.entityAspect.entityState.isDeleted()).toBeTrue();
     expect(zzz.cust1.entityAspect.entityState.isUnchanged()).toBeTrue();
     const sr = await em.saveChanges();
-    expect(!em.hasChanges());
+    expect(!em.hasChanges()).toBeTruthy();
     expect(zzz.order1.entityAspect.entityState.isDetached()).toBeTrue();
     expect(zzz.cust1.orders.length).toBe(0);
   });
@@ -1397,7 +1384,7 @@ describe("Save Basics", () => {
     zzz.order2.customer = zzz.cust2;
     expect(zzz.cust1.entityAspect.entityState.isDeleted()).toBeTrue();
     const sr2 = await em.saveChanges();
-    expect(!em.hasChanges());
+    expect(!em.hasChanges()).toBeTruthy();
     expect(sr2.entities.length).toBe(3);
     expect(zzz.cust1.entityAspect.entityState.isDetached()).toBeTrue();
     expect(zzz.order1.entityAspect.entityState.isUnchanged()).toBeTrue();
@@ -1442,8 +1429,8 @@ describe("Save Basics", () => {
     const data = await em.saveChanges();
     expect(em.hasChanges()).toBeFalse();
     expect(data.entities.length).toBe(2);
-    expect(!region1.entityAspect.getKey().equals(k1));
-    expect(!region2.entityAspect.getKey().equals(k2));
+    expect(!region1.entityAspect.getKey().equals(k1)).toBeTruthy();
+    expect(!region2.entityAspect.getKey().equals(k2)).toBeTruthy();
     const data2 = data;
     // curious about synchronous results
     expect(data2.entities.length).toBe(2);
@@ -1474,13 +1461,13 @@ describe("Save Basics", () => {
 
     const em2 = SaveTestFns.newEntityManager();
     const data = await em.saveChanges();
-    expect(!em.hasChanges());
+    expect(!em.hasChanges()).toBeTruthy();
     expect(data.entities.length).toBe(6);
-    expect(!region1.entityAspect.getKey().equals(k1));
+    expect(!region1.entityAspect.getKey().equals(k1)).toBeTruthy();
     const terrs1x = region1.territories;
     expect(terrs1x).toBe(terrs1);
     expect(terrs1x.length).toBe(2);
-    expect(!region2.entityAspect.getKey().equals(k2));
+    expect(!region2.entityAspect.getKey().equals(k2)).toBeTruthy();
     const terrs2x = region2.territories;
     expect(terrs2x).toBe(terrs2);
     expect(terrs2x.length).toBe(2);
@@ -1529,9 +1516,9 @@ describe("Save Basics", () => {
     expect(region2.territories.length).toBe(2);
 
     const data = await em.saveChanges();
-    expect(!em.hasChanges());
+    expect(!em.hasChanges()).toBeTruthy();
     expect(data.entities.length).toBe(6);
-    expect(!region1.entityAspect.getKey().equals(k1));
+    expect(!region1.entityAspect.getKey().equals(k1)).toBeTruthy();
     const terrs1x = region1.territories;
     expect(terrs1x).toBe(terrs1);
     expect(terrs1x.length).toBe(2);
@@ -1586,9 +1573,9 @@ describe("Save Basics", () => {
     expect(region2.territories.length).toBe(2);
 
     const qr1 = await em.saveChanges();
-    expect(!em.hasChanges());
+    expect(!em.hasChanges()).toBeTruthy();
     expect(qr1.entities.length).toBe(6);
-    expect(!region1.entityAspect.getKey().equals(k1));
+    expect(!region1.entityAspect.getKey().equals(k1)).toBeTruthy();
     const territories = em.getEntities("Territory");
     const qr2 = await EntityQuery.fromEntities(territories).using(em2).execute();
     expect(qr2.results.length).toBe(4);
@@ -1604,16 +1591,16 @@ describe("Save Basics", () => {
     const em = TestFns.newEntityManager();
     const cust = SaveTestFns.createCustomer(em);
 
-    expect(em.hasChanges());
+    expect(em.hasChanges()).toBeTruthy();
     const sr = await em.saveChanges();
-    expect(!em.hasChanges());
+    expect(!em.hasChanges()).toBeTruthy();
     expect(sr.entities.length).toBe(1);
     expect(sr.entities[0]).toBe(cust);
     cust.companyName = "";
     cust.entityAspect.setDeleted();
-    expect(em.hasChanges());
+    expect(em.hasChanges()).toBeTruthy();
     const sr2 = await em.saveChanges();
-    expect(!em.hasChanges());
+    expect(!em.hasChanges()).toBeTruthy();
     expect(sr2.entities.length).toBe(1);
     expect(sr2.entities[0]).toBe(cust);
     expect(cust.entityAspect.entityState.isDetached()).toBeTrue();

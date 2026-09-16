@@ -101,7 +101,7 @@ describe("Entity operations - no server", () => {
     const em = TestFns.newEntityManager();
     const orderType = em.metadataStore.getAsEntityType("Order");
     const orderKeyName = TestFns.wellKnownData.keyNames.order;
-    expect(orderType);
+    expect(orderType).toBeTruthy();
     const order = orderType.createEntity() as Order;
     let lastProperty, lastOldValue, lastNewValue;
     const key = order.entityAspect.propertyChanged.subscribe(function (args) {
@@ -489,7 +489,7 @@ describe("Entity operations - no server", () => {
       expect(hasChanges).toBe(true);
     });
     emp.firstName = "test";
-    expect(em.hasChanges());
+    expect(em.hasChanges()).toBeTruthy();
   });
 
 

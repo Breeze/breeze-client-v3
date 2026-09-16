@@ -1,5 +1,5 @@
 import { Entity, EntityQuery, Predicate } from '../../src/breeze';
-import { TestFns, skipDescribeIf } from '../test-fns';
+import { TestFns } from '../test-fns';
 import { UtilFns } from '../util-fns';
 import { Customer, Employee, Order, OrderDetail, Region, Territory, registerModelClasses } from '../model';
 

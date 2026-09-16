@@ -1,5 +1,5 @@
 import { breeze, core, Entity, EntityKey, EntityQuery, FilterQueryOp } from '../../src/breeze';
-import { skipTestIf, TestFns } from '../test-fns';
+import { TestFns } from '../test-fns';
 
 TestFns.initServerEnv();
 
@@ -54,25 +54,6 @@ describe("Queries with named endpoints on the server", function () {
   });
 
   // "aspcore", " endpoint has not yet been implemented"  
-  skipTestIf(TestFns.isAspCoreServer,
-    "withParameters using a array of objects", async function () {
-      expect.hasAssertions();
-      const em = TestFns.newEntityManager();
-      const qbeArray = [
-        { CompanyName: "A", ContactNames: ["B", "C"], City: "Los Angeles" },
-        { CompanyName: "C", ContactNames: ["D", "E"], City: "San Diego" }
-      ];
-
-      const query = EntityQuery.from("SearchCustomers2")
-        .withParameters({ qbeList: qbeArray });
-
-      const qr1 = await em.executeQuery(query);
-      const results = qr1.results;
-      expect(qr1.results.length).toBe(3);
-
-    });
-
-
   test("not returning results in same order as in server", async function () {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
@@ -187,7 +168,7 @@ describe("Queries with named endpoints on the server", function () {
   });
 
   // TODO: need to review this one later
-  skipTestIf(true, 
+  test.skip(
     "with parameter - null", async function () {
       expect.hasAssertions();
       const em = TestFns.newEntityManager();
@@ -242,21 +223,6 @@ describe("Queries with named endpoints on the server", function () {
   });
 
   // TODO: we don't yet handle the error coming back from the server correctly
-  skipTestIf(TestFns.isAspCoreServer,
-    "with bad parameters", async function () {
-      expect.hasAssertions();
-      const em = TestFns.newEntityManager();
-      const q = EntityQuery.from("CustomersStartingWith")
-        .withParameters({ foo: "C" });
-
-      try {
-        await em.executeQuery(q);
-        throw new Error("should not get here");
-      } catch (e) {
-        expect(e.message).toMatch(/foo/);
-      }
-    });
-
   test("with extra parameters", async function () {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
@@ -329,7 +295,7 @@ describe("Queries with named endpoints on the server", function () {
       const results = qr1.results;
       expect(results.length).toBe(5);
       expect(results[0].name).toBeTruthy();
-      expect(results[0].namespace !== undefined);
+      expect(results[0].namespace !== undefined).toBeTruthy();
       expect(results[0].fullName).toBeTruthy();
     });
 
@@ -363,7 +329,7 @@ describe("Queries with named endpoints on the server", function () {
 
     const qr1 = await query.execute();
     const results = qr1.results;
-    expect(results.length > 0);
+    expect(results.length > 0).toBeTruthy();
     results.forEach(function (r) {
       expect(r.companyName.substr(0, 1)).toBe("A");
       expect(r[TestFns.wellKnownData.keyNames.customer]).toBeTruthy();
@@ -380,7 +346,7 @@ describe("Queries with named endpoints on the server", function () {
 
     const qr1 = await query.execute();
     const results = qr1.results;
-    expect(results.length > 0);
+    expect(results.length > 0).toBeTruthy();
     results.forEach(function (r) {
       expect(r.customer).toBeTruthy();
       expect(r.customer.entityAspect).toBeTruthy();
@@ -465,7 +431,6 @@ describe("Queries with named endpoints on the server", function () {
 
   test("server side include many with take - customers and orders", async function () {
     expect.hasAssertions();
-    expect(5);
     const em = TestFns.newEntityManager();
 
     const query = new EntityQuery()

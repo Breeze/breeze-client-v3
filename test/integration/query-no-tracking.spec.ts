@@ -28,16 +28,11 @@ describe("Query wih noTracking", () => {
     let q = EntityQuery
       .from("Employees")
       .where(predicate1);
-    if (TestFns.isNHibernateServer) {
-      q = q.expand("directReports");
-    } else {
-      // q = q.expand("directReports");
-    }
     q = q.noTracking();
 
     const qr1 = await em.executeQuery(q);
     const r = qr1.results;
-    expect(r.length > 0);
+    expect(r.length > 0).toBeTruthy();
     let count = 0;
     const umap: Record<string, any> = {};
     r.forEach(function (emp) {
@@ -121,13 +116,13 @@ describe("Query wih noTracking", () => {
     
     const qr1 = await em.executeQuery(q1);
     const rawEmps = qr1.results;
-    expect(rawEmps.length > 0);
+    expect(rawEmps.length > 0).toBeTruthy();
     let emps1 = rawEmps.map(function (rawEmp) {
       const emp = empType.createEntity(rawEmp);
       const empx = em.attachEntity(emp, EntityState.Unchanged, MergeStrategy.SkipMerge);
       return empx;
     });
-    expect(emps1.length = rawEmps.length);
+    expect(emps1.length).toBe(rawEmps.length);
     emps1.forEach(function (e1) {
       expect(e1.entityType).toBe(empType);
       expect(e1.entityAspect.entityState).toBe(EntityState.Unchanged);
@@ -167,7 +162,7 @@ describe("Query wih noTracking", () => {
       const emp = em.createEntity(empType, rawEmp, EntityState.Unchanged, MergeStrategy.SkipMerge);
       return emp;
     });
-    expect(emps1.length = rawEmps.length);
+    expect(emps1.length).toBe(rawEmps.length);
     emps1.forEach(function (emp) {
       expect(emp.entityType).toBe(empType);
       expect(emp.entityAspect.entityState).toBe(EntityState.Unchanged);
@@ -254,7 +249,7 @@ describe("Query wih noTracking", () => {
     
     const qr1 = await em.executeQuery(q);
     const rawEmps = qr1.results;
-    expect(rawEmps.length > 0);
+    expect(rawEmps.length > 0).toBeTruthy();
     let emps = rawEmps.map(function (emp) {
       expect(emp.entityType).toBe(empType);
       expect(emp.entityAspect.entityState).toBe(EntityState.Detached);

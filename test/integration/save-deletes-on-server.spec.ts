@@ -1,5 +1,5 @@
 import { breeze, core, Entity, EntityKey, EntityQuery, FilterQueryOp, SaveOptions, EntityManager } from '../../src/breeze';
-import { skipTestIf, TestFns } from '../test-fns';
+import { TestFns } from '../test-fns';
 import { Product, Supplier, registerModelClasses } from '../model';
 
 TestFns.initServerEnv();

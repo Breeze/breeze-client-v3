@@ -97,7 +97,7 @@ export class SaveTestFns {
     orders.push(order1);
     orders.push(order2);
     const sr1 = await em.saveChanges();
-    expect(cust1.entityAspect.entityState.isUnchanged());
+    expect(cust1.entityAspect.entityState.isUnchanged()).toBeTruthy();
     return cust1;
   }
 

@@ -1,10 +1,6 @@
 import { Entity, EntityQuery, EntityType, MetadataStore, Predicate, breeze, MergeStrategy, DataProperty, NavigationProperty, core } from '../../src/breeze';
-import { TestFns, skipTestIf } from '../test-fns';
+import { TestFns } from '../test-fns';
 import { Customer, Employee, Order, registerModelClasses } from '../model';
-
-function ok(a: any, b?: any) {
-  throw new Error('for test conversion purposes');
-}
 
 TestFns.initServerEnv();
 

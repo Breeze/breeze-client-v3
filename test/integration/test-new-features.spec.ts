@@ -1,5 +1,5 @@
 import { Entity, EntityQuery, EntityType, MetadataStore, Predicate, breeze, MergeStrategy, DataProperty, NavigationProperty, core, QueryOptions, EntityManager, EntityKey, FetchStrategy, EntityState, FilterQueryOp, EntityAspect } from '../../src/breeze';
-import { TestFns, skipTestIf, skipDescribeIf } from '../test-fns';
+import { TestFns } from '../test-fns';
 
 TestFns.initServerEnv();
 
@@ -37,11 +37,7 @@ describe("Query Max Depth", () => {
       const qr1 = await em.executeQuery(query);
       throw new Error('should not get here');
     } catch (e) {
-      if (TestFns.isAspCoreServer) {
-        expect(e.message).toMatch(/MaxDepth/);
-      // } else {
-      //   expect(e.message).toMatch(/expand/);
-      }
+      expect(e.message).toMatch(/MaxDepth/);
     }
   });
 
@@ -72,11 +68,7 @@ describe("Query Max Depth", () => {
       const qr1 = await em.executeQuery(query);
       throw new Error('should not get here');
     } catch (e) {
-      if (TestFns.isAspCoreServer) {
-        expect(e.message).toMatch(/MaxDepth/);
-      // } else {
-      //   expect(e.message).toMatch(/expand/);
-      }
+      expect(e.message).toMatch(/MaxDepth/);
     }
   });
 

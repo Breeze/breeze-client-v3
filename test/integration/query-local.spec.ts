@@ -581,7 +581,7 @@ describe("Query Local", () => {
       expect(core.arrayEquals(orders, ordersL)).toBeTrue();
       const orders2 = em.executeQueryLocally(query2);
       expect(orders2.length).toBeGreaterThan(0);
-      expect(orders2.length < orders.length);
+      expect(orders2.length < orders.length).toBeTruthy();
       expect(orders2.every(function (o) {
         return o.freight >= 500;
       }));

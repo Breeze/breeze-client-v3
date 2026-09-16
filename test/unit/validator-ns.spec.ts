@@ -34,7 +34,7 @@ describe("Validator", () => {
   test("string validation - custom messages", function () {
     const v0 = Validator.maxLength({ maxLength: 5, displayName: "City" });
     const r0 = v0.validate("asdf");
-    expect(r0 === null);
+    expect(r0 === null).toBeTruthy();
     const r0a = v0.validate("adasdfasdf");
     let err = r0a.errorMessage;
     expect(err.indexOf("City") >= 0 && err.indexOf("5") >= 0).toBe(true);
@@ -64,14 +64,14 @@ describe("Validator", () => {
     const v4 = Validator.maxLength({ maxLength: 5, message: customMessageFn, displayName: "Foo" });
     const r4 = v4.validate("123456");
     err = r4.errorMessage;
-    expect(err.indexOf("Foo") >= 0 && err.indexOf("123456") >= 0);
+    expect(err.indexOf("Foo") >= 0 && err.indexOf("123456") >= 0).toBeTruthy();
 
   });
 
   test("required validation", function () {
     const v0 = Validator.required();
     const r0 = v0.validate("asdf");
-    expect(r0 === null);
+    expect(r0 === null).toBeTruthy();
     const r0a = v0.validate("");
     expect(r0a.errorMessage).toMatch(/required/);
     const data: any = {};
@@ -83,9 +83,9 @@ describe("Validator", () => {
   test("required validation allow empty strings", function () {
     const v0 = Validator.required({ allowEmptyStrings: true });
     const r0 = v0.validate("asdf");
-    expect(r0 === null);
+    expect(r0 === null).toBeTruthy();
     const r0a = v0.validate("");
-    expect(r0 === null);
+    expect(r0 === null).toBeTruthy();
     const data: any = {};
     const r0b = v0.validate(data.notThere);
     expect(r0b.errorMessage).toMatch(/required/);
@@ -104,9 +104,9 @@ describe("Validator", () => {
       Validator.registerFactory(Validator.required, "required");
       const v0 = Validator.required();
       const r0 = v0.validate("asdf");
-      expect(r0 === null);
+      expect(r0 === null).toBeTruthy();
       const r0a = v0.validate("");
-      expect(r0 === null);
+      expect(r0 === null).toBeTruthy();
       const data: any = {};
       const r0b = v0.validate(data.notThere);
       expect(r0b.errorMessage).toMatch(/required/);
@@ -121,10 +121,10 @@ describe("Validator", () => {
   test("stringLength validation", function () {
     const v0 = Validator.stringLength({ minLength: 2, maxLength: 7 });
     let r0 = v0.validate("asdf");
-    expect(r0 === null);
-    expect(v0.validate("1234567") === null);
+    expect(r0 === null).toBeTruthy();
+    expect(v0.validate("1234567") === null).toBeTruthy();
 
-    expect(v0.validate(null) === null);
+    expect(v0.validate(null) === null).toBeTruthy();
     expect(v0.validate("a")).toBeTruthy();
     r0 = v0.validate("a");
     expect(r0.errorMessage).toBe(v0.getMessage());
@@ -142,7 +142,7 @@ describe("Validator", () => {
     expect(r != null).toBe(true);
     r = v0.validate("1234567");
     expect(r != null).toBe(true);
-    expect(v0.validate(null) === null);
+    expect(v0.validate(null) === null).toBeTruthy();
     r = v0.validate(new Date(2001, 9, 11));
     expect(r).toBeNull();
   });

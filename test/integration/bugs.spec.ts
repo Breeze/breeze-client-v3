@@ -1,5 +1,5 @@
 import { Entity, EntityQuery, EntityType, MetadataStore, Predicate, breeze, MergeStrategy, EntityState, QueryResult } from '../../src/breeze';
-import { TestFns, skipTestIf } from '../test-fns';
+import { TestFns } from '../test-fns';
 import exportImportSample1 from '../support/export-import-1.json';
 import { Category, Employee, EmployeeTerritory, Order, OrderDetail, Product, Region, registerModelClasses } from '../model';
 

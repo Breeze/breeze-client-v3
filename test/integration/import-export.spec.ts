@@ -1,9 +1,5 @@
 import { Entity, EntityQuery, EntityType, MetadataStore, Predicate, breeze, MergeStrategy, DataProperty, NavigationProperty, core, QueryOptions, EntityManager, EntityKey, RelationArray, FetchStrategy, EntityState } from '../../src/breeze';
-import { TestFns, skipTestIf, skipDescribeIf } from '../test-fns';
-
-// function ok(a: any, b?: any) {
-//   throw new Error('for test conversion purposes');
-// }
+import { TestFns } from '../test-fns';
 
 TestFns.initServerEnv();
 
@@ -176,7 +172,6 @@ describe("EntityManager import/export", () => {
   });
 
   test("export/import all entities as JSON", function () {
-    expect(1);
     const em1 = TestFns.newEntityManager(), em2 = TestFns.newEntityManager();
     createCachedData(em1);
     const entities = em1.getEntities();
@@ -299,7 +294,7 @@ describe("EntityManager import/export", () => {
     DT._resetConstants();
     const em3 = new EntityManager();
     const r3 = em3.importEntities(exportedEnts);
-    expect(r3.entities.every(r => r.entityAspect.hasTempKey));
+    expect(r3.entities.every(r => r.entityAspect.hasTempKey)).toBeTruthy();
     const emp3 = em3.createEntity("Employee");
     expect(emp3.entityAspect.hasTempKey).toBe(true);
     expect(em3.getEntities().length).toBe(3);
@@ -761,7 +756,6 @@ describe("EntityManager import/export", () => {
 
   test("re-import - can re-import and merge an added entity w/ PERM key that was changed in another manager", function () {
       // D#2647 Reported https://github.com/Breeze/breeze.js/issues/49
-      expect(2);
       const em1 = TestFns.newEntityManager();
       const em2 = TestFns.newEntityManager();
 
@@ -788,7 +782,6 @@ describe("EntityManager import/export", () => {
 
   test("re-import - new entity w/ TEMP key that was changed in another manager is added, not merged", function () {
       // This question was raised in https://github.com/Breeze/breeze.js/issues/49
-      expect(4);
       const em1 = TestFns.newEntityManager();
       const em2 = TestFns.newEntityManager();
 
@@ -821,7 +814,6 @@ describe("EntityManager import/export", () => {
   });
 
   test("re-import - new entity w/ TEMP key that was changed in another manager is merged if *mergeAdds* is true", function () {
-      expect(3);
       const em1 = TestFns.newEntityManager();
       const em2 = TestFns.newEntityManager();
 

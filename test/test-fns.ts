@@ -7,11 +7,7 @@ import { UtilFns } from './util-fns';
 import northwindIBMetadata from './support/NorthwindIBMetadata_ETNOPAYLOAD.json';
 
 export class TestFns extends UtilFns {
-  // Uncomment just one
-  static defaultServerEnvName = "ASPCORE";
-  // static defaultServerEnvName = "ASPWEBAPI";
 
-  static serverEnvName: string;
   static defaultServiceName: string;
   
   static metadataStoreIsBeingFetched: boolean;
@@ -22,9 +18,6 @@ export class TestFns extends UtilFns {
   static defaultMetadata: string;
   static defaultMetadataStore: MetadataStore;
   
-  static isAspCoreServer: boolean;
-  static isAspWebApiServer: boolean;
-  static isNHibernateServer: boolean;
 
   static wellKnownData = {
     nancyID: 1 as any,
@@ -48,34 +41,14 @@ export class TestFns extends UtilFns {
   };
 
   static initNonServerEnv() {
-    TestFns.serverEnvName = "NO SERVER";
-    TestFns.calcServerTypes(TestFns.serverEnvName);
     TestFns.initAdapters();
   }
 
-  static initServerEnv(serverEnvName?: string) {
-    if (serverEnvName == null) {
-      serverEnvName = TestFns.defaultServerEnvName;
-    }
-    TestFns.serverEnvName = serverEnvName.toLocaleUpperCase();
-
-    TestFns.calcServerTypes(serverEnvName);
-
+  /** The .NET test host. It is the only server the suite runs against; the 2.x-era switch
+  between ASPCORE, ASPWEBAPI and NHIBERNATE is gone, along with the flags that read it. */
+  static initServerEnv() {
+    TestFns.defaultServiceName = 'http://localhost:34377/breeze/NorthwindIBModel';
     TestFns.initAdapters();
-
-    if (TestFns.isAspCoreServer) {
-      TestFns.defaultServiceName = 'http://localhost:34377/breeze/NorthwindIBModel';
-    } else if (TestFns.isAspWebApiServer) {
-      TestFns.defaultServiceName = 'http://localhost:7149/breeze/NorthwindIBModel';
-      
-    }
-
-  }
-
-  private static calcServerTypes(serverEnvName: string) {
-    TestFns.isAspCoreServer = serverEnvName === 'ASPCORE';
-    TestFns.isAspWebApiServer = serverEnvName === 'ASPWEBAPI';
-    TestFns.isNHibernateServer = serverEnvName === 'NHIBERNATE';
   }
 
   private static initAdapters() {
@@ -176,46 +149,7 @@ export class TestFns extends UtilFns {
 
 export type JsonObj = {[k: string]: any};
 
-// export const testIf = (condition: boolean) => (condition ? test : test.skip);
-// export const skipTestIf = (condition: boolean) => (condition ? test.skip : test);
-// export const describeIf = (condition: boolean) => (condition ? describe : describe.skip);
-// export const skipDescribeIf = (condition: boolean) => (condition ? describe.skip : describe);
+// Vitest has test.skip and describe.skip; the conditional wrappers that used to live here were
+// for switching whole files on and off per server flavour, which no longer exists.
 export const expectPass = () => expect(true).toBe(true);
-
-export const describeIf = (condition: boolean, name: string, fn: () => void ) => {
-  if (condition) {
-    return describe(name, fn);
-  } else {
-    return describe.skip(name, fn);
-  }
-};
-
-export const skipDescribeIf = (condition: boolean, name: string, fn: () => void ) => {
-  if (condition) {
-    return describe.skip(name, fn);
-  } else {
-    return describe(name, fn);
-  }
-};
-
-export const testIf = (condition: boolean, name: string, fn: () => void) => {
-  if (condition) {
-    return test(name, fn);
-  } else {
-    return test.skip(name, fn);
-  }
-};
-
-
-export const skipTestIf = (condition: boolean, name: string, fn: () => void) => {
-  if (condition) {
-    return test.skip(name, fn);
-  } else {
-    return test(name, fn);
-  }
-};
-
-// Alt unused approach
-// export const skipTestIf = (condition: boolean) => (condition ? { test: test.skip } : { test: test });
-
 

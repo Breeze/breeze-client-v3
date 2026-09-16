@@ -641,8 +641,8 @@ describe("EntityManager - no server", () => {
     expect(order1.customer).toBe(cust1);
     const orderCustId = order1.getProperty(TestFns.wellKnownData.keyNames.customer);
     em.detachEntity(cust1);
-    expect(cust1.entityAspect.entityState.isDetached());
-    expect(order1.entityAspect.entityState.isUnchanged());
+    expect(cust1.entityAspect.entityState.isDetached()).toBeTruthy();
+    expect(order1.entityAspect.entityState.isUnchanged()).toBeTruthy();
     const orderCustId2 = order1.getProperty(TestFns.wellKnownData.keyNames.customer);
     expect(orderCustId).toBe(orderCustId2);
   });
@@ -660,7 +660,7 @@ describe("EntityManager - no server", () => {
 
     em.attachEntity(order);
     const orderId = order.orderID;
-    expect(orderId);
+    expect(orderId).toBeTruthy();
     expect(order.entityAspect.entityState.isUnchanged()).toBe(true);
     for (let i = 0; i < 3; i++) {
       const od = orderDetailType.createEntity() as OrderDetail;
@@ -691,7 +691,7 @@ describe("EntityManager - no server", () => {
     }
     em.attachEntity(order);
     const orderId = order.orderID;
-    expect(orderId);
+    expect(orderId).toBeTruthy();
     expect(order.entityAspect.entityState.isUnchanged()).toBe(true);
     order.orderDetails.forEach((od) => {
       expect(od.order).toBe(order);
@@ -718,7 +718,7 @@ describe("EntityManager - no server", () => {
     em.attachEntity(order);
     expect(order.entityAspect.entityState.isUnchanged()).toBe(true);
     const orderId = order.orderID;
-    expect(orderId);
+    expect(orderId).toBeTruthy();
     order.orderDetails.forEach( (od) => {
       expect(od.order).toBe(order);
       expect(od.orderID).toBe(orderId);

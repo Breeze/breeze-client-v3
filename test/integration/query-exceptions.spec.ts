@@ -1,10 +1,6 @@
 import { Entity, EntityQuery, EntityType, MetadataStore, Predicate, breeze, MergeStrategy, DataProperty, NavigationProperty, core, QueryOptions, FilterQueryOp } from '../../src/breeze';
-import { TestFns, skipTestIf, skipDescribeIf } from '../test-fns';
+import { TestFns } from '../test-fns';
 import { Customer, Employee, registerModelClasses } from '../model';
-
-function ok(a: any, b?: any) {
-  throw new Error('for test conversion purposes');
-}
 
 TestFns.initServerEnv();
 
@@ -31,11 +27,7 @@ describe("Entity Query Exceptions", () => {
         .execute();
       throw new Error('should not get here');
     } catch (e) {
-      if (TestFns.isAspCoreServer) {
-        expect(e.status === 404).toBe(true);
-      } else {
-        expect(e.message && e.message.toLowerCase().indexOf("entitythatdoesnotexist") >= 0).toBe(true);
-      }
+      expect(e.status).toBe(404);
     }
   });
 
@@ -145,12 +137,7 @@ describe("Entity Query Exceptions", () => {
       const qr1 = await em1.executeQuery(query);
       throw new Error('should not get here');
     } catch (error) {
-      const msg = error.message.toLowerCase();
-      if (TestFns.isAspCoreServer) {
-        expect(error.status === 404).toBe(true);
-      } else {
-        expect(msg).toMatch(/no http resource was found/);
-      }
+      expect(error.status).toBe(404);
     }
   });
 

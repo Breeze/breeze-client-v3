@@ -1,5 +1,5 @@
 import { Entity, EntityQuery, EntityType, MetadataStore, EntityChangedEventArgs, EntityAction, MergeStrategy, QueryOptions, FetchStrategy, EntityManager, SaveOptions, ValidationErrorsChangedEventArgs, isConcurrencyError } from '../../src/breeze';
-import { TestFns, JsonObj, skipTestIf } from '../test-fns';
+import { TestFns, JsonObj } from '../test-fns';
 import { SaveTestFns } from '../save-test-fns';
 import { Customer, Employee, registerModelClasses } from '../model';
 
@@ -244,7 +244,6 @@ describe("Save exception handling", () => {
   test("manager.hasChanges() is true after save if manager other changes were made during save", () => new Promise<void>((done) => {
     expect.hasAssertions();
     // D#2651
-    expect(2);
     const em = TestFns.newEntityManager();
     const emp1 = em.createEntity(Employee, { firstName: 'Test fn1', lastName: 'Test ln1' });
 
@@ -350,86 +349,8 @@ describe("Save exception handling", () => {
     }
   });
 
-  skipTestIf(TestFns.isAspCoreServer,
-    "with server side entity level validation error", async function () {
-      expect.hasAssertions();
-      const em = TestFns.newEntityManager();
-      const zzz = SaveTestFns.createParentAndChildren(em);
-      const cust1 = zzz.cust1;
-      cust1.companyName = "error";
-
-      try {
-        await em.saveChanges();
-        throw new Error('should not get here');
-      } catch (e) {
-        expect(e.entityErrors.length).toBe(1);
-        expect(e.entityErrors[0].isServerError).toBe(true);
-        const custErrors = cust1.entityAspect.getValidationErrors();
-        // error message should appear on the cust
-        expect(custErrors[0].errorMessage).toBe(e.entityErrors[0].errorMessage);
-      }
-    });
-
   // AspCore does not have server validation.
-  skipTestIf(TestFns.isAspCoreServer,
-    "with server side entity level validation error + repeat", async function () {
-      expect.hasAssertions();
-
-      const em = TestFns.newEntityManager();
-      const zzz = SaveTestFns.createParentAndChildren(em);
-      const cust1 = zzz.cust1;
-      cust1.companyName = "error";
-
-      try {
-        await em.saveChanges();
-        throw new Error('should not get here');
-      } catch (e) {
-        expect(e.entityErrors.length).toBe(1);
-        const custErrors = cust1.entityAspect.getValidationErrors();
-        expect(custErrors.length).toBe(1);
-        expect(custErrors[0].errorMessage).toBe(e.entityErrors[0].errorMessage);
-        try {
-          await em.saveChanges();
-          throw new Error('should not get here');
-        } catch (e2) {
-          expect(e2.entityErrors.length).toBe(1);
-          const custError = cust1.entityAspect.getValidationErrors();
-          expect(custErrors.length).toBe(1);
-          expect(custErrors[0].errorMessage).toBe(e.entityErrors[0].errorMessage);
-        }
-      }
-    });
-
   // ASP Core is skipped because it does not do server validations 
-  skipTestIf(TestFns.isAspCoreServer,
-  "custom data annotation validation", async function () {
-    expect.hasAssertions();
-
-    // This test will fail currently with the DATABASEFIRST_OLD define.
-    // This is because ObjectContext.SaveChanges() does not automatically validate
-    // entities. It must be done manually.
-    const em = TestFns.newEntityManager();
-    const q = EntityQuery.from(Customer).skip(20).take(1).orderBy("contactName");
-
-    let cust1;
-    try {
-      const qr1 = await q.using(em).execute();
-      expect(qr1.results.length).toBe(1);
-      cust1 = qr1.results[0];
-      const region = cust1.contactName;
-      const newRegion = region === "Error" ? "Error again" : "Error";
-      cust1.contactName = newRegion;
-      await em.saveChanges();
-
-      throw new Error("should not get here - except with servers that do not perform validation");
-    } catch (error) {
-      expect(error.entityErrors.length).toBe(1);
-      expect(error.entityErrors[0].errorMessage).toMatch(/the word 'Error'/);
-      const custErrors = cust1.entityAspect.getValidationErrors();
-      expect(error.entityErrors[0].errorMessage).toBe(custErrors[0].errorMessage);
-    }
-  });
-
   test("insert of existing entity", async function () {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
@@ -472,7 +393,7 @@ describe("Save exception handling", () => {
     // and modify it and resave it
     expect(qr2.results.length).toBe(1);
     const sameCust = qr2.results[0];
-    expect(cust.entityAspect.getKey().equals(sameCust.entityAspect.getKey()));
+    expect(cust.entityAspect.getKey().equals(sameCust.entityAspect.getKey())).toBeTruthy();
     TestFns.morphStringProp(sameCust, "companyName");
     const sr2 = await em2.saveChanges();
     TestFns.morphStringProp(cust, "companyName");
@@ -482,14 +403,10 @@ describe("Save exception handling", () => {
       throw new Error('should not get here');
     } catch (error) {
       expect(em.hasChanges()).toBeTrue();
-      if (TestFns.isAspCoreServer) {
-        expect(isConcurrencyError(error)).toBe(true);
-        expect(error.status).toBe(409);
-        // the conflict names the row, resolved back to the instance this manager holds
-        expect(error.entityErrors[0].entity).toBe(cust);
-      } else {
-        expect(error.message).toMatch('need to determine correct error message for this server type');
-      }
+      expect(isConcurrencyError(error)).toBe(true);
+      expect(error.status).toBe(409);
+      // the conflict names the row, resolved back to the instance this manager holds
+      expect(error.entityErrors[0].entity).toBe(cust);
     }
   });
 
