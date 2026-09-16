@@ -6,16 +6,30 @@ either against the server or against its own cache.
 
 ```ts
 import { EntityManager, EntityQuery } from 'breeze-client';
+import { Customer, Order } from './model';   // your generated classes
 
 const em = new EntityManager('breeze/NorthwindIBModel');
 
-const query = EntityQuery.from('Customers')
+const query = EntityQuery.from(Customer)
   .where('companyName', 'startsWith', 'B')
   .orderBy('companyName')
   .take(10);
 
 const { results } = await em.executeQuery(query);
 ```
+
+::: tip Examples use typed queries
+`Customer`, `Order` and the rest are generated entity classes, and passing one to
+`EntityQuery.from` is what lets the compiler check the property paths, operators and values in
+`where`, `orderBy` and `expand` — a misspelling is then a build error rather than a server error.
+See [Typed entities](/guide/typed-entities) for generating the classes and
+[Typed queries](/guide/typed-queries) for what gets checked.
+
+A resource name still works everywhere a class does — `EntityQuery.from('Customers')` — and is
+what you use for an endpoint with no class of its own, such as the `'Lookups'` and
+`'OrdersAndDetails'` examples below. Nothing is checked in that form.
+:::
+
 
 The results are entities. They are now in the manager's cache, tracking their own changes,
 with navigation properties wired to any related entities already cached.
@@ -57,7 +71,7 @@ try {
 A query can also carry its manager, set with `using`, and run itself:
 
 ```ts
-const { results } = await EntityQuery.from('Orders').using(em).execute();
+const { results } = await EntityQuery.from(Order).using(em).execute();
 ```
 
 `execute()` throws if the query has no manager.
@@ -68,7 +82,7 @@ Every `EntityQuery` method returns a new query. The original is unchanged, so yo
 a base query and derive others from it:
 
 ```ts
-const bigOrders = EntityQuery.from('Orders').where('freight', '>', 100);
+const bigOrders = EntityQuery.from(Order).where('freight', '>', 100);
 
 const firstPage = bigOrders.orderBy('orderDate').take(20);
 const toGermany = bigOrders.where('shipCountry', '==', 'Germany');
@@ -119,7 +133,7 @@ A very long query can exceed URL length limits. `usePost()` sends the same JSON 
 of a POST instead:
 
 ```ts
-const query = EntityQuery.from('Customers')
+const query = EntityQuery.from(Customer)
   .where('companyName', 'startsWith', 'Alfreds')
   .usePost();
 ```
@@ -139,7 +153,7 @@ public IQueryable<Customer> Customers() {
 Every query needs a target **resource**. These three are the same:
 
 ```ts
-EntityQuery.from('Orders');
+EntityQuery.from(Order);
 new EntityQuery('Orders');
 new EntityQuery().from('Orders');
 ```
@@ -167,7 +181,7 @@ return `Order` entities from any of these, and Breeze recognises them when the r
 arrive:
 
 ```ts
-EntityQuery.from('Orders');
+EntityQuery.from(Order);
 EntityQuery.from('OrdersAndDetails');   // a custom endpoint
 EntityQuery.from('https://api.example.com/breeze/Northwind/Orders');
 ```
@@ -176,7 +190,7 @@ It helps if Breeze knows the type in advance, because then it can check property
 convert values before sending. Consider a date comparison written as a string:
 
 ```ts
-EntityQuery.from('Orders').where('orderDate', '>=', 'January 1, 1998');
+EntityQuery.from(Order).where('orderDate', '>=', 'January 1, 1998');
 ```
 
 Breeze knows `'Orders'` returns `Order`. It looks up `orderDate`, sees that it is a

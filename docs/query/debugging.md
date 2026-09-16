@@ -49,7 +49,7 @@ The JSON URI builder encodes the whole query as one JSON object in the query str
 query:
 
 ```ts
-EntityQuery.from('Customers')
+EntityQuery.from(Customer)
   .where('companyName', 'startsWith', 'C')
   .orderBy('companyName')
   .take(10);
@@ -70,7 +70,7 @@ Decoded, that reads:
 A query with a projection, an expand and an inline count:
 
 ```ts
-EntityQuery.from('Orders')
+EntityQuery.from(Order)
   .where('freight', '>', 500)
   .select('customer.companyName, orderDate')
   .expand('customer')
@@ -89,7 +89,7 @@ What to check:
   check which convention is in force.
 - **Operators** are Breeze's short forms: `startswith`, `gt`, `eq` and so on. See
   [Where clauses](/query/predicates).
-- **No clauses, no query string.** `EntityQuery.from('Customers')` requests plain
+- **No clauses, no query string.** `EntityQuery.from(Customer)` requests plain
   `/Customers`.
 - **`withParameters`** values are ordinary query-string parameters after the JSON, for
   example `…}&foo=bar`. They are not part of the JSON.
@@ -162,7 +162,7 @@ maps that data to entities. Start from the query's root type:
 
 ```ts
 const { results } = await em.executeQuery(
-  EntityQuery.from('Orders').take(1).expand('customer, orderDetails'),
+  EntityQuery.from(Order).take(1).expand('customer, orderDetails'),
 );
 const store = em.metadataStore;
 const orderType = store.getAsEntityType('Order', true);

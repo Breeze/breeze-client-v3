@@ -12,6 +12,7 @@ manager:
 
 ```ts
 import { EntityManager, EntityQuery, FilterQueryOp, Predicate } from 'breeze-client';
+import { Category, Customer, Employee, Order, Product } from './model';   // your generated classes
 
 const em = new EntityManager('breeze/NorthwindIBModel');
 ```
@@ -20,7 +21,7 @@ const em = new EntityManager('breeze/NorthwindIBModel');
 
 ```ts
 // Three equivalent queries for all customers
-const q1 = EntityQuery.from('Customers');
+const q1 = EntityQuery.from(Customer);
 const q2 = new EntityQuery('Customers');
 const q3 = new EntityQuery().from('Customers');
 
@@ -38,77 +39,77 @@ try {
 
 ```ts
 // Customers whose names start with "A"
-EntityQuery.from('Customers')
+EntityQuery.from(Customer)
   .where('companyName', 'startsWith', 'A');
 
 // ...the same, with the FilterQueryOp enum
-EntityQuery.from('Customers')
+EntityQuery.from(Customer)
   .where('companyName', FilterQueryOp.StartsWith, 'A');
 
 // Orders with freight over $100
-EntityQuery.from('Orders')
+EntityQuery.from(Order)
   .where('freight', '>', 100);
 
 // ...the same, with the FilterQueryOp enum
-EntityQuery.from('Orders')
+EntityQuery.from(Order)
   .where('freight', FilterQueryOp.GreaterThan, 100);
 
 // Orders placed after February 1, 1998 (JavaScript months start at 0)
-EntityQuery.from('Orders')
+EntityQuery.from(Order)
   .where('orderDate', '>', new Date(1998, 1, 1));
 
 // Orders that have not shipped
-EntityQuery.from('Orders')
+EntityQuery.from(Order)
   .where('shippedDate', '==', null);
 
 // Orders shipped after they were due: compares two properties of the same order
-EntityQuery.from('Orders')
+EntityQuery.from(Order)
   .where('shippedDate', '>', 'requiredDate');
 
 // Customers whose name contains "market"
-EntityQuery.from('Customers')
+EntityQuery.from(Customer)
   .where('companyName', FilterQueryOp.Contains, 'market');
 
 // Customers in either of two countries
-EntityQuery.from('Customers')
+EntityQuery.from(Customer)
   .where('country', 'in', ['Belgium', 'Germany']);
 ```
 
 ### Compound conditions with predicates
 
 ```ts
-const baseQuery = EntityQuery.from('Orders');
+const baseQuery = EntityQuery.from(Order);
 
 // Freight over $100 AND ordered after April 1, 1998
-const p1 = new Predicate('freight', '>', 100);
-const p2 = new Predicate('orderDate', '>', new Date(1998, 3, 1));
+const p1 = Predicate.create<Order>('freight', '>', 100);
+const p2 = Predicate.create<Order>('orderDate', '>', new Date(1998, 3, 1));
 baseQuery.where(p1.and(p2));
 
 // ...AND them with the static method, passing an array
 baseQuery.where(Predicate.and([p1, p2]));
 
 // ...or fluently
+const po = Predicate.for(Order);
 baseQuery.where(
-  Predicate.create('freight', '>', 100)
-    .and('orderDate', '>', new Date(1998, 3, 1))
+  po('freight', '>', 100)
+    .and(po('orderDate', '>', new Date(1998, 3, 1)))
 );
 
 // Freight over $100 OR ordered after April 1, 1998
 baseQuery.where(
-  Predicate.create('freight', '>', 100)
-    .or('orderDate', '>', new Date(1998, 3, 1))
+  po('freight', '>', 100)
+    .or(po('orderDate', '>', new Date(1998, 3, 1)))
 );
 
 // Composition runs left to right:
 // (on or after Jan 1 1996 OR before Jan 1 1997) AND freight over $100
-const pred = Predicate
-  .create('orderDate', '>=', new Date(Date.UTC(1996, 0, 1)))
-  .or('orderDate', '<', new Date(Date.UTC(1997, 0, 1)))
-  .and('freight', '>', 100);
+const pred = po('orderDate', '>=', new Date(Date.UTC(1996, 0, 1)))
+  .or(po('orderDate', '<', new Date(Date.UTC(1997, 0, 1))))
+  .and(po('freight', '>', 100));
 baseQuery.where(pred);
 
 // Negation: freight NOT over $100
-const big = Predicate.create('freight', '>', 100);
+const big = Predicate.create<Order>('freight', '>', 100);
 baseQuery.where(big.not());
 baseQuery.where(Predicate.not(big));   // the same
 ```
@@ -133,11 +134,11 @@ console.log(JSON.stringify(pred.toJSON()));
 
 ```ts
 // Products in a category whose name starts with "S"
-EntityQuery.from('Products')
+EntityQuery.from(Product)
   .where('category.categoryName', 'startsWith', 'S');
 
 // Orders sold to a customer in California
-EntityQuery.from('Orders')
+EntityQuery.from(Order)
   .where('customer.region', '==', 'CA');
 ```
 
@@ -145,45 +146,46 @@ EntityQuery.from('Orders')
 
 ```ts
 // Employees with any order where freight > 950
-EntityQuery.from('Employees')
+EntityQuery.from(Employee)
   .where('orders', 'any', 'freight', '>', 950);
 
 // ...with FilterQueryOp values
-EntityQuery.from('Employees')
+EntityQuery.from(Employee)
   .where('orders', FilterQueryOp.Any, 'freight', FilterQueryOp.GreaterThan, 950);
 
 // ...with the 'some' alias
-EntityQuery.from('Employees')
+EntityQuery.from(Employee)
   .where('orders', 'some', 'freight', '>', 950);
 
 // ...built in pieces
-const bigFreight = Predicate.create('freight', '>', 950);
-EntityQuery.from('Employees')
+const bigFreight = Predicate.create<Order>('freight', '>', 950);
+EntityQuery.from(Employee)
   .where('orders', FilterQueryOp.Any, bigFreight);
 
 // Customers with no orders
-const hasOrders = Predicate.create('orders', 'any', 'orderID', '!=', null);
-EntityQuery.from('Customers')
+const hasOrders = Predicate.create<Customer>('orders', 'any', 'orderID', '!=', null);
+EntityQuery.from(Customer)
   .where(hasOrders.not());
 
 // Employees with an order for a customer whose name starts with "Lazy"
-EntityQuery.from('Employees')
+EntityQuery.from(Employee)
   .where('orders', 'any', 'customer.companyName', 'startsWith', 'Lazy')
   .expand('orders.customer');
 
 // Across a many-to-many relationship: Orders -> OrderDetails -> Product
-EntityQuery.from('Orders')
+EntityQuery.from(Order)
   .where('orderDetails', 'any', 'product.productName', '==', 'Chai')
   .expand('orderDetails.product');
 
 // A compound inner condition
-const p = Predicate.create('freight', '>', 950).and('shipCountry', 'startsWith', 'G');
-EntityQuery.from('Employees')
+const po2 = Predicate.for(Order);
+const p = po2('freight', '>', 950).and(po2('shipCountry', 'startsWith', 'G'));
+EntityQuery.from(Employee)
   .where('orders', 'any', p)
   .expand('orders');
 
 // Nested: customers with an order where every line has unit price > $200
-EntityQuery.from('Customers')
+EntityQuery.from(Customer)
   .where('orders', 'any', 'orderDetails', 'all', 'unitPrice', '>', 200);
 ```
 
@@ -191,11 +193,11 @@ EntityQuery.from('Customers')
 
 ```ts
 // Company name starts with "C" or "c"
-EntityQuery.from('Customers')
+EntityQuery.from(Customer)
   .where('toLower(companyName)', 'startsWith', 'c');
 
 // 2nd and 3rd letters are "OM"
-EntityQuery.from('Customers')
+EntityQuery.from(Customer)
   .where('toUpper(substring(companyName, 1, 2))', '==', 'OM');
 ```
 
@@ -206,15 +208,15 @@ the list the Breeze .NET server understands.
 
 ```ts
 // Customers whose names start with "A"
-EntityQuery.from('Customers')
+EntityQuery.from(Customer)
   .where({ companyName: { startsWith: 'A' } });
 
 // Customers in Berlin, Germany (equals is the default; properties are ANDed)
-EntityQuery.from('Customers')
+EntityQuery.from(Customer)
   .where({ country: 'Germany', city: 'Berlin' });
 
 // Employees hired before 1993, or with a D surname in the USA
-EntityQuery.from('Employees').where({
+EntityQuery.from(Employee).where({
   or: [
     { hireDate: { lt: new Date(1993, 0, 1) } },
     { and: [{ lastName: { startsWith: 'D' } }, { country: 'USA' }] },
@@ -230,15 +232,15 @@ The full syntax is in [Where clauses as JSON](/query/predicates#where-clauses-as
 
 ```ts
 // Products by name, ascending
-EntityQuery.from('Products')
+EntityQuery.from(Product)
   .orderBy('productName');
 
 // ...descending
-EntityQuery.from('Products')
+EntityQuery.from(Product)
   .orderBy('productName desc');
 
 // ...descending, another way
-EntityQuery.from('Products')
+EntityQuery.from(Product)
   .orderByDesc('productName');
 ```
 
@@ -246,7 +248,7 @@ EntityQuery.from('Products')
 
 ```ts
 // Highest price first, then by name
-EntityQuery.from('Products')
+EntityQuery.from(Product)
   .orderBy('unitPrice desc, productName');
 ```
 
@@ -254,11 +256,11 @@ EntityQuery.from('Products')
 
 ```ts
 // Products by category name, descending
-EntityQuery.from('Products')
+EntityQuery.from(Product)
   .orderBy('category.categoryName desc');
 
 // Products by category name, then by product name descending
-EntityQuery.from('Products')
+EntityQuery.from(Product)
   .orderBy('category.categoryName, productName desc');
 ```
 
@@ -266,11 +268,11 @@ EntityQuery.from('Products')
 
 ```ts
 // The first 5 products
-EntityQuery.from('Products')
+EntityQuery.from(Product)
   .take(5);
 
 // The first 5 products starting with "C", plus the total that start with "C"
-const query = EntityQuery.from('Products')
+const query = EntityQuery.from(Product)
   .where('productName', 'startsWith', 'C')
   .orderBy('productName')
   .take(5)
@@ -280,18 +282,18 @@ const { results, inlineCount } = await em.executeQuery(query);
 const pages = Math.ceil(inlineCount / 5);
 
 // Skip the first 10 products and return the rest
-EntityQuery.from('Products')
+EntityQuery.from(Product)
   .orderBy('productName')
   .skip(10);
 
 // The 3rd page of 5 products
-EntityQuery.from('Products')
+EntityQuery.from(Product)
   .orderBy('productName')
   .skip(10)
   .take(5);
 
 // The first 10 products after sorting by category name, descending
-EntityQuery.from('Products')
+EntityQuery.from(Product)
   .orderBy('category.categoryName desc')
   .take(10);
 ```
@@ -306,23 +308,23 @@ and pages can overlap or skip rows.
 
 ```ts
 // Just the names of customers starting with "C"
-EntityQuery.from('Customers')
+EntityQuery.from(Customer)
   .where('companyName', 'startsWith', 'C')
   .select('companyName');
 
 // The orders of customers starting with "C"
-EntityQuery.from('Customers')
+EntityQuery.from(Customer)
   .where('companyName', 'startsWith', 'C')
   .select('orders');
 
 // Several properties
-EntityQuery.from('Customers')
+EntityQuery.from(Customer)
   .where('companyName', FilterQueryOp.StartsWith, 'C')
   .select('customerID, companyName, contactName')
   .orderBy('companyName');
 
 // A related property: names of customers with orders over $500 freight
-EntityQuery.from('Orders')
+EntityQuery.from(Order)
   .where('freight', FilterQueryOp.GreaterThan, 500)
   .select('customer.companyName')
   .orderBy('customer.companyName');
@@ -334,7 +336,7 @@ EntityQuery.from('Orders')
 
 ```ts
 // Products in categories starting with "S", with each product's Category
-EntityQuery.from('Products')
+EntityQuery.from(Product)
   .where('category.categoryName', 'startsWith', 'S')
   .expand('category');
 ```
@@ -343,7 +345,7 @@ EntityQuery.from('Products')
 
 ```ts
 // The first 20 orders, with their Customer and their OrderDetails
-EntityQuery.from('Orders')
+EntityQuery.from(Order)
   .take(20)
   .expand('customer, orderDetails');
 ```
@@ -352,7 +354,7 @@ EntityQuery.from('Orders')
 
 ```ts
 // The first 20 orders, with their OrderDetails and each detail's Product
-EntityQuery.from('Orders')
+EntityQuery.from(Order)
   .take(20)
   .expand('orderDetails.product');
 ```
@@ -361,7 +363,7 @@ EntityQuery.from('Orders')
 
 ```ts
 // Order 10248 with its details: like fetchEntityByKey (below), but expanded
-EntityQuery.from('Orders')
+EntityQuery.from(Order)
   .where('orderID', '==', 10248)
   .expand('orderDetails');
 ```
@@ -449,5 +451,5 @@ On the client:
 await EntityQuery.from('Lookups').using(em).execute();
 
 // The Region, Territory and Category entities are in the cache now
-const categories = em.executeQueryLocally(EntityQuery.from('Categories'));
+const categories = em.executeQueryLocally(EntityQuery.from(Category));
 ```

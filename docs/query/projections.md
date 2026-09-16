@@ -6,8 +6,9 @@ customer names should not download every column of every customer.
 
 ```ts
 import { EntityQuery } from 'breeze-client';
+import { Customer, Order } from './model';   // your generated classes
 
-const query = EntityQuery.from('Customers')
+const query = EntityQuery.from(Customer)
   .where('companyName', 'startsWith', 'C')
   .select('customerID, companyName, contactName')
   .orderBy('companyName');
@@ -37,7 +38,7 @@ A projection returns **plain objects**, not entities:
 
 ```ts
 const [first] = (await em.executeQuery(
-  EntityQuery.from('Customers').select('companyName'),
+  EntityQuery.from(Customer).select('companyName'),
 )).results;
 
 first.companyName;   // 'Alfreds Futterkiste'
@@ -51,12 +52,12 @@ bare strings.
 
 ```ts
 // Names of the customers that begin with 'C'
-EntityQuery.from('Customers')
+EntityQuery.from(Customer)
   .where('companyName', 'startsWith', 'C')
   .select('companyName');
 
 // Selected properties of those customers
-EntityQuery.from('Customers')
+EntityQuery.from(Customer)
   .where('companyName', 'startsWith', 'C')
   .select('customerID, companyName, contactName')
   .orderBy('companyName');
@@ -70,7 +71,7 @@ strings**. Convert them yourself:
 import { DataType } from 'breeze-client';
 
 const { results } = await em.executeQuery(
-  EntityQuery.from('Orders').select('orderID, orderDate'),
+  EntityQuery.from(Order).select('orderID, orderDate'),
 );
 const orderDate = DataType.parseDateFromServer(results[0].orderDate);  // Date
 ```
@@ -83,7 +84,7 @@ A property path can reach through a navigation property:
 
 ```ts
 // Customers with orders that have excessive freight costs
-const query = EntityQuery.from('Orders')
+const query = EntityQuery.from(Order)
   .where('freight', '>', 500)
   .select('customer.companyName')
   .orderBy('customer.companyName');
@@ -105,7 +106,7 @@ Select a navigation property and the projection contains the related **entities*
 ```ts
 // Orders of the customers whose names begin with 'C'
 const { results } = await em.executeQuery(
-  EntityQuery.from('Customers')
+  EntityQuery.from(Customer)
     .where('companyName', 'startsWith', 'C')
     .select('companyName, orders'),
 );
@@ -118,7 +119,7 @@ results[0].orders[0].entityAspect.entityState.name;   // 'Unchanged'
 A scalar navigation property works the same way:
 
 ```ts
-EntityQuery.from('Orders')
+EntityQuery.from(Order)
   .where('customer.companyName', 'startsWith', 'C')
   .select('customer, orderDate');
 // each result: { customer: Customer, orderDate: '…' }

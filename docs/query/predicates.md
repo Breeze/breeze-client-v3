@@ -5,11 +5,12 @@ you built earlier; or a plain JSON object. All three produce the same thing.
 
 ```ts
 import { EntityQuery, FilterQueryOp, Predicate } from 'breeze-client';
+import { Customer, Order } from './model';   // your generated classes
 
-EntityQuery.from('Customers').where('companyName', 'startsWith', 'C');
-EntityQuery.from('Customers').where('companyName', FilterQueryOp.StartsWith, 'C');
-EntityQuery.from('Customers').where(Predicate.create('companyName', 'startsWith', 'C'));
-EntityQuery.from('Customers').where({ companyName: { startsWith: 'C' } });
+EntityQuery.from(Customer).where('companyName', 'startsWith', 'C');
+EntityQuery.from(Customer).where('companyName', FilterQueryOp.StartsWith, 'C');
+EntityQuery.from(Customer).where(Predicate.create<Customer>('companyName', 'startsWith', 'C'));
+EntityQuery.from(Customer).where({ companyName: { startsWith: 'C' } });
 ```
 
 ## Simple conditions
@@ -22,11 +23,11 @@ A simple condition has three parts:
 - a **value**: a literal or, in some cases, [another property](#comparing-two-properties)
 
 ```ts
-EntityQuery.from('Orders').where('freight', '>', 100);
-EntityQuery.from('Orders').where('orderDate', '>', new Date(1998, 1, 1)); // Feb 1: months start at 0
-EntityQuery.from('Orders').where('shippedDate', '==', null);
-EntityQuery.from('Orders').where('customer.region', '==', 'CA');
-EntityQuery.from('Customers').where('country', 'in', ['Belgium', 'Germany']);
+EntityQuery.from(Order).where('freight', '>', 100);
+EntityQuery.from(Order).where('orderDate', '>', new Date(1998, 1, 1)); // Feb 1: months start at 0
+EntityQuery.from(Order).where('shippedDate', '==', null);
+EntityQuery.from(Order).where('customer.region', '==', 'CA');
+EntityQuery.from(Customer).where('country', 'in', ['Belgium', 'Germany']);
 ```
 
 Use property names as the client sees them. With the default `NamingConvention.camelCase`
@@ -81,7 +82,7 @@ property rather than as a literal:
 
 ```ts
 // Orders shipped after they were due
-EntityQuery.from('Orders').where('shippedDate', '>', 'requiredDate');
+EntityQuery.from(Order).where('shippedDate', '>', 'requiredDate');
 ```
 
 Case matters, and the name must be the client name. This only works when Breeze knows the
@@ -91,11 +92,11 @@ To remove the ambiguity, pass a value object instead of a bare value:
 
 ```ts
 // Employees whose first name is literally "lastName"
-EntityQuery.from('Employees')
+EntityQuery.from(Employee)
   .where('firstName', '==', { value: 'lastName', isLiteral: true });
 
 // Employees whose notes mention their own first name
-EntityQuery.from('Employees')
+EntityQuery.from(Employee)
   .where('notes', 'contains', { value: 'firstName', isProperty: true });
 ```
 
@@ -105,7 +106,7 @@ object, including one with `isLiteral: true`, is a literal.
 A value object can also fix the data type of a literal, as a `DataType` or its name:
 
 ```ts
-EntityQuery.from('Products')
+EntityQuery.from(Product)
   .where('unitsInStock', '==', { value: '35', dataType: 'Int32' });
 ```
 
@@ -116,7 +117,7 @@ EntityQuery.from('Products')
 Each `where` is ANDed with what is already there:
 
 ```ts
-EntityQuery.from('Orders')
+EntityQuery.from(Order)
   .where('freight', '>', 100)
   .where('shipCountry', '==', 'Germany');
 ```
@@ -125,12 +126,13 @@ EntityQuery.from('Orders')
 
 ### Predicates
 
-A `Predicate` is a condition you can build, combine and reuse. Create one with
-`Predicate.create` or `new Predicate`. They take the same arguments as `where`:
+A `Predicate` is a condition you can build, combine and reuse. Naming the entity type checks it,
+the same way a query built from a constructor checks its `where` - see
+[Typed queries](/guide/typed-queries). The arguments are the same as `where`:
 
 ```ts
-const p1 = Predicate.create('freight', '>', 100);
-const p2 = new Predicate('orderDate', '>', new Date(1998, 3, 1));
+const p1 = Predicate.create<Order>('freight', '>', 100);
+const p2 = Predicate.create<Order>('orderDate', '>', new Date(1998, 3, 1));
 ```
 
 ::: tip Changed in 3.0
@@ -146,23 +148,25 @@ const both   = p1.and(p2);
 const either = p1.or(p2);
 const notBig = p1.not();
 
-EntityQuery.from('Orders').where(both);
+EntityQuery.from(Order).where(both);
 ```
 
-`and` and `or` also accept the arguments for a new condition, which gives a fluent style:
+`and` and `or` also accept the arguments for a new condition directly. Those arguments are *not*
+checked - `and` takes any predicate and knows nothing about the type - so build each clause from
+a `Predicate.for` factory instead, and every clause is checked:
 
 ```ts
-const pred = Predicate.create('freight', '>', 100)
-  .and('orderDate', '>', new Date(1998, 3, 1));
+const p = Predicate.for(Order);
+const pred = p('freight', '>', 100)
+  .and(p('orderDate', '>', new Date(1998, 3, 1)));
 ```
 
 Composition runs left to right. This is *(date ≥ 1996 OR date < 1997) AND freight > 100*:
 
 ```ts
-const pred = Predicate
-  .create('orderDate', '>=', new Date(Date.UTC(1996, 0, 1)))
-  .or('orderDate', '<', new Date(Date.UTC(1997, 0, 1)))
-  .and('freight', '>', 100);
+const pred = p('orderDate', '>=', new Date(Date.UTC(1996, 0, 1)))
+  .or(p('orderDate', '<', new Date(Date.UTC(1997, 0, 1))))
+  .and(p('freight', '>', 100));
 ```
 
 The static methods `Predicate.and`, `Predicate.or` and `Predicate.not` take several
@@ -171,10 +175,10 @@ filters are optional:
 
 ```ts
 const filters = [
-  nameFilter ? Predicate.create('companyName', 'startsWith', nameFilter) : null,
-  countryFilter ? Predicate.create('country', '==', countryFilter) : null,
+  nameFilter ? Predicate.create<Customer>('companyName', 'startsWith', nameFilter) : null,
+  countryFilter ? Predicate.create<Customer>('country', '==', countryFilter) : null,
 ];
-const query = EntityQuery.from('Customers').where(Predicate.and(filters));
+const query = EntityQuery.from(Customer).where(Predicate.and(filters));
 ```
 
 Predicates are immutable. `and`, `or` and `not` return new predicates.
@@ -186,25 +190,26 @@ condition on the entities in the collection.
 
 ```ts
 // Employees with at least one order where freight > 950
-EntityQuery.from('Employees').where('orders', 'any', 'freight', '>', 950);
+EntityQuery.from(Employee).where('orders', 'any', 'freight', '>', 950);
 
 // the same with FilterQueryOp values
-EntityQuery.from('Employees')
+EntityQuery.from(Employee)
   .where('orders', FilterQueryOp.Any, 'freight', FilterQueryOp.GreaterThan, 950);
 ```
 
 The inner condition can be a `Predicate`, including a compound one:
 
 ```ts
-const p = Predicate.create('freight', '>', 950).and('shipCountry', 'startsWith', 'G');
-EntityQuery.from('Employees').where('orders', 'any', p);
+const po = Predicate.for(Order);
+const p = po('freight', '>', 950).and(po('shipCountry', 'startsWith', 'G'));
+EntityQuery.from(Employee).where('orders', 'any', p);
 ```
 
 It can follow a navigation path, which is how you cross a many-to-many relationship:
 
 ```ts
 // Orders containing the product "Chai"
-EntityQuery.from('Orders')
+EntityQuery.from(Order)
   .where('orderDetails', 'any', 'product.productName', '==', 'Chai');
 ```
 
@@ -212,15 +217,15 @@ Conditions can nest:
 
 ```ts
 // Customers with an order whose every line has unit price > 200
-EntityQuery.from('Customers')
+EntityQuery.from(Customer)
   .where('orders', 'any', 'orderDetails', 'all', 'unitPrice', '>', 200);
 ```
 
 Negate an `any` to find entities with no matches, for example customers with no orders:
 
 ```ts
-const hasOrders = Predicate.create('orders', 'any', 'orderID', '!=', null);
-EntityQuery.from('Customers').where(hasOrders.not());
+const hasOrders = Predicate.create<Customer>('orders', 'any', 'orderID', '!=', null);
+EntityQuery.from(Customer).where(hasOrders.not());
 ```
 
 ## Functions
@@ -229,13 +234,13 @@ The property side of a condition can be a function call:
 
 ```ts
 // Company name starts with "c" or "C"
-EntityQuery.from('Customers').where('toLower(companyName)', 'startsWith', 'c');
+EntityQuery.from(Customer).where('toLower(companyName)', 'startsWith', 'c');
 
 // 2nd and 3rd letters are "OM"
-EntityQuery.from('Customers').where('toUpper(substring(companyName, 1, 2))', '==', 'OM');
+EntityQuery.from(Customer).where('toUpper(substring(companyName, 1, 2))', '==', 'OM');
 
 // Orders placed in 1997
-EntityQuery.from('Orders').where('year(orderDate)', '==', 1997);
+EntityQuery.from(Order).where('year(orderDate)', '==', 1997);
 ```
 
 Breeze and the Breeze .NET server both support:
@@ -324,7 +329,7 @@ The same value objects work here as in the fluent form:
 names. Passing the result back to the constructor recreates the object:
 
 ```ts
-const query = EntityQuery.from('Orders')
+const query = EntityQuery.from(Order)
   .where('freight', '>', 100)
   .orderBy('orderDate desc')
   .take(5);
@@ -374,8 +379,8 @@ A where clause goes over the wire in the same JSON format, with property and fun
 translated to server names and operators in their canonical form:
 
 ```ts
-EntityQuery.from('Orders')
-  .where(Predicate.create('freight', '>', 100).or('shipCountry', '==', 'Germany'));
+EntityQuery.from(Order)
+  .where(Predicate.create<Order>('freight', '>', 100).or('shipCountry', '==', 'Germany'));
 ```
 
 ```json

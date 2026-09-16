@@ -79,7 +79,8 @@ EntityQuery.from(Order).where('orders', 'any', …)           // orders is Custo
 A prebuilt `Predicate` works in the same position:
 
 ```ts
-const inner = Predicate.create('unitPrice', '>', 200).and('quantity', '>', 50);
+const pd = Predicate.for(OrderDetail);
+const inner = pd('unitPrice', '>', 200).and(pd('quantity', '>', 50));
 EntityQuery.from(Customer).where('orders', 'any', 'orderDetails', 'any', inner)
 ```
 

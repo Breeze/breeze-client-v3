@@ -108,7 +108,7 @@ results.forEach(c => console.log(c.companyName));
 Without classes, name the resource and reach for properties by name:
 
 ```ts
-const query = EntityQuery.from('Customers').where('companyName', 'startsWith', 'B');
+const query = EntityQuery.from(Customer).where('companyName', 'startsWith', 'B');
 const { results } = await em.executeQuery(query);   // results: any[]
 
 results.forEach(c => console.log(c.getProperty('companyName')));

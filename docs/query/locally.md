@@ -17,9 +17,10 @@ and returns an array:
 
 ```ts
 import { EntityQuery } from 'breeze-client';
+import { Customer } from './model';   // your generated classes
 
 // Customers whose names begin with 'c'
-const query = EntityQuery.from('Customers').where('companyName', 'startsWith', 'c');
+const query = EntityQuery.from(Customer).where('companyName', 'startsWith', 'c');
 
 const { results } = await em.executeQuery(query);   // server — async
 const cached = em.executeQueryLocally(query);        // cache — immediate
@@ -120,7 +121,7 @@ shape and change the query's `FetchStrategy`:
 import { EntityQuery, FetchStrategy } from 'breeze-client';
 
 async function getCustomersStartingWith(text: string) {
-  let query = EntityQuery.from('Customers').where('companyName', 'startsWith', text);
+  let query = EntityQuery.from(Customer).where('companyName', 'startsWith', text);
   if (isOffline()) {
     query = query.using(FetchStrategy.FromLocalCache);
   }
@@ -242,7 +243,7 @@ can show the server's latest data alongside the user's unsaved additions. Run it
 remotely, then run it again against the cache:
 
 ```ts
-const query = EntityQuery.from('Customers')
+const query = EntityQuery.from(Customer)
   .where('companyName', 'startsWith', 'A')
   .orderBy('companyName')
   .using(em);

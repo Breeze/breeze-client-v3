@@ -19,6 +19,10 @@ export default {
   intentionallyNotExported: [
     'InterfaceDef', 'Op', 'Param', 'RecursiveArray', 'QueryOp', 'BooleanQueryOp',
     'src/core/core.ts:Predicate',
+    // The path machinery in src/query/property-path.ts: helpers that the exported path and
+    // operator types are built from.
+    'ElementOf', 'RawPropertyPath', 'RawCollectionPath', 'RawNavigationPath',
+    'RawPropertyValue', 'WhereKey', 'EqualityOps', 'ComparisonOps', 'StringOps', 'InOp',
   ],
   excludeInternal: true,
   readme: 'none',

@@ -125,7 +125,7 @@ to another parent throws, so create a new instance instead.
 Use a property path to filter on a complex property:
 
 ```ts
-EntityQuery.from('Suppliers').where('location.city', 'startsWith', 'L');
+EntityQuery.from(Supplier).where('location.city', 'startsWith', 'L');
 ```
 
 This works against the server and against the cache.

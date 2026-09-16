@@ -14,29 +14,30 @@ path to sort it in descending order. ` asc` is allowed but is the default.
 
 ```ts
 import { EntityQuery } from 'breeze-client';
+import { Customer, Employee, Order, Product } from './model';   // your generated classes
 
-EntityQuery.from('Products').orderBy('productName');
-EntityQuery.from('Products').orderBy('productName desc');
-EntityQuery.from('Products').orderBy('unitPrice desc, productName');
-EntityQuery.from('Products').orderBy(['unitPrice desc', 'productName']);
+EntityQuery.from(Product).orderBy('productName');
+EntityQuery.from(Product).orderBy('productName desc');
+EntityQuery.from(Product).orderBy('unitPrice desc, productName');
+EntityQuery.from(Product).orderBy(['unitPrice desc', 'productName']);
 
 // Paths through navigation properties work too
-EntityQuery.from('Products').orderBy('category.categoryName');
+EntityQuery.from(Product).orderBy('category.categoryName');
 ```
 
 `orderByDesc` sorts every path it is given in descending order. So does `orderBy` with
 `true` as its second argument, which overrides any ` desc` or ` asc` in the paths:
 
 ```ts
-EntityQuery.from('Products').orderByDesc('productName');
-EntityQuery.from('Products').orderBy('unitPrice, productName', true);   // both descending
+EntityQuery.from(Product).orderByDesc('productName');
+EntityQuery.from(Product).orderBy('unitPrice, productName', true);   // both descending
 ```
 
 Calling `orderBy` again adds sort keys after the existing ones:
 
 ```ts
 // Category name ascending, then product name descending
-EntityQuery.from('Products')
+EntityQuery.from(Product)
   .orderBy('category.categoryName')
   .orderByDesc('productName');
 ```
@@ -60,7 +61,7 @@ On the wire, ordering is a list of server property paths:
 const pageSize = 10;
 
 function pageOfProducts(pageIndex: number) {
-  return EntityQuery.from('Products')
+  return EntityQuery.from(Product)
     .orderBy('productName')
     .skip(pageIndex * pageSize)
     .take(pageSize);
@@ -94,7 +95,7 @@ public IQueryable<Order> Orders() { ... }
 before any `skip` or `take`. The count arrives as `inlineCount` on the query result:
 
 ```ts
-const query = EntityQuery.from('Products')
+const query = EntityQuery.from(Product)
   .where('productName', 'startsWith', 'C')
   .orderBy('productName')
   .skip(5)
@@ -115,7 +116,7 @@ Breeze has no aggregate queries, but `take(0)` with `inlineCount()` returns a co
 rows:
 
 ```ts
-const query = EntityQuery.from('Products')
+const query = EntityQuery.from(Product)
   .where('productName', 'startsWith', 'C')
   .take(0)
   .inlineCount();
@@ -130,16 +131,16 @@ names, as a comma-separated string or an array. Use a dot to go more than one le
 
 ```ts
 // Customers starting with "C", with their orders
-EntityQuery.from('Customers')
+EntityQuery.from(Customer)
   .where('companyName', 'startsWith', 'C')
   .expand('orders');
 
 // Orders with their customer and their employee
-EntityQuery.from('Orders').expand('customer, employee');
-EntityQuery.from('Orders').expand(['customer', 'employee']);
+EntityQuery.from(Order).expand('customer, employee');
+EntityQuery.from(Order).expand(['customer', 'employee']);
 
 // Orders with their details and each detail's product
-EntityQuery.from('Orders').expand('orderDetails.product');
+EntityQuery.from(Order).expand('orderDetails.product');
 ```
 
 The where clause filters the root entities first. `expand` then brings back what is related
@@ -151,7 +152,7 @@ are in `retrievedEntities`:
 
 ```ts
 const { results, retrievedEntities } = await em.executeQuery(
-  EntityQuery.from('Orders').take(20).expand('customer')
+  EntityQuery.from(Order).take(20).expand('customer')
 );
 // results:           20 orders
 // retrievedEntities: those orders plus their customers
@@ -236,7 +237,7 @@ not added to the cache, and entities already in the cache are not updated. Such 
 faster than tracked ones, so they suit read-only data.
 
 ```ts
-const query = EntityQuery.from('Orders')
+const query = EntityQuery.from(Order)
   .where('customer.companyName', 'startsWith', 'C')
   .expand('customer')
   .noTracking();
@@ -263,7 +264,7 @@ import { EntityState, MergeStrategy } from 'breeze-client';
 
 const empType = em.metadataStore.getAsEntityType('Employee');
 const { results: rawEmps } = await em.executeQuery(
-  EntityQuery.from('Employees').noTracking()
+  EntityQuery.from(Employee).noTracking()
 );
 
 const employees = rawEmps.map(raw => {
