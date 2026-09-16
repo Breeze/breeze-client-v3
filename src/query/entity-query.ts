@@ -434,6 +434,10 @@ export class EntityQuery<T = any> {
     return clone(this, "takeCount", (count == null) ? null : count);
   }
 
+  expand(propertyPaths: NavigationPath<T> | NavigationPath<T>[]): EntityQuery<T>;
+  expand<P extends string>(propertyPaths: P extends `${string},${string}` ? P : (string extends P ? P : never)): EntityQuery<T>;
+  expand<P extends string>(propertyPaths: string extends P ? P[] : never): EntityQuery<T>;
+  expand(propertyPaths?: undefined): EntityQuery<T>;
   /**
   Returns a new query that will return related entities nested within its results. The expand method allows you to identify related entities, via navigation property
   names such that a graph of entities may be retrieved with a single request. Any filtering occurs before the results are 'expanded'.
@@ -453,10 +457,6 @@ export class EntityQuery<T = any> {
   by a '.' and another navigation property name to enable identifying a multi-level relationship.
   If 'propertyPaths' is either null or omitted then any existing 'expand' clause on the query is removed.
   **/
-  expand(propertyPaths: NavigationPath<T> | NavigationPath<T>[]): EntityQuery<T>;
-  expand<P extends string>(propertyPaths: P extends `${string},${string}` ? P : (string extends P ? P : never)): EntityQuery<T>;
-  expand<P extends string>(propertyPaths: string extends P ? P[] : never): EntityQuery<T>;
-  expand(propertyPaths?: undefined): EntityQuery<T>;
   expand(propertyPaths?: string | string[]) {
     let expandClause = propertyPaths == null ? null : new ExpandClause(normalizePropertyPaths(propertyPaths));
     return clone(this, "expandClause", expandClause);
