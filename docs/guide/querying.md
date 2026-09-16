@@ -253,8 +253,9 @@ the one people misread. See [Error handling](/guide/error-handling) and
 
 ## Where to next
 
-The [Querying section](/query/) is the reference for all of this:
+**Querying in depth** in the sidebar is the reference for all of this:
 
+- [How queries work](/query/) — the QueryResult, the URL a query becomes, resource names
 - [Query examples](/query/examples) — a catalogue to copy from
 - [Where clauses](/query/predicates) — every operator, `Predicate`, any/all, the object form
 - [Ordering, paging, expand](/query/shaping)

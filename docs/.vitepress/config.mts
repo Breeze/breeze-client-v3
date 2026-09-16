@@ -1,6 +1,87 @@
 import { defineConfig } from 'vitepress';
 import typedocSidebar from '../api/typedoc-sidebar.json';
 
+/**
+ * The single sidebar, shared by /guide/, /query/, /metadata/ and /server/.
+ *
+ * Querying appears twice on purpose and they are different things: the Core concepts entry is
+ * the tour, and the group below it is the reference. The API reference has its own generated
+ * sidebar.
+ */
+const docsSidebar = [
+  {
+    text: 'Introduction',
+    items: [
+      { text: 'What is Breeze?', link: '/guide/what-is-breeze' },
+      { text: 'Getting started', link: '/guide/getting-started' },
+      { text: 'Configuration', link: '/guide/configuration' },
+      { text: 'Migrating from 2.x', link: '/guide/migrating-from-2x' },
+    ],
+  },
+  {
+    text: 'Core concepts',
+    items: [
+      { text: 'Inside the entity', link: '/guide/inside-the-entity' },
+      { text: 'Querying', link: '/guide/querying' },
+      { text: 'Creating entities', link: '/guide/creating-entities' },
+      { text: 'Navigation properties', link: '/guide/navigation-properties' },
+      { text: 'Complex properties', link: '/guide/complex-properties' },
+      { text: 'Change tracking', link: '/guide/change-tracking' },
+      { text: 'EntityManager and caching', link: '/guide/entitymanager-and-caching' },
+      { text: 'Saving changes', link: '/guide/saving-changes' },
+      { text: 'Validation', link: '/guide/validation' },
+      { text: 'Error handling', link: '/guide/error-handling' },
+      { text: 'Export and import', link: '/guide/export-import' },
+    ],
+  },
+  {
+    text: 'Querying in depth',
+    collapsed: false,
+    items: [
+      { text: 'How queries work', link: '/query/' },
+      { text: 'Query examples', link: '/query/examples' },
+      { text: 'Where clauses', link: '/query/predicates' },
+      { text: 'Ordering, paging, expand', link: '/query/shaping' },
+      { text: 'Projections', link: '/query/projections' },
+      { text: 'Querying the cache', link: '/query/locally' },
+      { text: 'Debugging queries', link: '/query/debugging' },
+    ],
+  },
+  {
+    text: 'Advanced',
+    collapsed: true,
+    items: [
+      { text: 'Extending entities', link: '/guide/extending-entities' },
+      { text: 'Typed entities', link: '/guide/typed-entities' },
+      { text: 'Typed queries', link: '/guide/typed-queries' },
+      { text: 'Date and time', link: '/guide/date-and-time' },
+      { text: 'Performance', link: '/guide/performance' },
+      { text: 'Testing', link: '/guide/testing' },
+    ],
+  },
+  {
+    text: 'Metadata',
+    collapsed: true,
+    items: [
+      { text: 'Overview', link: '/metadata/' },
+      { text: 'Metadata in depth', link: '/metadata/details' },
+      { text: 'Writing metadata by hand', link: '/metadata/by-hand' },
+      { text: 'Custom metadata', link: '/metadata/custom' },
+    ],
+  },
+  {
+    text: 'Talking to the server',
+    collapsed: true,
+    items: [
+      { text: 'Overview', link: '/server/' },
+      { text: 'Supplying your own transport', link: '/server/transport' },
+      { text: 'DataServiceAdapter', link: '/server/dataserviceadapter' },
+      { text: 'Transforming JSON results', link: '/server/jsonresultsadapter' },
+      { text: 'Naming conventions', link: '/server/namingconvention' },
+    ],
+  },
+];
+
 export default defineConfig({
   title: 'Breeze',
   description: 'Data management for JavaScript clients',
@@ -16,7 +97,6 @@ export default defineConfig({
 
     nav: [
       { text: 'Guide', link: '/guide/what-is-breeze' },
-      { text: 'Querying', link: '/query/' },
       { text: 'API', link: '/api/' },
       { text: 'Migrating from 2.x', link: '/guide/migrating-from-2x' },
       {
@@ -28,86 +108,15 @@ export default defineConfig({
       },
     ],
 
+    // One sidebar for the whole documentation. Every section is keyed to it, so the left bar is
+    // the same wherever you land: arriving at /query/predicates from a search result shows the
+    // guide around it rather than a lone group with no way back. The deeper sections start
+    // collapsed so the list stays readable.
     sidebar: {
-      '/guide/': [
-        {
-          text: 'Introduction',
-          items: [
-            { text: 'What is Breeze?', link: '/guide/what-is-breeze' },
-            { text: 'Getting started', link: '/guide/getting-started' },
-            { text: 'Configuration', link: '/guide/configuration' },
-            { text: 'Migrating from 2.x', link: '/guide/migrating-from-2x' },
-          ],
-        },
-        {
-          text: 'Core concepts',
-          items: [
-            { text: 'Inside the entity', link: '/guide/inside-the-entity' },
-            { text: 'Querying', link: '/guide/querying' },
-            { text: 'Creating entities', link: '/guide/creating-entities' },
-            { text: 'Navigation properties', link: '/guide/navigation-properties' },
-            { text: 'Complex properties', link: '/guide/complex-properties' },
-            { text: 'Change tracking', link: '/guide/change-tracking' },
-            { text: 'EntityManager and caching', link: '/guide/entitymanager-and-caching' },
-            { text: 'Saving changes', link: '/guide/saving-changes' },
-            { text: 'Validation', link: '/guide/validation' },
-            { text: 'Error handling', link: '/guide/error-handling' },
-            { text: 'Export and import', link: '/guide/export-import' },
-          ],
-        },
-        {
-          text: 'Advanced',
-          items: [
-            { text: 'Extending entities', link: '/guide/extending-entities' },
-            { text: 'Typed entities', link: '/guide/typed-entities' },
-            { text: 'Typed queries', link: '/guide/typed-queries' },
-            { text: 'Date and time', link: '/guide/date-and-time' },
-            { text: 'Performance', link: '/guide/performance' },
-            { text: 'Testing', link: '/guide/testing' },
-          ],
-        },
-      ],
-
-      '/query/': [
-        {
-          text: 'Querying',
-          items: [
-            { text: 'Overview', link: '/query/' },
-            { text: 'Query examples', link: '/query/examples' },
-            { text: 'Where clauses', link: '/query/predicates' },
-            { text: 'Ordering, paging, expand', link: '/query/shaping' },
-            { text: 'Projections', link: '/query/projections' },
-            { text: 'Querying the cache', link: '/query/locally' },
-            { text: 'Debugging queries', link: '/query/debugging' },
-          ],
-        },
-      ],
-
-      '/metadata/': [
-        {
-          text: 'Metadata',
-          items: [
-            { text: 'Overview', link: '/metadata/' },
-            { text: 'Metadata in depth', link: '/metadata/details' },
-            { text: 'Writing metadata by hand', link: '/metadata/by-hand' },
-            { text: 'Custom metadata', link: '/metadata/custom' },
-          ],
-        },
-      ],
-
-      '/server/': [
-        {
-          text: 'Talking to the server',
-          items: [
-            { text: 'Overview', link: '/server/' },
-            { text: 'Supplying your own transport', link: '/server/transport' },
-            { text: 'DataServiceAdapter', link: '/server/dataserviceadapter' },
-            { text: 'Transforming JSON results', link: '/server/jsonresultsadapter' },
-            { text: 'Naming conventions', link: '/server/namingconvention' },
-          ],
-        },
-      ],
-
+      '/guide/': docsSidebar,
+      '/query/': docsSidebar,
+      '/metadata/': docsSidebar,
+      '/server/': docsSidebar,
       '/api/': typedocSidebar,
     },
 

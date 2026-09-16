@@ -1,41 +1,8 @@
-# Querying
+# How queries work
 
-A Breeze query is an `EntityQuery`. It describes what you want: which resource, which
-rows, in what order, and which related entities to bring back. An `EntityManager` runs it,
-either against the server or against its own cache.
-
-```ts
-import { EntityManager, EntityQuery } from 'breeze-client';
-import { Customer, Order } from './model';   // your generated classes
-
-const em = new EntityManager('breeze/NorthwindIBModel');
-
-const query = EntityQuery.from(Customer)
-  .where('companyName', 'startsWith', 'B')
-  .orderBy('companyName')
-  .take(10);
-
-const { results } = await em.executeQuery(query);
-```
-
-::: tip Examples use typed queries
-`Customer`, `Order` and the rest are generated entity classes, and passing one to
-`EntityQuery.from` is what lets the compiler check the property paths, operators and values in
-`where`, `orderBy` and `expand` — a misspelling is then a build error rather than a server error.
-See [Typed entities](/guide/typed-entities) for generating the classes and
-[Typed queries](/guide/typed-queries) for what gets checked.
-
-A resource name still works everywhere a class does — `EntityQuery.from('Customers')` — and is
-what you use for an endpoint with no class of its own, such as the `'Lookups'` and
-`'OrdersAndDetails'` examples below. Nothing is checked in that form.
-:::
-
-
-The results are entities. They are now in the manager's cache, tracking their own changes,
-with navigation properties wired to any related entities already cached.
-
-This section is the reference. For the shorter tour - what a query is, filtering, sorting, paging,
-expand, the cache - start with [Querying](/guide/querying) in the guide.
+[Querying](/guide/querying) is the tour: what a query is, filtering, sorting, paging, `expand` and
+the cache. This page is what sits underneath — the result of running one, the URL that goes over
+the wire, how a resource name is resolved, and the other ways to build a query.
 
 The rest of this section covers:
 
@@ -47,6 +14,7 @@ The rest of this section covers:
 - [Projections](/query/projections) — `select`
 - [Querying the cache](/query/locally) — `executeQueryLocally` and `FetchStrategy`
 - [Debugging queries](/query/debugging)
+
 
 ## Executing a query
 
@@ -80,18 +48,9 @@ const { results } = await EntityQuery.from(Order).using(em).execute();
 
 `execute()` throws if the query has no manager.
 
-## Queries are immutable
-
-Every `EntityQuery` method returns a new query. The original is unchanged, so you can keep
-a base query and derive others from it:
-
-```ts
-const bigOrders = EntityQuery.from(Order).where('freight', '>', 100);
-
-const firstPage = bigOrders.orderBy('orderDate').take(20);
-const toGermany = bigOrders.where('shipCountry', '==', 'Germany');
-// bigOrders itself still has only the freight condition
-```
+Every `EntityQuery` method returns a new query rather than mutating the one it was called on, so a
+base query can be shared and specialised freely - see
+[Querying](/guide/querying) for what that buys you.
 
 ## What goes over the wire
 
