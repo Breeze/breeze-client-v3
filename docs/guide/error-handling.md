@@ -146,6 +146,37 @@ Send `{ "message": "…" }` and that works too.
 Breeze does not retry, and does not treat any status specially other than to report it. Retry
 policy belongs in your `fetch` function — see [Configuration](/guide/configuration).
 
+### Getting 409 from a Breeze .NET server
+
+Duplicate-key and foreign-key violations arrive as 500 unless the server is told to map them,
+because the error codes belong to the database provider rather than to Breeze. For SQL Server it is
+one line in `Startup`:
+
+```csharp
+o.Filters.Add(new GlobalExceptionFilter {
+  StatusCodeForException = DbExceptionMappers.SqlServer
+});
+```
+
+`StatusCodeForException` takes any `Func<Exception, HttpStatusCode?>`, so other providers — and
+your own domain exceptions — are a few lines more. The server's UPGRADE.md has the equivalent for
+Npgsql, MySqlConnector, Oracle and SQLite.
+
+With it in place the client sees a real status, which is what makes the distinction below usable:
+
+```ts
+catch (e: any) {
+  if (e.status === 409) {
+    // the row conflicts with what is already stored - re-querying will not help,
+    // and retrying will fail the same way
+  }
+}
+```
+
+The message is the provider's own, so it names the constraint that failed
+(`…conflicted with the FOREIGN KEY constraint FK_Order_Customer…`). Useful in development,
+but it discloses your schema — a public API should catch and rethrow with its own message.
+
 ## Errors in your own `fetch`
 
 Because requests go through `config.fetch`, you can see and shape every failure in one place:
