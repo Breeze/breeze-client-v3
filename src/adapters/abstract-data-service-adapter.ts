@@ -377,8 +377,23 @@ function createError(httpResponse: HttpResponse) {
   let isDotNet = !!tmp;
   let message: string, entityErrors: any[];
   if (!isDotNet) {
-    message = errObj.message;
+    // RFC 9457 (Problem Details for HTTP APIs) calls the human-readable text `detail`, with
+    // `title` as the shorter summary of the problem *type*. A server that sends problem+json and
+    // nothing else would otherwise fall through to the generic message at the end of this
+    // function, which says entity errors were encountered whether or not any were - a confidently
+    // wrong message is harder to diagnose than a missing one.
+    message = errObj.message || errObj.detail || errObj.title;
+    // `entityErrors` is a Breeze extension member; RFC 9457 section 3.2 allows those, and the
+    // spec requires consumers to ignore members they do not recognize.
     entityErrors = errObj.errors || errObj.entityErrors;
+    // Normalize the same way the .NET branch does. Without this a server sending the natural
+    // "Namespace.Type" spelling gets "Unable to locate a 'Type' by the name ..." from the entity
+    // lookup in processServerErrors, with nothing to connect it to the error format.
+    entityErrors = entityErrors && entityErrors.map(function (e: any) {
+      return e.entityTypeName
+        ? { ...e, entityTypeName: MetadataStore.normalizeTypeName(e.entityTypeName) }
+        : e;
+    });
   } else {
     let tmp = errObj;
     do {

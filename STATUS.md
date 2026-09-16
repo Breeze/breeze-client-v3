@@ -773,3 +773,60 @@ The general point for anyone weighing `T | null` against `entity?: T` later: `un
 cleaner default in modern TypeScript, and it is the one that works with destructuring defaults.
 In *this* library `null` wins, because Breeze models a database, where `null` is a value with
 meaning, and it already says `null` everywhere else.
+
+## Server error shapes: the client now understands RFC 9457 (done, client side)
+
+Groundwork for making `breeze-server-v3` emit RFC 9457 problem details. The question was whether
+that needs a coordinated client/server flag. It does not, and the reason is worth recording.
+
+RFC 9457 section 3.2 allows **extension members**, and requires consumers to ignore ones they do
+not recognize. So a server can send conformant problem+json that *also* carries `Message` and
+`EntityErrors` at the top level, and an unmodified 2.x or 3.0 client reads it exactly as before.
+`test/unit/server-error-shapes.spec.ts` pins four shapes end to end - through a real save, as far
+as the `ValidationError` landing on the entity:
+
+| shape | before | after |
+|---|---|---|
+| A. `{ Code, Message, EntityErrors }` | works | works |
+| B. problem+json **+** those as extensions | works | works |
+| C. problem+json + camelCase `entityErrors` | **threw** | works |
+| D. as C, type name pre-normalized | generic message | works |
+
+### Two real client bugs this turned up
+
+- **`createError`'s two branches were not symmetric.** The .NET branch runs
+  `MetadataStore.normalizeTypeName` on `EntityTypeName`; the camelCase branch took the array
+  as-is. A server sending the natural `Foo.Customer` in a camelCase payload got
+  *"Unable to locate a 'Type' by the name: 'Foo.Customer'"* out of the entity lookup, with
+  nothing connecting it to the error format. Both branches normalize now.
+- **A problem+json body produced a confidently wrong message.** Not an empty one - `createError`
+  ends with `message || "Server side errors encountered - see the entityErrors collection..."`,
+  so a query failure reported a save-error string with no entity errors attached. It now reads
+  `detail`, then `title`.
+
+Both are pinned: reverting the first fails 1 test, reverting the second fails 3.
+
+### What EntityErrors need, and why they matter
+
+They are not decoration. `processServerErrors` resolves `keyValues` + `entityTypeName` back to the
+cached instance and adds a `ValidationError` with `isServerError = true` to its `entityAspect` -
+that is how a server-side rule reaches the UI. The shape it needs at that point is camelCase
+`errorName` / `entityTypeName` / `keyValues` / `propertyName` / `errorMessage` / `custom`, with
+`propertyName` converted through the naming convention. A flat RFC 9457 `errors` map cannot carry
+this: it has no way to say *which instance* of a type failed, and a save can fail on several.
+
+### Still to do, in breeze-server-v3
+
+1. Emit `ProblemDetails` with `Message` / `EntityErrors` as extensions, content type
+   `application/problem+json`. **Check the extensions serialize flattened, not nested under
+   `extensions`** - the filter uses Newtonsoft, and if they nest, hybrid B silently stops working
+   for old clients.
+2. `ErrorDto.Code` is `0` for anything that is not an `EntityErrorsException`, while the HTTP
+   status is 500. `status` replaces it.
+3. `StackTrace` off unless `IWebHostEnvironment.IsDevelopment()`, with a config override. It is
+   currently unconditional.
+4. 409 for duplicate-key / FK violations, behind a provider hook rather than hard-coded SQL Server
+   error numbers (2627/2601/547), since Breeze also supports NHibernate.
+
+No client flag is needed for any of it. The server flag, when it comes, means "stop sending the
+legacy extension members", not "switch format".
