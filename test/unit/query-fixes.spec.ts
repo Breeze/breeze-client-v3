@@ -6,6 +6,7 @@ import { DataServiceWebApiAdapter } from '../../src/adapters/adapter-data-servic
 import { UriBuilderJsonAdapter } from '../../src/adapters/adapter-uri-builder-json';
 import { ModelLibraryBackingStoreAdapter } from '../../src/adapters/adapter-model-library-backing-store';
 import metadata from '../support/NorthwindIBMetadata.json';
+import { Customer } from '../model';
 
 // Regression tests for query and predicate defects found while writing the user docs.
 // No server: local queries run over entities attached in Unchanged state, and remote
@@ -93,11 +94,11 @@ describe("FilterQueryOp.IsTypeOf is gone", () => {
     FilterQueryOp.getSymbols().forEach(op => {
       let pred: Predicate;
       if (op === FilterQueryOp.Any || op === FilterQueryOp.All) {
-        pred = Predicate.create("orders", op, "freight", ">", 100);
+        pred = Predicate.create<Customer>("orders", op, "freight", ">", 100);
       } else if (op === FilterQueryOp.In) {
-        pred = Predicate.create("companyName", op, ["A", "B"]);
+        pred = Predicate.create<Customer>("companyName", op, ["A", "B"]);
       } else {
-        pred = Predicate.create("companyName", op, "A");
+        pred = Predicate.create<Customer>("companyName", op, "A");
       }
       expect(() => pred._validate(custType)).not.toThrow();
     });

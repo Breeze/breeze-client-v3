@@ -165,7 +165,8 @@ describe("Query Alternatives", () => {
   test("using EntityQuery.fromEntityNavigation - (-> 1) ", async() => {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
-    const pred = Predicate.create("customerID", "!=", null).and("employeeID", "!=", null);
+    const po = Predicate.for(Order);
+    const pred = po("customerID", "!=", null).and(po("employeeID", "!=", null));
     const query = EntityQuery.from(Order).where(pred).take(1);
     const qr1 = await em.executeQuery(query);
     const order = qr1.results[0];
@@ -210,7 +211,8 @@ describe("Query Alternatives", () => {
   test("using EntityAspect.loadNavigationProperty - (-> 1) ", async() => {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
-    const pred = Predicate.create("customerID", "!=", null).and("employeeID", "!=", null);
+    const po = Predicate.for(Order);
+    const pred = po("customerID", "!=", null).and(po("employeeID", "!=", null));
     const query = EntityQuery.from(Order).where(pred).take(1);
     (em as any)["tag"] = "xxxx";
 

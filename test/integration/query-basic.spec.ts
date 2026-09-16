@@ -116,7 +116,8 @@ describe("Query Basics", () => {
 
   test("where with same field twice", async () => {
     const em1 = TestFns.newEntityManager();
-    const p = Predicate.create("freight", ">", 100).and("freight", "<", 200);
+    const po = Predicate.for(Order);
+    const p = po("freight", ">", 100).and(po("freight", "<", 200));
     const query = EntityQuery.from(Order)
       .where(p);
 
@@ -196,8 +197,8 @@ describe("Query Basics", () => {
     const em = TestFns.newEntityManager();
 
     const baseQuery = EntityQuery.from(Order);
-    const pred1 = new Predicate("freight", ">", 100);
-    const pred2 = new Predicate("orderDate", ">", new Date(1998, 3, 1));
+    const pred1 = Predicate.create<Order>("freight", ">", 100);
+    const pred2 = Predicate.create<Order>("orderDate", ">", new Date(1998, 3, 1));
     const query = baseQuery.where(pred1.and(pred2));
     const queryUrl = query._toUri(em);
 
@@ -209,8 +210,8 @@ describe("Query Basics", () => {
   test("where with predicate with contains", async () => {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
-    const p1 = Predicate.create("companyName", "startsWith", "S");
-    const p2 = Predicate.create("city", "contains", "er");
+    const p1 = Predicate.create<Customer>("companyName", "startsWith", "S");
+    const p2 = Predicate.create<Customer>("city", "contains", "er");
     const whereClause = p1.and(p2);
     const query = EntityQuery.from(Customer)
       .where(whereClause);
@@ -234,8 +235,8 @@ describe("Query Basics", () => {
     const em = TestFns.newEntityManager();
 
     const baseQuery = EntityQuery.from(Order);
-    const pred1 = Predicate.create("freight", ">", 100);
-    const pred2 = Predicate.create("orderDate", ">", new Date(1998, 3, 1));
+    const pred1 = Predicate.create<Order>("freight", ">", 100);
+    const pred2 = Predicate.create<Order>("orderDate", ">", new Date(1998, 3, 1));
     const newPred = Predicate.and([pred1, pred2]);
     const query = baseQuery.where(newPred);
     const queryUrl = query._toUri(em);
@@ -248,8 +249,9 @@ describe("Query Basics", () => {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
     const baseQuery = EntityQuery.from(Order);
-    const pred = Predicate.create("freight", ">", 100)
-      .and("orderDate", ">", new Date(1998, 3, 1));
+    const po2 = Predicate.for(Order);
+    const pred = po2("freight", ">", 100)
+        .and(po2("orderDate", ">", new Date(1998, 3, 1)));
     const query = baseQuery.where(pred);
     const queryUrl = query._toUri(em);
     const qr1 = await em.executeQuery(query);
@@ -261,7 +263,7 @@ describe("Query Basics", () => {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
 
-    let pred = new Predicate("region", FilterQueryOp.Equals, null);
+    let pred = Predicate.create<Customer>("region", FilterQueryOp.Equals, null);
     pred = pred.not();
     const query = EntityQuery.from(Customer)
       .where(pred)
@@ -579,6 +581,8 @@ describe("Query Basics", () => {
   test("inlineCount when ordering results by simple navigation path", async () => {
     expect.hasAssertions();
     const em1 = TestFns.newEntityManager();
+    // Left untyped: this one pairs with a query built from a resource name, which is the
+    // untyped path, and something has to keep covering it.
     const pred = new Predicate("shipCity", "startsWith", "A");
     const query = EntityQuery
       .from("Orders")
@@ -597,7 +601,7 @@ describe("Query Basics", () => {
   test("inlineCount when ordering results by nested navigation path", async () => {
     expect.hasAssertions();
     const em1 = TestFns.newEntityManager();
-    const pred = new Predicate("shipCity", "startsWith", "A");
+    const pred = Predicate.create<Order>("shipCity", "startsWith", "A");
     const query = breeze.EntityQuery.from(Order)
       .where(pred)
       .orderBy("customer.companyName");

@@ -49,16 +49,19 @@ describe("Query Local", () => {
     const em = TestFns.newEntityManager();
     const orderKeyName = TestFns.wellKnownData.keyNames.order;
     const q1 = EntityQuery.from(Order)
-        .where(orderKeyName, "==", "20140000");
+        // orderID is numeric, so these compare against numbers. They were quoted strings, which the
+        // checked overload rejects - the intent (an id that matches nothing) is unchanged.
+        .where(orderKeyName, "==", 20140000);
     const r1 = em.executeQueryLocally(q1);
     expect(r1.length).toBe(0);
 
-    const p1 = new Predicate(orderKeyName, "==", "2140000");
+    const p1 = Predicate.create<Order>(orderKeyName, "==", 2140000);
     const q2 = EntityQuery.from(Order).where(p1);
     const r2 = em.executeQueryLocally(q2);
     expect(r2.length).toBe(0);
 
-    const p2 = new Predicate("employeeID", "ne", orderKeyName);
+    // A property compared against another property, which is why the value may be a path.
+    const p2 = Predicate.create<Order>("employeeID", "ne", orderKeyName);
     const q3 = EntityQuery.from(Order).where(p1.and(p2));
     const r3 = em.executeQueryLocally(q3);
     expect(r3.length).toBe(0);

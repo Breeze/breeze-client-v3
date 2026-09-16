@@ -31,13 +31,17 @@ describe("Unusual Datatypes", () => {
     const comments = sr.entities;
     expect(comments.length).toBe(2);
     const em2 = TestFns.newEntityManager();
-    const pred2 = Predicate.create("createdOn", "==", dt).and("seqNum", "==", 11);
+    const pc = Predicate.for(Comment);
+    const pred2 = pc("createdOn", "==", dt).and(pc("seqNum", "==", 11));
     const q2 = EntityQuery.from(Comment).where(pred2);
     const qr2 = await em2.executeQuery(q2);
     const comments2 = qr2.results;
     expect(comments2.length).toBe(1);
     const em3 = TestFns.newEntityManager();
-    const pred3 = Predicate.create("createdOn", "==", dt).and("seqNum", "==", '7');
+    // seqNum is numeric and '7' is a string on purpose: the test is that the server coerces it.
+    // The cast is what says so - without it this reads as a mistake.
+    const pc3 = Predicate.for(Comment);
+    const pred3 = pc3("createdOn", "==", dt).and(pc3("seqNum", "==", '7' as any));
     const q3 = EntityQuery.from(Comment).where(pred3);
     const qr3 = await em3.executeQuery(q3);
     const comments3 = qr3.results;
@@ -269,7 +273,8 @@ describe("Unusual Datatypes", () => {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
     const dt1 = new Date(1950, 1, 1, 1, 1, 1);
-    const p1 = Predicate.create("creationDate", ">", dt1).or("modificationDate", ">", dt1);
+    const pu = Predicate.for(UnusualDate);
+    const p1 = pu("creationDate", ">", dt1).or(pu("modificationDate", ">", dt1));
     const query = EntityQuery.from(UnusualDate).where(p1);
     const qr1 = await em.executeQuery(query);
     expect(qr1.results.length).toBeGreaterThan(0);
@@ -280,7 +285,8 @@ describe("Unusual Datatypes", () => {
     const em = TestFns.newEntityManager();
     const dt1 = new Date(2001, 1, 1); // 2001-02-01
     const tm1 = "01:23:45.678";
-    const p1 = Predicate.create("dateOnly", "==", dt1).or("timeOnly", "==", tm1);
+    const pu2 = Predicate.for(UnusualDate);
+    const p1 = pu2("dateOnly", "==", dt1).or(pu2("timeOnly", "==", tm1));
     const query = EntityQuery.from(UnusualDate).where(p1);
     const qr1 = await em.executeQuery(query);
     expect(qr1.results.length).toBeGreaterThan(0);
@@ -289,7 +295,7 @@ describe("Unusual Datatypes", () => {
   test("export/import dateTimeOffset with nulls", async function () {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
-    const p1 = Predicate.create("modificationDate2", "==", null);
+    const p1 = Predicate.create<UnusualDate>("modificationDate2", "==", null);
     const query = EntityQuery.from(UnusualDate).where(p1).take(2);
     const qr1 = await em.executeQuery(query);
     expect(qr1.results.length).toBe(2);

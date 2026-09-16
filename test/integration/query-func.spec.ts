@@ -1,6 +1,6 @@
 import { Entity, EntityQuery, EntityType, MetadataStore, Predicate, breeze, MergeStrategy, DataProperty, NavigationProperty, core } from '../../src/breeze';
 import { TestFns, skipTestIf } from '../test-fns';
-import { Customer, Order, registerModelClasses } from '../model';
+import { Customer, Employee, Order, registerModelClasses } from '../model';
 
 function ok(a: any, b?: any) {
   throw new Error('for test conversion purposes');
@@ -38,7 +38,8 @@ describe("Query Functions", () => {
   test("function expr - date(month) function", async () => {
     expect.hasAssertions();
     const em1 = TestFns.newEntityManager();
-    const p = Predicate.create("month(hireDate)", ">", 6).and("month(hireDate)", "<", 11);
+    const pe = Predicate.for(Employee);
+    const p = pe("month(hireDate)", ">", 6).and(pe("month(hireDate)", "<", 11));
     const query = EntityQuery
       .from("Employees")
       .where(p);
@@ -52,7 +53,8 @@ describe("Query Functions", () => {
   test("function expr - date(hour) function", async () => {
     expect.hasAssertions();
     const em1 = TestFns.newEntityManager();
-    const p = Predicate.create("hour(shippedDate)", ">", 10).and("hour(shippedDate)", "<", 22);
+    const po = Predicate.for(Order);
+    const p = po("hour(shippedDate)", ">", 10).and(po("hour(shippedDate)", "<", 22));
     const query = EntityQuery
       .from("Orders")
       .where(p);

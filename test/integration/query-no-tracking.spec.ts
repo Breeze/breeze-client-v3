@@ -1,7 +1,7 @@
 import { Entity, EntityQuery, Predicate, EntityState, MergeStrategy, MetadataStore, EntityType } from '../../src/breeze';
 import { TestFns } from '../test-fns';
 import { UtilFns } from '../util-fns';
-import { Supplier, registerModelClasses } from '../model';
+import { Employee, Supplier, registerModelClasses } from '../model';
 
 TestFns.initServerEnv();
 
@@ -22,7 +22,8 @@ describe("Query wih noTracking", () => {
   test("self referential type query", async function () {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
-    const predicate1 = Predicate.create("lastName", "startsWith", "D").or("firstName", "startsWith", "A");
+    const pe = Predicate.for(Employee);
+    const predicate1 = pe("lastName", "startsWith", "D").or(pe("firstName", "startsWith", "A"));
 
     let q = EntityQuery
       .from("Employees")
@@ -108,7 +109,8 @@ describe("Query wih noTracking", () => {
   test("query with reattach", async function () {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
-    const predicate1 = Predicate.create("lastName", "startsWith", "D").or("firstName", "startsWith", "A");
+    const pe = Predicate.for(Employee);
+    const predicate1 = pe("lastName", "startsWith", "D").or(pe("firstName", "startsWith", "A"));
 
     const q1 = EntityQuery
       .from("Employees")
@@ -148,7 +150,8 @@ describe("Query wih noTracking", () => {
   test("query with reattach - using em.createEntity", async function () {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
-    const predicate1 = Predicate.create("lastName", "startsWith", "D").or("firstName", "startsWith", "A");
+    const pe = Predicate.for(Employee);
+    const predicate1 = pe("lastName", "startsWith", "D").or(pe("firstName", "startsWith", "A"));
 
     const q = EntityQuery
       .from("Employees")
@@ -187,7 +190,7 @@ describe("Query wih noTracking", () => {
   test("query with expand and reattach ", async function () {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
-    const predicate1 = Predicate.create("firstName", "startsWith", "A");
+    const predicate1 = Predicate.create<Employee>("firstName", "startsWith", "A");
 
     const q = EntityQuery
       .from("Employees")
@@ -234,7 +237,7 @@ describe("Query wih noTracking", () => {
     expect.hasAssertions();
     const ms = await TestFns.initDefaultMetadataStore();
     const em = TestFns.newEntityManager(MetadataStore.importMetadata(ms.exportMetadata()));
-    const predicate1 = Predicate.create("firstName", "startsWith", "A");
+    const predicate1 = Predicate.create<Employee>("firstName", "startsWith", "A");
     const noTrackingFn = function (e: any, entityType: EntityType) {
       return entityType.createEntity(e);
     };

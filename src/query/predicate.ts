@@ -71,6 +71,8 @@ export interface TypedPredicateFactory<T> {
   /** A property, an operator that suits its type, and a matching value. */
   <P extends PropertyPath<T>, O extends FilterOpFor<PropertyValue<T, P>>>(
     property: P, operator: O, value: FilterValueFor<T, PropertyValue<T, P>, O>): Predicate;
+  /** `any` or `all` over a collection, filtered by a Predicate built for the element type. */
+  (collection: CollectionPath<T>, quantifier: QuantifierOp | FilterQueryOp, predicate: Predicate): Predicate;
   /** `any` or `all` over a collection, then a filter on the element type. */
   <P extends CollectionPath<T>,
     P2 extends PropertyPath<CollectionElement<T, P>>,
@@ -137,7 +139,11 @@ export class Predicate {
     property3: string, filterop3: string, value: any): Predicate;
   /** Checks the property path against `T`. The operator and the value are not tied to that
   property - see the note above - so use the object form or {@link Predicate.for} for those. */
-  static create<T = any>(property: PropertyPath<T>, operator: string | FilterQueryOp, value: any): Predicate;
+  static create<T = any>(property: PropertyPath<T> | FunctionExpressionPath,
+    operator: string | FilterQueryOp, value: any): Predicate;
+  /** `any` or `all` over a collection, filtered by a Predicate built for the element type. */
+  static create<T = any>(collection: CollectionPath<T>, quantifier: QuantifierOp | FilterQueryOp,
+    predicate: Predicate): Predicate;
   /** Checks the collection path against `T`. */
   static create<T = any>(collection: CollectionPath<T>, quantifier: QuantifierOp | FilterQueryOp,
     property: string, operator: string | FilterQueryOp, value: any): Predicate;

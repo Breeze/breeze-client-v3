@@ -1,7 +1,7 @@
 import { Entity, EntityQuery, Predicate } from '../../src/breeze';
 import { TestFns, skipDescribeIf } from '../test-fns';
 import { UtilFns } from '../util-fns';
-import { Customer, Employee, Region, registerModelClasses } from '../model';
+import { Customer, Employee, Order, OrderDetail, Region, Territory, registerModelClasses } from '../model';
 
 TestFns.initServerEnv();
 
@@ -48,8 +48,9 @@ describe( "Query Any/All predicates", () => {
       const isOk = orders.some(order => order.freight > maxFreight);
       expect(isOk).toBe(true);
     });
-    const p1 = new Predicate("freight", "<=", maxFreight).or("freight", "==", null);
-    const predicate = new Predicate("orders", "all", p1).not();
+    const po = Predicate.for(Order);
+    const p1 = po("freight", "<=", maxFreight).or(po("freight", "==", null));
+    const predicate = Predicate.create<Employee>("orders", "all", p1).not();
     const query2 = EntityQuery.from(Employee)
       .where(predicate)
       .expand("orders");
@@ -79,8 +80,9 @@ describe( "Query Any/All predicates", () => {
       });
       expect(isOk).toBe(true);
     });
-    const p1 = new Predicate("territoryDescription", "startsWith", "B").not().or("territoryDescription", "==", null);
-    const predicate = new Predicate("territories", "all", p1).not();
+    const pt = Predicate.for(Territory);
+    const p1 = pt("territoryDescription", "startsWith", "B").not().or(pt("territoryDescription", "==", null));
+    const predicate = Predicate.create<Region>("territories", "all", p1).not();
     const query2 = EntityQuery.from(Region)
       .where(predicate)
       .expand("territories");
@@ -113,9 +115,9 @@ describe( "Query Any/All predicates", () => {
   test("all with composite predicates ", async function () {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
-    const p2 = Predicate.create("freight", ">", 10);
-    const p1 = Predicate.create("orders", "all", p2);
-    const p0 = Predicate.create("companyName", "contains", "ar").and(p1);
+    const p2 = Predicate.create<Order>("freight", ">", 10);
+    const p1 = Predicate.create<Customer>("orders", "all", p2);
+    const p0 = Predicate.create<Customer>("companyName", "contains", "ar").and(p1);
     const query = EntityQuery.from(Customer).where(p0).expand("orders");
 
     const qr1 = await em.executeQuery(query);
@@ -136,7 +138,7 @@ describe( "Query Any/All predicates", () => {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
     // customers with no orders
-    const p = Predicate.create("orders", "any", "rowVersion", ">=", 0).not();
+    const p = Predicate.create<Customer>("orders", "any", "rowVersion", ">=", 0).not();
     const query = EntityQuery.from(Customer).where(p).expand("orders");
 
     const data = await em.executeQuery(query);
@@ -154,7 +156,7 @@ describe( "Query Any/All predicates", () => {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
     // customers with no orders
-    const p = Predicate.create("orders", "any", "rowVersion", "!=", null).not();
+    const p = Predicate.create<Customer>("orders", "any", "rowVersion", "!=", null).not();
     const query = EntityQuery.from(Customer).where(p).expand("orders");
 
     const data = await em.executeQuery(query);
@@ -213,7 +215,10 @@ describe( "Query Any/All predicates", () => {
   test("any with composite predicate and expand", async function () {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
-    const p = Predicate.create("freight", ">", 950).and("shipCountry", "startsWith", "G");
+    // Both clauses are checked: chaining through the factory keeps the type, where .and() with
+    // inline arguments would not - and() takes any Predicate and is not itself checked.
+    const po = Predicate.for(Order);
+    const p = po("freight", ">", 950).and(po("shipCountry", "startsWith", "G"));
     const query = EntityQuery.from(Employee)
       .where("orders", "any", p)
       .expand("orders");
@@ -237,8 +242,9 @@ describe( "Query Any/All predicates", () => {
     expect.hasAssertions();
     // different query than one above.
     const em = TestFns.newEntityManager();
-    const p = Predicate.create("orders", "any", "freight", ">", 950)
-      .and("orders", "any", "shipCountry", "startsWith", "G");
+    const pe = Predicate.for(Employee);
+    const p = pe("orders", "any", "freight", ">", 950)
+        .and(pe("orders", "any", "shipCountry", "startsWith", "G"));
     const query = EntityQuery.from(Employee)
       .where(p)
       .expand("orders");
@@ -266,7 +272,8 @@ describe( "Query Any/All predicates", () => {
     const q1 = EntityQuery.from(Customer)
       .where("orders", "any", "orderDetails", "some", "unitPrice", ">", 200);
 
-    const p2 = new Predicate("unitPrice", ">", 200).and("quantity", ">", 50);
+    const pod = Predicate.for(OrderDetail);
+    const p2 = pod("unitPrice", ">", 200).and(pod("quantity", ">", 50));
     const q2 = EntityQuery.from(Customer)
       .where("orders", "some", "orderDetails", "any", p2)
       .expand("orders.orderDetails");
@@ -288,8 +295,9 @@ describe( "Query Any/All predicates", () => {
   test("nested any predicate toString", function () {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
-    const p2 = new Predicate("unitPrice", ">", 200).and("quantity", ">", 50);
-    const p1 = new Predicate("orders", "some", "orderDetails", "any", p2);
+    const pod = Predicate.for(OrderDetail);
+    const p2 = pod("unitPrice", ">", 200).and(pod("quantity", ">", 50));
+    const p1 = Predicate.create<Customer>("orders", "some", "orderDetails", "any", p2);
 
     const q2 = EntityQuery.from(Customer)
       .where("orders", "some", "orderDetails", "any", p2)
@@ -302,6 +310,8 @@ describe( "Query Any/All predicates", () => {
   test("nested any error", function () {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
+    // Left untyped on purpose: the test asserts the *runtime* error for a property that does not
+    // exist, so the name has to reach the server. Typed, XXquantity would not compile.
     const p2 = new Predicate("unitPrice", ">", 200).and("XXquantity", ">", 50);
     const q2 = EntityQuery.from(Customer)
       .where("orders", "some", "orderDetails", "any", p2)

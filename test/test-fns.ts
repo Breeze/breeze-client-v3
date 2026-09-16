@@ -33,6 +33,9 @@ export class TestFns extends UtilFns {
     dummyEmployeeID: 9999 as any,
     chaiProductID: 1 as any,
     alfredsOrderDetailKey: { orderID: 10643, productID: 28 /*R?ssle Sauerkraut*/ }, 
+    // `as const` so these stay string literals rather than widening to `string`. A literal is a
+    // property path the compiler can check; a `string` is not, so it would only ever reach the
+    // unchecked overload.
     keyNames:  {
       order: "orderID",
       customer: "customerID",
@@ -41,7 +44,7 @@ export class TestFns extends UtilFns {
       user: "id",
       supplier: "supplierID",
       region: "regionID"
-    }
+    } as const
   };
 
   static initNonServerEnv() {

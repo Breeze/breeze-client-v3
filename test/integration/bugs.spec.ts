@@ -64,7 +64,7 @@ describe("Old Fixed Bugs", () => {
   test("bug with expand not working with paging or inlinecount", async () => {
 
     const em1 = TestFns.newEntityManager();
-    const predicate = Predicate.create(TestFns.wellKnownData.keyNames.order, "<", 10500);
+    const predicate = Predicate.create<Order>(TestFns.wellKnownData.keyNames.order, "<", 10500);
 
     const query = EntityQuery.from(Order)
       .expand("orderDetails, orderDetails.product")
@@ -213,7 +213,8 @@ describe("Old Fixed Bugs", () => {
   test("bug with nav prop change and expand", async () => {
     const em1 = TestFns.newEntityManager();
     const em2 = TestFns.newEntityManager();
-    const p = Predicate.create("freight", ">", 100).and("customerID", "!=", null);
+    const po = Predicate.for(Order);
+    const p = po("freight", ">", 100).and(po("customerID", "!=", null));
     const query = EntityQuery.from(Order)
       .where(p)
       .orderBy("orderID")
