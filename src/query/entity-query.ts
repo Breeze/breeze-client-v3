@@ -10,6 +10,7 @@ import { EntityManager, QueryResult } from '../manager/entity-manager.js';
 import { MetadataStore, EntityType, NavigationProperty, EntityProperty, entityTypeForCtor } from '../metadata/entity-metadata.js';
 import { QueryOptions, MergeStrategy, FetchStrategy } from './query-options.js';
 import { Predicate } from './predicate.js';
+import type { CollectionElement, CollectionPath, FilterOpFor, FilterValueFor, FunctionExpressionPath, NavigationPath, OrderByPath, PropertyPath, PropertyValue, QuantifierOp } from './property-path.js';
 
 export interface RecursiveArray<T> {
   [i: number]: T | RecursiveArray<T>;
@@ -194,13 +195,43 @@ export class EntityQuery<T = any> {
   }
 
 
+  // The checked forms come first, so they are tried first. They engage only when the query has a
+  // concrete entity type. EntityQuery<T = any> means many queries do not, and for those
+  // PropertyPath<T> is plain `string` and these are no narrower than what was always here.
+  where<P extends PropertyPath<T>, O extends FilterOpFor<PropertyValue<T, P>>>(
+    property: P, operator: O, value: FilterValueFor<T, PropertyValue<T, P>, O>): EntityQuery<T>;
+  where<P extends CollectionPath<T>,
+    P2 extends PropertyPath<CollectionElement<T, P>>,
+    O2 extends FilterOpFor<PropertyValue<CollectionElement<T, P>, P2>>>(
+    collection: P, quantifier: QuantifierOp, property: P2, operator: O2,
+    value: FilterValueFor<CollectionElement<T, P>, PropertyValue<CollectionElement<T, P>, P2>, O2>): EntityQuery<T>;
+  where(collection: CollectionPath<T>, quantifier: QuantifierOp | FilterQueryOp,
+    predicate: Predicate): EntityQuery<T>;
+  where(collection: CollectionPath<T>, quantifier: QuantifierOp | FilterQueryOp,
+    property: string, quantifier2: QuantifierOp | FilterQueryOp,
+    predicate: Predicate): EntityQuery<T>;  // nested any/all over a prebuilt Predicate
+
   where(predicate?: Predicate): EntityQuery<T>;
   where(predicate: Object): EntityQuery<T>;
-  where(property: string, operator: string, value: any): EntityQuery<T>;
-  where(property: string, operator: FilterQueryOp, value: any): EntityQuery<T>;
-  where(property: string, filterop: FilterQueryOp, property2: string, filterop2: FilterQueryOp, value: any): EntityQuery<T>;  // for any/all clauses
-  where(property: string, filterop: string, property2: string, filterop2: string, value: any): EntityQuery<T>;  // for any/all clauses
-  where(property: string, filterop: string, property2: string, filterop2: string, property3: string, filterop3: string, value: any): EntityQuery<T>;  // for any/all clauses
+
+  // Escapes, for what cannot be checked: a property path or an operator that is only known at
+  // run time. Each one takes the unknowable part as a type parameter and demands that it really
+  // be `string` - `string extends P` is true for a variable and false for a literal - so these
+  // accept a computed path while never rescuing a literal the checked forms have rejected.
+  where<O extends string>(property: PropertyPath<T>,
+    operator: string extends O ? O : never, value: any): EntityQuery<T>;
+  where<P extends string>(property: P extends FunctionExpressionPath ? P : (string extends P ? P : never),
+    operator: string | FilterQueryOp, value: any): EntityQuery<T>;
+  where<P extends string>(collection: string extends P ? P : never,
+    quantifier: string | FilterQueryOp, property: string,
+    operator: string | FilterQueryOp, value: any): EntityQuery<T>;  // any/all
+  where<P2 extends string>(collection: CollectionPath<T>, quantifier: string | FilterQueryOp,
+    property: string extends P2 ? P2 : never,
+    operator: string | FilterQueryOp, value: any): EntityQuery<T>;  // any/all
+  where<O2 extends string>(collection: CollectionPath<T>, quantifier: string | FilterQueryOp,
+    property: PropertyPath<CollectionElement<T, CollectionPath<T>>> | string,
+    operator: string extends O2 ? O2 : never, value: any): EntityQuery<T>;  // any/all
+  where(property: string, filterop: string, property2: string, filterop2: string, property3: string, filterop3: string, value: any): EntityQuery<T>;  // nested any/all
   where(anArray: RecursiveArray<string | number | FilterQueryOp | Predicate>): EntityQuery<T>;
   /**
   Returns a new query with an added filter criteria; Can be called multiple times which means to 'and' with any existing
@@ -262,8 +293,14 @@ export class EntityQuery<T = any> {
   }
 
 
-  orderBy(propertyPaths?: string, isDescending?: boolean): EntityQuery<T>;
-  orderBy(propertyPaths: string[], isDescending?: boolean): EntityQuery<T>;
+  orderBy(propertyPaths: OrderByPath<T> | OrderByPath<T>[], isDescending?: boolean): EntityQuery<T>;
+  // Escapes, as on where(): a path only known at run time, and the documented comma-separated
+  // list, which is let through unchecked rather than enumerated - every combination of paths is
+  // not something to ask of a compiler. An array keeps the checking.
+  orderBy<P extends string>(propertyPaths: P extends `${string},${string}` ? P : (string extends P ? P : never),
+    isDescending?: boolean): EntityQuery<T>;
+  orderBy(propertyPaths?: undefined, isDescending?: boolean): EntityQuery<T>;
+  orderBy<P extends string>(propertyPaths: string extends P ? P[] : never, isDescending?: boolean): EntityQuery<T>;
   /**
   Returns a new query that orders the results of the query by property name.  By default sorting occurs is ascending order, but sorting in descending order is supported as well.
   OrderBy clauses may be chained.
@@ -416,6 +453,10 @@ export class EntityQuery<T = any> {
   by a '.' and another navigation property name to enable identifying a multi-level relationship.
   If 'propertyPaths' is either null or omitted then any existing 'expand' clause on the query is removed.
   **/
+  expand(propertyPaths: NavigationPath<T> | NavigationPath<T>[]): EntityQuery<T>;
+  expand<P extends string>(propertyPaths: P extends `${string},${string}` ? P : (string extends P ? P : never)): EntityQuery<T>;
+  expand<P extends string>(propertyPaths: string extends P ? P[] : never): EntityQuery<T>;
+  expand(propertyPaths?: undefined): EntityQuery<T>;
   expand(propertyPaths?: string | string[]) {
     let expandClause = propertyPaths == null ? null : new ExpandClause(normalizePropertyPaths(propertyPaths));
     return clone(this, "expandClause", expandClause);

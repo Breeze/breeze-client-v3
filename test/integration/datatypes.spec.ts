@@ -596,7 +596,11 @@ describe("Unusual Datatypes", () => {
     const em = TestFns.newEntityManager();
     const discPropName = "discontinued";
     const query = EntityQuery.from(Product)
-      .where(discPropName, "==", true)
+      // The live test server calls this property `discontinued`; the captured metadata that
+      // test/model was generated from calls it `isDiscontinued`. The query is right and the
+      // generated class is stale, so the path is cast rather than corrected here - see
+      // docs/guide/typed-queries.md, "The types are only as good as the model".
+      .where(discPropName as any, "==", true)
       .take(10);
 
     const qr1 = await em.executeQuery(query);
@@ -610,7 +614,11 @@ describe("Unusual Datatypes", () => {
     const em = TestFns.newEntityManager();
     const discPropName = "discontinued";
     const query = EntityQuery.from(Product)
-      .where(discPropName, "==", null)
+      // The live test server calls this property `discontinued`; the captured metadata that
+      // test/model was generated from calls it `isDiscontinued`. The query is right and the
+      // generated class is stale, so the path is cast rather than corrected here - see
+      // docs/guide/typed-queries.md, "The types are only as good as the model".
+      .where(discPropName as any, "==", null)
       .take(30);
 
     const qr1 = await em.executeQuery(query);

@@ -4,6 +4,7 @@ import { QueryOp } from './entity-query.js';
 import { DataType  } from '../metadata/data-type.js';
 import { EntityAspect, Entity } from '../entity/entity-aspect.js';
 import { LocalQueryComparisonOptions } from '../metadata/local-query-comparison-options.js';
+import type { CollectionElement, CollectionPath, FilterOpFor, FilterValueFor, PropertyPath, PropertyValue, QuantifierOp } from './property-path.js';
 
 export interface Op {
   key: string;
@@ -52,6 +53,24 @@ export interface ExpressionContext {
 Used to define a 'where' predicate for an {@link EntityQuery}.  Predicates are immutable, which means that any
 method that would modify a Predicate actually returns a new Predicate.
 **/
+/**
+Builds {@link Predicate}s checked against one entity type - what {@link Predicate.for} returns.
+
+The predicates it produces are ordinary Predicates, so combining them with `and`, `or` and `not`
+works as it always has; those combinators take any Predicate and are not themselves checked.
+*/
+export interface TypedPredicateFactory<T> {
+  /** A property, an operator that suits its type, and a matching value. */
+  <P extends PropertyPath<T>, O extends FilterOpFor<PropertyValue<T, P>>>(
+    property: P, operator: O, value: FilterValueFor<T, PropertyValue<T, P>, O>): Predicate;
+  /** `any` or `all` over a collection, then a filter on the element type. */
+  <P extends CollectionPath<T>,
+    P2 extends PropertyPath<CollectionElement<T, P>>,
+    O2 extends FilterOpFor<PropertyValue<CollectionElement<T, P>, P2>>>(
+    collection: P, quantifier: QuantifierOp, property: P2, operator: O2,
+    value: FilterValueFor<CollectionElement<T, P>, PropertyValue<CollectionElement<T, P>, P2>, O2>): Predicate;
+}
+
 export class Predicate {
   declare op: Op;
   /** @hidden @internal */
@@ -197,6 +216,26 @@ export class Predicate {
   **/
   static not(pred: Predicate) {
     return pred.not();
+  }
+
+  /**
+  Builds Predicates checked against one entity type.
+  >      const p = Predicate.for(Customer);
+  >      const pred = p("companyName", "startsWith", "C").and(p("city", "eq", "Vienna"));
+
+  A standalone Predicate has no query to take an entity type from, so on its own
+  {@link Predicate.create} cannot check anything. Naming the type supplies what is missing, the
+  same way {@link EntityQuery.from} does for a query - and from a constructor rather than a type
+  argument, so the type is written once.
+
+  The constructor is read for its type only; nothing about it is kept, and the predicates are
+  ordinary Predicates. It does not have to be registered with a MetadataStore for this - though
+  if it is not, nothing validates the path against the metadata either, exactly as before.
+  @param ctor - The entity class to check property paths against.
+  @returns A factory that builds Predicates for that type.
+  **/
+  static for<U extends Entity>(ctor: new () => U): TypedPredicateFactory<U> {
+    return ((...args: any[]) => Predicate.create(...args as [any])) as TypedPredicateFactory<U>;
   }
 
   // TODO: determine if/where this is used.

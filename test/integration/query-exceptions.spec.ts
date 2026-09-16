@@ -43,6 +43,9 @@ describe("Entity Query Exceptions", () => {
     expect.hasAssertions();
     try {
       const query = EntityQuery.from(Customer)
+        // @ts-expect-error - the point of the test. The name is wrong, and a query built from a
+        // constructor now catches that at compile time as well. The runtime assertion below still
+        // matters: it is what a plain-JavaScript caller, or a query built from a string, gets.
         .where("companyName", "startsXWith", "C");
       throw new Error("shouldn't get here");
     } catch (error) {
@@ -55,6 +58,9 @@ describe("Entity Query Exceptions", () => {
     expect.hasAssertions();
     const em = TestFns.newEntityManager();
     const query = EntityQuery.from(Customer)
+      // @ts-expect-error - the point of the test. The name is wrong, and a query built from a
+      // constructor now catches that at compile time as well. The runtime assertion below still
+      // matters: it is what a plain-JavaScript caller, or a query built from a string, gets.
       .where("badCompanyName", "startsWith", "C");
     try {
       await em.executeQuery(query);
@@ -73,6 +79,9 @@ describe("Entity Query Exceptions", () => {
     const em = TestFns.newEntityManager();
     const query = EntityQuery.from(Customer)
       .where("companyName", FilterQueryOp.StartsWith, "C")
+      // @ts-expect-error - the point of the test. The name is wrong, and a query built from a
+      // constructor now catches that at compile time as well. The runtime assertion below still
+      // matters: it is what a plain-JavaScript caller, or a query built from a string, gets.
       .orderBy("badCompanyName");
     try {
       await em.executeQuery(query);
@@ -88,6 +97,9 @@ describe("Entity Query Exceptions", () => {
     expect.assertions(1);
     const em1 = TestFns.newEntityManager();
     const query = EntityQuery.from(Employee)
+      // @ts-expect-error - the point of the test. The name is wrong, and a query built from a
+      // constructor now catches that at compile time as well. The runtime assertion below still
+      // matters: it is what a plain-JavaScript caller, or a query built from a string, gets.
       .where("badPropName", "==", "7");
     try {
       const qr = await em1.executeQuery(query);

@@ -53,7 +53,9 @@ describe("Query Misc", () => {
   test("enums with in", async () => {
     expect.hasAssertions();
     const em1 = TestFns.newEntityManager();
-    const query = breeze.EntityQuery.from(Role).where("roleType", "in", [0,1,null]);
+    // roleType is an enum, which the generator writes as `string` because that is its dataType -
+    // but the server takes the numeric ordinal too, and nothing in the TypeScript type says so.
+    const query = breeze.EntityQuery.from(Role).where("roleType", "in", [0,1,null] as any);
     const qr1 = await em1.executeQuery(query);
     expect(qr1.results.length).toBeGreaterThan(0);
     const ents = em1.getEntities();

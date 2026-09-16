@@ -214,6 +214,11 @@ export type {
 } from './manager/entity-manager.js';
 export type { LocalQueryComparisonOptionsConfig } from './metadata/local-query-comparison-options.js';
 export type { NamingConventionConfig } from './metadata/naming-convention.js';
+export type {
+  CollectionElement, CollectionPath, FilterOpFor, FilterValueExpression, FilterValueFor, FunctionExpressionPath,
+  NavigationPath, OrderByPath, PropertyPath, PropertyValue, QuantifierOp,
+} from './query/property-path.js';
+export type { TypedPredicateFactory } from './query/predicate.js';
 export type { QueryOptionsConfig } from './query/query-options.js';
 export type { SaveOptionsConfig } from './manager/save-options.js';
 export type { ValidationContext, ValidationFn, ValidationMessageContext } from './validation/validate.js';
