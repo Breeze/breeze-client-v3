@@ -130,6 +130,18 @@ overloads but returned `undefined` when `_loadedNps` was unset, and again when t
 entity. TypeScript does not check an implementation signature against its own overloads, so callers
 were told `boolean` and could be handed `undefined`. Fixed.
 
+### Blocked on the server
+
+Five tests were removed in `53162ca` because this host cannot run them, and they are tracked in
+**breeze-server-v3 STATUS.md, "Client tests blocked on server work"** with what each needs. In
+short: server-side entity validation (three tests), query-string binding for an array of complex
+objects, and whether an unknown query parameter should be an error. Restore them from `53162ca~1`
+when the server side lands.
+
+Two others that looked blocked were not, and are covered now: `EntityQuery.executeCount` needed
+nothing `inlineCount` does not already do, and a null `withParameters` value works - that test had
+a stale `TODO` skip on it.
+
 ### Still uncovered
 
 | Member | Why it is not covered here |

@@ -167,8 +167,7 @@ describe("Queries with named endpoints on the server", function () {
     expect(r.indexOf(r3[0]) >= 0).toBeTrue();
   });
 
-  // TODO: need to review this one later
-  test.skip(
+  test(
     "with parameter - null", async function () {
       expect.hasAssertions();
       const em = TestFns.newEntityManager();

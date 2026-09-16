@@ -367,4 +367,25 @@ describe("Query Misc", () => {
 
   });
 
+
+  // executeCount had no test at all - it is take(0) + inlineCount under the covers, so it needs
+  // nothing of the server that inlineCount does not already provide.
+  test("executeCount returns the number of matches, ignoring take", async () => {
+    const em = TestFns.newEntityManager();
+    const q = EntityQuery.from(Customer).where("companyName", "startsWith", "C");
+
+    const count = await q.using(em).executeCount();
+    expect(count).toBeGreaterThan(0);
+
+    // the same query, fetched: as many rows as executeCount promised
+    const qr = await q.using(em).execute();
+    expect(qr.results.length).toBe(count);
+
+    // and take() does not change the count
+    expect(await q.take(1).using(em).executeCount()).toBe(count);
+  });
+
+  test("executeCount needs a manager", async () => {
+    await expect(EntityQuery.from(Customer).executeCount()).rejects.toThrow(/EntityManager/);
+  });
 });
