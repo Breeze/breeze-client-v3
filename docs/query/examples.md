@@ -35,6 +35,10 @@ try {
 
 ## Filtering
 
+Each of these can also be written as an object. The two forms build the identical query - see
+[the two forms side by side](/query/predicates#the-two-forms-side-by-side) - so the object form is
+shown alongside wherever it reads differently.
+
 ### Simple conditions
 
 ```ts
@@ -46,6 +50,9 @@ EntityQuery.from(Customer)
 EntityQuery.from(Customer)
   .where('companyName', FilterQueryOp.StartsWith, 'A');
 
+// ...or as an object
+EntityQuery.from(Customer).where({ companyName: { startsWith: 'A' } });
+
 // Orders with freight over $100
 EntityQuery.from(Order)
   .where('freight', '>', 100);
@@ -53,6 +60,9 @@ EntityQuery.from(Order)
 // ...the same, with the FilterQueryOp enum
 EntityQuery.from(Order)
   .where('freight', FilterQueryOp.GreaterThan, 100);
+
+// ...or as an object
+EntityQuery.from(Order).where({ freight: { gt: 100 } });
 
 // Orders placed after February 1, 1998 (JavaScript months start at 0)
 EntityQuery.from(Order)
@@ -224,7 +234,7 @@ EntityQuery.from(Employee).where({
 });
 ```
 
-The full syntax is in [Where clauses as JSON](/query/predicates#where-clauses-as-json).
+The full syntax is in [The object form in full](/query/predicates#the-object-form-in-full).
 
 ## Sorting
 

@@ -1,7 +1,8 @@
 # Where clauses
 
-`where` filters a query. You can give it a property, an operator and a value; a `Predicate`
-you built earlier; or a plain JSON object. All three produce the same thing.
+`where` filters a query. You can give it a property, an operator and a value; a `Predicate` you
+built earlier; or an object. They are interchangeable and build the same query - see
+[the two forms side by side](#the-two-forms-side-by-side).
 
 ```ts
 import { EntityQuery, FilterQueryOp, Predicate } from 'breeze-client';
@@ -10,7 +11,7 @@ import { Customer, Order } from './model';   // your generated classes
 EntityQuery.from(Customer).where('companyName', 'startsWith', 'C');
 EntityQuery.from(Customer).where('companyName', FilterQueryOp.StartsWith, 'C');
 EntityQuery.from(Customer).where(Predicate.create<Customer>('companyName', 'startsWith', 'C'));
-EntityQuery.from(Customer).where({ companyName: { startsWith: 'C' } });
+EntityQuery.from(Customer).where({ companyName: { startsWith: 'C' } });   // the object form
 ```
 
 ## Simple conditions
@@ -74,6 +75,46 @@ For dates, pass a `Date`. If you pass a string and Breeze knows the property is 
 parses the string in the client's local time zone. If it doesn't know the type, it sends
 the string as is. See [From resource name to EntityType](/query/#from-resource-name-to-entitytype).
 [Date and time](/guide/date-and-time) covers time zones in general.
+
+## The two forms, side by side
+
+Every filter on this page can be written either way, and the two build the *identical* query —
+`test/unit/where-forms.spec.ts` in the Breeze repo asserts it for every row below.
+
+| Three arguments | Object form |
+|---|---|
+| `where('freight', '>', 100)` | `where({ freight: { gt: 100 } })` |
+| `where('shipCity', 'startsWith', 'Ber')` | `where({ shipCity: { startsWith: 'Ber' } })` |
+| `where('shipCountry', '==', 'Germany')` | `where({ shipCountry: 'Germany' })` |
+| `where('shippedDate', '==', null)` | `where({ shippedDate: null })` |
+| `where('shippedDate', '!=', null)` | `where({ shippedDate: { ne: null } })` |
+| `where('country', 'in', ['Belgium', 'Germany'])` | `where({ country: { in: ['Belgium', 'Germany'] } })` |
+| `where('customer.companyName', 'startsWith', 'A')` | `where({ 'customer.companyName': { startsWith: 'A' } })` |
+| `where('freight', '>', 100).where('shipCountry', '==', 'Germany')` | `where({ freight: { gt: 100 }, shipCountry: 'Germany' })` |
+| `where(p('freight', '>', 100).and(p('freight', '<', 200)))` | `where({ freight: { gt: 100, lt: 200 } })` |
+| `where(Predicate.or([p('city', '==', 'London'), p('city', '==', 'Berlin')]))` | `where({ or: [{ city: 'London' }, { city: 'Berlin' }] })` |
+| `where('orders', 'any', 'freight', '>', 950)` | `where({ orders: { any: { freight: { gt: 950 } } } })` |
+| `where('orders', 'all', 'shippedDate', '!=', null)` | `where({ orders: { all: { shippedDate: { ne: null } } } })` |
+| `where(p('orders', 'any', 'orderID', '!=', null).not())` | `where({ not: { orders: { any: { orderID: { ne: null } } } } })` |
+| `where('requiredDate', '<', 'shippedDate')` | `where({ requiredDate: { lt: 'shippedDate' } })` |
+| `where('toLower(companyName)', 'startsWith', 'c')` | `where({ 'toLower(companyName)': { startsWith: 'c' } })` |
+
+`p` is a `Predicate.for(Order)` factory — see [Predicates](#predicates).
+
+Pick whichever reads better. The object form is usually shorter once there is more than one
+condition, it nests `and`/`or`/`any`/`all` without a helper, and it is the one that survives being
+stored as data. It also produces the **better compile error** when a query is built from a
+constructor: a misspelled key is an ordinary excess-property error, so TypeScript suggests the
+correction, which the three-argument form cannot do.
+
+```
+Object literal may only specify known properties, but 'compnyName' does not exist
+in type '{ … }'. Did you mean to write 'companyName'?
+```
+
+See [Typed queries](/guide/typed-queries) for the details, and
+[The object form in full](#the-object-form-in-full) below for the whole grammar.
+
 
 ## Comparing two properties
 
@@ -254,7 +295,7 @@ Breeze and the Breeze .NET server both support:
 Function names are case-insensitive. An unknown function throws `Unknown function: ...`.
 Other server back ends may support a different set.
 
-## Where clauses as JSON
+## The object form in full
 
 Anywhere you can pass a `Predicate`, you can pass a plain object instead:
 `query.where(json)`, `Predicate.create(json)` and `new Predicate(json)`. This is useful when

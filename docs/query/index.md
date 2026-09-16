@@ -40,7 +40,8 @@ expand, the cache - start with [Querying](/guide/querying) in the guide.
 The rest of this section covers:
 
 - [Query examples](/query/examples) — a catalogue of common queries
-- [Where clauses](/query/predicates) — filtering, `Predicate`, operators, any/all, JSON syntax
+- [Where clauses](/query/predicates) — filtering, operators, `Predicate`, any/all, and the
+  object form, with the two shown side by side
 - [Ordering, paging and expand](/query/shaping) — `orderBy`, `skip`/`take`, `inlineCount`,
   `expand`, `withParameters`, `noTracking` and query options
 - [Projections](/query/projections) — `select`

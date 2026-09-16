@@ -44,13 +44,21 @@ const germany = recent.where('shipCountry', '==', 'Germany');
 
 ## Filtering
 
-`where` takes a property, an operator and a value:
+`where` takes a property, an operator and a value - or an object saying the same thing. The two
+are interchangeable, so each pair below builds the identical query:
 
 ```ts
 EntityQuery.from(Order).where('freight', '>', 100);
+EntityQuery.from(Order).where({ freight: { gt: 100 } });
+
 EntityQuery.from(Order).where('shipCity', 'startsWith', 'Ber');
+EntityQuery.from(Order).where({ shipCity: { startsWith: 'Ber' } });
+
 EntityQuery.from(Order).where('shippedDate', '==', null);
+EntityQuery.from(Order).where({ shippedDate: null });          // no operator means equals
+
 EntityQuery.from(Customer).where('country', 'in', ['Belgium', 'Germany']);
+EntityQuery.from(Customer).where({ country: { in: ['Belgium', 'Germany'] } });
 ```
 
 Operators can be written as any alias Breeze accepts — `'gt'`, `'>'` and `'greaterthan'` are the
@@ -67,6 +75,7 @@ A path may cross a navigation property, which filters on related data without fe
 
 ```ts
 EntityQuery.from(Order).where('customer.companyName', 'startsWith', 'A');
+EntityQuery.from(Order).where({ 'customer.companyName': { startsWith: 'A' } });
 EntityQuery.from(Product).where('supplier.location.city', '==', 'Berlin');
 ```
 
@@ -78,6 +87,9 @@ Calling `where` twice ands the conditions together:
 EntityQuery.from(Order)
   .where('freight', '>', 100)
   .where('shipCountry', '==', 'Germany');
+
+// or in one object, which means the same thing
+EntityQuery.from(Order).where({ freight: { gt: 100 }, shipCountry: 'Germany' });
 ```
 
 For anything more than that, build a `Predicate`. Naming the entity type checks it, and a
@@ -105,12 +117,19 @@ const filters = [
 EntityQuery.from(Customer).where(Predicate.and(filters));
 ```
 
-There is also an object form, which is shorter and gives the best error messages:
+The object form nests without a helper, which is where it earns its keep:
 
 ```ts
 EntityQuery.from(Customer).where({ city: 'London', country: 'UK' });   // keys are and-ed
-EntityQuery.from(Order).where({ freight: { gt: 100 } });
+EntityQuery.from(Order).where({ freight: { gt: 100, lt: 200 } });      // a range on one property
+EntityQuery.from(Customer).where({ not: { country: 'USA' } });
 EntityQuery.from(Customer).where({ or: [{ city: 'London' }, { city: 'Berlin' }] });
+
+// and they nest, which is the awkward case for the fluent form
+EntityQuery.from(Customer).where({
+  country: 'Germany',
+  orders: { any: { freight: { gt: 500 } } },
+});
 ```
 
 ### Filtering on a collection
@@ -120,13 +139,16 @@ EntityQuery.from(Customer).where({ or: [{ city: 'London' }, { city: 'Berlin' }] 
 ```ts
 // Customers with at least one order over $950
 EntityQuery.from(Customer).where('orders', 'any', 'freight', '>', 950);
+EntityQuery.from(Customer).where({ orders: { any: { freight: { gt: 950 } } } });
 
 // Customers all of whose orders shipped
 EntityQuery.from(Customer).where('orders', 'all', 'shippedDate', '!=', null);
+EntityQuery.from(Customer).where({ orders: { all: { shippedDate: { ne: null } } } });
 
 // Customers with no orders at all
 EntityQuery.from(Customer).where(
   Predicate.create<Customer>('orders', 'any', 'orderID', '!=', null).not());
+EntityQuery.from(Customer).where({ not: { orders: { any: { orderID: { ne: null } } } } });
 ```
 
 [Where clauses](/query/predicates) covers the rest: comparing two properties, query functions like
