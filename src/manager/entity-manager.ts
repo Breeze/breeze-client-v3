@@ -373,7 +373,9 @@ export class EntityManager {
   /** @hidden @internal */
   _pendingPubs?: any[]; // TODO: refine later
   /** @hidden @internal */
-  _hasChangesAction?: (() => boolean); // TODO refine later
+  // Deferred to the end of a load: recomputing hasChanges scans the cache, so it is done once
+  // when the load finishes rather than per entity. See _notifyStateChange.
+  _hasChangesAction?: (() => void);
   /** @hidden @internal */
   _hasChanges: boolean;
   /** @hidden @internal */
@@ -1579,16 +1581,19 @@ export class EntityManager {
     if (needsSave) {
       if (!this._hasChanges) this._setHasChanges(true);
     } else {
-      // called when rejecting a change or merging an unchanged record.
-      // NOTE: this can be slow with lots of entities in the cache.
-      // so defer it during a query/import or save and call it once when complete ( if needed).
+      // Called when rejecting a change or merging an unchanged record: the manager may have just
+      // become clean, and finding out means _hasChangesCore scanning the whole cache. During a
+      // query or import that would run once per entity, so it is deferred to the end of the load
+      // and done once.
+      //
+      // Only that is deferred. The event below belongs to THIS entity and is published now:
+      // deferring it dropped it, because the deferred closure is built once (note the `||`) and
+      // so captured the first entity's arguments and published for that one alone. Every entity
+      // after the first reported nothing - and only when the manager happened to already have
+      // changes, since otherwise this branch is skipped entirely.
       if (this._hasChanges) {
         if (this.isLoading) {
-          this._hasChangesAction = this._hasChangesAction || function () {
-            this._setHasChanges(null);
-            this.entityChanged.publish(ecArgs);
-          }.bind(this);
-          return;
+          this._hasChangesAction = this._hasChangesAction || (() => this._setHasChanges(null));
         } else {
           this._setHasChanges();
         }
@@ -1598,7 +1603,8 @@ export class EntityManager {
   }
 
   /** @hidden @internal */
-  _setHasChanges(hasChanges?: boolean) {
+  /** `null` means recompute it from the cache, which is the expensive case. */
+  _setHasChanges(hasChanges?: boolean | null) {
     if (hasChanges == null) hasChanges = this._hasChangesCore();
     let hadChanges = this._hasChanges;
     this._hasChanges = hasChanges;

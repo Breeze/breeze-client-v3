@@ -133,6 +133,24 @@ or a grid cell renderer — none of that needs avoiding.
 The collections are real arrays, so `forEach`, `map`, indexing and spreading are the engine's
 native operations rather than anything Breeze interposes on.
 
+## Events cost almost nothing when nobody is listening
+
+Every entity carries two events — `propertyChanged` and `validationErrorsChanged` — and the
+manager carries three more. On a property set, subscribers account for about 66 ns of ~1.2 µs;
+publishing to an event with no subscribers costs around 30 ns, and the hot path skips even that.
+
+Subscribe freely. What is worth knowing is the shape of what you get:
+
+- **`propertyChanged` and `entityChanged`/`PropertyChange` are one-to-one.** No event is published
+  twice for one change.
+- **Relating two entities changes two properties**, the navigation property and the foreign key,
+  so it publishes two of each — whichever of the three ways you write it.
+- **The entity's own event comes before the manager's**, for both property changes and validation.
+- **Setting a property to the value it already has publishes nothing.**
+
+An event object is 40 bytes, so the two on each entity are a negligible part of the ~2.6 KB a
+cached entity occupies.
+
 ## Bundle size
 
 The package is side-effect free apart from the entity-graph mixin, so a bundler drops what you

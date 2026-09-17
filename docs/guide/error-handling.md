@@ -203,6 +203,36 @@ Throwing from your `fetch` rejects the Breeze call, with `status === 0` and your
 Returning a non-OK `Response` goes down the normal path, so Breeze parses the body and builds the
 usual error.
 
+## Errors thrown inside an event subscriber
+
+Breeze publishes to subscribers independently: one that throws must not stop the rest from being
+notified, so an exception in a handler is caught rather than propagated.
+
+It is no longer discarded, though. Anything nothing else handles goes to
+`BreezeEvent.unhandledErrorCallback`, which logs to `console.error`:
+
+```
+breeze: unable to publish on topic: propertyChanged threw and nothing handled it. Error: ...
+```
+
+Point it at your own logger, or silence it:
+
+```ts
+import { BreezeEvent } from 'breeze-client';
+
+BreezeEvent.unhandledErrorCallback = e => myLogger.error('breeze event handler', e);
+BreezeEvent.unhandledErrorCallback = null;   // back to saying nothing
+```
+
+::: warning This is new in 3.0, and it is worth leaving on
+Before 3.0 these were swallowed in silence. The symptom was an event that appeared never to have
+been published — a subscriber that threw on its first line simply did nothing, with no trace
+anywhere. If a handler has been quietly failing, turning this on is how you find out.
+:::
+
+A callback passed to `publish` still wins over the default, so a caller that wants to handle its
+own publication errors is unaffected.
+
 ## Concurrency conflicts
 
 An optimistic concurrency conflict — someone else changed or deleted the row after you read it —

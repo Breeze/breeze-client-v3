@@ -21,9 +21,20 @@ function publishCore<T>(that: BreezeEvent<T>, data: T, errorCallback?: (e: Error
   });
 }
 
+/**
+ * Where a subscriber's exception goes when neither the `publish` call nor the event itself
+ * supplies an error callback.
+ *
+ * It used to go nowhere at all. That is the worst thing it could do: a bug in a handler leaves no
+ * trace, and the symptom is an event that looks as though it was never published. Reporting it
+ * costs nothing on the path that matters, because it only runs when a subscriber has thrown.
+ *
+ * It is still not rethrown. Subscribers are independent, and one that fails must not stop the
+ * others from being notified.
+ */
 function fallbackErrorHandler(e: Error) {
-  // TODO: maybe log this
-  // for now do nothing;
+  const handler = BreezeEvent.unhandledErrorCallback;
+  if (handler) handler(e);
 }
 
 
@@ -42,15 +53,35 @@ export class BreezeEvent<T> {
   static __eventNameMap = new Set<string>();
   /** @hidden @internal */
   static __nextUnsubKey = 1;
+
+  /**
+   * Called with any exception a subscriber throws that nothing else has handled - that is, when
+   * neither `publish` nor the event was given an error callback.
+   *
+   * It logs to `console.error` by default. Set your own to route it into a logger, or `null` to
+   * go back to discarding these silently (which is what Breeze did before 3.0, and why handler
+   * bugs were so hard to find).
+   *
+   * >     BreezeEvent.unhandledErrorCallback = e => myLogger.error(e);
+   * >     BreezeEvent.unhandledErrorCallback = null;   // say nothing
+   */
+  static unhandledErrorCallback: ((e: Error) => void) | null = (e: Error) => {
+    // `context` is set by publishCore and names the event.
+    const where = (e as any).context || 'an event subscriber';
+    console.error(`breeze: ${where} threw and nothing handled it.`, e);
+  };
   /** The name of this Event */
   name: string;
   /** The object doing the publication. i.e. the object to which this event is attached. */
   publisher: Object;
 
+  // `declare`, so that neither becomes an own property set to undefined on every instance. An
+  // event is constructed twice for every entity in the cache and most are never subscribed to,
+  // so the slots would be pure weight. Both are read defensively below.
   /** @hidden @internal */
-  _subscribers: Subscription[];
+  declare _subscribers: Subscription[];
   /** @hidden @internal */
-  _defaultErrorCallback: (e: Error) => any;
+  declare _defaultErrorCallback: (e: Error) => any;
 
   /**
    * Whether anything is listening. Lets a caller skip building event arguments it would only
@@ -174,7 +205,9 @@ export class BreezeEvent<T> {
   @returns Whether unsubscription occured. This will return false if already unsubscribed or if the key simply
   cannot be found.
   **/
-  unsubscribe = function (unsubKey: number) {
+  // A method, not a field holding a function: written as a field, every event carried its own
+  // copy of it rather than sharing one on the prototype.
+  unsubscribe(unsubKey: number) {
     if (!this._subscribers) return false;
     let subs = this._subscribers;
     let ix = core.arrayIndexOf(subs, function (s) {
@@ -183,13 +216,13 @@ export class BreezeEvent<T> {
     if (ix !== -1) {
       subs.splice(ix, 1);
       if (subs.length === 0) {
-        this._subscribers = null;
+        this._subscribers = <any>null;
       }
       return true;
     } else {
       return false;
     }
-  };
+  }
 
   /** remove all subscribers */
   clear() {
