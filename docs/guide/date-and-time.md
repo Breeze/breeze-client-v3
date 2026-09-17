@@ -2,7 +2,8 @@
 
 JavaScript has one date type. A `Date` is an instant in time, and it displays in the local
 time zone. Servers have several date types. This page covers how Breeze maps them, where
-time zones come in, and the `Date` pitfalls that affect change tracking.
+time zones come in, the `Date` pitfalls that affect change tracking, and how to hold dates as
+something other than a `Date` — a Luxon `DateTime`, say — in [Using another date library](#using-another-date-library).
 
 ## Date and time data types
 
@@ -164,3 +165,159 @@ read as local time, following `Date.parse`'s rules rather than `parseDateFromSer
 - Months are zero-based: `new Date(2024, 0, 1)` is 1 January.
 - `getDate()` is the day of the month. `getDay()` is the day of the week.
 - `Date()` without `new` returns a string, not a `Date`.
+
+---
+
+## Using another date library
+
+Breeze holds `DateTime`, `DateTimeOffset` and `DateOnly` values as JavaScript `Date` objects.
+To hold something else instead — a Luxon `DateTime`, a `Temporal.Instant`, a `UTCDate` from
+`date-fns` — you do not subclass anything or write an adapter. You replace a fixed set of hooks
+on the `DataType`, and Breeze uses your type everywhere it would have used a `Date`.
+
+The whole list is below. It is short, but leaving one out is the usual reason a swap half-works,
+and one of them fails *silently*. Each hook is pinned by a test in
+`test/unit/date-shim.spec.ts`; if Breeze grows another one, that file fails.
+
+### The hooks
+
+Set these once at startup, before importing metadata or creating an `EntityManager`.
+`DataType.DateTime` and the rest are global singletons, so this affects every `MetadataStore` in
+the application.
+
+| Hook | When Breeze calls it | What it must do |
+|---|---|---|
+| `DataType.<T>.parseRawValue(val)` | materializing a query result | turn the server's string into your type |
+| `DataType.<T>.parse(source, sourceTypeName)` | assigning a value to a property | convert a string or number; pass your type through |
+| `DataType.<T>.normalize(value)` | **every** change-tracking comparison, and local queries | return a primitive that compares with `===` |
+| `DataType.<T>.defaultValue` | a new entity's non-nullable property, when the metadata names no default | a value of your type |
+| `DataType.<T>.validatorCtor` | building a type in code rather than importing it | a `Validator` that accepts your type |
+| `Validator.registerFactory(fn, 'date')` | `importMetadata`, for each `{ "name": "date" }` in the metadata | as above |
+| `yourType.toJSON()` | saving, and serializing a query | an ISO 8601 string |
+| `DataType.toDateOnlyString(val)` | saving or querying a `DateOnly` | a `YYYY-MM-DD` string |
+
+`<T>` is each of `DataType.DateTime` and `DataType.DateTimeOffset`, plus `DataType.DateOnly` if
+you use it.
+
+### With Luxon
+
+Luxon needs less than most, because `DateTime.toJSON()` already returns ISO 8601 — which is what
+`JSON.stringify` calls when Breeze serializes a save or a query. The outbound half is free.
+
+```ts
+import { DataType, Validator } from 'breeze-client';
+import { DateTime } from 'luxon';
+
+const isLuxon = (v: unknown): v is DateTime => DateTime.isDateTime(v);
+
+// Accepts a Luxon DateTime where the stock 'date' validator accepts only a Date.
+const luxonDateValidator = (context?: any) => new Validator(
+  'date',
+  (v: any) => v == null || isLuxon(v) || (v instanceof Date && !isNaN(v.getTime())),
+  context);
+
+// Metadata names its validators - { "name": "date" } - and importMetadata resolves each name
+// through this registry. It has to be registered BEFORE the metadata is imported.
+Validator.registerFactory(luxonDateValidator, 'date');
+
+for (const dt of [DataType.DateTime, DataType.DateTimeOffset]) {
+  // Server to client. Going through parseDateFromServer rather than DateTime.fromISO is what
+  // keeps the rules above: Luxon would read an offset-less string as local time.
+  dt.parseRawValue = (val: any) =>
+    isLuxon(val) ? val : DateTime.fromJSDate(DataType.parseDateFromServer(val));
+
+  // Assignment. A string or a number is converted; anything else is passed through.
+  dt.parse = (source: any, sourceTypeName: string) =>
+    sourceTypeName === 'string' ? DateTime.fromISO(source)
+      : sourceTypeName === 'number' ? DateTime.fromMillis(source)
+        : source;
+
+  // Comparison. See the warning below.
+  dt.normalize = (value: any) => isLuxon(value) ? value.toMillis() : value;
+
+  dt.defaultValue = DateTime.fromMillis(Date.UTC(1900, 0, 1));
+  dt.validatorCtor = luxonDateValidator;
+}
+```
+
+That is the whole shim. Queries materialize Luxon objects, assignments accept them, change
+tracking works, and a save sends the ISO string the server expects.
+
+### `normalize` is the one that fails silently
+
+::: danger Get `normalize` wrong and nothing reports it
+`normalize` is how Breeze decides whether an assignment changed anything. The stock one for
+`DateTime` is:
+
+```ts
+value => value && value.getTime && value.getTime()
+```
+
+A Luxon `DateTime` has no `getTime`, so that returns `undefined` for **every** value. Both sides
+of every comparison are then `undefined`, so every assignment looks like a no-op: the entity
+stays `Unchanged`, `hasChanges()` stays `false`, and the save sends nothing. No error is raised
+anywhere.
+
+Local queries compare with `normalize` too, so a `where` on a date silently matches nothing.
+:::
+
+`normalize` runs on every property assignment, so keep it cheap — `toMillis()` is fine, building
+an intermediate object is not.
+
+### Validators have to be registered first
+
+Imported metadata names its validators rather than carrying them, so `importMetadata` looks each
+name up in the registry and instantiates it *then*. Registering your `date` factory after a
+`MetadataStore` has imported metadata leaves that store with the stock validator, and the first
+save of a changed date rejects with:
+
+```
+Client side validation errors encountered - see the entityErrors collection on this object for more detail
+```
+
+This one at least fails loudly, and at save time rather than on assignment.
+
+### Predicates take a `Date`
+
+Predicate values are not run through `DataType.parse`. Breeze decides whether an object is a
+literal by looking for `toISOString`, which a `Date` has and a Luxon `DateTime` does not:
+
+```ts
+// throws "Unable to resolve an expression for: ..." when the query runs
+EntityQuery.from('Orders').where('orderDate', '>', cutoff);
+
+// pass a Date
+EntityQuery.from('Orders').where('orderDate', '>', cutoff.toJSDate());
+```
+
+The predicate is not resolved until the query runs, so the error appears at `executeQuery` or
+`executeQueryLocally`, not at `where`.
+
+### `DateOnly`, `Time` and `TimeOnly`
+
+`DateOnly` is the one date type Breeze serializes by hand instead of leaving to
+`JSON.stringify`, because an ISO instant would carry a time the server rejects. Both outbound
+paths — the save adapter and predicate serialization — go through one function, so a `DateOnly`
+shim needs that as well as the hooks above:
+
+```ts
+const toDateOnly = DataType.toDateOnlyString;
+DataType.toDateOnlyString = (val: any) =>
+  isLuxon(val) ? val.toISODate() : toDateOnly(val);
+```
+
+`Time` and `TimeOnly` are already strings on the client — an ISO 8601 duration and `HH:mm:ss`
+respectively — so there is nothing to convert unless you want them held as a `Duration` or a
+`Temporal.PlainTime`. Those take the same hooks, minus `parseDateFromServer`.
+
+### What you do not have to change
+
+- **No adapter changes.** The data service, uri builder and ajax adapters never see a date as
+  anything but the value your `toJSON` produced.
+- **No change to the save payload**, as long as your type has a `toJSON` returning ISO 8601.
+  `JSON.stringify` calls it.
+- **No change to the metadata or the server.** The wire format is the same either way; this is
+  only about what the client holds in memory.
+
+One thing to watch outside the entity model: `withParameters` values go into the query string
+through a `toISOString()` check, so pass a `Date` there too.
