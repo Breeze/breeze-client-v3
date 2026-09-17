@@ -155,8 +155,9 @@ export interface EntityError {
   custom?: any;
 }
 
-/** The shape of the Promise returned by an {@link EntityManager.executeQuery} call. */
 /**
+ * The shape of the Promise an {@link EntityManager.executeQuery} call returns.
+ *
  * The result of a query. `T` is what the query was built for: `EntityQuery.from(Customer)` gives a
  * `QueryResult<Customer>`, so `results` is `Customer[]`.
  *
@@ -382,8 +383,7 @@ export class EntityManager {
   _hasChangesAction?: (() => void);
   /** @hidden @internal */
   _hasChanges: boolean;
-  /** @hidden @internal */
-  /** @hidden @internal keyed by qualified entityType name */
+  /** @hidden @internal Keyed by qualified entityType name. */
   _entityGroupMap: Map<string, EntityGroup>;
   /** @hidden @internal */
   _unattachedChildrenMap: UnattachedChildrenMap;

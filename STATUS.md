@@ -650,6 +650,10 @@ implementation over plain HTTP. Both migration pages say so.
 `formatString` was modernised without being deprecated — nothing built in replaces it. It declared
 rest parameters and then read `arguments` anyway, and compiled a fresh `RegExp` on every call.
 
+The six live in one `// --- superseded by the language` section at the end of core.ts, above the
+`core` object literal that reads them by value, so what is on the way out is in one place rather
+than scattered through the file.
+
 `test/unit/deprecation-core.spec.ts` drives the TypeScript language service to check the tags
 actually reach an editor, and `test/support/deprecation-probe.ts` is that machinery, now shared
 with the callback-argument spec. Removing any one tag fails a case; both specs were checked that

@@ -146,3 +146,29 @@ describe("import-time effects", () => {
     expect(pkg.sideEffects).toEqual(['./dist/mixins/mixin-get-entity-graph.js']);
   });
 });
+
+// Not about side effects, but this file is already the one that reads src/ off disk.
+//
+// TypeScript attaches only the LAST doc comment before a declaration, so a second `/** ... */`
+// silently throws away everything in the first - including `@hidden @internal`, which decides
+// whether a member reaches the published .d.ts and the API reference, and `@deprecated`, which
+// decides whether an editor warns anybody. It looks harmless and reads as two comments about the
+// same thing, which is why it has happened five times in this repository. Two of those were
+// discarding `@hidden @internal` on members that were meant to be invisible.
+describe("doc comments", () => {
+
+  test("no declaration is preceded by two of them", () => {
+    const stacked: string[] = [];
+    for (const name of moduleNames) {
+      const lines = fs.readFileSync(new URL(`${name}.ts`, srcDir), 'utf8').split(/\r?\n/);
+      for (let i = 1; i < lines.length; i++) {
+        const above = lines[i - 1].trim();
+        // a complete one-line doc comment, immediately followed by the start of another
+        if (above.startsWith('/**') && above.endsWith('*/') && lines[i].trim().startsWith('/**')) {
+          stacked.push(`${name}.ts:${i}  discarded: ${above}`);
+        }
+      }
+    }
+    expect(stacked).toEqual([]);
+  });
+});

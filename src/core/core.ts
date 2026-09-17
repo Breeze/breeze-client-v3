@@ -10,22 +10,6 @@ export interface Callback {
 // type Predicate = (i: any) => boolean;
 type Predicate<T> = (i: T) => boolean;
 
-/**
- * The helpers below are exported by name as well as on `core`, so that Breeze can use them
- * without going through a member it tells applications not to use. Several `core` members are
- * now exactly a built-in, and are marked `@deprecated` on the `core` object for that reason;
- * nothing inside Breeze reads them through `core` any more.
- * @hidden @internal
- */
-
-// Both of these were built with an `uncurry` helper - `Function.call.apply(fn, arguments)` -
-// which is how you borrowed a prototype method before the language had a way to say it.
-/** @hidden @internal */
-export const hasOwnProperty: (obj: Object, key: string) => boolean = Object.hasOwn;
-/** @hidden @internal */
-export const arraySlice = (ar: any[], start?: number, end?: number): any[] =>
-    Array.prototype.slice.call(ar, start, end);
-
 /** An object being deliberately indexed by arbitrary string key.
     The exported signatures below keep `Object` on purpose: narrowing them to this type
     would reject the class instances callers pass, because class types have no index
@@ -65,11 +49,6 @@ function objectFirst(obj: Object, kvPredicate: (key: string, val: any) => boolea
         }
     }
     return null;
-}
-
-/** @hidden @internal */
-export function arrayFlatMap<T, U>(arr: T[], mapFn: (arg: T) => U[]): U[] {
-    return arr.flatMap(mapFn);
 }
 
 function isSettable(obj: Object, propertyName: string): boolean {
@@ -417,8 +396,7 @@ function arrayEquals(a1: any[], a2: any[], equalsFn?: (x1: any, x2: any) => bool
 
 // end of array functions
 
-/** Returns an array for a source and a prop, and creates the prop if needed. */
-/** Returns the array stored under key, creating it if absent. Map counterpart of getArray. */
+/** Returns the array stored under key, creating it if absent. */
 function getMapArray<K, V>(map: Map<K, V[]>, key: K): V[] {
     let arr = map.get(key);
     if (!arr) {
@@ -482,32 +460,6 @@ function memoize(fn: any): any {
             fn.memoize[hash] :
             fn.memoize[hash] = fn.apply(this, args);
     };
-}
-
-const uuidrex = /[xy]/g;
-
-/**
- * A version 4 UUID.
- *
- * `crypto.randomUUID()` where it exists, which is everywhere Breeze supports except a browser
- * outside a secure context - it is unavailable over plain HTTP. It is both properly random and
- * about 30x faster than building one out of `Math.random()`, which matters because this is what
- * names a new entity with a Guid key.
- *
- * The fallback is the old implementation. `Math.random()` is not a cryptographic source, so the
- * values it produces are unique enough for a client-side temporary key and should not be relied
- * on for anything else.
- * @hidden @internal
- */
-export function getUuid(): string {
-    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-        return crypto.randomUUID();
-    }
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(uuidrex, function (c) {
-        // tslint:disable-next-line
-        let r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
-        return v.toString(16);
-    });
 }
 
 const durationrex = /^P((\d+Y)?(\d+M)?(\d+D)?)?(T(\d+H)?(\d+M)?(\d+S)?)?$/;
@@ -608,6 +560,80 @@ function isEmpty(obj: any) {
 
 // string functions
 
+// Based on fragment from Dean Edwards' Base 2 library
+/**
+ * Replaces `%1`, `%2`, ... in `str` with the arguments that follow it.
+ *
+ *     formatString("a %1 and a %2", "cat", "dog")   // "a cat and a dog"
+ *
+ * It declared rest parameters and then read `arguments` anyway, and compiled a fresh `RegExp`
+ * on every call to bound the placeholder to the number of arguments given - so `%3` with two
+ * arguments was left in place rather than replaced. One shared pattern does the same thing:
+ * a placeholder with no argument for it is left alone here too.
+ * @hidden @internal
+ */
+export function formatString(str: string, ...params: any[]) {
+    return str.replace(formatStringRex, (match, index) => {
+        const param = params[Number(index) - 1];
+        return param === undefined ? match : param;
+    });
+}
+const formatStringRex = /%([1-9])/g;
+
+// end of string functions
+
+
+// --- superseded by the language -------------------------------------------------------------
+//
+// Each of these is now exactly a JavaScript built-in, and calls it. They are gathered here,
+// apart from the helpers that still earn their place, because `core` marks every one of them
+// @deprecated. What an application should stop writing is the access path - `breeze.core.getUuid`
+// and the rest - not the function, so Breeze imports them by name from this module instead of
+// reading them off `core`. Nothing inside the library uses a member it tells applications not
+// to use.
+//
+// They stay above the `core` object literal, which reads them by value.
+
+// Both of these were built with an `uncurry` helper - `Function.call.apply(fn, arguments)` -
+// which is how you borrowed a prototype method before the language had a way to say it.
+/** @hidden @internal */
+export const hasOwnProperty: (obj: Object, key: string) => boolean = Object.hasOwn;
+
+/** @hidden @internal */
+export const arraySlice = (ar: any[], start?: number, end?: number): any[] =>
+    Array.prototype.slice.call(ar, start, end);
+
+/** @hidden @internal */
+export function arrayFlatMap<T, U>(arr: T[], mapFn: (arg: T) => U[]): U[] {
+    return arr.flatMap(mapFn);
+}
+
+const uuidrex = /[xy]/g;
+
+/**
+ * A version 4 UUID.
+ *
+ * `crypto.randomUUID()` where it exists, which is everywhere Breeze supports except a browser
+ * outside a secure context - it is unavailable over plain HTTP. It is both properly random and
+ * about 30x faster than building one out of `Math.random()`, which matters because this is what
+ * names a new entity with a Guid key.
+ *
+ * The fallback is the old implementation. `Math.random()` is not a cryptographic source, so the
+ * values it produces are unique enough for a client-side temporary key and should not be relied
+ * on for anything else.
+ * @hidden @internal
+ */
+export function getUuid(): string {
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+        return crypto.randomUUID();
+    }
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(uuidrex, function (c) {
+        // tslint:disable-next-line
+        let r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+    });
+}
+
 // These two exist for their null handling, which is what the local query operators need: a
 // property that is null does not start with anything, and comparing against a null prefix asks
 // nothing. `String.prototype.startsWith` throws on the first and compares against the text
@@ -628,28 +654,6 @@ export function stringEndsWith(str: string, suffix: string) {
     if (suffix === "" || suffix == null) return true;
     return str.endsWith(suffix);
 }
-
-// Based on fragment from Dean Edwards' Base 2 library
-/** format("a %1 and a %2", "cat", "dog") -> "a cat and a dog" */
-/**
- * Replaces `%1`, `%2`, ... in `str` with the arguments that follow it.
- *
- * It declared rest parameters and then read `arguments` anyway, and compiled a fresh `RegExp`
- * on every call to bound the placeholder to the number of arguments given - so `%3` with two
- * arguments was left in place rather than replaced. One shared pattern does the same thing:
- * a placeholder with no argument for it is left alone here too.
- * @hidden @internal
- */
-export function formatString(str: string, ...params: any[]) {
-    return str.replace(formatStringRex, (match, index) => {
-        const param = params[Number(index) - 1];
-        return param === undefined ? match : param;
-    });
-}
-const formatStringRex = /%([1-9])/g;
-
-// end of string functions
-
 
 // strings for error messages
 

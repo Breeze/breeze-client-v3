@@ -139,9 +139,11 @@ short version is that several entry points would move every page under `/api/bre
 would stop the category plugin working. A new public symbol appears in the reference by
 itself, and the plugin warns until it has been placed in a category.
 
-Note that TypeDoc reads only the **last** doc comment before a declaration. Two stacked
-`/** ... */` blocks mean the first one's tags — `@hidden @internal` included — are silently
-discarded.
+Note that TypeScript, and so TypeDoc, reads only the **last** doc comment before a declaration.
+Two stacked `/** ... */` blocks mean the first one's tags are silently discarded — `@hidden
+@internal`, which decides whether a member reaches the published `.d.ts` and the reference, and
+`@deprecated`, which decides whether an editor warns anybody. It reads as two comments about the
+same thing and has happened five times here, so `side-effects.spec.ts` now fails on it.
 
 ---
 
