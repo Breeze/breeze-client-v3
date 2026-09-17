@@ -1,7 +1,5 @@
 ﻿/** See if this comment will make it into .d.ts */
 import { BreezeEnum } from './enum.js';
-declare var global: any;
-declare var window: any;
 
 /** The success callback accepted by the deprecated callback form of the async methods.
 @deprecated Await the returned promise instead of passing callbacks. */
@@ -12,15 +10,11 @@ export interface Callback {
 // type Predicate = (i: any) => boolean;
 type Predicate<T> = (i: T) => boolean;
 
-let hasOwnProperty: (obj: Object, key: string) => boolean = uncurry(Object.prototype.hasOwnProperty);
-let arraySlice: (ar: any[], start?: number, end?: number) => any[] = uncurry(Array.prototype.slice);
-let isES5Supported: boolean = function () {
-    try {
-        return !!Object.defineProperty({}, 'x', {});
-    } catch (e) {
-        return false;
-    }
-} ();
+// Both were built with an `uncurry` helper - `Function.call.apply(fn, arguments)` - which is how
+// you borrowed a prototype method before the language had a way to say it.
+const hasOwnProperty: (obj: Object, key: string) => boolean = Object.hasOwn;
+const arraySlice = (ar: any[], start?: number, end?: number): any[] =>
+    Array.prototype.slice.call(ar, start, end);
 
 /** An object being deliberately indexed by arbitrary string key.
     The exported signatures below keep `Object` on purpose: narrowing them to this type
@@ -74,8 +68,6 @@ function isSettable(obj: Object, propertyName: string): boolean {
 }
 
 function getPropDescriptor(obj: Object, propertyName: string): PropertyDescriptor | undefined {
-    if (!isES5Supported) return undefined;
-
     if (obj.hasOwnProperty(propertyName)) {
         return Object.getOwnPropertyDescriptor(obj, propertyName);
     } else {
@@ -425,64 +417,6 @@ function getMapArray<K, V>(map: Map<K, V[]>, key: K): V[] {
     return arr;
 }
 
-function getArray(source: Object, propName: string): any[] {
-    const rec = source as Indexed;
-    let arr = rec[propName];
-    if (!arr) {
-        arr = [];
-        rec[propName] = arr;
-    }
-    return arr;
-}
-
-/** Calls requireLibCore on semicolon-separated libNames */
-function requireLib(libNames: string, errMessage?: string) {
-    let arrNames = libNames.split(";");
-    for (let i = 0, j = arrNames.length; i < j; i++) {
-        let lib = requireLibCore(arrNames[i]);
-        if (lib) return lib;
-    }
-    if (errMessage) {
-        throw new Error("Unable to initialize " + libNames + ".  " + errMessage);
-    }
-}
-
-
-
-/** Returns the 'libName' module if loaded or else returns undefined */
-function requireLibCore(libName: string) {
-    let win = window || (global ? global.window : undefined);
-    if (!win) return; // Must run in a browser. Todo: add commonjs support
-
-    // get library from browser globals if we can
-    let lib = win[libName];
-    if (lib) return lib;
-
-    // if require exists, maybe require can get it.
-    // This method is synchronous so it can't load modules with AMD.
-    // It can only obtain modules from require that have already been loaded.
-    // Developer should bootstrap such that the breeze module
-    // loads after all other libraries that breeze should find with this method
-    // See documentation
-    let r = win.require;
-    if (r) { // if require exists
-        if (r.defined) { // require.defined is not standard and may not exist
-            // require.defined returns true if module has been loaded
-            return r.defined(libName) ? r(libName) : undefined;
-        } else {
-            // require.defined does not exist so we have to call require('libName') directly.
-            // The require('libName') overload is synchronous and does not load modules.
-            // It throws an exception if the module isn't already loaded.
-            try {
-                return r(libName);
-            } catch (e) {
-                // require('libName') threw because module not loaded
-                return;
-            }
-        }
-    }
-}
-
 /** Execute fn while obj has tempValue for property */
 function using(obj: Object, property: string, tempValue: any, fn: () => any) {
     if (!obj) {
@@ -642,12 +576,6 @@ function isEmpty(obj: any) {
     return true;
 }
 
-function isNumeric(n: any) {
-    return !isNaN(parseFloat(n)) && isFinite(n);
-}
-
-
-
 // end of is Functions
 
 // string functions
@@ -676,36 +604,8 @@ function formatString(str: string, ...params: any[]) {
     });
 }
 
-// See http://stackoverflow.com/questions/7225407/convert-camelcasetext-to-camel-case-text
-/** Change text to title case with spaces, e.g. 'myPropertyName12' to 'My Property Name 12' */
-const camelEdges = /([A-Z](?=[A-Z][a-z])|[^A-Z](?=[A-Z])|[a-zA-Z](?=[^a-zA-Z]))/g;
-function titleCaseSpace(text: string) {
-    text = text.replace(camelEdges, '$1 ');
-    text = text.charAt(0).toUpperCase() + text.slice(1);
-    return text;
-}
-
 // end of string functions
 
-// See Mark Miller’s explanation of what this does.
-// http://wiki.ecmascript.org/doku.php?id=conventions:safe_meta_programming
-function uncurry(f: any) {
-    let call = Function.call;
-    return function () {
-        return call.apply(f, arguments);
-    };
-}
-
-// shims
-
-if (!Object.create) {
-    Object.create = function (parent: any) {
-        let F = <any>function () {
-        };
-        F.prototype = parent;
-        return new F();
-    };
-}
 
 // strings for error messages
 
@@ -715,7 +615,6 @@ const strings = {
 
 // // not all methods above are exported
 export const core = {
-    isES5Supported: isES5Supported,
     hasOwnProperty: hasOwnProperty,
     getOwnPropertyValues: getOwnPropertyValues,
     getPropertyDescriptor: getPropDescriptor,
@@ -730,7 +629,6 @@ export const core = {
     resolveProperties: resolveProperties,
     setAsDefault: setAsDefault,
     updateWithDefaults: updateWithDefaults,
-    getArray: getArray,
     getMapArray: getMapArray,
     toArray: toArray,
     arrayEquals: arrayEquals,
@@ -742,7 +640,6 @@ export const core = {
     arrayAddItemUnique: arrayAddItemUnique,
     arrayFlatMap: arrayFlatMap,
 
-    requireLib: requireLib,
     using: using,
     wrapExecution: wrapExecution,
 
@@ -758,7 +655,6 @@ export const core = {
     isDuration: isDuration,
     isFunction: isFunction,
     isEmpty: isEmpty,
-    isNumeric: isNumeric,
 
     identity: identity,
     noop: noop,
@@ -766,7 +662,6 @@ export const core = {
     stringStartsWith: stringStartsWith,
     stringEndsWith: stringEndsWith,
     formatString: formatString,
-    titleCase: titleCaseSpace,
 
     toJson: toJson,
     toJSONSafe: toJSONSafe,

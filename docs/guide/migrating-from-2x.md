@@ -407,6 +407,25 @@ may notice.
   never work; code that referenced it now fails to compile instead of throwing at runtime.
 - `EntityQuery.toJSON()` now includes `usePost`.
 
+**`breeze.core` utilities**
+
+- **Five `core` helpers are removed**, all written for a JavaScript that no longer needs them
+  and none of them used by Breeze itself any more. If you call one, the replacement is a
+  built-in:
+
+  | Removed | Instead |
+  |---|---|
+  | `core.requireLib` | Nothing. It found jQuery, Knockout or the OData client through browser globals or AMD `require`, and all four are gone from v3. Use an `import`. |
+  | `core.isES5Supported` | Nothing — it always answered `true`. |
+  | `core.isNumeric(n)` | `Number.isFinite(Number(n))` |
+  | `core.titleCase(s)` | Your own, or a library — it was one regex. |
+  | `core.getArray(obj, name)` | `core.getMapArray(map, key)`, or `obj[name] ??= []` |
+
+  An `Object.create` polyfill went with them, so importing Breeze no longer writes to a global.
+  Everything else `core` exposes is unchanged, and `core.hasOwnProperty` and `core.arraySlice`
+  now call `Object.hasOwn` and `Array.prototype.slice` rather than an `uncurry` helper — same
+  results, less work.
+
 **Metadata and data types**
 
 - **More server type names are understood.** `TimeSpan` maps to `DataType.Time`, `TimeOnly`

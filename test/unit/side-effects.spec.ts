@@ -72,7 +72,6 @@ const allowed: [file: string, statement: string, why: string][] = [
   ['breeze.ts', 'try {', "window.breeze: kept only when the bundle uses the breeze object, which holds every class anyway"],
   ['breeze.ts', 'if (win) {', "window.breeze, as above"],
   ['config/config.ts', '(core as any).config = config;', legacyCore],
-  ['core/core.ts', 'if (!Object.create) {', "ES5 polyfill of a global; no supported runtime needs it"],
   ['entity/entity-aspect.ts', 'BreezeEvent.bubbleEvent(EntityAspect.prototype,', ownPrototype],
   ['manager/entity-manager.ts', 'BreezeEvent.bubbleEvent(EntityManager.prototype);', ownPrototype],
   ['manager/entity-manager.ts', 'setDefaultAdapters(serverDefaultAdapters);', "server-side default adapters: every bundle that talks to a server has an EntityManager"],

@@ -592,6 +592,50 @@ Still open:
 - A query rebuilt by `EntityQuery.fromJSON` without `usePost` has `usePostEnabled`
   `undefined` rather than `false`.
 
+## core.ts: the ES5-era parts are gone (done)
+
+Asked whether core.ts could be modernised or partly eliminated. 795 lines -> 691, and the
+`window` / `global` declarations went with them. Removed, each with **zero** references in `src/`,
+`test/`, `docs/` or `deferred/`:
+
+| | |
+|---|---|
+| `requireLib` + `requireLibCore` | found jQuery / Knockout / OData through browser globals or AMD `require`. All four were removed in 3.0, and this was the last thing in core.ts reaching for `window` |
+| `isES5Supported` | a try/catch probe for `Object.defineProperty`, always true |
+| `isNumeric`, `titleCase`, `getArray` | superseded or never used |
+| `uncurry` (private) | `Function.call.apply(fn, args)`, the pre-ES5 way to borrow a prototype method |
+| an `Object.create` polyfill | top-level assignment to a global — `side-effects.spec.ts` had it on its allow-list, and flagged the stale entry the moment it went |
+
+`uncurry` built `hasOwnProperty` and `arraySlice`; they are `Object.hasOwn` and
+`Array.prototype.slice` now, which is also 1.6x faster on the first.
+
+**The second half of the request turned out to be empty.** Marking anything else public-but-unused
+as deprecated had nothing to mark: those five *were* the complete set of members Breeze no longer
+calls. Everything else in `core` has at least one internal caller.
+
+`test/unit/core-surface.spec.ts` pins the 50-member list so the next change to it is deliberate,
+and records the four members other modules bolt on at import time (`assertParam`, `assertConfig`,
+`Param`, `config`) plus `Event`, which are easy to miss because they are not in core.ts's own
+object literal.
+
+### Measured, not done
+
+Three idioms worth replacing, and one that is not:
+
+| current | modern | measured |
+|---|---|---|
+| `getUuid`, on `Math.random()` | `crypto.randomUUID()` | **32x faster**, and cryptographically sound where the current one is not — it generates entity keys. About 5% of `createEntity` for a Guid-keyed type. Needs a fallback: browsers expose it only in a secure context |
+| `stringEndsWith`, on `indexOf` | `String.prototype.endsWith` | **2.3x faster** |
+| `arrayFlatMap`, `concat.apply([], map())` | `Array.prototype.flatMap` | clarity |
+| `stringStartsWith` | `String.prototype.startsWith` | **no win** — 45.7 ms vs 47.7 ms. Clarity only |
+
+And two deliberately left as they are:
+
+- **`arrayFirst` / `arrayIndexOf` are not `find` / `findIndex`.** `arrayFirst` returns `null`
+  where `find` returns `undefined`, and `find` cannot tell "found `undefined`" from "not found".
+- **`isEmpty`'s `for...in` with an early return is faster** than `Object.keys(obj).length === 0`,
+  which allocates the whole key array before answering. Old does not always mean slow.
+
 ## `delete` was costing 21x on every EntityManager property read (done)
 
 Found while auditing core.ts for old idioms, and the largest single thing in this run of perf
