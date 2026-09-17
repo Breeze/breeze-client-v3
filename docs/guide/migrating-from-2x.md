@@ -323,6 +323,58 @@ shapes and semantics.
 If you hit a difference not listed here, it is a bug — please
 [file an issue](https://github.com/Breeze/breeze-client-v3/issues).
 
+## Still there, just not in the API reference
+
+The reference documents the surface an application uses. Two dozen exported names carry
+`@hidden`, which keeps a declaration out of the reference but not out of the package: they are
+in the published `.d.ts`, they compile, and they run. **Every one of them was `@hidden` in 2.x
+too** — nothing was hidden in 3.0. They are listed here because the natural way to check whether
+something survived the upgrade is to search the reference for it, and these are the names that
+are present but will not be found.
+
+For writing an adapter — you need these only if you implement one:
+
+| For | Names |
+|---|---|
+| a `DataServiceAdapter` | `AbstractDataServiceAdapter`, `MappingContext`, `SaveContext`, `SaveBundle` |
+| a `UriBuilderAdapter` | `OrderByClause`, `SelectClause`, `ExpandClause` |
+| a `ModelLibraryAdapter` | `makeRelationArray`, `makePrimitiveArray`, `makeComplexArray` |
+| registering either | `AdapterCtor`, `AdapterRegistration` |
+
+For walking a predicate with `Predicate.visit`: the tree nodes `UnaryPredicate`,
+`BinaryPredicate`, `AndOrPredicate`, `AnyAllPredicate`, `LitExpr`, `FnExpr` and `PropExpr`, and
+the `Visitor`, `VisitContext` and `ExpressionContext` types a visitor is written against.
+
+### `assertParam` and `assertConfig` went the other way
+
+They are *more* available than in 2.x, not less. 2.x marked them `@hidden @internal`, and
+`@internal` strips a declaration from the published `.d.ts` — so although the runtime export was
+there, TypeScript could not see it. In 3.0 they are `@hidden` only: still out of the reference,
+but exported by name from `breeze-client` and typed. `Param` itself stays off the barrel; reach
+it as `breeze.Param`, which is typed, or let `assertParam` build one.
+
+### Five `core` members that exist only at runtime
+
+`assert-param.ts`, `config.ts` and `event.ts` each assign a member onto `core` at import time,
+for 2.x code that reached them through the `breeze.core` global. They are not on the `core`
+type, in 3.0 or in 2.x, so TypeScript rejects all five even though the call works. Use the real
+export instead:
+
+| At runtime only | Use instead |
+|---|---|
+| `core.assertParam`, `core.assertConfig` | the exports of the same name |
+| `core.Param` | `breeze.Param` |
+| `core.config` | the exported `config` |
+| `core.Event` | the exported `BreezeEvent` |
+
+Two more pieces of 2.x scaffolding are still in place: `window.breeze`, set when the module runs
+unbundled, and the empty `promises.IPromiseService` that `breeze-bridge2-angular` imports.
+
+One caveat carried over from 2.x unchanged: `breeze.assertParam` and `breeze.assertConfig` are
+`null`, not functions — the lines that would have assigned them are commented out in both
+versions. Call `assertParam` directly. `breeze.version` is likewise still the 2.x string.
+
+
 ## Fixed along the way
 
 Long-standing defects, all present in 2.x:
