@@ -491,6 +491,33 @@ Fixed, typed (`InterfaceRegistryConfig` now takes adapter names, as it always sh
 have), and covered by two new tests in `configure-ns.spec.ts`. With every fix from this round in: unit
 196, integration 448 + 7 skipped, browser 644 + 7 skipped. All green.
 
+## API docs: grouped by purpose, not by kind (done)
+
+The reference was five flat buckets — Classes 32, Interfaces 60, Type aliases 21, Functions 3,
+Variables 4 — so `Entity` sat beside `NodeMeta` in a sixty-item list, and only 38 of the 121
+symbols are linked from any guide page.
+
+`scripts/typedoc-categories.mjs` now assigns each symbol a category, and the sidebar is ordered
+everyday-surface first: Working with data (30), Metadata (12), Validation (5), Events (8),
+Configuration (11), then the plumbing — Typed query paths (16), Constructor config objects (16),
+Adapters and extension points (13), 2.x compatibility (10). Every group renders collapsed, so the
+last four are four unexpanded lines.
+
+**Nothing is hidden.** `excludeCategories` works and would remove a whole category's pages, but
+these are all genuinely exported: `@internal` would misrepresent the `.d.ts`, and dropping a page
+leaves dangling links from the pages that reference it — hiding the adapter interfaces made
+TypeDoc warn that `DataServiceConfig.uriBuilderName` pointed at a missing `UriBuilderAdapter`.
+De-emphasis was what was wanted, not removal.
+
+The categories come from one table rather than ~120 `@category` tags across the source, so the
+taxonomy can be reviewed in one place. A table can drift, so the plugin warns both ways — an
+export missing from it, and a table entry that no longer exists — and both warnings are verified
+to fire. `categoryOrder` ends with `*`, so anything uncategorised is visible rather than lost.
+
+One thing to know if this is ever extended: the categories must be applied on
+`EVENT_CREATE_DECLARATION`. On `EVENT_RESOLVE_BEGIN` they still render, but `excludeCategories`
+silently ignores them.
+
 ## Found while writing the user docs — resolved
 
 The doc agents turned up about 35 defects. Nearly all are fixed, each with a regression

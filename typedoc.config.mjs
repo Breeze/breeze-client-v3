@@ -8,7 +8,7 @@
 /** @type {Partial<import('typedoc').TypeDocOptions>} */
 export default {
   entryPoints: ['src/breeze.ts'],
-  plugin: ['typedoc-plugin-markdown', 'typedoc-vitepress-theme'],
+  plugin: ['typedoc-plugin-markdown', 'typedoc-vitepress-theme', './scripts/typedoc-categories.mjs'],
   out: 'docs/api',
   // Sidebar links are computed relative to this. Without it they come out as
   // /docs/api/... instead of the /api/... the site actually serves.
@@ -27,6 +27,25 @@ export default {
   excludeInternal: true,
   readme: 'none',
   githubPages: false,
+
+  // Organise the reference by purpose rather than by declaration kind. The categories, and
+  // why they are applied by a plugin instead of by @category tags in the source, are in
+  // scripts/typedoc-categories.mjs. categorizeByGroup: false lifts categories above the
+  // Classes/Interfaces/... split rather than repeating them inside each one.
+  categorizeByGroup: false,
+  navigation: { includeCategories: true, includeGroups: false },
+  categoryOrder: [
+    'Working with data',
+    'Metadata',
+    'Validation',
+    'Events',
+    'Configuration',
+    'Typed query paths',
+    'Constructor config objects',
+    'Adapters and extension points',
+    '2.x compatibility',
+    '*',   // anything the plugin warned about, so a new export is visible rather than lost
+  ],
 
   // Breeze's own doc tags. Declaring them makes TypeDoc render them rather than
   // warn on every run. The ones TypeScript already expresses - @method, @static,
