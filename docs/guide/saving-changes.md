@@ -279,8 +279,10 @@ While a save is in flight, the entities in it have `entityAspect.isBeingSaved` s
   that only if you understand the consequences: the second save may send stale original
   values or temporary keys.
 - **Editing.** You can change an entity that is being saved, but when the save completes
-  the server's values overwrite your edit. Changes to entities that were not part of the
-  save are untouched, and `hasChanges()` stays true afterwards.
+  the server's values overwrite your edit — silently. The entity ends up `Unchanged` and
+  `hasChanges()` is `false`, so nothing tells you a keystroke was lost. Changes to entities
+  that were *not* part of the save are untouched. [Save queuing](#save-queuing) is what
+  keeps a mid-flight edit.
 - **Rejecting, deleting, clearing.** `rejectChanges()` on an entity being saved throws,
   and so does `em.clear()`. Deleting or detaching a new entity that is waiting for its
   server-generated key also throws. Each error says the entity is "in the process of
@@ -295,6 +297,23 @@ Some applications save automatically after every edit, and a user can easily mak
 second change before the first save returns. Save queuing handles that: while a save is
 in flight, further `saveChanges` calls are held back and sent as one follow-up save when
 the first returns.
+
+It also does the thing you would otherwise have to do yourself — **it keeps edits made
+while the save was out**. It records what changed on each entity being saved, re-applies
+those values over the server's response, and sends them in the follow-up save. Without it
+they are [quietly overwritten](#changes-during-a-save):
+
+```ts
+cust.companyName = 'Second';
+em.saveChanges();               // in flight
+cust.companyName = 'Third';     // the user keeps typing
+// without queuing: companyName is back to 'Second' when the save returns
+// with queuing:    'Third', and 'Third' is what the database ends up holding
+```
+
+A foreign key set during a save is handled too: if you point a child at a parent whose row
+is still being inserted, the only key you have is the temporary one, and the queued save
+substitutes the key the server assigned.
 
 ```ts
 import { enableSaveQueuing } from 'breeze-client/mixin-save-queuing';

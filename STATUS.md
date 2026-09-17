@@ -592,6 +592,52 @@ Still open:
 - A query rebuilt by `EntityQuery.fromJSON` without `usePost` has `usePostEnabled`
   `undefined` rather than `false`.
 
+## Save queuing: the SaveMemo now has tests, and one bug fewer (done)
+
+Asked whether the mixin earns its place. It does, but not for the reason it is usually
+described. Serialising concurrent saves is the smaller half; the valuable half is that it
+**keeps edits made while a save is in flight**. Core Breeze lets you make one and then discards
+it - the server's values overwrite it on merge, the entity lands `Unchanged` and `hasChanges()`
+is `false`, so nothing tells the application a keystroke was lost. Measured both ways: the same
+script ends with `companyName` back at its pre-edit value without the mixin, and at the typed
+value with it.
+
+Cost to applications that do not use it: **zero**. It is its own `exports` subpath and is not in
+`sideEffects`, so nothing pulls it in. 17.4 KB raw / 4.8 KB gzipped unminified for those who do.
+
+The imbalance was in the tests, not the code: 5 tests, all on the trivial path (one add, two
+concurrent saves, enable twice, disable), and **nothing at all** on `EntityMemo` / `pkFixup` /
+`fkFixup` - the ~180 lines that do the hard part. `test/unit/save-queuing-memo.spec.ts` (8 tests,
+against the fake server, asserting the wire payload and not just the cache) and
+`test/integration/save-queuing.spec.ts` (2 tests, against the real database) cover it now.
+
+### The bug that found
+
+`EntityMemo.fkFixup` compared `fkProp.parentType.name` against the key mapping's type. But
+`DataProperty.parentType` is the type that **declares** the foreign key, not the type it points
+at, so the two can only be equal for a self-referencing key. Of the 14 foreign keys in the
+Northwind metadata exactly one - `Employee.reportsToEmployeeID` - is self-referencing, which is
+why this was invisible.
+
+The effect: point a child at a parent whose row is still being inserted, during a save, and the
+queued save carried the parent's **temporary negative key**. Against the real server that is
+
+```
+The UPDATE statement conflicted with the FOREIGN KEY constraint "FK_Order_Employee"
+```
+
+It now resolves the target through `relatedNavigationProperty.entityType`, falling back to
+`inverseNavigationProperty.parentType` for a unidirectional 1-n. Identical code in the 2.x
+checkout, so this is long-standing and not a v3 regression. Both migration pages list it.
+
+Also established: `EntityMemo`'s `Deleted` branch and `applyToSavedEntity`'s `setDeleted` are
+**unreachable through the public API** - `EntityAspect._checkOperation` throws for `setDeleted`,
+`rejectChanges` and `clear` on an entity being saved, which is core behaviour the mixin cannot
+see. Rather than test dead code, a test pins that those three still throw.
+
+The integration tests hook `config.fetch` to run the mid-flight edit between the request going
+out and the response arriving, instead of racing a timer against a localhost server.
+
 ## Cache lookups: three quadratics removed (done)
 
 Every one was the same shape - an answer re-derived by scanning, inside a loop that runs once per

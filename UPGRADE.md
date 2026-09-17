@@ -472,6 +472,11 @@ Small pre-existing defects corrected in v3:
 - **Calling `enableSaveQueuing` twice hung `saveChanges`**, including turning it off with
   `enableSaveQueuing(em, false)`. It looked up a misspelled property, so each call wrapped
   `saveChanges` again.
+- **Save queuing sent temporary keys to the server.** With the save-queuing mixin, a foreign
+  key set while its parent row was still being inserted kept its temporary (negative) value in
+  the follow-up save, because the fixup compared the type that *declares* the foreign key
+  instead of the type it points at. Only a self-referencing key ever matched. Against SQL
+  Server the queued save failed with a foreign key constraint violation.
 - **`removeValidationError(validator)` removed nothing.** It now removes every error that
   validator produced on the entity.
 - **An entity whose key was the string `__proto__` could not be found again.** The cache's

@@ -413,7 +413,15 @@ class EntityMemo {
     let type = entityMemo.entity.entityType;
     let fkProps = type.foreignKeyProperties;
     fkProps.forEach(fkProp => {
-      if (fkProp.parentType.name === keyMapping.entityTypeName &&
+      // The type this foreign key points *at*. `fkProp.parentType` is the type that declares it,
+      // which is what this used to compare and is only ever the same type for a self-referencing
+      // key - so an ordinary foreign key set during a save kept its temporary value and the
+      // queued save sent a negative key to the server. `relatedNavigationProperty` covers the
+      // usual case; a unidirectional 1-n has only the inverse, whose parent is the target.
+      const relatedType = fkProp.relatedNavigationProperty
+        ? fkProp.relatedNavigationProperty.entityType
+        : fkProp.inverseNavigationProperty && fkProp.inverseNavigationProperty.parentType;
+      if (relatedType && relatedType.name === keyMapping.entityTypeName &&
         entityMemo.pendingChanges[fkProp.name] === keyMapping.tempValue) {
         entityMemo.pendingChanges[fkProp.name] = keyMapping.realValue;
       }
