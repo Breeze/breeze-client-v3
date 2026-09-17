@@ -518,6 +518,36 @@ One thing to know if this is ever extended: the categories must be applied on
 `EVENT_CREATE_DECLARATION`. On `EVENT_RESOLVE_BEGIN` they still render, but `excludeCategories`
 silently ignores them.
 
+## Deprecated the callback arguments (done)
+
+`saving-changes.md` already called the callback arguments "deprecated"; the source had no
+`@deprecated` anywhere, and `saveChanges`'s own doc comment actively advertised them
+("Callback methods can also be used"). They are now deprecated for real, on `executeQuery`,
+`saveChanges`, both `fetchMetadata`s, `EntityQuery.execute`, `loadNavigationProperty` and a
+relation array's `load`, plus the four callback interfaces.
+
+**Deprecating the interfaces alone would not have reached anyone.** Callers pass a lambda and
+never name `QuerySuccessCallback`, so the strikethrough would only appear for the few who write
+`const cb: QuerySuccessCallback = …`. What reaches a caller is a `@deprecated` *overload*.
+
+**The trap is overload order.** Because the callback parameters are all optional, a deprecated
+overload declared first also matches `em.executeQuery(query)` — so every caller gets a
+strikethrough for code that is already correct. The promise-only overload has to come first.
+`test/unit/deprecation.spec.ts` pins both halves down: 7 callback calls that must be marked, and
+10 promise calls that must not. Swapping the order in the source fails the second half, which is
+verified, not assumed.
+
+`tsc` never reports deprecation — it is a language-service feature — so that test drives
+`ts.createLanguageService` and reads `reportsDeprecated` off the suggestion diagnostics, the way
+an editor does. It is Node-only, so it joins `side-effects` and `entity-generator` in the browser
+tier's exclude list.
+
+Also: the overloads have to sit *above* the method's doc comment. Below it, the comment attaches
+to the promise-only overload and TypeDoc warns that its `@param callback` is unused — eight
+warnings against a reference that had been at zero.
+
+No example in the guides or the reference uses the callback form any more.
+
 ## Found while writing the user docs — resolved
 
 The doc agents turned up about 35 defects. Nearly all are fixed, each with a regression

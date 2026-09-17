@@ -185,10 +185,14 @@ export interface QueryResult<T = any> {
   httpResponse?: HttpResponse;
 }
 
+/** The success callback accepted by the deprecated callback form of {@link EntityManager.executeQuery}.
+@deprecated Await the returned promise instead of passing callbacks. */
 export interface QuerySuccessCallback {
   (data: QueryResult): void;
 }
 
+/** The failure callback accepted by the deprecated callback form of {@link EntityManager.executeQuery}.
+@deprecated Await the returned promise instead of passing callbacks. */
 export interface QueryErrorCallback {
   (error: { query: EntityQuery; httpResponse: HttpResponse; entityManager: EntityManager; message?: string; stack?: string }): void;
 }
@@ -944,6 +948,9 @@ export class EntityManager {
     return aspect.setDetached();
   }
 
+  fetchMetadata(dataService?: DataService): Promise<any>;
+  /** @deprecated Await the returned promise instead of passing callbacks. */
+  fetchMetadata(dataService: DataService | undefined, callback?: Callback, errorCallback?: ErrorCallback): Promise<any>;
   /**
   Fetches the metadata associated with the EntityManager's current 'serviceName'.  This call
   occurs internally before the first query to any service if the metadata hasn't already been
@@ -960,13 +967,13 @@ export class EntityManager {
   >           // handle exception here
   >       });
   
-  @param callback - Function called on success.
-  @param errorCallback - Function called on failure.
+  @param callback - Deprecated. Function called on success.
+  @param errorCallback - Deprecated. Function called on failure.
   @returns {Promise}
     - schema {Object} The raw Schema object from metadata provider - Because this schema will differ depending on the metadata provider
         it is usually better to access metadata via the 'metadataStore' property of the EntityManager instead of using this 'raw' data.
   **/
-  fetchMetadata(dataService?: DataService, callback?: Callback, errorCallback?: ErrorCallback) {
+  fetchMetadata(dataService?: DataService, callback?: Callback, errorCallback?: ErrorCallback): Promise<any> {
     if (typeof (dataService) === "function") {
       // legacy support for when dataService was not an arg. i.e. first arg was callback
       errorCallback = callback;
@@ -983,7 +990,11 @@ export class EntityManager {
   }
 
 
+  executeQuery<T>(query: EntityQuery<T>): Promise<QueryResult<T>>;
+  executeQuery(query: string): Promise<QueryResult>;
+  /** @deprecated Await the returned promise instead of passing callbacks. */
   executeQuery<T>(query: EntityQuery<T>, callback?: QuerySuccessCallback, errorCallback?: QueryErrorCallback): Promise<QueryResult<T>>;
+  /** @deprecated Await the returned promise instead of passing callbacks. */
   executeQuery(query: string, callback?: QuerySuccessCallback, errorCallback?: QueryErrorCallback): Promise<QueryResult>;
   /**
   Executes the specified query. __Async__ 
@@ -997,19 +1008,10 @@ export class EntityManager {
   >         ... query failure processed here
   >     });
 
-  or with callbacks
-  >     let em = new EntityManager(serviceName);
-  >     let query = new EntityQuery("Orders");
-  >     em.executeQuery(query,
-  >         function(data) {
-  >             let orders = data.results;
-  >             ... query results processed here
-  >         },
-  >         function(err) {
-  >             ... query failure processed here
-  >         });
+  The `callback` and `errorCallback` arguments are deprecated. They still work, but the
+  promise is the supported form and the callbacks will be removed in a future major version.
 
-  Either way this method is the same as calling the The {@link EntityQuery} 'execute' method.
+  This method is the same as calling the {@link EntityQuery} 'execute' method.
   >     let em = new EntityManager(serviceName);
   >     let query = new EntityQuery("Orders").using(em);
   >     query.execute().then( function(data) {
@@ -1019,9 +1021,9 @@ export class EntityManager {
   >         ... query failure processed here
   >     });
   @param query - The {@link EntityQuery} or query string to execute.
-  @param callback - Function called on success.
-  @param errorCallback - {Function} Function called on failure.
-  @returns Promise of 
+  @param callback - Deprecated. Function called on success.
+  @param errorCallback - Deprecated. Function called on failure.
+  @returns Promise of
     - results - An array of entities
     - retrievedEntities - A array of all of the entities returned by the query.  Differs from results (above) when .expand() is used.
     - query - The original {@link EntityQuery} or query string
@@ -1078,6 +1080,9 @@ export class EntityManager {
     return executeQueryLocallyCore(this, query).results;
   }
 
+  saveChanges(entities?: Entity[] | null, saveOptions?: SaveOptions): Promise<SaveResult>;
+  /** @deprecated Await the returned promise instead of passing callbacks. */
+  saveChanges(entities: Entity[] | null | undefined, saveOptions: SaveOptions | undefined, callback?: Function, errorCallback?: Function): Promise<SaveResult>;
   /**
   Saves either a list of specified entities or all changed entities within this EntityManager. If there are no changes to any of the entities
   specified then there will be no server side call made but a valid 'empty' saveResult will still be returned. __Async__
@@ -1104,15 +1109,8 @@ export class EntityManager {
   >          // e is any exception that was thrown.
   >      });
 
-  Callback methods can also be used
-  >      em.saveChanges(entitiesToSave, null,
-  >          function(saveResult) {
-  >              let savedEntities = saveResult.entities;
-  >              let keyMappings = saveResult.keyMappings;
-  >          }, function (e) {
-  >              // e is any exception that was thrown.
-  >          }
-  >      );
+  The `callback` and `errorCallback` arguments are deprecated. They still work, but the
+  promise is the supported form and the callbacks will be removed in a future major version.
 
   @param entities - The list of entities to save.
   Every entity in that list will be sent to the server, whether changed or unchanged,
@@ -1121,11 +1119,11 @@ export class EntityManager {
   every entity with pending changes in this EntityManager will be saved.
   @param saveOptions - {@link SaveOptions} for the save - will default to
   {@link EntityManager.saveOptions} if null.
-  @param callback -  Function called on success.
-  @param errorCallback - Function called on failure.
+  @param callback - Deprecated. Function called on success.
+  @param errorCallback - Deprecated. Function called on failure.
   @returns {Promise} Promise
   **/
-  saveChanges(entities?: Entity[] | null, saveOptions?: SaveOptions, callback?: Function, errorCallback?: Function) {
+  saveChanges(entities?: Entity[] | null, saveOptions?: SaveOptions, callback?: Function, errorCallback?: Function): Promise<SaveResult> {
     assertParam(entities, "entities").isOptional().isArray().isEntity().check();
     assertParam(saveOptions, "saveOptions").isInstanceOf(SaveOptions).isOptional().check();
     assertParam(callback, "callback").isFunction().isOptional().check();

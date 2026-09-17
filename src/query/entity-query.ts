@@ -590,10 +590,13 @@ export class EntityQuery<T = any> {
     return eq;
   }
 
+  execute(): Promise<QueryResult<T>>;
+  /** @deprecated Await the returned promise instead of passing callbacks. */
+  execute(callback?: Callback, errorCallback?: ErrorCallback): Promise<QueryResult<T>>;
   /**
   Executes this query.  This method requires that an EntityManager has been previously specified via the "using" method.
   
-  This method can be called using a 'promises' syntax ( recommended)
+  It returns a promise:
   >      let em = new EntityManager(serviceName);
   >      let query = new EntityQuery("Orders").using(em);
   >      query.execute().then( function(data) {
@@ -602,19 +605,10 @@ export class EntityQuery<T = any> {
   >          ... query failure processed here
   >      });
 
-  or with callbacks
-  >      let em = new EntityManager(serviceName);
-  >      let query = new EntityQuery("Orders").using(em);
-  >      query.execute(
-  >        function(data) {
-  >                    let orders = data.results;
-  >                    ... query results processed here
-  >                },
-  >        function(err) {
-  >                    ... query failure processed here
-  >                });
+  The `callback` and `errorCallback` arguments are deprecated. They still work, but the
+  promise is the supported form and the callbacks will be removed in a future major version.
 
-  Either way this method is the same as calling the EntityManager 'execute' method.
+  This method is the same as calling the EntityManager 'executeQuery' method.
   >      let em = new EntityManager(serviceName);
   >      let query = new EntityQuery("Orders");
   >      em.executeQuery(query).then( function(data) {
@@ -624,8 +618,8 @@ export class EntityQuery<T = any> {
   >         ... query failure processed here
   >      });
 
-  @param callback -  Function called on success.
-  @param errorCallback - Function called on failure.
+  @param callback - Deprecated. Function called on success.
+  @param errorCallback - Deprecated. Function called on failure.
   @returns Promise
   **/
   execute(callback?: Callback, errorCallback?: ErrorCallback): Promise<QueryResult<T>> {

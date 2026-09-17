@@ -10,6 +10,8 @@ export interface RelationArray<T extends Entity = Entity> extends ObservableArra
   parentEntity: Entity;
   parentProperty?: DataProperty;
   navigationProperty: NavigationProperty;
+  load(): Promise<QueryResult<QueriedAs<T>>>;
+  /** @deprecated Await the returned promise instead of passing callbacks. */
   load(querySuccessCallback?: QuerySuccessCallback, queryErrorCallback?: QueryErrorCallback): Promise<QueryResult<QueriedAs<T>>>;
 }
 
@@ -45,8 +47,10 @@ Performs an asynchronous load of all other the entities associated with this rel
     // assume orders is an empty, as yet unpopulated, relation array of orders
     // associated with a specific customer.
     orders.load().then(...)
-@param [callback] {Function}
-@param [errorCallback] {Function}
+The callback arguments are deprecated. They still work, but the promise is the supported
+form and they will be removed in a future major version.
+@param [callback] {Function} Deprecated.
+@param [errorCallback] {Function} Deprecated.
 @returns {Promise}
 **/
 function load(this: RelationArray, callback?: QuerySuccessCallback, errorCallback?: QueryErrorCallback): Promise<QueryResult> {

@@ -30,6 +30,7 @@ export default defineConfig({
       ...configDefaults.exclude,
       'test/unit/side-effects.spec.ts',
       'test/unit/entity-generator.spec.ts',
+      'test/unit/deprecation.spec.ts',
     ],
     setupFiles: ['./test/setup.ts', './test/integration-setup.ts'],
     globalSetup: ['./test/global-setup.ts'],

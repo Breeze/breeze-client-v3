@@ -441,7 +441,11 @@ export class EntityAspect {
     return true;
   }
 
+  loadNavigationProperty(navigationProperty: string): Promise<QueryResult>;
+  loadNavigationProperty(navigationProperty: NavigationProperty): Promise<QueryResult>;
+  /** @deprecated Await the returned promise instead of passing callbacks. */
   loadNavigationProperty(navigationProperty: string, callback?: QuerySuccessCallback, errorCallback?: QueryErrorCallback): Promise<QueryResult>;
+  /** @deprecated Await the returned promise instead of passing callbacks. */
   loadNavigationProperty(navigationProperty: NavigationProperty, callback?: QuerySuccessCallback, errorCallback?: QueryErrorCallback): Promise<QueryResult>;
   /**
   Performs a query for the value of a specified {@link NavigationProperty}. __Async__
@@ -451,14 +455,14 @@ export class EntityAspect {
   >          // handle exception here;
   >      });
   @param navigationProperty - The NavigationProperty or the name of the NavigationProperty to 'load'.
-  @param callback - Function to call on success.
-  @param errorCallback - Function to call on failure.
+  @param callback - Deprecated. Function to call on success.
+  @param errorCallback - Deprecated. Function to call on failure.
   @returns Promise with shape
     - results {Array of Entity}
     - query {EntityQuery} The original query
     - httpResponse {httpResponse} The HttpResponse returned from the server.
   **/
-  loadNavigationProperty(navigationProperty: NavigationProperty | string, callback: QuerySuccessCallback, errorCallback: QueryErrorCallback) {
+  loadNavigationProperty(navigationProperty: NavigationProperty | string, callback?: QuerySuccessCallback, errorCallback?: QueryErrorCallback): Promise<QueryResult> {
     let entity = this.entity!;
     let navProperty = entity.entityType._checkNavProperty(navigationProperty);
     let query = EntityQuery.fromEntityNavigation(entity, navProperty);

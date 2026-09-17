@@ -196,6 +196,36 @@ you may notice:
 
 These are type-only changes; nothing behaves differently.
 
+## 9. The callback arguments are deprecated
+
+The async methods have always taken an optional success and failure callback alongside the
+promise they return. That pair is now deprecated on `EntityManager.executeQuery`,
+`saveChanges` and `fetchMetadata`, `EntityQuery.execute`,
+`EntityAspect.loadNavigationProperty`, `MetadataStore.fetchMetadata` and a relation array's
+`load`.
+
+Nothing has stopped working, and none of these calls change behaviour. Your editor will
+strike the call through, and the callbacks will be removed in a future major version:
+
+```ts
+// deprecated
+em.executeQuery(query, data => render(data.results), err => show(err));
+
+// supported
+try {
+  const data = await em.executeQuery(query);
+  render(data.results);
+} catch (err) {
+  show(err);
+}
+```
+
+The promise form is the only one that was ever fully supported: the save-queuing mixin, for
+instance, has always ignored the callback arguments.
+
+The callback types — `Callback`, `ErrorCallback`, `QuerySuccessCallback` and
+`QueryErrorCallback` — are deprecated along with them.
+
 ## What has not changed
 
 The rest of the API is intended to be source-compatible. `EntityManager`, `EntityQuery`,

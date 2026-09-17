@@ -426,6 +426,9 @@ export class MetadataStore {
     });
   }
 
+  fetchMetadata(dataService: string | DataService): Promise<any>;
+  /** @deprecated Await the returned promise instead of passing callbacks. */
+  fetchMetadata(dataService: string | DataService, callback?: (schema: any) => void, errorCallback?: ErrorCallback): Promise<any>;
   /**
   Fetches the metadata for a specified 'service'. This method is automatically called
   internally by an EntityManager before its first query against a new service. __Async__
@@ -441,11 +444,11 @@ export class MetadataStore {
   >          // handle exception here
   >      });
   @param dataService -  Either a DataService or just the name of the DataService to fetch metadata for.
-  @param callback - Function called on success.
-  @param errorCallback - Function called on failure.
+  @param callback - Deprecated. Function called on success.
+  @param errorCallback - Deprecated. Function called on failure.
   @returns Promise
   **/
-  fetchMetadata(dataService: string | DataService, callback?: (schema: any) => void, errorCallback?: ErrorCallback) {
+  fetchMetadata(dataService: string | DataService, callback?: (schema: any) => void, errorCallback?: ErrorCallback): Promise<any> {
     try {
       assertParam(dataService, "dataService").isString().or().isInstanceOf(DataService).check();
       assertParam(callback, "callback").isFunction().isOptional().check();

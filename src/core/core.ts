@@ -3,6 +3,8 @@ import { BreezeEnum } from './enum.js';
 declare var global: any;
 declare var window: any;
 
+/** The success callback accepted by the deprecated callback form of the async methods.
+@deprecated Await the returned promise instead of passing callbacks. */
 export interface Callback {
     (data: any): void;
 }
@@ -773,6 +775,8 @@ export const core = {
     strings: strings
 };
 
+/** The failure callback accepted by the deprecated callback form of the async methods.
+@deprecated Await the returned promise instead of passing callbacks. */
 export interface ErrorCallback {
     (error: any): void;
 }
