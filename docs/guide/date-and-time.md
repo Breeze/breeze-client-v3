@@ -3,7 +3,11 @@
 JavaScript has one date type. A `Date` is an instant in time, and it displays in the local
 time zone. Servers have several date types. This page covers how Breeze maps them, where
 time zones come in, the `Date` pitfalls that affect change tracking, and how to hold dates as
-something other than a `Date` — a Luxon `DateTime`, say — in [Using another date library](#using-another-date-library).
+something other than a `Date` — a Luxon `DateTime`, say.
+
+If you are here because a date arrived in your database a day earlier than you saved it, start
+with ["The date I saved is a day earlier in the database"](#the-date-i-saved-is-a-day-earlier-in-the-database).
+To hold dates as something other than a `Date`, see [Using another date library](#using-another-date-library).
 
 ## Date and time data types
 
@@ -115,6 +119,97 @@ const order = em.createEntity(Order, { orderDate: new Date() });
 ```
 
 or set it in a custom constructor. See [Extending entities](/guide/extending-entities).
+
+## "The date I saved is a day earlier in the database"
+
+This is the most-asked Breeze date question, and almost always nothing has gone wrong. The
+symptom:
+
+```
+the client holds    2024-11-11T00:00:00+01:00
+saveChanges() sends 2024-11-10T23:00:00.000Z
+the database row is 2024-11-10
+```
+
+Those first two lines are **the same instant**, written for two different time zones. Three
+facts produce the surprise together:
+
+1. A JavaScript `Date` is a number of milliseconds since 1 January 1970 UTC. It carries no zone
+   of its own; your browser *formats* it in the local zone, which is why it looked like
+   `+01:00`.
+2. What crosses the wire is always an ISO 8601 serialization of that instant, in UTC. The
+   formatting differs at each end; the instant does not.
+3. A SQL `date` or `datetime2` column has no zone either. It stores whatever calendar day the
+   serialized form carried — UTC's — so local midnight in UTC+1 lands on the previous day.
+
+> Breeze does NOT change the dates in any way, except in the case of dates sent from the server
+> without a timezone offset. […] The timezone of the server is only relevant to the formatting
+> of a date, not to its actual value.
+>
+> — Jay Traband, [Dates/datetimes in breeze set timeszone 0:00 on SQL Server](https://stackoverflow.com/questions/20197308/dates-datetimes-in-breeze-set-timeszone-000-on-sql-server)
+
+So nothing is lost, and reading the row back gives the instant you saved. What is wrong is the
+*intent*: you stored an instant where you meant a date, or the other way round.
+
+### What to do about it
+
+**If you meant a calendar date** — a birth date, a due date, an invoice date — then the zone was
+never meaningful and carrying one is the bug, not the symptom. Use `DateOnly` on the server and
+a `date` column; Breeze reads it as a `Date` at local midnight and sends back `YYYY-MM-DD` with
+no time and no zone, so there is nothing left to shift. See [DateOnly](#dateonly). This is the
+real fix for the case above, and it is what .NET's `DateOnly` and SQL's `date` exist for.
+
+**If you meant an instant**, keep UTC in the database — a `datetimeoffset` column, or a
+`DateTime` whose `Kind` is `Utc` — and format for display at the edge of your UI. Do not try to
+store local time; the offset is not recoverable later, least of all across a daylight-saving
+change.
+
+**If you want the client to read what the server wrote, zone and all ignored** — every value
+comes back showing the wall clock the server sent — replace the inbound parser:
+
+```ts
+import { DataType } from 'breeze-client';
+
+DataType.parseDateFromServer = DataType.parseDateAsLocal;
+```
+
+::: warning This changes only the inbound direction
+Saves still send UTC. A one-sided change is what produces steady drift: read as local, write as
+UTC, read back shifted again. If you change one end, change the other to match.
+:::
+
+### The server side
+
+Breeze.NET serializes with Json.NET, whose `DateTimeZoneHandling` defaults to `RoundtripKind` —
+a `DateTime` goes out as its `Kind` says, and an `Unspecified` one goes out with no offset at
+all, which is the case [From server to client](#from-server-to-client) is about. To change it,
+derive from `BreezeConfig` and override `CreateJsonSerializerSettings`:
+
+```csharp
+public class CustomBreezeConfig : Breeze.Persistence.BreezeConfig {
+  protected override JsonSerializerSettings CreateJsonSerializerSettings() {
+    var settings = base.CreateJsonSerializerSettings();
+    settings.DateTimeZoneHandling = DateTimeZoneHandling.Utc;
+    return settings;
+  }
+}
+```
+
+Nothing registers it: Breeze scans the loaded assemblies for a subclass of `BreezeConfig` and
+uses the one it finds. Exactly one may be defined.
+
+The simplest arrangement, and the one that needs no client-side change at all, is for every
+`DateTime` the server sends to be `Utc` or to be a `DateTimeOffset`. Then every string carries a
+zone, and the offset-less rule never comes up.
+
+::: tip Copying the code in that StackOverflow answer?
+It predates v3 in two places. The client method is `DataType.parseDateAsUTC`, not
+`parseDatesAsUTC`, and the whole "parse as local" body it writes out by hand is now
+`DataType.parseDateAsLocal` — which recomputes the offset per value, so it stays right on both
+sides of a daylight-saving change. On the server, the base class moved from `Breeze.WebApi` to
+`Breeze.Persistence`.
+:::
+
 
 ## Date pitfalls
 

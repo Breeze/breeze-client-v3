@@ -110,3 +110,48 @@ describe("DataType.TimeOnly", () => {
   });
 
 });
+
+// The rules in /guide/date-and-time, and the two hooks that answer the most-asked Breeze date
+// question: a DateTime column comes back a day earlier than it was saved.
+describe("parsing a date from the server", () => {
+
+  const stock = DataType.parseDateFromServer;
+  afterEach(() => { DataType.parseDateFromServer = stock; });
+
+  test("a string carrying a zone is taken exactly as given", () => {
+    expect(DataType.parseDateAsUTC('2024-03-15T10:30:00Z').toISOString()).toBe('2024-03-15T10:30:00.000Z');
+    expect(DataType.parseDateAsUTC('2024-03-15T12:30:00+02:00').toISOString()).toBe('2024-03-15T10:30:00.000Z');
+  });
+
+  test("a string with no zone but fractional seconds is read as UTC", () => {
+    // .NET writes 3 or 7 fractional digits; both end in at least three digits, which is what
+    // Breeze looks for before appending the Z.
+    expect(DataType.parseDateAsUTC('2024-03-15T10:30:00.000').toISOString()).toBe('2024-03-15T10:30:00.000Z');
+    expect(DataType.parseDateAsUTC('2024-03-15T10:30:00.1234567').getTime())
+      .toBe(Date.parse('2024-03-15T10:30:00.123Z'));
+  });
+
+  test("a string with no zone and no fractional seconds is read as LOCAL", () => {
+    // The trap: values from one column are read differently depending on whether the server
+    // happened to write a fractional part.
+    expect(DataType.parseDateAsUTC('2024-03-15T10:30:00').getTime())
+      .toBe(new Date(2024, 2, 15, 10, 30).getTime());
+  });
+
+  test("parseDateAsLocal keeps the wall clock the server wrote", () => {
+    // The recipe in the 2013 StackOverflow answer, now built in - and per-value, so it is right
+    // on both sides of a daylight-saving change rather than using one offset captured at startup.
+    const d = DataType.parseDateAsLocal('2024-03-15T10:30:00Z');
+    expect(d.getHours()).toBe(10);
+    expect(d.getMinutes()).toBe(30);
+  });
+
+  test("parseDateFromServer is the one hook both DateTime and DateTimeOffset go through", () => {
+    DataType.parseDateFromServer = () => new Date(Date.UTC(2001, 0, 1));
+    for (const dt of [DataType.DateTime, DataType.DateTimeOffset]) {
+      expect(DataType.parseRawValue('2024-03-15T10:30:00Z', dt).toISOString())
+        .toBe('2001-01-01T00:00:00.000Z');
+    }
+  });
+
+});
