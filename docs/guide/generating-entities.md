@@ -1,10 +1,12 @@
 # Generating entity classes
 
-[Typed entities](./typed-entities.md) and [typed queries](./typed-queries.md) both need one thing
-first: a TypeScript class per entity type. Writing those by hand is tedious, and they drift from
-the server the moment someone adds a column.
+Breeze builds entities from your service's metadata, so it works without any classes of your own —
+`order.freight` and `order.customer` are there either way. What a TypeScript class per entity type
+adds is the compiler: autocompletion over your model, an error when a property is renamed on the
+server, and somewhere to put the logic that belongs to an entity.
 
-`breeze-client` ships a generator that writes them from your service's metadata. It comes with the
+Writing those classes by hand is tedious, and they drift from the server the moment someone adds a
+column. `breeze-client` ships a generator that writes them from the metadata. It comes with the
 package — there is nothing else to install:
 
 ```bash
@@ -25,8 +27,11 @@ generate-entity-classes v1.0.0
 23 file(s) written
 ```
 
-That is the whole setup. The rest of this page is about living with the output — above all
-[regenerating it](#regenerating) without losing the code you added.
+That is the whole setup. Once the classes exist, [typed entities](./typed-entities.md) and
+[typed queries](./typed-queries.md) cover what they buy you at the call site.
+
+The rest of this page is about living with the output — above all [regenerating it](#regenerating)
+without losing the code you added.
 
 ## Where the metadata comes from
 

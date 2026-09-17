@@ -22,6 +22,7 @@ const docsSidebar = [
     text: 'Core concepts',
     items: [
       { text: 'Inside the entity', link: '/guide/inside-the-entity' },
+      { text: 'Generating entity classes', link: '/guide/generating-entities' },
       { text: 'Querying', link: '/guide/querying' },
       { text: 'Creating entities', link: '/guide/creating-entities' },
       { text: 'Navigation properties', link: '/guide/navigation-properties' },
@@ -53,7 +54,6 @@ const docsSidebar = [
     items: [
       { text: 'Extending entities', link: '/guide/extending-entities' },
       { text: 'Typed entities', link: '/guide/typed-entities' },
-      { text: 'Generating entity classes', link: '/guide/generating-entities' },
       { text: 'Typed queries', link: '/guide/typed-queries' },
       { text: 'Date and time', link: '/guide/date-and-time' },
       { text: 'Performance', link: '/guide/performance' },
