@@ -37,12 +37,6 @@ configureBreeze({ fetch: loggingFetch });
 It is a plain function, so you can wrap your auth or retry transport in it the same way.
 See [Supplying your own transport](/server/transport).
 
-::: tip Changed in 3.0
-2.x debugging often meant stepping through the jQuery or AngularJS ajax adapter, or
-watching the traffic in a proxy such as Fiddler. In v3, all HTTP goes through one
-`BreezeFetch`, so that function is the place to log, record or stub requests.
-:::
-
 ## Reading a query URL
 
 The JSON URI builder encodes the whole query as one JSON object in the query string. This

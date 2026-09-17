@@ -103,12 +103,6 @@ const em = new EntityManager({ dataService: searchService });
 adapter instance that `register()` returns. Or subclass the adapter — see
 [Deriving from the Web API adapter](/server/dataserviceadapter#deriving-from-the-web-api-adapter).
 
-::: tip Changed in 3.0
-`EntityQuery.using(jsonResultsAdapter)` now works in ES module builds. In the 2.x `mjs`
-build, a `JsonResultsAdapter` lost its type brand, and `using` did not recognise it. See
-[Migrating from 2.x](/guide/migrating-from-2x#fixed-along-the-way).
-:::
-
 ## Creating a JsonResultsAdapter
 
 ```ts

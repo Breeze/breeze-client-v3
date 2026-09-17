@@ -42,6 +42,32 @@ npm install breeze-client        # 3.0.0
 | `breeze-client/adapter-data-service-odata` | Stay on 2.x. Breeze's own JSON query format is the supported path. |
 | `breeze-client/adapter-uri-builder-odata` | Use `adapter-uri-builder-json` with a Breeze .NET server. |
 
+### Entities always have plain properties
+
+The model library used to decide the shape of an entity. With Knockout gone there is only the
+backing store, so a property is just a property:
+
+```ts
+order.freight;           // 2.x with Knockout: order.freight()
+order.freight = 12.5;    // 2.x with Knockout: order.freight(12.5)
+```
+
+`getProperty` and `setProperty` still work, on entities and complex objects alike.
+
+### What else went with OData
+
+- **`Predicate.toODataFragment` is gone.** It was never a core method: the OData URI builder
+  added it to `Predicate.prototype` when you imported that adapter. Use `toJSON()`.
+- **Requests no longer carry `$filter`, `$orderby`, `$select` or `$expand`.** The JSON URI builder is the
+  only one left. A server that understands only OData query syntax is not supported.
+
+### The Breeze Labs Metadata-Helper is gone
+
+The 2.x docs used `breeze.metadata-helper.js` for hand-written metadata, with abbreviated
+attribute names (`type`, `max`, `fk`) and convention-based defaults. There is no v3 version.
+`MetadataStore.addEntityType` takes property maps, qualifies navigation type names and has
+sensible defaults, so the native API is nearly as short.
+
 ### CSDL / EDMX metadata is no longer parsed
 
 `MetadataStore.importMetadata()` used to detect a `schema` property and parse CSDL
@@ -52,6 +78,10 @@ clear error rather than silently importing nothing.
 This matters if you fetch metadata from an **OData `$metadata` endpoint**, or from an
 older Breeze **WebApi2 + EF6** server. Breeze .NET Core servers emit Breeze JSON metadata
 (`{"structuralTypes": [...]}`) and are unaffected.
+
+An object with a `schema` property and no `structuralTypes` makes `importMetadata()` throw *This
+looks like CSDL (OData / EDMX) metadata, which breeze-client 3 does not read*, prefixed by
+*Unable to either parse or import metadata*.
 
 If you need CSDL, stay on 2.x or export your metadata to Breeze JSON once and check it in.
 
@@ -238,6 +268,9 @@ startup camel-cases property names unless told otherwise: `CompanyName` on the s
 names a naming convention still sets it when imported into an empty store. A store
 loaded from an `exportMetadata()` file therefore keeps the convention it was exported with.
 
+`configureBreeze` takes `namingConvention` directly. There is no `breeze.` global, and no
+`NamingConvention.instance` — the current default is `NamingConvention.defaultInstance`.
+
 ### The observable arrays keep their public surface
 
 `relationArray`, `complexArray` and `primitiveArray` are still real arrays, and everything an
@@ -303,12 +336,55 @@ TypeScript flags the cases that need attention rather than letting them fail sil
 
 ---
 
+## Types are stricter
+
+v3 builds under `strictNullChecks` and `noImplicitAny`. Two declarations changed in ways you may
+notice, both type-only — nothing behaves differently:
+
+- `getProperty` and `setProperty` are **no longer optional**, on `Entity` or on `ComplexObject`.
+  The model library adapter has always installed them, and marking them optional forced needless
+  null checks; drop any `!` or `?.`. A class that `implements Entity` now has to list them, with
+  `declare` so the field does not shadow what Breeze installs.
+- `EntityQuery.wherePredicate`, `EntityAspect.hasTempKey` and `ValidationError.propertyName` are
+  now optional, which is what they always were at run time. `propertyName` in particular was
+  always undefined for entity-level errors.
+
+---
+
 The public API is otherwise intended to be source-compatible with 2.x. `EntityManager`,
 `EntityQuery`, `Predicate`, `MetadataStore`, `EntityType`, `EntityAspect`, `Validator`,
 `DataType`, the `BreezeEnum` types, save/query options and the event model all keep their
 names, shapes and semantics.
 
 If you hit a difference that is not listed above, it is a bug — please file an issue.
+
+---
+
+## Promises are native
+
+Every async method returns a native `Promise`. Use `await`, or `.then`/`.catch`. The Q idiom
+2.x code often used does not exist:
+
+```ts
+em.saveChanges().fail(handler);    // 2.x with Q — TypeError in v3
+em.saveChanges().catch(handler);   // v3
+```
+
+Nothing else in the query or save contract changed.
+
+---
+
+## Save errors arrive as a problem details document
+
+A Breeze .NET server now returns [RFC 9457](https://www.rfc-editor.org/rfc/rfc9457)
+`application/problem+json`, with `type`, `title`, `status` and `detail`. Before 3.0 it sent
+`{ Code, Message, StackTrace, EntityErrors }` with no content type of its own, always included
+the stack trace, and set `Code` to `0` for anything that was not an `EntityErrorsException`.
+
+**A client needs no changes.** Breeze reads either spelling, `e.message` comes from `detail`
+falling back to `title`, and the capitalised members are still sent by default so an application
+on an older client reads the error unchanged. Two server settings control it,
+`IncludeStackTraceInErrors` (now `false` by default) and `IncludeLegacyErrorMembers`.
 
 ---
 

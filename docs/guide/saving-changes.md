@@ -169,12 +169,6 @@ Two server settings control it:
 | `IncludeStackTraceInErrors` | `false` | a stack trace names source files, line numbers and the build machine's directory layout — turn it on for development only |
 | `IncludeLegacyErrorMembers` | `true` | set `false` once every client reads the RFC 9457 members |
 
-::: tip Changed in 3.0
-Before 3.0 the response was `{ Code, Message, StackTrace, EntityErrors }` with no content type
-of its own, the stack trace was always included, and `Code` was `0` for anything that was not
-an `EntityErrorsException`.
-:::
-
 ## SaveOptions
 
 A [`SaveOptions`](/api/classes/SaveOptions) instance controls how a save is made.
@@ -405,12 +399,6 @@ errors:
 Entities may be returned as a graph with `$id`/`$ref` references, like a query response.
 Breeze reconnects them by foreign key in any case. The client accepts both `Entities` and
 `entities` for the top-level names, and likewise for the others.
-
-::: tip Changed in 3.0
-Nothing in the save contract changed. `saveChanges` is implemented with `async`/`await`
-internally, and it returns a native `Promise`: use `.then`/`.catch` or `await`. The 2.x Q
-idiom `.fail()` does not exist.
-:::
 
 ## See also
 

@@ -34,14 +34,7 @@ configureBreeze({ namingConvention: NamingConvention.none });
 
 That is the same as calling `NamingConvention.none.setAsDefault()`.
 
-::: tip Changed in 3.0
-The default is `camelCase`. In 2.x it was `none`, so a .NET application had to set
-`camelCase` itself; that call is now redundant but harmless. An application that relied on
-`none` must now set it. See [Migrating from 2.x](/guide/migrating-from-2x).
-
-`configureBreeze` takes `namingConvention` directly. There is no `breeze.` global, and no
-`NamingConvention.instance` — the current default is `NamingConvention.defaultInstance`.
-:::
+The convention currently in force is `NamingConvention.defaultInstance`.
 
 ### Set it before creating stores
 

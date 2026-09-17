@@ -256,11 +256,6 @@ with `await expect(em.executeQuery(q)).rejects.toThrow()`.
 realistic save *result* means reproducing your server's response JSON, so capture a real
 one from your browser's network tab and use it as a fixture.
 
-::: tip Changed in 3.0
-Breeze 3 needs no ajax adapter at all, so there is no fake one to register. A `fetch`
-function passed to `configureBreeze` stands in for the server.
-:::
-
 ## Breeze's own tests
 
 To run the Breeze client test suite itself (unit tests with no server, plus integration

@@ -152,9 +152,3 @@ return complex types.
   `propertyName`, for example `location.city`.
 
 See [Validation](/guide/validation).
-
-::: tip Changed in 3.0
-`ComplexObject.getProperty` and `setProperty` are now typed as required rather than
-optional. The backing-store model library has always installed them, so no runtime
-behaviour changed.
-:::

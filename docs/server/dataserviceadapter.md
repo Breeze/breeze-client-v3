@@ -13,17 +13,8 @@ same JSON. For anything else, write
 your own adapter — usually by subclassing `AbstractDataServiceAdapter` and overriding a few
 methods.
 
-::: tip Changed in 3.0
-- The OData adapter is gone.
-- Adapters no longer register themselves when imported. `DataServiceWebApiAdapter` does
-  not need registering: it is the default.
-- `AbstractDataServiceAdapter` is promise-based: `fetchMetadata`, `executeQuery` and
-  `saveChanges` are `async` and return native promises. They share one `_ajax` helper.
-
-If a 2.x subclass overrode only `_prepareSaveBundle`, `_prepareSaveResult` and
-`jsonResultsAdapter`, it works unchanged. Any override that returned a Q promise must now
-return a native one.
-:::
+`AbstractDataServiceAdapter` is promise-based: `fetchMetadata`, `executeQuery` and
+`saveChanges` are `async` and return native promises, and they share one `_ajax` helper.
 
 ## Registering an adapter
 

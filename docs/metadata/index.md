@@ -67,24 +67,18 @@ JSON you saved earlier, or with `addEntityType`. Both are covered in
 
 ## CSDL and EDMX are not supported
 
-::: warning Changed in 3.0
-Breeze 3 reads **Breeze native JSON metadata only**. That is the format the Breeze .NET
-server sends and `MetadataStore.exportMetadata()` writes, described in
+Breeze reads **Breeze native JSON metadata only** — the format the Breeze .NET server sends
+and `MetadataStore.exportMetadata()` writes, described in
 [Metadata in depth](/metadata/details).
 
-`importMetadata()` no longer detects or parses CSDL, the OData / EDMX metadata format, and
-`DataType.fromEdmDataType` is gone. Instead, CSDL is rejected with a clear error: an object
-with a `schema` property and no `structuralTypes` makes `importMetadata()` throw *This
-looks like CSDL (OData / EDMX) metadata, which breeze-client 3 does not read*. So if you
-point Breeze 3 at an OData `$metadata` endpoint, or at an older WebApi2 + EF6 server that
-emits CSDL, the first metadata fetch fails with that message, prefixed by *Unable to
-either parse or import metadata*.
+CSDL, the OData / EDMX format, is rejected rather than half-imported. An object with a
+`schema` property and no `structuralTypes` makes `importMetadata()` throw *This looks like
+CSDL (OData / EDMX) metadata, which breeze-client 3 does not read*, prefixed by *Unable to
+either parse or import metadata*. So pointing Breeze at an OData `$metadata` endpoint, or at
+a WebApi2 + EF6 server that emits CSDL, fails on the first metadata fetch with that message.
 
-If your metadata is CSDL, move the server to Breeze .NET Core (which emits native JSON).
-Or, while you are still on Breeze 2.x, load the CSDL once, call `exportMetadata()`, and
-check the resulting JSON in; Breeze 3 can [import that file](/metadata/by-hand#loading-metadata-from-a-json-file).
-See [Migrating from 2.x](/guide/migrating-from-2x).
-:::
+If your metadata is CSDL, [Migrating from 2.x](/guide/migrating-from-2x#csdl-edmx-metadata-is-no-longer-parsed)
+has the two ways out.
 
 ## On the server
 

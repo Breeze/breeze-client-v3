@@ -282,13 +282,6 @@ BreezeEvent.enable('propertyChanged', em, true);   // back on
 Instead of a boolean, the third argument can be a function that receives the object and
 returns a boolean. Breeze calls it each time the event fires.
 
-::: tip Changed in 3.0
-The Knockout model library is gone, and so are observable properties such as
-`order.freight()` and `order.freight(12.5)`. Entity properties are always plain
-properties. To drive a UI, bind to the plain values, and use the events on this page to
-find out when they change.
-:::
-
 ## Next
 
 Once you have pending changes, [save them](/guide/saving-changes).

@@ -38,15 +38,6 @@ configureBreeze({ namingConvention: NamingConvention.none });
 `NamingConvention.none.setAsDefault()` does the same thing. See
 [Naming conventions](/server/namingconvention).
 
-::: tip Changed in 3.0
-In 2.x, importing an adapter module registered it. Breeze 3 registers nothing on import,
-and you don't need it to: when nothing is registered, Breeze uses its standard adapters.
-See [Default adapters](/guide/configuration#adapters-and-transport).
-
-The default naming convention was `none` in 2.x, so a .NET application had to set
-`camelCase`. Breeze 3 defaults to `camelCase`. See [Migrating from 2.x](/guide/migrating-from-2x).
-:::
-
 ## Create an EntityManager
 
 An `EntityManager` is a cache plus a connection to one service. Most applications have

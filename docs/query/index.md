@@ -84,12 +84,6 @@ To see the JSON for a query without sending it, call `query.toJSON()`. It return
 structure, but with client property names and the resource name included. See
 [Debugging queries](/query/debugging).
 
-::: tip Changed in 3.0
-The OData URI builder is gone, so queries no longer produce `$filter`, `$orderby` or
-`$expand`. If you inspect requests, expect the JSON above. Servers that only understand
-OData query syntax are not supported; stay on 2.x for those.
-:::
-
 ### Sending the query in a POST body
 
 A very long query can exceed URL length limits. `usePost()` sends the same JSON as the body

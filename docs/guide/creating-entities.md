@@ -196,10 +196,3 @@ registered it with `metadataStore.registerEntityTypeCtor`. Breeze wires it up wh
 attach it. Most applications don't need to, because Breeze builds the type from metadata.
 If you write a constructor, it is usually to add behaviour rather than to list every
 property. See [Extending entities](/guide/extending-entities).
-
-::: tip Changed in 3.0
-In 2.x, the model library you chose decided the shape of a new entity (Knockout
-observables, Backbone `get`/`set`, or plain properties). Breeze 3 has only the backing-store
-model library, so entities always have plain properties. `entity.getProperty` and
-`entity.setProperty` are still available, and are now typed as always present.
-:::

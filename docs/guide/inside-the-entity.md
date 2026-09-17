@@ -309,10 +309,3 @@ order.freight = 12.5;   // tracked, just like setProperty
 
 The entity also carries internals such as `_backingStore` and `_$interceptor`. Leave them
 alone.
-
-::: tip Changed in 3.0
-`Entity.getProperty` and `Entity.setProperty` are no longer optional in the type
-declarations. The model library has always installed them, so you can drop the `!` or
-`?.` you may have needed in 2.x. `EntityAspect.hasTempKey` is now typed as optional,
-which matches how it behaves at runtime.
-:::

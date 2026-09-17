@@ -19,11 +19,6 @@ That workflow is the same for every server. The details are what differ:
 Breeze keeps those details out of the `EntityManager`. They live in a small set of
 replaceable pieces.
 
-::: tip Changed in 3.0
-The OData data service adapter and URI builder are gone, along with CSDL/EDMX metadata
-parsing. See [Migrating from 2.x](/guide/migrating-from-2x).
-:::
-
 ## The pieces
 
 | Piece | Job | Default | More |

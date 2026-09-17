@@ -8,14 +8,6 @@ You rarely have to write the JSON format described in [Metadata in depth](/metad
 `MetadataStore.addEntityType` takes compact configuration objects and fills in the
 rest.
 
-::: tip Changed in 3.0
-The 2.x docs used the Breeze Labs **Metadata-Helper** (`breeze.metadata-helper.js`), a
-separate library with abbreviated attribute names (`type`, `max`, `fk`) and
-convention-based defaults. It has no v3 version. The native API below is nearly as short:
-it takes property maps, qualifies navigation type names for you, and has sensible
-defaults. Remember that the classes need `new`.
-:::
-
 ## A worked example
 
 This defines part of Northwind: `Category`, `Supplier` and `Product` entity types, and a
@@ -285,9 +277,3 @@ Bundlers (Vite, webpack, esbuild) import JSON as shown. TypeScript needs
 The file is a snapshot. When the server model changes, it goes stale, and the errors that
 follow can be confusing. Regenerate it as part of your build, for example with a script
 that fetches `/Metadata` from a running server and writes the file.
-
-::: tip Changed in 3.0
-The 2.x recipe wrapped the metadata in a `<script>` that set a global
-(`window.app.metadata`). Breeze 3 is ESM-only with no script-tag build, so import the
-JSON instead.
-:::

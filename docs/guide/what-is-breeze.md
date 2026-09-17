@@ -97,13 +97,6 @@ adapter — see [Talking to the server](/server/) and
 [DataServiceAdapter](/server/dataserviceadapter). To route HTTP through your own code,
 supply a `fetch` function — see [Supplying your own transport](/server/transport).
 
-::: tip Changed in 3.0
-Breeze 3 is an ES module package with no global `breeze` object. The Knockout model
-library, the jQuery and AngularJS ajax adapters, and the OData adapters are gone. Entities
-are always plain objects with ordinary properties. See
-[Migrating from 2.x](/guide/migrating-from-2x).
-:::
-
 ## Next
 
 [Getting started](/guide/getting-started) installs Breeze, configures it and runs a first

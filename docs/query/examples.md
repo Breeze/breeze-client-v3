@@ -136,10 +136,6 @@ console.log(JSON.stringify(pred.toJSON()));
 {"and":[{"or":[{"orderDate":{"ge":"1996-01-01T00:00:00.000Z"}},{"orderDate":{"lt":"1997-01-01T00:00:00.000Z"}}]},{"freight":{"gt":100}}]}
 ```
 
-::: tip Changed in 3.0
-`Predicate.toODataFragment` is gone along with OData. Use `toJSON()`.
-:::
-
 ### Conditions on related properties
 
 ```ts

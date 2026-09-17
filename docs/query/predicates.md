@@ -176,12 +176,6 @@ const p1 = Predicate.create<Order>('freight', '>', 100);
 const p2 = Predicate.create<Order>('orderDate', '>', new Date(1998, 3, 1));
 ```
 
-::: tip Changed in 3.0
-`Predicate` is now a real class, so calling it without `new` throws
-`TypeError: Class constructor Predicate cannot be invoked without 'new'`.
-Use `Predicate.create(...)` or `new Predicate(...)`.
-:::
-
 Combine predicates with the instance methods `and`, `or` and `not`:
 
 ```ts

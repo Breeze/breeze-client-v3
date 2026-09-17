@@ -46,11 +46,6 @@ A `ValidationError` has:
 | `key` | identifies the error in the collection |
 | `isServerError` | `true` if it came back from a failed save |
 
-::: tip Changed in 3.0
-`ValidationError.propertyName` is typed `string | undefined`. It always was undefined for
-entity-level errors; now the type says so.
-:::
-
 ## When validation runs
 
 The manager's [`ValidationOptions`](/api/classes/ValidationOptions) decide when it

@@ -126,12 +126,6 @@ is allowed. The value becomes the starting value for entities created with
 The same rules apply to classes registered for complex types, whose Breeze-supplied members
 are `complexAspect`, `complexType`, `getProperty` and `setProperty`.
 
-::: tip Changed in 3.0
-`getProperty` and `setProperty` are now required members of the `Entity` and
-`ComplexObject` interfaces, so a class that `implements Entity` has to list them. List them
-with `declare`, as above.
-:::
-
 ## Unmapped properties
 
 When Breeze wires up the type, it creates one instance of your class and looks at what it

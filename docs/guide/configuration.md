@@ -130,12 +130,6 @@ DataServiceWebApiAdapter.register();
 What does matter is registering before you create an `EntityManager` — see
 [Default adapters](#adapters-and-transport).
 
-::: tip Changed in 3.0
-In 2.x the data service adapter needed an ajax adapter registered before it, and threw
-`Unable to find ajax adapter for dataservice adapter 'webApi'` otherwise. Breeze 3 needs
-no ajax adapter, so there is nothing to get out of order.
-:::
-
 ## Importing does not register
 
 In 2.x, importing an adapter module registered it as a side effect:
@@ -225,12 +219,6 @@ configureBreeze({ namingConvention: NamingConvention.none });
 NamingConvention.none.setAsDefault();
 ```
 
-::: tip Changed in 3.0
-2.x defaulted to `none`, so 2.x applications talking to a .NET server set `camelCase`
-themselves. That call is now redundant but harmless. An application that relied on the old
-default must now set `none` explicitly.
-:::
-
 Metadata that names a naming convention sets it when imported into an empty
 `MetadataStore`. See [Naming conventions](/server/namingconvention) for custom conventions.
 
@@ -239,10 +227,3 @@ Metadata that names a naming convention sets it when imported into an empty
 Breeze needs no Content Security Policy exception. It never evaluates a string - no `eval`,
 no `new Function` - so a policy without `'unsafe-eval'` runs it without complaint and without
 CSP violation reports.
-
-::: tip Changed in 3.0
-2.x probed for `eval` support at startup and exposed a `noEval` flag, because it built entity
-constructors from strings to give them a readable name. Constructors are now named with
-`Object.defineProperty`, so both the probe and the flag are gone. See
-[Migrating from 2.x](/guide/migrating-from-2x).
-:::
