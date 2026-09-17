@@ -429,7 +429,7 @@ export class EntityAspect {
     let needsSave = true;
     if (entityState === EntityState.Unchanged) {
       clearOriginalValues(entity);
-      delete this.hasTempKey;
+      this.hasTempKey = undefined;   // not delete: every entity that becomes Unchanged runs this
       needsSave = false;
     } else if (entityState === EntityState.Added) {
       clearOriginalValues(entity);

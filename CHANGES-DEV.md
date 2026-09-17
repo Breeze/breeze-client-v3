@@ -699,6 +699,52 @@ allocated far more. One shape per process, plus a forced collection between setu
 region, and that 40% went to zero. docs/guide/performance.md already said one shape per process;
 the forced collection is new, and without it `getByKeyName` moved 30% on noise alone.
 
+## `delete` on a hot path
+
+Three places removed a property with `delete` where an assignment would do. The value ends up the
+same either way; the shape does not, and an engine deoptimises property access for the object it
+happened to — and for every object of that class created afterwards.
+
+Reading two properties 10M times off one `EntityAspect`:
+
+| | |
+|---|---|
+| an aspect created **before** the first delete | 8.0 ms |
+| the aspect actually **deleted from** | 31.3 ms |
+| an aspect created **after** that delete | 22.8 ms |
+
+The third row is the one that matters. `EntityGroup.attachEntity` does
+`delete aspect._initialized` for every entity attached, so the first entity an application
+attaches degrades every aspect built from then on — which is all of them.
+
+The `EntityManager` was worse. `core.using(obj, prop, temp, fn)` restores a property it found
+`undefined` by **deleting** it, and `isLoading` and `isRejectingChanges` are declared with
+`declare`, so they were never own properties. Three `core.using` calls per `createEntity` meant
+the manager had a property added and removed three times per entity, for its whole life:
+
+```
+5M reads of em.metadataStore / em.queryOptions
+  a manager nothing has been created in    1.4 ms
+  a manager after five createEntity calls  30.3 ms
+```
+
+Twenty-one times, on every internal read of every `EntityManager` property, for the life of the
+manager. Both flags are initialised to `false` in the constructor now, so `core.using` takes its
+restore branch instead of its delete branch. `core.using` itself is unchanged: deleting is right
+when the property really was absent, and the fix is to stop it being absent.
+
+`delete this.hasTempKey` (on becoming Unchanged, so every entity from a query) and
+`delete entity.entityAspect.hasTempKey` (key fixup) are assignments too. `undefined` rather than
+`false`, so the *value* is exactly what it was — only `hasOwnProperty` and `in` can tell, and
+nothing reads it that way; the export path builds its aspect JSON field by field.
+
+Net, with default validation options on the Northwind `Order` type: `em.createEntity('Order')`
+**11.06 µs → 9.22 µs**. `test/unit/object-shape.spec.ts` pins the shapes rather than the timings.
+
+Two `delete`s were left alone: `assert-param.ts` deletes from a throwaway clone, and
+`entity-aspect.ts` deletes an `entityType` that Babel may have put on an instance — a
+once-per-entity-type correction, not a per-entity one.
+
 ## The request path is promise-based
 
 `AbstractDataServiceAdapter`'s three entry points — `fetchMetadata`, `executeQuery` and

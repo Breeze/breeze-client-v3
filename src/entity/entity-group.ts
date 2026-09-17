@@ -45,7 +45,9 @@ export class EntityGroup {
     if (!aspect._initialized) {
       this.entityType._initializeInstance(entity);
     }
-    delete aspect._initialized;
+    // Assigned, not deleted. Deleting an own property changes the object shape, and this runs
+    // for every entity attached - see "delete on a hot path" in CHANGES-DEV.md.
+    aspect._initialized = undefined;
 
     let keyInGroup = aspect.getKey()._keyInGroup;
     let ix = this._indexMap.get(keyInGroup);
@@ -189,7 +191,7 @@ export class EntityGroup {
     let keyPropName = entity.entityType.keyProperties[0].name;
     // fks on related entities will automatically get updated by this as well
     entity.setProperty(keyPropName, realValue);
-    delete entity.entityAspect.hasTempKey;
+    entity.entityAspect.hasTempKey = undefined;   // not delete; see attachEntity above
     this._indexMap.delete(tempKey);
     this._indexMap.set(String(realValue), ix);
   }

@@ -592,6 +592,42 @@ Still open:
 - A query rebuilt by `EntityQuery.fromJSON` without `usePost` has `usePostEnabled`
   `undefined` rather than `false`.
 
+## `delete` was costing 21x on every EntityManager property read (done)
+
+Found while auditing core.ts for old idioms, and the largest single thing in this run of perf
+work. `core.using(obj, prop, temp, fn)` restores a property it found `undefined` by **deleting**
+it. `EntityManager.isLoading` and `isRejectingChanges` are declared with `declare`, so they were
+never own properties, and `createEntity` scopes `isLoading` three times — so the manager had a
+property added and removed three times per entity, for its whole life.
+
+```
+5M reads of em.metadataStore / em.queryOptions
+  a manager nothing has been created in    1.4 ms
+  a manager after five createEntity calls  30.3 ms
+```
+
+Both flags are initialised to `false` in the constructor now. `core.using` is unchanged —
+deleting is right when the property really was absent, and the fix is to stop it being absent.
+
+`EntityGroup.attachEntity` did `delete aspect._initialized` for every entity attached, which is
+worth measuring separately because of who it hurts:
+
+| reading two properties 10M times off one aspect | |
+|---|---|
+| an aspect created **before** the first delete | 8.0 ms |
+| the aspect actually **deleted from** | 31.3 ms |
+| an aspect created **after** that delete | 22.8 ms |
+
+The third row is the point: one `delete` degrades every `EntityAspect` built from then on. In an
+application the first entity attaches early, so every aspect in the process pays it. Assigning
+`undefined` instead costs nothing and the value is identical — only `hasOwnProperty` and `in` can
+tell, and nothing reads it that way. Same for the two `hasTempKey` deletes.
+
+`em.createEntity('Order')` with default validation options: **11.06 µs → 9.22 µs**, on top of the
+assertParam work below. From 13.05 µs at the start of this run, so about 30% overall.
+`test/unit/object-shape.spec.ts` pins the shapes rather than the timings; all five of its cases
+fail against the previous commit.
+
 ## assertParam: kept at the front door, taken off the hot path (done)
 
 Asked whether `Param` / `assertParam` / `assertConfig` still earn their place and whether they are

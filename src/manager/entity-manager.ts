@@ -449,6 +449,15 @@ export class EntityManager {
 
     EntityManager._updateWithConfig(this, config, true);
 
+    // Given a real value here rather than left undefined, because `core.using` restores a
+    // property it found undefined by *deleting* it. These two are scoped with `core.using` on
+    // every createEntity, query merge and rejectChanges, so the manager was having a property
+    // added and removed several times per entity - which is what puts an object into V8's
+    // dictionary-properties mode, permanently, for every property it has. Reads of
+    // `metadataStore`, `queryOptions` and the rest then cost about 20x what they should.
+    this.isLoading = false;
+    this.isRejectingChanges = false;
+
     this.entityChanged = new BreezeEvent("entityChanged", this);
     this.validationErrorsChanged = new BreezeEvent("validationErrorsChanged", this);
     this.hasChangesChanged = new BreezeEvent("hasChangesChanged", this);
