@@ -13,7 +13,7 @@ Per entity, using the Northwind `Order` type (14 data properties, 4 navigation p
 
 | operation | cost | made up of |
 |---|---|---|
-| `em.createEntity('Order')` | ~13 µs | building it ~2 µs, **attaching it to the manager ~11 µs** |
+| `em.createEntity('Order')` | ~11 µs | building it ~1.9 µs, **attaching it to the manager ~9.5 µs** |
 | the same entity from a query | ~6 µs | queries skip validation and batch their events |
 | setting a tracked property | ~0.7 µs | **96% change tracking**, ~2% the backing store |
 | reading a tracked property | ~9 ns | an accessor over a plain object |

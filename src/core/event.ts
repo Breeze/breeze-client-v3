@@ -1,5 +1,5 @@
 ﻿import { core } from './core.js';
-import { assertParam } from './assert-param.js';
+import { assertParam, paramError } from './assert-param.js';
 
 function publishCore<T>(that: BreezeEvent<T>, data: T, errorCallback?: (e: Error) => any) {
   let subscribers = that._subscribers;
@@ -106,8 +106,14 @@ export class BreezeEvent<T> {
   If omitted then subscriber notification failures will be ignored.
   **/
   constructor(name: string, publisher: Object, defaultErrorCallback?: (e: Error) => any) {
-    assertParam(name, "eventName").isNonEmptyString().check();
-    assertParam(publisher, "publisher").isObject().check();
+    // Checked inline rather than with assertParam: every entity constructs two of these,
+    // and the chain allocates several objects to answer what is one typeof. Same wording.
+    if (typeof name !== 'string' || name.length === 0) {
+      throw paramError('eventName', "must be a nonEmpty string");
+    }
+    if (publisher == null || typeof publisher !== 'object') {
+      throw paramError('publisher', "must be a 'object'");
+    }
 
     this.name = name;
     // register the name

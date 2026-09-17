@@ -1,5 +1,5 @@
 ﻿import { core } from '../core/core.js';
-import { assertParam } from '../core/assert-param.js';
+import { paramError } from '../core/assert-param.js';
 import { EntityType, MetadataStore } from '../metadata/entity-metadata.js';
 import { DataType } from '../metadata/data-type.js';
 
@@ -42,7 +42,11 @@ export class EntityKey {
   @param keyValues - A single value or an array of values. 
   */
   constructor(entityType: EntityType, keyValues: any) {
-    assertParam(entityType, "entityType").isInstanceOf(EntityType).check();
+    // Inline, not assertParam: an EntityKey is built for every entity and again for every
+    // foreign key the relationship fixup resolves. Same wording.
+    if (!(entityType instanceof EntityType)) {
+      throw paramError('entityType', "must be an instance of 'EntityType'");
+    }
     let subtypes = entityType.getSelfAndSubtypes();
     if (subtypes.length > 1) {
       this._subtypes = subtypes.filter(function (st) {

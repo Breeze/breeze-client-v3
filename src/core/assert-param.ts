@@ -95,18 +95,17 @@ export class Param {
         return addContext(this, {
             fn: isTypeOf,
             typeName: typeName,
-            msg: "must be a '" + typeName + "'"
+            msg: typeOfMessage
         });
     }
 
 
     isInstanceOf(type: Function, typeName?: string): Param {
-        typeName = typeName || type.prototype._$typeName;
         return addContext(this, {
             fn: isInstanceOf,
             type: type,
             typeName: typeName,
-            msg: "must be an instance of '" + typeName + "'"
+            msg: instanceOfMessage
         });
     }
 
@@ -115,7 +114,7 @@ export class Param {
         return addContext(this, {
             fn: hasProperty,
             propertyName: propertyName,
-            msg: "must have a '" + propertyName + "' property"
+            msg: hasPropertyMessage
         });
     }
 
@@ -124,7 +123,7 @@ export class Param {
         return addContext(this, {
             fn: isEnumOf,
             enumType: enumType,
-            msg: "must be an instance of the '" + (enumType.name || 'unknown') + "' enumeration"
+            msg: enumOfMessage
         });
     }
 
@@ -247,6 +246,27 @@ export let assertParam = function (v: any, name: string) {
     return new Param(v, name);
 };
 
+/**
+ * The error an `assertParam` chain would have thrown, worded identically, without building the
+ * chain to get it.
+ *
+ * `assertParam(v, name).isX().check()` allocates a `Param`, its contexts array, a context object
+ * per check and a closure to run them - four or five objects to answer a question that is usually
+ * one `typeof`. That is the right trade at a public entry point called once per operation, and
+ * the wrong one somewhere that runs per entity: `new BreezeEvent` was 56% assertParam, and every
+ * entity constructs two of them.
+ *
+ * So the few places on a per-object path check inline and call this on the failing branch, where
+ * the allocation no longer matters. Everywhere else keeps the chain, which reads better and
+ * composes. See *Assertions on per-object paths* in CHANGES-DEV.md.
+ *
+ * @hidden @internal
+ */
+export function paramError(name: string, message: string) {
+    // The two spaces match what Param.getMessage produces - prefix, then a joining space.
+    return new Error("The '" + name + "' parameter  " + message);
+}
+
 function isTypeOf(context: IParamContext, v: any) {
     if (v == null) return false;
     if (typeof (v) === context.typeName) return true;
@@ -312,6 +332,25 @@ function isArray(context: IParamContext, v: any) {
     return v.every(function (v1: any) {
         return pc.fn && pc.fn(pc, v1);
     });
+}
+
+// Built only when a check has actually failed. These used to be concatenated eagerly, on
+// every call, and thrown away - which is what happens on every call that passes.
+function typeOfMessage(context: IParamContext) {
+    return "must be a '" + context.typeName + "'";
+}
+
+function instanceOfMessage(context: IParamContext) {
+    const typeName = context.typeName || (context.type as any)?.prototype?._$typeName;
+    return "must be an instance of '" + typeName + "'";
+}
+
+function hasPropertyMessage(context: IParamContext) {
+    return "must have a '" + context.propertyName + "' property";
+}
+
+function enumOfMessage(context: IParamContext) {
+    return "must be an instance of the '" + ((context.enumType as any)?.name || 'unknown') + "' enumeration";
 }
 
 function isArrayMessage(context: IParamContext, v: any) {

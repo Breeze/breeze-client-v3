@@ -636,6 +636,69 @@ in CI is a flake waiting to happen, the same rule `relation-array-clear.spec.ts`
 - an own `getProperty` on each child entity counts the graph's reads: 4,920 against a budget of
   480 when the old filter is put back.
 
+## Assertions on per-object paths
+
+`assertParam(v, name).isX().check()` reads well and composes, and it is not cheap. The chain
+allocates a `Param`, its contexts array, a context object per check and a closure to run them —
+four or five objects to answer a question that is usually one `typeof`. Measured against a
+zero-allocation stub, it was **27% of `createEntity`** and **56% of `new BreezeEvent`**.
+
+Counting the calls said why. One `createEntity` ran **fifteen** chains, and twelve of them were
+Breeze checking arguments it had produced itself:
+
+| chains | where | who passed the argument |
+|---|---|---|
+| 4 | `new BreezeEvent` x2 (eventName, publisher) | `EntityAspect`, for every entity |
+| 4 | `EntityAspect.getKey(forceRefresh)` | internal callers, all with no argument |
+| 1 | `new EntityKey(entityType)` | `getKey` |
+| 3 | `attachEntity` (entity, entityState, mergeStrategy) | `createEntity`, which had just checked the same two enums |
+| 3 | `createEntity` (entityType, entityState, mergeStrategy) | **the application** |
+
+Only the last row is what assertParam exists for. What changed:
+
+- The first three rows check inline — `typeof`, `instanceof` — and call `paramError(name, msg)`
+  on the failing branch, which builds the identical message where the allocation no longer
+  matters. This is **not** a general policy: eighty-odd other call sites keep the chain, because
+  at a public entry point called once per operation its readability is worth more than the
+  objects.
+- `attachEntity` split into the public method, which checks its arguments, and `_attachEntity`,
+  which is everything it did afterwards. `createEntity` calls the second. Everything the
+  *entity* is checked for — registered type, matching metadata store, not already attached
+  elsewhere — still runs on both paths, because those depend on the manager rather than on the
+  caller getting its arguments right.
+- The four messages that were concatenated eagerly on every call (`isTypeOf`, `isInstanceOf`,
+  `hasProperty`, `isEnumOf`) are built lazily. `getMessage` already supported a function, so two
+  of the eight did this already. Worth about 10% of the chain's cost — the allocation is the
+  rest, which is why it is not the whole answer.
+
+Fifteen chains became three. Measured on the Northwind `Order` type with **default validation
+options**, which is what an application gets:
+
+| | before | after |
+|---|---|---|
+| `em.createEntity('Order')` | 13.05 µs | 11.38 µs |
+| building a detached entity | 2.32 µs | 1.90 µs |
+| `new BreezeEvent` x 20,000 | 7.2 ms | 2.2 ms |
+| `new EntityKey` x 20,000 | 7.1 ms | 5.1 ms |
+
+Every message an application can see is byte-for-byte what it was; `test/unit/param-validation.spec.ts`
+pins them, and counts the chains one `createEntity` runs so the two halves cannot drift apart.
+
+**`assertConfig` is a different animal and was left alone.** `applyAll` assigns the config values
+and their defaults onto the instance — it is doing the construction, not only checking it — and
+the check it does that nothing else can is rejecting a misspelled option. Silently ignoring
+`{ servicName }` gives you a manager that does not do what you asked and no clue why. It also
+runs once per object constructed, not once per entity.
+
+### Measuring this needed care
+
+The first numbers were wrong in an instructive way. Run in one process, `getChanges` looked like
+40% assertParam — and it makes exactly **one** assertParam call. What the measurement had caught
+was garbage collection from the phases before it, because the variant with assertParam live had
+allocated far more. One shape per process, plus a forced collection between setup and the timed
+region, and that 40% went to zero. docs/guide/performance.md already said one shape per process;
+the forced collection is new, and without it `getByKeyName` moved 30% on noise alone.
+
 ## The request path is promise-based
 
 `AbstractDataServiceAdapter`'s three entry points — `fetchMetadata`, `executeQuery` and

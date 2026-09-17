@@ -592,6 +592,52 @@ Still open:
 - A query rebuilt by `EntityQuery.fromJSON` without `usePost` has `usePostEnabled`
   `undefined` rather than `false`.
 
+## assertParam: kept at the front door, taken off the hot path (done)
+
+Asked whether `Param` / `assertParam` / `assertConfig` still earn their place and whether they are
+efficient. Useful yes, efficient no — and the two answers do not conflict, because the cost was
+almost entirely Breeze checking arguments it had produced itself.
+
+Against a zero-allocation stub, assertParam was **27% of `createEntity`** and **56% of
+`new BreezeEvent`**. Counting the calls said why: one `createEntity` ran **fifteen** chains, and
+only three checked anything the application had passed. The other twelve were two `BreezeEvent`
+constructions per entity, four `getKey` calls, one `EntityKey`, and `attachEntity` re-checking
+the `entityState` and `mergeStrategy` that `createEntity` had validated a moment earlier.
+
+Fifteen became three:
+
+- The per-object sites check inline and call a new `paramError(name, msg)` on the failing branch,
+  which builds the identical message where an allocation no longer matters. Eighty-odd other call
+  sites keep the chain — at a public entry point called once per operation, its readability is
+  worth more than the objects.
+- `attachEntity` split into the public method and `_attachEntity`, which is what it always did
+  afterwards; `createEntity` calls the second. Every check on the *entity* still runs on both
+  paths, since those depend on the manager, not on the caller.
+- Four messages that were concatenated on every passing call are built lazily now. Worth about
+  10% — the allocation is the rest.
+
+Measured on Northwind `Order` with **default validation options**: `createEntity` 13.05 → 11.38 µs,
+building a detached entity 2.32 → 1.90 µs, `new BreezeEvent` 7.2 → 2.2 ms per 20,000,
+`new EntityKey` 7.1 → 5.1 ms per 20,000. docs/guide/performance.md's cost table is updated.
+
+**Every message an application can see is byte-for-byte what it was**, checked by diffing twelve
+misuse cases against HEAD. `test/unit/param-validation.spec.ts` pins the wording and counts the
+chains one `createEntity` runs, so the two halves cannot drift apart; it fails against HEAD at 17
+chains against a budget of 5.
+
+**`assertConfig` was left alone.** `applyAll` assigns the config values and their defaults onto
+the instance — it is doing the construction, not only checking it — and the check nothing else
+can do is rejecting a misspelled option. Silently ignoring `{ servicName }` gives you a manager
+that does not do what you asked and no clue why. It runs once per object constructed.
+
+### The first measurements were wrong
+
+Run in one process, `getChanges` looked like 40% assertParam — and it makes exactly **one**
+assertParam call. The measurement had caught garbage collection from earlier phases, because the
+variant with assertParam live allocated far more. One shape per process plus a forced collection
+between setup and the timed region took that 40% to zero, and `getByKeyName` had been moving 30%
+on noise alone. Worth remembering before trusting any number out of a shared-process benchmark.
+
 ## The mixins are in the API reference now (done)
 
 Asked where save queuing is documented. One section of docs/guide/saving-changes.md, and

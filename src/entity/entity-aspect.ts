@@ -1,7 +1,7 @@
 ﻿import { core } from '../core/core.js';
 import { config } from '../config/config.js';
 import { BreezeEvent } from '../core/event.js';
-import { assertParam } from '../core/assert-param.js';
+import { assertParam, paramError } from '../core/assert-param.js';
 import { EntityState  } from './entity-state.js';
 import { EntityAction } from './entity-action.js';
 import { EntityType, ComplexType, DataProperty, NavigationProperty, EntityProperty } from '../metadata/entity-metadata.js';
@@ -281,7 +281,11 @@ export class EntityAspect {
   @returns The {@link EntityKey} associated with this Entity.
   **/
   getKey(forceRefresh: boolean = false) {
-    forceRefresh = assertParam(forceRefresh, "forceRefresh").isBoolean().isOptional().check(false);
+    // Inline, not assertParam: getKey runs several times per entity created and again on
+    // every attach, merge and foreign key lookup. Same wording.
+    if (forceRefresh != null && typeof forceRefresh !== 'boolean') {
+      throw paramError('forceRefresh', "is optional or it must be a 'boolean'");
+    }
     if (forceRefresh || !this._entityKey) {
       let entityType = this.entity!.entityType;
       let keyProps = entityType.keyProperties;

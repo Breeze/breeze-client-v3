@@ -561,7 +561,8 @@ export class EntityManager {
       entity = et.createEntity(initialValues);
     });
     if (entityState !== EntityState.Detached) {
-      entity = this.attachEntity(entity, entityState, mergeStrategy);
+      // The two enums were checked above; no need for attachEntity to check them again.
+      entity = this._attachEntity(entity, entityState, mergeStrategy || MergeStrategy.Disallowed);
     }
     return entity;
   }
@@ -871,9 +872,29 @@ export class EntityManager {
   **/
   attachEntity<T extends Entity>(entity: T, entityState?: EntityState, mergeStrategy?: MergeStrategy): T {
     assertParam(entity, "entity").isRequired().check();
+    // Before the enum checks, so that an unregistered entity is still reported ahead of a bad
+    // entityState, as it was when this was one method. _attachEntity repeats it for its internal
+    // callers and it early-exits on anything that has an entityType, which is everything here.
     this.metadataStore._checkEntityType(entity);
     let esSymbol = assertParam(entityState, "entityState").isEnumOf(EntityState).isOptional().check(EntityState.Unchanged) as EntityState;
     let msSymbol = assertParam(mergeStrategy, "mergeStrategy").isEnumOf(MergeStrategy).isOptional().check(MergeStrategy.Disallowed) as MergeStrategy;
+    return this._attachEntity(entity, esSymbol, msSymbol);
+  }
+
+  /**
+   * What `attachEntity` does once its arguments have been checked.
+   *
+   * `createEntity` checks the same `entityState` and `mergeStrategy` a moment earlier and then
+   * called the public method, so every created entity paid for the three `assertParam` chains
+   * twice. Callers inside Breeze already hold a real entity and resolved enum values, so they
+   * come in here instead. Everything the *entity* is checked for - a known type, a matching
+   * metadata store, not already attached elsewhere - still happens below, because those depend
+   * on this manager rather than on the caller getting its arguments right.
+   *
+   * @hidden @internal
+   */
+  _attachEntity<T extends Entity>(entity: T, esSymbol: EntityState, msSymbol: MergeStrategy): T {
+    this.metadataStore._checkEntityType(entity);
 
     if (entity.entityType.metadataStore !== this.metadataStore) {
       throw new Error("Cannot attach this entity because the EntityType (" + entity.entityType.name +
