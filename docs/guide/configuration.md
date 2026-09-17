@@ -128,7 +128,7 @@ DataServiceWebApiAdapter.register();
 ```
 
 What does matter is registering before you create an `EntityManager` — see
-[Default adapters](#default-adapters).
+[Default adapters](#adapters-and-transport).
 
 ::: tip Changed in 3.0
 In 2.x the data service adapter needed an ajax adapter registered before it, and threw

@@ -1,8 +1,12 @@
 # Extending entities
 
-Breeze can build every entity from metadata alone. When the client needs more, such as a
-client-only flag, a display helper or a computed value, give Breeze your own class for the
-type, an initializer function, or both.
+Breeze can build every entity from metadata alone, so an entity class — generated or written by
+hand — mostly restates what the metadata already says. This page is about the rest: a client-only
+flag, a display helper, a computed value, anything the server does not send. You add those by
+giving Breeze your own class for the type, an initializer function, or both.
+
+It also covers [class fields and `declare`](#class-fields-and-declare), the one rule that catches
+everyone who edits an entity class.
 
 ## Why not patch instances
 

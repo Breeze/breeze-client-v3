@@ -82,7 +82,7 @@ neither registered nor a default still throws `Unregistered adapter`.
 
 A custom adapter still has to be registered, by your own code or with
 `configureBreeze({ dataService: MyAdapter })`. Do it at startup, before you create an
-`EntityManager` — see [Default adapters](/guide/configuration#default-adapters).
+`EntityManager` — see [Default adapters](/guide/configuration#adapters-and-transport).
 
 ## 4. You no longer need an ajax adapter
 

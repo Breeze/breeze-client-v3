@@ -147,16 +147,11 @@ compiling.
 Type parameters and overloads are erased by the compiler, so the JavaScript Breeze emits is
 unchanged and there is no runtime cost to any of this.
 
-## Generating the classes
+## Where the classes come from
 
-Writing an entity class per type by hand is tedious and drifts from the server. `breeze-client`
-ships a generator that writes them from your service's metadata:
+The `Customer` and `Order` in these examples are what
+[the generator](./generating-entities.md) writes from your service's metadata — one class per
+entity type, updated per member on a rerun so the methods and getters you add survive.
 
-```bash
-npx breeze-gen-entities \
-  --service http://localhost:34377/breeze/NorthwindIBModel \
-  --out src/app/model
-```
-
-It updates existing files per member rather than overwriting them, so methods and getters you add
-survive regeneration. See [Generating entity classes](./generating-entities.md).
+A class you wrote by hand works exactly as well. Registration is what gives Breeze the type;
+nothing checks where the class came from.

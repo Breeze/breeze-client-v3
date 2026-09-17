@@ -21,8 +21,9 @@ const { results } = await em.executeQuery(query);
 `results` is `Customer[]`, because the query was built from the `Customer` class. That is worth
 doing everywhere: passing the class instead of the resource name `'Customers'` is what lets the
 compiler check the property paths, the operators and the values — `'compnyName'` becomes a build
-error rather than a server error. See [Typed entities](/guide/typed-entities) for generating the
-classes and [Typed queries](/guide/typed-queries) for exactly what gets checked.
+error rather than a server error. [Generating entity classes](/guide/generating-entities) produces
+the classes, [Typed entities](/guide/typed-entities) registers them, and
+[Typed queries](/guide/typed-queries) covers exactly what gets checked.
 
 A resource name still works everywhere a class does, and is what you use for an endpoint that has
 no class of its own:

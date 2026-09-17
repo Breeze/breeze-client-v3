@@ -41,7 +41,7 @@ configureBreeze({ namingConvention: NamingConvention.none });
 ::: tip Changed in 3.0
 In 2.x, importing an adapter module registered it. Breeze 3 registers nothing on import,
 and you don't need it to: when nothing is registered, Breeze uses its standard adapters.
-See [Default adapters](/guide/configuration#default-adapters).
+See [Default adapters](/guide/configuration#adapters-and-transport).
 
 The default naming convention was `none` in 2.x, so a .NET application had to set
 `camelCase`. Breeze 3 defaults to `camelCase`. See [Migrating from 2.x](/guide/migrating-from-2x).
@@ -84,7 +84,9 @@ em.metadataStore.registerEntityTypeCtor('Customer', Customer);
 ```
 
 You don't have to write these by hand — Breeze ships a generator that produces one file per
-type from your service's metadata. See [Typed entities](/guide/typed-entities).
+type from your service's metadata. See
+[Generating entity classes](/guide/generating-entities), and
+[Typed entities](/guide/typed-entities) for what registering them buys you.
 
 Skip this and everything still works; you reach properties through `getProperty('companyName')`
 instead, and results come back as `any`. The rest of this page shows both.
