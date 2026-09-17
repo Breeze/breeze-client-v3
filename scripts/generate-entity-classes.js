@@ -18,17 +18,28 @@
 // inheritance and complex types resolve exactly as they do at runtime. See loadBreeze for
 // which copy of Breeze that is.
 //
-// Updating is per member, not per file. What the tool owns is marked, and nothing else in the
-// file is touched:
+// Updating is per member, not per file, and THE METADATA DECIDES WHAT THE GENERATOR OWNS - not
+// the `// @generated` marker:
 //
-//   - A property line ending in `// @generated` is rewritten from metadata, in place.
-//   - A generated property whose metadata property is gone is removed.
-//   - A metadata property the file does not declare is appended, marked.
-//   - A metadata property the file declares WITHOUT the marker is left alone: that is a
-//     deliberate hand override, and it is reported rather than clobbered.
-//   - Imports are added when a generated member needs one. Imports are never removed unless
-//     they are marked `// @generated` and nothing in the file still refers to them.
-//   - Methods, getters, unmapped properties, comments and hand-written imports survive.
+//   - A declared property whose name is in the metadata is a mapped property of the type. It is
+//     rewritten to `declare <name>: <type>;  // @generated`, whether or not it was marked.
+//   - A metadata property the file does not declare is appended.
+//   - A declared property the metadata does NOT have is the caller's and stays - unless it is
+//     marked, which means the generator wrote it and the column has left the schema, so it goes.
+//     That one decision is the only thing the marker still drives.
+//   - The class declaration is made to extend the base the generator means it to, and members
+//     that base supplies are not left redeclared.
+//   - Imports are added when a generated member needs one, and removed only when marked and
+//     unreferenced.
+//   - Methods, getters, constructors, unmapped properties, comments and hand-written imports
+//     survive untouched.
+//
+// Ownership by metadata is what lets a hand-written class be taken over a property at a time
+// rather than having its whole body appended a second time. Because that rewrites lines somebody
+// typed, a file with no `@generated-by` header is reported and skipped unless --adopt is passed.
+//
+// To keep something out of all of this, see MANUAL_MARK below: `// @manual` on one declaration,
+// `// @manual-start` / `// @manual-end` around a block, `// @manual-file` for a whole file.
 //
 // Every generated file carries the generator version in its header, so a later version can tell
 // what produced what. See test/model/README.md.
@@ -53,6 +64,24 @@ const workingDir = process.cwd();
 
 /** The marker that says "this line is mine". */
 const MARK = '// @generated';
+
+/**
+ * The opt-out, at three scopes. Anything they cover is never rewritten, removed or re-pointed,
+ * whatever the metadata says, and nothing is inserted inside a region.
+ *
+ *   // @manual          on one declaration - that property is yours
+ *   // @manual-start    ... // @manual-end   - everything between them is yours
+ *   // @manual-file     anywhere in the file - the whole file is yours
+ *
+ * They exist because the metadata - not the `@generated` marker - decides what the generator
+ * owns. A property whose name is in the metadata is the generator's, marked or not, which is what
+ * lets a hand-written class be adopted without editing every line of it first. That leaves no way
+ * to say "this one is mine" by deleting a marker, so it is said explicitly instead.
+ */
+const MANUAL_MARK = '// @manual';
+const MANUAL_FILE_MARK = '// @manual-file';
+const MANUAL_START_MARK = '// @manual-start';
+const MANUAL_END_MARK = '// @manual-end';
 
 // --- options ---------------------------------------------------------------------------------
 
@@ -80,6 +109,10 @@ const DEFAULTS = {
   types: null,
   index: true,
   dryRun: false,
+  // Whether to take over a file the generator has never written - one with no `@generated-by`
+  // header. Claiming members in somebody's hand-written class is a one-way door with no undo but
+  // git, so a plain run reports what it would do and writes nothing.
+  adopt: false,
 };
 
 function parseArgs(argv) {
@@ -104,6 +137,7 @@ function parseArgs(argv) {
       case '--types': opts.types = next().split(',').map(s => s.trim()).filter(Boolean); break;
       case '--nullable': opts.nullable = true; break;
       case '--no-index': opts.index = false; break;
+      case '--adopt': opts.adopt = true; break;
       case '--dry-run': case '-n': opts.dryRun = true; break;
       case '--version': console.log(GENERATOR_VERSION); process.exit(0);
       case '--help': case '-h': usage(); process.exit(0);
@@ -156,6 +190,18 @@ Optional:
   --types <A,B>       only these short names
   --nullable          add "| null" to nullable data properties
   --no-index          do not write index.ts
+
+  --adopt             take over hand-written classes - files with no @generated-by header.
+                      The metadata decides what is a mapped property, so those are rewritten
+                      into the generated form and the class is made to extend the base;
+                      methods, getters, constructors and everything else are left alone.
+                      Without it such a file is reported and skipped. Pair with --dry-run
+                      the first time.
+
+                      To keep code away from the generator for good:
+                        // @manual        on one declaration
+                        // @manual-start  ... // @manual-end   around a block
+                        // @manual-file   anywhere in a file - it is never opened
   --dry-run, -n       report what would change, write nothing
   --version           print the generator version
   --help, -h          this list
@@ -362,10 +408,80 @@ function findClassBodyLines(lines, className) {
  * duplicate and tsc rejects it, rather than the edit going silently wrong.
  */
 const ANY_DECLARATION_RE =
-  /^([ \t]*)(?:(?:public|private|protected|readonly|declare|static|abstract)\s+)*([A-Za-z_$][\w$]*)\s*[?!]?\s*:[^;\n{]*;[ \t]*(\/\/.*)?$/;
+  /^([ \t]*)((?:(?:public|private|protected|readonly|declare|static|abstract)\s+)*)([A-Za-z_$][\w$]*)\s*[?!]?\s*:\s*([^;\n{]*);[ \t]*(\/\/.*)?$/;
+
+/** [indent, modifiers, name, type] for a declaration line, or null. */
+function parseDeclaration(line) {
+  const m = ANY_DECLARATION_RE.exec(line);
+  return m && { indent: m[1], modifiers: m[2], name: m[3], type: m[4] };
+}
+
+/**
+ * Whether a line already says what the generator would write, ignoring how it is spaced.
+ *
+ * Formatters reach these files. Prettier collapses the two spaces before the marker to one and
+ * flips quote style; it does not move or drop the trailing comment, even past 110 columns - both
+ * checked. Comparing the rendered strings byte for byte would therefore see a difference on every
+ * run and rewrite all of them back, so the generator and the formatter would each undo the other
+ * forever. Comparing meaning instead means a formatted file is simply left alone.
+ */
+function isCanonical(line, member) {
+  const d = parseDeclaration(line);
+  if (!d || d.name !== member.name) return false;
+  if (!/\bdeclare\b/.test(d.modifiers)) return false;   // missing `declare` is a real defect
+  if (!isMarked(line)) return false;                    // must still say whose it is
+  const squash = t => t.replace(/\s+/g, '');
+  return squash(d.type) === squash(member.type);
+}
 
 function isMarked(line) {
   return /\/\/\s*@generated\b/.test(line);
+}
+
+/** `// @manual` on this line - and not `@manual-start`, `@manual-end` or `@manual-file`. */
+function isManual(line) {
+  return /\/\/\s*@manual(?![-\w])/.test(line);
+}
+
+// The region and file markers must stand alone on their own comment line - anchored, so that
+// prose mentioning one does not become one. A file that merely talks about `// @manual-file`,
+// this script included, is not opted out.
+const MANUAL_FILE_RE = /^[ \t]*\/\/[ \t]*@manual-file\b/;
+const MANUAL_START_RE = /^[ \t]*\/\/[ \t]*@manual-start\b/;
+const MANUAL_END_RE = /^[ \t]*\/\/[ \t]*@manual-end\b/;
+
+/** `// @manual-file` on a line of its own: the generator does not open the file at all. */
+function isManualFile(lines) {
+  return lines.some(l => MANUAL_FILE_RE.test(l));
+}
+
+/**
+ * The line numbers inside `// @manual-start` / `// @manual-end`, the markers included.
+ *
+ * Recomputed wherever it is needed rather than cached, because every splice moves the lines
+ * underneath it. An unclosed start runs to the end of the file, which is the safe reading: the
+ * cost of a typo is that the generator declines to edit, never that it edits the wrong thing.
+ */
+function manualLines(lines) {
+  const out = new Set();
+  let open = -1;
+  for (let i = 0; i < lines.length; i++) {
+    if (MANUAL_START_RE.test(lines[i])) { if (open === -1) open = i; }
+    else if (MANUAL_END_RE.test(lines[i]) && open !== -1) {
+      for (let j = open; j <= i; j++) out.add(j);
+      open = -1;
+    }
+  }
+  if (open !== -1) for (let j = open; j < lines.length; j++) out.add(j);
+  return out;
+}
+
+/** The first line at or after `at` that is not inside a manual region - where it is safe to insert. */
+function pastManualRegion(lines, at) {
+  const manual = manualLines(lines);
+  let i = at;
+  while (i < lines.length && manual.has(i)) i++;
+  return i;
 }
 
 // --- the header ------------------------------------------------------------------------------
@@ -375,11 +491,31 @@ const HEADER_FIRST_RE = new RegExp(`^// @generated-by ${GENERATOR_NAME} v([\\w.\
 function renderHeader(scope) {
   return [
     `// @generated-by ${GENERATOR_NAME} v${GENERATOR_VERSION}`,
-    scope === 'whole'
-      ? '// This whole file is generated. Put hand-written code in a separate module.'
-      : `// Lines marked \`${MARK}\` are written from server metadata and are rewritten on every`,
-    ...(scope === 'whole' ? [] : ['// run. Everything else in this file is yours and is never touched.']),
+    ...(scope === 'whole'
+      ? ['// This whole file is generated. Put hand-written code in a separate module.']
+      : [
+        '// Properties of this type in the server metadata are written here and rewritten on',
+        '// every run. Everything else in this file is yours and is never touched.',
+        '// To keep one of those too, see the manual markers in ./README.md.',
+        //   ^ deliberately not spelled out. The markers are matched by scanning the file, so a
+        //     header that named them would opt every generated file out of the generator.
+      ]),
   ];
+}
+
+/** Whether this file is one the generator has written before. */
+function hasGeneratedHeader(lines) {
+  return lines.length > 0 && HEADER_FIRST_RE.test(lines[0]);
+}
+
+/**
+ * Say what --adopt would do to a hand-written file, and write nothing. The counts are the point:
+ * they tell you how much of the class the generator would take over before it does it.
+ */
+function reportAdoptable(fileName, className, members) {
+  console.log(`  skip ${fileName}  - no ${GENERATOR_NAME} header, so it is not the generator's`);
+  console.log(`         ${members.length} propert${members.length === 1 ? 'y' : 'ies'} in the metadata for ${className}`);
+  console.log(`         --adopt takes it over; --adopt --dry-run shows what that would change`);
 }
 
 /** Replace the leading `// @generated-by ...` comment block, or prepend one. Returns [lines, was]. */
@@ -425,6 +561,7 @@ function requiredImports(needs, opts, selfName) {
  * Marked import lines lose names that are neither required nor referenced anywhere else.
  */
 function reconcileImports(lines, required, notes) {
+  const manual = manualLines(lines);
   const statements = [];
   lines.forEach((line, i) => {
     const m = IMPORT_RE.exec(line);
@@ -435,6 +572,9 @@ function reconcileImports(lines, required, notes) {
         names: m[2].split(',').map(s => s.trim()).filter(Boolean),
         specifier: m[4],
         marked: isMarked(line),
+        // Protected even when marked `@generated`: a region wins over ownership. The names
+        // still count as bound below, so nothing re-imports them.
+        manual: isManual(line) || manual.has(i),
       });
     }
   });
@@ -449,7 +589,7 @@ function reconcileImports(lines, required, notes) {
   //    put it back at the right specifier; without this it looks satisfied and the stale module
   //    survives. Marked statements only: a hand-written import of the same name is the caller's.
   for (const stmt of statements) {
-    if (!stmt.marked) continue;
+    if (!stmt.marked || stmt.manual) continue;
     const moved = stmt.names.filter(n => {
       const local = n.split(/\s+as\s+/).pop().trim();
       return requiredSpecifierOf.has(local) && requiredSpecifierOf.get(local) !== stmt.specifier;
@@ -493,7 +633,7 @@ function reconcileImports(lines, required, notes) {
   const requiredNames = new Set(required.flatMap(r => r.names));
   const bodyText = lines.filter(l => l !== null && !IMPORT_RE.test(l)).join('\n');
   for (const stmt of statements) {
-    if (!stmt.marked) continue;
+    if (!stmt.marked || stmt.manual) continue;
     const keep = stmt.names.filter(n => {
       const local = n.split(/\s+as\s+/).pop().trim();
       if (requiredNames.has(local)) return true;
@@ -509,18 +649,21 @@ function reconcileImports(lines, required, notes) {
   // and filtering once keeps every `stmt.line` index valid until all the passes are done.
   lines = lines.filter(l => l !== null);
 
-  // 3. Insert the new statements after the last import, or after the header.
+  // 3. Insert the new statements after the last import, or after the header - and never inside
+  //    a manual region, which is why each insertion point is pushed past one.
   if (additions.length) {
     let at = -1;
     for (let i = 0; i < lines.length; i++) if (IMPORT_RE.test(lines[i])) at = i;
     if (at === -1) {
       at = 0;
       while (at < lines.length && /^\/\//.test(lines[at])) at++;
+      at = pastManualRegion(lines, at);
       lines.splice(at, 0, '');
       at++;
       lines.splice(at, 0, ...additions.map(renderImport));
       return lines;
     }
+    at = pastManualRegion(lines, at + 1) - 1;
     lines.splice(at + 1, 0, ...additions.map(renderImport));
   }
   return lines;
@@ -539,18 +682,37 @@ function renderProperty(member, indent) {
 }
 
 /**
- * Bring the class body's generated properties into line with `members`, leaving every unmarked
- * member, comment and blank line where it is.
+ * Bring the class body's mapped properties into line with `members`, leaving every other member,
+ * comment and blank line where it is.
+ *
+ * **The metadata decides what the generator owns, not the marker.** A declared property whose
+ * name is in `members` is a mapped property of this type and is rewritten to the canonical form;
+ * a declared property that is not is the caller's and is never touched. That is what lets a
+ * hand-written class - which has no markers anywhere - be adopted a property at a time instead of
+ * having its whole class body appended a second time.
+ *
+ * The marker is still written, and is still read for exactly one decision: a declaration the
+ * metadata no longer has can be removed only if the generator is the one that put it there. An
+ * unmarked property absent from the metadata is a hand-written member and stays.
+ *
+ * `// @manual` is the way out: it pins a declaration against all of this.
  */
 function reconcileProperties(lines, className, members, notes) {
   const body = findClassBodyLines(lines, className);
   if (!body) fail(`could not find "class ${className}"`);
 
-  // Index what the class body already declares.
-  const declared = new Map();   // name -> { line, indent, marked }
+  // Index what the class body already declares. `manual` covers both scopes that can protect a
+  // single line: the marker on it, and a region enclosing it.
+  const manual = manualLines(lines);
+  const declared = new Map();   // name -> { line, indent, marked, manual }
   for (let i = body.first; i <= body.last; i++) {
-    const m = ANY_DECLARATION_RE.exec(lines[i]);
-    if (m) declared.set(m[2], { line: i, indent: m[1], marked: isMarked(lines[i]) });
+    const d = parseDeclaration(lines[i]);
+    if (d) {
+      declared.set(d.name, {
+        line: i, indent: d.indent, marked: isMarked(lines[i]),
+        manual: isManual(lines[i]) || manual.has(i),
+      });
+    }
   }
 
   const wanted = new Map(members.map(m => [m.name, m]));
@@ -558,40 +720,130 @@ function reconcileProperties(lines, className, members, notes) {
     ?? [...declared.values()][0]?.indent
     ?? '  ';
 
-  // 1. Rewrite or skip what is already there.
+  // 1. Rewrite what is already there, marked or not - the metadata says it is ours.
   const appended = [];
   for (const member of members) {
     const existing = declared.get(member.name);
     if (!existing) { appended.push(member); continue; }
-    if (!existing.marked) {
-      notes.push(`${member.name} is declared by hand - left as it is`);
+    if (existing.manual) {
+      notes.push(`${member.name} is yours (${MANUAL_MARK}) - left as it is`);
       continue;
     }
+    // Already says the right thing, however it is spaced - leave the line exactly as it is, so a
+    // formatter's pass over the file does not become a change for the generator to undo.
+    if (isCanonical(lines[existing.line], member)) continue;
     const next = renderProperty(member, existing.indent);
     if (lines[existing.line] !== next) {
-      notes.push(`${member.name}: ${member.type}`);
+      // Worth distinguishing in the log: the first is routine, the second takes over a line
+      // somebody wrote by hand.
+      notes.push(existing.marked
+        ? `${member.name}: ${member.type}`
+        : `adopt ${member.name}: ${member.type}`);
       lines[existing.line] = next;
     }
   }
 
-  // 2. Drop generated properties the metadata no longer has.
+  // 2. Drop properties the metadata no longer has - but only ones the generator wrote. This is
+  //    the single decision the marker still drives: without it, a hand-written member would be
+  //    indistinguishable from a column that has left the schema.
   const stale = [...declared.entries()]
-    .filter(([name, d]) => d.marked && !wanted.has(name))
+    .filter(([name, d]) => d.marked && !d.manual && !wanted.has(name))
     .map(([name, d]) => ({ name, line: d.line }));
   for (const { name, line } of stale.sort((a, b) => b.line - a.line)) {
     notes.push(`remove ${name} - no longer in the metadata`);
     lines.splice(line, 1);
   }
 
-  // 3. Append what is new, after the last generated property, else at the top of the body.
+  // 3. Append what is new, after the last mapped property, else at the top of the body.
+  //
+  //    "Mapped" rather than "marked": step 1 has just marked the ones it adopted, so in a file
+  //    being taken over this lands the new properties with the existing ones instead of above
+  //    everything - which is where they went when nothing in the class carried a marker.
   if (appended.length) {
     const after = findClassBodyLines(lines, className);
     let at = after.first;
     for (let i = after.first; i <= after.last; i++) {
-      if (ANY_DECLARATION_RE.test(lines[i]) && isMarked(lines[i])) at = i + 1;
+      const d = parseDeclaration(lines[i]);
+      if (d && (isMarked(lines[i]) || wanted.has(d.name))) at = i + 1;
     }
+    at = pastManualRegion(lines, at);   // never insert into somebody else's block
     for (const member of appended) notes.push(`add ${member.name}: ${member.type}`);
     lines.splice(at, 0, ...appended.map(m => renderProperty(m, indent)));
+  }
+  return lines;
+}
+
+/** The members EntityBase / ComplexObjectBase supply, which a class extending one must not redeclare. */
+const SUPPLIED_MEMBERS = {
+  entity: ['entityAspect', 'entityType', 'getProperty', 'setProperty'],
+  complex: ['complexAspect', 'complexType', 'getProperty', 'setProperty'],
+};
+
+const CLASS_DECL_RE = /^(\s*(?:export\s+)?(?:abstract\s+)?class\s+([A-Za-z_$][\w$]*))([^{]*)\{(.*)$/;
+
+/**
+ * Make the class extend the base the generator means it to, and stop it redeclaring what that
+ * base supplies.
+ *
+ * Two cases reach here. A hand-written class adopted for the first time typically reads
+ * `class Customer implements Entity` and declares `entityAspect`, `entityType`, `getProperty` and
+ * `setProperty` itself; extending EntityBase is what makes those - and the generated import of it
+ * - mean anything. The second is an existing generated class after `--base` changed, which used
+ * to import the new base and go on extending the old one.
+ *
+ * Only the heritage clause is rewritten. An `implements` of the caller's own is kept, because it
+ * says something the generator does not know; `implements Entity` / `implements ComplexObject` is
+ * dropped, because the base already implements it.
+ */
+function reconcileClassDeclaration(lines, className, needs, isComplexType, notes) {
+  const at = lines.findIndex(l => CLASS_DECL_RE.test(l) && CLASS_DECL_RE.exec(l)[2] === className);
+  if (at === -1) return lines;
+  if (isManual(lines[at]) || manualLines(lines).has(at)) return lines;
+
+  const [, head, , heritage, tail] = CLASS_DECL_RE.exec(lines[at]);
+  const currentExtends = /\bextends\s+([A-Za-z_$][\w$]*)/.exec(heritage);
+  if (currentExtends && currentExtends[1] === needs.base) return lines;
+
+  const supplied = SUPPLIED_MEMBERS[isComplexType ? 'complex' : 'entity'];
+  const breezeInterface = isComplexType ? 'ComplexObject' : 'Entity';
+  const implemented = (/\bimplements\s+([^{]*)$/.exec(heritage)?.[1] ?? '')
+    .split(',').map(s => s.trim()).filter(Boolean)
+    .filter(name => name !== breezeInterface);
+
+  lines[at] = `${head} extends ${needs.base}`
+    + (implemented.length ? ` implements ${implemented.join(', ')}` : '')
+    + ` {${tail}`;
+  notes.push(currentExtends
+    ? `extends ${needs.base} - was ${currentExtends[1]}`
+    : `extends ${needs.base}`);
+
+  // Redeclaring what the base supplies shadows it. Without `declare` it is worse than redundant:
+  // an ES2022 class field becomes a real own property set to undefined, hiding the accessors
+  // Breeze installs on the prototype. See docs/guide/extending-entities.md.
+  const body = findClassBodyLines(lines, className);
+  if (!body) return lines;
+  const manual = manualLines(lines);
+  const dropped = [];
+  for (let i = body.last; i >= body.first; i--) {
+    const d = parseDeclaration(lines[i]);
+    if (d && supplied.includes(d.name) && !isManual(lines[i]) && !manual.has(i)) {
+      dropped.unshift(d.name);
+      lines.splice(i, 1);
+    }
+  }
+  if (dropped.length) {
+    notes.push(`remove ${dropped.join(', ')} - supplied by ${needs.base}`);
+    // Whatever imported those types is the caller's, and hand-written imports are never removed.
+    // Say so rather than leaving a dead import to be discovered by `noUnusedLocals`.
+    const stillUsed = lines.filter(l => !IMPORT_RE.test(l)).join('\n');
+    const orphaned = lines
+      .map(l => IMPORT_RE.exec(l))
+      .filter(m => m && !isMarked(m[0]))
+      .flatMap(m => m[2].split(',').map(s => s.split(/\s+as\s+/).pop().trim()))
+      .filter(n => n && !new RegExp(`\\b${n}\\b`).test(stillUsed));
+    if (orphaned.length) {
+      notes.push(`${orphaned.join(', ')} may now be unused - imported by hand, so left in place`);
+    }
   }
   return lines;
 }
@@ -841,6 +1093,23 @@ async function main() {
       // declared property then reads as "not declared" and the whole class is appended again.
       // write() puts the file's own endings back.
       let lines = readFileSync(path, 'utf8').split(/\r?\n/);
+
+      // `// @manual-file` is the caller saying the file is theirs. Nothing below runs, not even
+      // the header stamp - the point of it is that the file comes back byte for byte.
+      if (isManualFile(lines)) {
+        console.log(`  keep ${fileName}  - ${MANUAL_FILE_MARK}`);
+        generated.push({ shortName: stype.shortName, isComplexType });
+        continue;
+      }
+
+      // A file with no header is one the generator has never written. Taking it over rewrites
+      // declarations somebody typed, so it is reported and skipped unless --adopt says otherwise.
+      if (!hasGeneratedHeader(lines) && !opts.adopt) {
+        reportAdoptable(fileName, stype.shortName, members);
+        generated.push({ shortName: stype.shortName, isComplexType });
+        continue;
+      }
+
       const [headed, wasVersion] = applyHeader(lines, 'members');
       lines = headed;
       if (wasVersion && wasVersion !== GENERATOR_VERSION) {
@@ -848,6 +1117,7 @@ async function main() {
       } else if (!wasVersion) {
         notes.push(`adopting a file the generator did not write`);
       }
+      lines = reconcileClassDeclaration(lines, stype.shortName, needs, isComplexType, notes);
       lines = reconcileProperties(lines, stype.shortName, members, notes);
       lines = reconcileImports(lines, requiredImports(needs, opts, stype.shortName), notes);
       contents = lines.join('\n');

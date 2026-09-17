@@ -635,14 +635,30 @@ script — the caller's own copy — falling back to `../dist/breeze.js` in this
 — so naming conventions, `nameOnServer`, inheritance and complex types resolve exactly as at
 runtime — and owns individual *members*, not whole files:
 
+**The metadata decides ownership, not the `// @generated` marker.** A declared property whose name
+the metadata knows is a mapped property and is kept in step; anything else is the caller's. The
+marker is a record of provenance and drives one decision only — whether a property the metadata has
+dropped is deleted or left. That rule is what lets a hand-written class with no markers anywhere be
+adopted a property at a time rather than having its whole body appended a second time.
+
 | | |
 |---|---|
-| a property line ending `// @generated` | rewritten from metadata, in place |
-| a marked property no longer in the metadata | removed |
-| a metadata property the file does not declare | appended, marked |
-| a metadata property declared **without** the marker | left alone and reported — that is the override mechanism |
+| a declared property the metadata **has** | rewritten in place, marked |
+| a metadata property the file does not declare | appended |
+| a declared property the metadata does **not** have | left alone — unless marked, which means the column has left the schema |
+| the class declaration | made to extend the base, dropping the members that base supplies |
 | a marked import | kept in step; dropped only when nothing in the file still refers to it |
-| hand-written imports, methods, getters, unmapped properties, comments | never touched |
+| hand-written imports, methods, getters, constructors, unmapped properties, comments | never touched |
+
+Opt-outs: `// @manual` on a declaration, `// @manual-start` / `// @manual-end` around a block,
+`// @manual-file` for a whole file. The last two must be alone on their own comment line, so that
+prose mentioning one is not mistaken for one — the generated header named them for about an hour
+and thereby opted every generated file out of the generator.
+
+Taking over a file with no `@generated-by` header needs `--adopt`; without it the file is reported
+and skipped. `test/unit/entity-generator.spec.ts` pins all of this, formatter tolerance included:
+the generator compares what a declaration means rather than its exact text, so Prettier collapsing
+the two spaces before the marker does not start a rewrite war.
 
 Each file's first line stamps the generator version (`// @generated-by generate-entity-classes
 v1.0.0`); a run against a file written by an older version says so, which is the hook for a

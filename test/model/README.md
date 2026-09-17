@@ -142,18 +142,63 @@ that is what you want.
 
 ### What the generator owns, and what it leaves alone
 
-The unit is the member, not the file. A line ending in `// @generated` belongs to the generator;
-nothing else in the file does.
+The unit is the member, not the file, and **the metadata decides what the generator owns** — not
+the `// @generated` marker. A declared property whose name the metadata knows is a mapped property
+of that type; anything else is the caller's.
 
 | | |
 |---|---|
-| `declare city: string;  // @generated` | rewritten from metadata, in place |
-| a marked property no longer in the metadata | removed |
-| a metadata property the file does not declare | appended, marked |
-| a metadata property declared **without** the marker | left as it is, and reported — that is how you override one |
+| a declared property the metadata **has** | rewritten in place to `declare <name>: <type>;  // @generated` |
+| a metadata property the file does not declare | appended |
+| a declared property the metadata does **not** have | left as it is — it is the caller's |
+| …unless it is marked `// @generated` | removed: the generator wrote it and the column has gone |
+| the class declaration | made to extend the base, dropping members that base supplies |
 | `import ... // @generated` | kept in step; dropped only when nothing in the file still refers to it |
 | a hand-written import | never removed |
-| methods, getters, unmapped properties, comments, the class doc comment | never touched |
+| methods, getters, constructors, unmapped properties, comments, the class doc comment | never touched |
+
+The marker is a record of provenance, and drives exactly one decision: whether a property the
+metadata has dropped should be deleted or left. **Deleting a marker does not make a mapped property
+yours** — the metadata still names it, so the next run claims it back.
+
+### Keeping code away from the generator
+
+Three markers. Anything they cover is never rewritten, removed or re-pointed, and nothing is
+inserted inside a region.
+
+| | |
+|---|---|
+| `declare city: CityName;  // @manual` | that declaration is yours |
+| `// @manual-start` … `// @manual-end` | everything between them is yours |
+| `// @manual-file` | the whole file; the generator does not open it |
+
+The region and file markers must be alone on their own comment line, so that prose *mentioning*
+one — this table, or the generator's own source — does not become one. An unclosed
+`// @manual-start` runs to the end of the file: a typo makes the tool do less, never something
+unintended.
+
+### Adopting a hand-written class
+
+Ownership by metadata is what lets the generator take over a class that has no markers anywhere,
+a property at a time, instead of failing to recognise the declarations and appending the whole
+body again. Because that rewrites lines somebody typed, a file with **no `@generated-by` header**
+is reported and skipped unless `--adopt` is passed:
+
+```bash
+node scripts/generate-entity-classes.js ... --adopt --dry-run   # see it first
+node scripts/generate-entity-classes.js ... --adopt
+```
+
+Adoption rewrites the mapped properties (adding the `declare` a hand-written class usually lacks),
+appends the missing ones, and makes the class `extends EntityBase` — dropping `implements Entity`
+and the four members `EntityBase` supplies. Constructors, methods, getters, unmapped properties,
+comments and hand-written imports are untouched. An import left unused is reported, not deleted.
+
+### Formatters
+
+The generator compares what a declaration *means*, not its exact text, so running Prettier over
+these files does not start a fight: Prettier collapses the two spaces before the marker to one
+(it does not move or drop it, even past 110 columns), and the next run leaves that alone.
 
 So this survives a regeneration unchanged:
 

@@ -1,6 +1,7 @@
 // @generated-by generate-entity-classes v1.0.0
-// Lines marked `// @generated` are written from server metadata and are rewritten on every
-// run. Everything else in this file is yours and is never touched.
+// Properties of this type in the server metadata are written here and rewritten on
+// every run. Everything else in this file is yours and is never touched.
+// To keep one of those too, see the manual markers in ./README.md.
 
 import { EntityBase } from './entity-base'; // @generated
 import type { Customer } from './customer'; // @generated

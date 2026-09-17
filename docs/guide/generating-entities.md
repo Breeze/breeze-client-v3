@@ -128,18 +128,27 @@ different metadata stores`. Call `registerModelClasses` once, on the store your 
 
 ## Regenerating
 
-**The unit is the member, not the file.** A line ending in `// @generated` belongs to the
-generator; nothing else in the file does. That is what makes it safe to run on every schema change.
+**The unit is the member, not the file, and the metadata decides what belongs to the generator.**
+If a property you declared has a name the server metadata knows, it is a mapped property of that
+type and the generator keeps it in step. If it does not, it is yours. That is the whole rule.
 
 | | |
 |---|---|
-| `declare city: string;  // @generated` | rewritten from metadata, in place |
-| a marked property no longer in the metadata | removed |
-| a metadata property the file does not declare | appended, marked |
-| a metadata property declared **without** the marker | left alone, and reported — that is how you override one |
+| a declared property the metadata **has** | rewritten in place to `declare <name>: <type>;  // @generated` |
+| a metadata property the file does not declare | appended |
+| a declared property the metadata does **not** have | left alone — it is yours |
+| …unless it is marked `// @generated` | removed: the generator wrote it, and the column has left the schema |
+| the class declaration | made to extend the generated base, dropping members that base supplies |
 | `import ... // @generated` | kept in step; dropped only when nothing in the file still refers to it |
 | a hand-written import | never removed |
-| methods, getters, unmapped properties, comments, the class doc comment | never touched |
+| methods, getters, constructors, unmapped properties, comments, the class doc comment | never touched |
+
+::: tip The `// @generated` marker is a record, not the rule
+It is written so you can see at a glance which lines came from the server, and it drives exactly
+one decision: whether a property the metadata has dropped should be deleted or left. Deleting a
+marker does **not** make a mapped property yours — the metadata still names it, so the next run
+claims it back. Use the [manual markers](#keeping-code-away-from-the-generator) instead.
+:::
 
 So all of this survives a regeneration unchanged:
 
@@ -157,15 +166,8 @@ export class Customer extends EntityBase {
 }
 ```
 
-To override a generated property, delete its `// @generated` marker. The generator then reports it
-and leaves it alone:
-
-```ts
-  declare city: CityName;    // no marker: mine now
-```
-
-New properties are appended after the last generated one rather than sorted into metadata order,
-so a hand-written member never has generated code inserted into the middle of it.
+New properties are appended after the last mapped one rather than sorted into metadata order, so a
+hand-written member never has generated code inserted into the middle of it.
 
 `entity-base.ts` and `index.ts` are generated whole and say so in their headers. Anything you want
 to keep belongs in another module.
@@ -175,6 +177,88 @@ to keep belongs in another module.
 ```bash
 npx breeze-gen-entities --metadata metadata.json --out src/app/model --dry-run
 ```
+
+## Keeping code away from the generator
+
+Three markers, at three scopes. Anything they cover is never rewritten, removed or re-pointed, and
+nothing is inserted inside a region.
+
+```ts
+declare city: CityName;  // @manual          one declaration is yours
+
+// @manual-start                             everything between the two is yours
+declare phone: PhoneNumber;
+get dialCode() { return this.phone.slice(0, 3); }
+// @manual-end
+```
+
+```ts
+// @manual-file                              the whole file; it is never even opened
+```
+
+`// @manual` goes on the declaration itself. The other two must sit on a line of their own — a
+comment that merely *mentions* `// @manual-file` while talking about it, as this page does, does
+not opt anything out. An unclosed `// @manual-start` runs to the end of the file, on the principle
+that a typo should make the generator do less rather than something unintended.
+
+::: tip This is how you override a mapped property
+Since the metadata decides ownership, deleting the `// @generated` marker no longer means "hands
+off" — the next run sees the name in the metadata and claims it back. `// @manual` is the way to
+say it, and unlike a missing marker it says it out loud.
+:::
+
+## Adopting hand-written classes
+
+If you already have entity classes, the generator can take them over rather than making you start
+again. Because that rewrites lines somebody typed, it will not do it unless you ask: a file with no
+`@generated-by` header is reported and skipped.
+
+```
+$ npx breeze-gen-entities --metadata metadata.json --out src/app/model
+  skip customer.ts  - no generate-entity-classes header, so it is not the generator's
+         14 properties in the metadata for Customer
+         --adopt takes it over; --adopt --dry-run shows what that would change
+```
+
+Pair it with `--dry-run` the first time, then commit before running it for real:
+
+```bash
+npx breeze-gen-entities --metadata metadata.json --out src/app/model --adopt --dry-run
+npx breeze-gen-entities --metadata metadata.json --out src/app/model --adopt
+```
+
+What adoption changes, and nothing else:
+
+- **Mapped properties** are rewritten into the generated form — which adds the `declare` a
+  hand-written class usually lacks. Without it an ES2022 class field becomes a real own property
+  set to `undefined`, hiding the accessors Breeze installs on the prototype, so this is a fix and
+  not a formality.
+- **Missing properties** are appended, alongside the ones already there.
+- **The class declaration** becomes `extends EntityBase`. `implements Entity` goes, because the
+  base already implements it; an `implements` of your own is kept. The four members Breeze
+  supplies — `entityAspect`, `entityType`, `getProperty`, `setProperty` — are dropped, since the
+  base declares them and redeclaring shadows it.
+
+Everything else is left exactly as it was: constructors, methods, getters, unmapped properties,
+comments, and any import you wrote. A hand-written import that adoption makes redundant is reported
+rather than deleted, because the generator does not remove imports it did not write:
+
+```
+  edit customer.ts
+         extends EntityBase
+         remove entityAspect, entityType, getProperty, setProperty - supplied by EntityBase
+         adopt customerID: string
+         Entity, EntityAspect, EntityType may now be unused - imported by hand, so left in place
+```
+
+Use `// @manual` on anything you want to keep out of it, before you run with `--adopt`.
+
+## Formatters
+
+Running Prettier over the generated files is fine. It collapses the two spaces before
+`// @generated` to one and changes quote style; it does not move or drop the marker, even on a
+line past 110 columns. The generator compares what a declaration *means* rather than its exact
+text, so a formatted file is left alone instead of being rewritten back — the two do not fight.
 
 ## Shared behaviour on every entity: `--base`
 
@@ -249,6 +333,7 @@ Optional:
   --types <A,B>       only these short names
   --nullable          add "| null" to nullable data properties
   --no-index          do not write index.ts
+  --adopt             take over hand-written classes - files with no @generated-by header
   --dry-run, -n       report what would change, write nothing
   --version           print the generator version
   --help, -h          this list

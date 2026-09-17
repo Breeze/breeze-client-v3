@@ -22,9 +22,15 @@ export default defineConfig({
   test: {
     globals: true,
     include: ['test/**/*.spec.ts'],
-    // side-effects.spec.ts reads src/ off disk and parses it with the TypeScript API. That is
-    // a check on the source tree, not on runtime behaviour, and there is no fs in Chromium.
-    exclude: [...configDefaults.exclude, 'test/unit/side-effects.spec.ts'],
+    // Two specs check the repository rather than runtime behaviour, and neither has what it
+    // needs in Chromium: side-effects.spec.ts reads src/ off disk and parses it with the
+    // TypeScript API, and entity-generator.spec.ts runs scripts/generate-entity-classes.js as a
+    // child process against a temp directory. There is no fs and no child_process in a browser.
+    exclude: [
+      ...configDefaults.exclude,
+      'test/unit/side-effects.spec.ts',
+      'test/unit/entity-generator.spec.ts',
+    ],
     setupFiles: ['./test/setup.ts', './test/integration-setup.ts'],
     globalSetup: ['./test/global-setup.ts'],
     fileParallelism: false,
