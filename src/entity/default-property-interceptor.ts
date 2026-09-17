@@ -5,6 +5,7 @@ import { EntityAspect, ComplexAspect, Entity, StructuralObject, peekProperty } f
 import { EntityState } from './entity-state.js';
 import { EntityAction } from './entity-action.js';
 import { EntityQuery } from '../query/entity-query.js';
+import { observableArray } from './observable-array.js';
 
 /** @hidden @internal */
 export function defaultPropertyInterceptor(this: StructuralObject, property: EntityProperty, newValue: any, rawAccessorFn: Function) {
@@ -213,9 +214,13 @@ function setDpValueSimple(context: IContext, rawAccessorFn: any) {
           // remove 'this' from old related nav prop. A collection that was never read holds
           // nothing to remove, so peek rather than create one to splice nothing out of.
           let relatedArray = peekProperty(relatedEntity, invNavProp.name);
-          if (relatedArray) {
-            // arr.splice(arr.indexOf(value_to_remove), 1);
-            relatedArray.splice(relatedArray.indexOf(parent), 1);
+          if (relatedArray && !observableArray.isClearing(relatedArray)) {
+            // The index has to be checked: `splice(-1, 1)` removes the LAST element, so a parent
+            // whose collection was never fully loaded would lose an unrelated child.
+            const ix = relatedArray.indexOf(parent);
+            if (ix !== -1) {
+              relatedArray.splice(ix, 1);
+            }
           }
         }
       }
@@ -388,9 +393,13 @@ function setNpValue(context: IContext, rawAccessorFn: Function) {
       //    ==> order.orderDetails.push(newOrder)
       if (oldValue != null) {
         let oldSiblings = oldValue.getProperty(inverseProp.name);
-        let ix = oldSiblings.indexOf(parent);
-        if (ix !== -1) {
-          oldSiblings.splice(ix, 1);
+        // Not while that collection is emptying itself: it removes all of its contents at once
+        // and publishes once for them, where splicing each child out here is O(n) per child.
+        if (!observableArray.isClearing(oldSiblings)) {
+          let ix = oldSiblings.indexOf(parent);
+          if (ix !== -1) {
+            oldSiblings.splice(ix, 1);
+          }
         }
       }
       if (newValue != null) {

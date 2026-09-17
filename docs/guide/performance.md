@@ -17,6 +17,7 @@ Per entity, using the Northwind `Order` type (14 data properties, 4 navigation p
 | the same entity from a query | ~6 µs | queries skip validation and batch their events |
 | setting a tracked property | ~0.7 µs | **96% change tracking**, ~2% the backing store |
 | reading a tracked property | ~9 ns | an accessor over a plain object |
+| relating two entities | ~3 µs | the same either way you say it — see below |
 
 Two things follow. Attaching to an `EntityManager` costs several times more than creating the
 object, and setting a property is almost entirely change tracking — the property accessors
@@ -87,6 +88,41 @@ Reading is the only thing that creates it. Attaching an entity, deleting one, va
 propagating a key change all skip collections that do not exist yet - there is nothing in an
 uncreated collection for any of them to act on. A query creates only the collections its payload
 actually carries.
+
+## Relating entities
+
+The three ways of saying it cost the same, because they all end in the same place — each sets the
+other, and the recursion is cut off once the state is consistent:
+
+```ts
+customer.orders.push(order);              // ~3.2 µs
+order.customer = customer;                // ~3.2 µs
+order.customerID = customer.customerID;   // ~2.7 µs
+```
+
+About 4× a plain property set, for two entities updated, a foreign key kept in step, and the
+events. Pick whichever reads best.
+
+Adding to a collection does not get slower as the collection fills: Breeze checks the child's own
+back-reference rather than searching the array, so a push into a 16,000-element collection costs
+what a push into an empty one does.
+
+**Moving a child from one parent to another** is the exception. Breeze has to find it in the old
+parent's collection and take it out, and removing from the front of a large array shifts
+everything after it. Re-parenting thousands of children one at a time is around 4× the cost of
+attaching the same children to a parent for the first time. If you are reassigning a large
+collection wholesale, it is cheaper to detach the old parent than to move each child.
+
+**Emptying a collection** — which is what detaching or deleting the parent does — is one
+operation, not one per child. All the children are unparented, the collection is truncated in one
+go, and a single `arrayChanged` is published carrying every one of them. Detaching a customer with
+16,000 orders takes about 6 ms.
+
+::: tip One event, not one per child
+If you subscribe to `arrayChanged`, a detach or delete gives you a single notification whose
+`removed` holds the whole collection. Handle it as a batch rather than assuming one entity per
+event — the same as for the adds a query produces.
+:::
 
 ## Reads are cheap
 

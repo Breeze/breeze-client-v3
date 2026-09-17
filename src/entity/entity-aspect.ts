@@ -862,18 +862,15 @@ function removeFromRelationsCore(entity: Entity) {
       }
     } else {
       if (npValue == null) return;
-      if (inverseNp != null) {
-        // npValue is a live list so we need to copy it first.
-        npValue.slice(0).forEach((v: any) => {
-          if (inverseNp!.isScalar) {
-            v.setProperty(inverseNp!.name, null);
-          } else {
-            // TODO: many to many - not yet handled.
-          }
-        });
-      }
-      // now clear it.
-      npValue.length = 0;
+      // Empty it in one go rather than letting each child splice itself out, which is O(n) per
+      // child and one event per child. clearAll nulls each child's reference to this entity
+      // first - so the child still gets its navigation property and foreign key cleared - then
+      // truncates and publishes a single arrayChanged. A many-to-many inverse has nothing to
+      // null on the other side, so it is emptied with no per-child step. (TODO: many to many.)
+      const clearChild = inverseNp != null && inverseNp.isScalar
+        ? (v: any) => v.setProperty(inverseNp!.name, null)
+        : undefined;
+      observableArray.clearAll(npValue, clearChild);
     }
   });
 
