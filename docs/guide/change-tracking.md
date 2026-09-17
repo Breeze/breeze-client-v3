@@ -138,20 +138,31 @@ The manager raises `entityChanged` for every change to an entity in its cache. I
 arguments are an [`EntityChangedEventArgs`](/api/interfaces/EntityChangedEventArgs):
 
 - `entityAction` says what happened
-- `entity` is the entity it happened to
+- `entity` is the entity it happened to — **optional**, because `Clear` has no single entity
 - `args` holds the `propertyChanged` arguments, when the action is a property change
 
 ```ts
 import { EntityAction } from 'breeze-client';
 
 const token = em.entityChanged.subscribe(({ entityAction, entity, args }) => {
+  if (!entity) {
+    forgetEverything();                 // only `Clear` arrives without one
+    return;
+  }
   if (entityAction === EntityAction.PropertyChange) {
-    console.log(`${entity!.entityType.shortName}.${args!.propertyName} changed`);
+    console.log(`${entity.entityType.shortName}.${args!.propertyName} changed`);
   } else if (entityAction === EntityAction.EntityStateChange) {
-    console.log(`now ${entity!.entityAspect.entityState.name}`);
+    console.log(`now ${entity.entityAspect.entityState.name}`);
   }
 });
 ```
+
+::: tip Test `entity`, not the action
+`Clear` is the one action that arrives without an entity. Checking `if (!entity)` first both
+handles it and narrows the type, so the branches below need no `!`. Comparing `entityAction`
+instead would not narrow — `EntityChangedEventArgs` is a plain interface, not a discriminated
+union.
+:::
 
 The [`EntityAction`](/api/classes/EntityAction) values are:
 
@@ -170,7 +181,55 @@ The [`EntityAction`](/api/classes/EntityAction) values are:
 | `RejectChanges` | `rejectChanges` was called |
 | `Clear` | the manager was cleared (`entity` is undefined) |
 
-`isAttach()`, `isDetach()` and `isModification()` group them.
+`isAttach()`, `isDetach()` and `isModification()` group them — `isDetach()` covers both `Detach`
+and `Clear`, which is the tidiest way to catch "this entity is no longer in the cache".
+
+### The order they arrive in
+
+One operation usually raises more than one. `EntityStateChange` is raised by the state transition
+itself, and anything raised by the operation *around* that transition follows it — except
+`Detach`, which is raised from inside the transition and so comes first:
+
+| what you did | what you get, in order |
+|---|---|
+| `createEntity` / `attachEntity` | `EntityStateChange`, `Attach` |
+| set a property on an Unchanged entity | `EntityStateChange`, `PropertyChange` |
+| set another property on it | `PropertyChange` |
+| `setDeleted()` on an Unchanged entity | `EntityStateChange` |
+| `setDeleted()` on an **Added** entity | `Detach`, `EntityStateChange` |
+| `detachEntity` | `Detach`, `EntityStateChange` |
+| `acceptChanges()` on a Modified entity | `EntityStateChange`, `AcceptChanges` |
+| `acceptChanges()` on a Deleted entity | `Detach`, `EntityStateChange`, `AcceptChanges` |
+| `rejectChanges()` | `EntityStateChange`, `RejectChanges` |
+| `em.clear()` | `Clear` |
+
+The entity's `entityState` is already final when **any** of them fires, so reading it off the
+entity gives the same answer whichever one you handle. The order matters only if you are
+sequencing side effects between two of them.
+
+`PropertyChange` and `entityAspect.propertyChanged` are one-to-one: neither is ever raised twice
+for one change, and the entity's own event always comes before the manager's.
+
+### Noticing a deletion
+
+There is no `EntityAction.Delete`. A deletion shows up as an `EntityStateChange` whose entity is
+now `Deleted`:
+
+```ts
+em.entityChanged.subscribe(({ entityAction, entity }) => {
+  if (entityAction === EntityAction.EntityStateChange
+      && entity!.entityAspect.entityState.isDeleted()) {
+    // this entity is marked for deletion on the next save
+  }
+});
+```
+
+::: warning Deleting an *Added* entity detaches it instead
+An entity that was never saved has nothing to tell the server about, so `setDeleted()` on an
+`Added` entity removes it from the cache outright — it ends up `Detached`, never `Deleted`, and
+raises `Detach` rather than the `EntityStateChange` above. To catch both, handle
+`entityAction.isDetach()` as well.
+:::
 
 ## hasChanges and hasChangesChanged
 
