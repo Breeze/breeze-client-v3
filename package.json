@@ -64,6 +64,10 @@
     },
     "./package.json": "./package.json"
   },
+  "//bin": "The entity-class generator, so an application can run `npx breeze-gen-entities` after installing the package. scripts/generate-entity-classes.js is copied to dist/ by scripts/prepare-dist.mjs, which also reroots this path for the published manifest.",
+  "bin": {
+    "breeze-gen-entities": "./dist/generate-entity-classes.js"
+  },
   "files": [
     "dist",
     "README.md",

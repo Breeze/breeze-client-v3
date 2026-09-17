@@ -622,8 +622,16 @@ plus `entity-base.ts` and a barrel — so a spec can write `cust.companyName` in
 (`qr.results as Customer[]`); `registerModelClasses(store)` additionally makes Breeze build
 entities from the classes, which is what gives `instanceof`.
 
+**The generator is published, not just internal.** `scripts/generate-entity-classes.js` is copied
+into `dist/` by `scripts/prepare-dist.mjs` and declared as the `breeze-gen-entities` bin, so an
+application runs `npx breeze-gen-entities --service ... --out src/app/model` after installing the
+package. `--out` and `--metadata` resolve against the working directory (never the script's, which
+under an install is inside `node_modules`), and `loadBreeze` prefers the `breeze.js` beside the
+script — the caller's own copy — falling back to `../dist/breeze.js` in this repo.
+[docs/guide/generating-entities.md](docs/guide/generating-entities.md) is the user-facing page.
+
 **The classes are generated, and regenerated surgically.**
-`scripts/generate-entity-classes.js` (`npm run gen:model`) reads metadata through `dist/breeze.js`
+`npm run gen:model` reads metadata through `dist/breeze.js`
 — so naming conventions, `nameOnServer`, inheritance and complex types resolve exactly as at
 runtime — and owns individual *members*, not whole files:
 

@@ -44,7 +44,8 @@ npm run gen:model        # builds dist/, then regenerates from the checked-in me
 ```
 
 Or drive it directly. `--out` and a metadata source are required — nothing can infer either, and
-a wrong guess at `--out` overwrites a directory nobody named:
+a wrong guess at `--out` overwrites a directory nobody named. Both paths are relative to the
+working directory, which under `npm run` is the repo root:
 
 ```bash
 # from the checked-in fixture
@@ -63,6 +64,17 @@ node scripts/generate-entity-classes.js \
   --out test/model --breeze breeze-client \
   --types Customer,Order --dry-run
 ```
+
+**Applications do not run it this way.** `scripts/generate-entity-classes.js` is copied into
+`dist/` by `scripts/prepare-dist.mjs` and published as the `breeze-gen-entities` bin, so anyone who
+installs the package runs `npx breeze-gen-entities --service ... --out src/app/model`. That is the
+spelling the user-facing docs teach — [docs/guide/generating-entities.md](../../docs/guide/generating-entities.md)
+— and the two invocations run the same file. `node scripts/...` is just the in-repo shortcut that
+skips a build of `dist/`.
+
+Installed, the script finds `breeze.js` beside itself (`dist/` is the published package root, so
+that is the caller's own copy of Breeze). In this repo it falls back to `../dist/breeze.js`, which
+is why `gen:model` builds first.
 
 The generated classes reference types that live in `breeze-client` — `RelationArray` and
 `ComplexArray` for collection properties, and `Entity`, `EntityAspect`, `EntityType` and the

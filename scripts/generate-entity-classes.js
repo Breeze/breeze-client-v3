@@ -2,18 +2,21 @@
 // Generate - or update in place - one TypeScript class per structural type in a Breeze
 // metadata document.
 //
-//   node scripts/generate-entity-classes.js --out test/model \
-//     --metadata test/support/NorthwindIBMetadata_ETNOPAYLOAD.json
-//   node scripts/generate-entity-classes.js --out test/model \
+//   npx breeze-gen-entities --out src/app/model \
 //     --service http://localhost:34377/breeze/NorthwindIBModel
+//
+// That is the spelling for an application: the script is published inside breeze-client,
+// wired up as the `breeze-gen-entities` bin, so `npm i breeze-client` is the whole install.
+// Inside this repo it is also `node scripts/generate-entity-classes.js ...`, and
+// `npm run gen:model` is that with the arguments filled in.
 //
 // --out and a metadata source are required; nothing can infer either. Everything else has a
 // default - the files import from 'breeze-client', which is right wherever the package is
-// installed. In this repo, `npm run gen:model` is the spelling with the arguments filled in.
+// installed. Paths are relative to where the command is run, not to where the script lives.
 //
-// It reads the metadata through the library itself (dist/breeze.js), so naming conventions,
-// `nameOnServer`, inheritance and complex types resolve exactly as they do at runtime. Run
-// `npm run build` first if dist/ is stale.
+// It reads the metadata through the library itself, so naming conventions, `nameOnServer`,
+// inheritance and complex types resolve exactly as they do at runtime. See loadBreeze for
+// which copy of Breeze that is.
 //
 // Updating is per member, not per file. What the tool owns is marked, and nothing else in the
 // file is touched:
@@ -37,7 +40,16 @@ import { fileURLToPath } from 'node:url';
 const GENERATOR_VERSION = '1.0.0';
 const GENERATOR_NAME = 'generate-entity-classes';
 
-const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+/** Where the script itself lives: node_modules/breeze-client/ when installed, scripts/ here. */
+const scriptDir = dirname(fileURLToPath(import.meta.url));
+
+/**
+ * What --out and --metadata are relative to. The caller's directory, never the script's: an
+ * installed generator sits in node_modules, and resolving --out against that would write the
+ * application's model into its own dependency. `npm run` sets cwd to the package root, so
+ * `npm run gen:model` is unaffected.
+ */
+const workingDir = process.cwd();
 
 /** The marker that says "this line is mine". */
 const MARK = '// @generated';
@@ -107,11 +119,11 @@ function usage() {
   console.log(`${GENERATOR_NAME} v${GENERATOR_VERSION} - TypeScript entity classes from Breeze metadata.
 
 Required - one source of metadata:
-  --metadata <file>   metadata JSON to read
+  --metadata <file>   metadata JSON to read, relative to the current directory
   --service <url>     fetch <url>/Metadata from a running service instead
 
 Required:
-  --out <dir>         where the classes go, relative to the repo root
+  --out <dir>         where the classes go, relative to the current directory
 
 Optional:
   --ext <ext>         extension on sibling imports, e.g. .js for a NodeNext project
@@ -146,8 +158,13 @@ Optional:
   --no-index          do not write index.ts
   --dry-run, -n       report what would change, write nothing
   --version           print the generator version
+  --help, -h          this list
 
-Example:
+Examples:
+  npx breeze-gen-entities \\
+    --service http://localhost:34377/breeze/NorthwindIBModel \\
+    --out src/app/model
+
   node scripts/generate-entity-classes.js \\
     --metadata test/support/NorthwindIBMetadata_ETNOPAYLOAD.json \\
     --out test/model`);
@@ -160,10 +177,28 @@ function fail(msg) {
 
 // --- metadata --------------------------------------------------------------------------------
 
+/**
+ * The copy of Breeze the metadata is read through - and it has to be the caller's own.
+ * Metadata parsing is Breeze's: naming conventions, `nameOnServer`, inheritance and complex
+ * types all resolve here exactly as they will at runtime, so a generator reading a different
+ * version would emit classes that disagree with the library the application runs.
+ *
+ * Installed, the script's sibling IS that copy: npx runs node_modules/breeze-client/
+ * generate-entity-classes.js, and breeze.js sits beside it in the same package. In this repo
+ * the script is in scripts/ and the build output is ../dist/.
+ */
 async function loadBreeze() {
-  const distPath = join(repoRoot, 'dist', 'breeze.js');
-  if (!existsSync(distPath)) fail('dist/breeze.js not found - run `npm run build` first');
-  return import(`file://${distPath}`);
+  const candidates = [
+    join(scriptDir, 'breeze.js'),                 // installed: dist/ is the package root
+    join(scriptDir, '..', 'dist', 'breeze.js'),   // this repo, after `npm run build`
+  ];
+  const found = candidates.find(existsSync);
+  if (!found) {
+    fail(`breeze.js not found - looked in:\n`
+      + candidates.map(c => `    ${c}`).join('\n')
+      + '\n  In the breeze-client repo, run `npm run build` first.');
+  }
+  return import(`file://${found}`);
 }
 
 async function loadMetadata(opts) {
@@ -173,7 +208,7 @@ async function loadMetadata(opts) {
     if (!response.ok) fail(`${url} returned ${response.status} ${response.statusText}`);
     return await response.text();
   }
-  const path = resolve(repoRoot, opts.metadata);
+  const path = resolve(workingDir, opts.metadata);
   if (!existsSync(path)) fail(`metadata file not found: ${path}`);
   return readFileSync(path, 'utf8');
 }
@@ -738,7 +773,7 @@ async function main() {
   }
   if (!stypes.length) fail('the metadata contains no structural types');
 
-  const outDir = resolve(repoRoot, opts.out);
+  const outDir = resolve(workingDir, opts.out);
   if (!opts.dryRun) mkdirSync(outDir, { recursive: true });
 
   console.log(`${GENERATOR_NAME} v${GENERATOR_VERSION}`);
@@ -750,6 +785,11 @@ async function main() {
   const write = (name, contents, notes = []) => {
     const path = join(outDir, name);
     const before = existsSync(path) ? readFileSync(path, 'utf8') : null;
+    // Everything above renders with \n. Match what the file already uses instead, so a CRLF
+    // checkout is not rewritten to LF on every run - which would also defeat the comparison
+    // below and report every file as edited each time. A new file is left as \n; git applies
+    // whatever the clone's core.autocrlf says.
+    if (before !== null && before.includes('\r\n')) contents = contents.replace(/\r?\n/g, '\r\n');
     if (before === contents) return;
     changed++;
     console.log(`  ${before === null ? 'new ' : 'edit'} ${name}`);
@@ -795,7 +835,12 @@ async function main() {
     let contents;
 
     if (existsSync(path)) {
-      let lines = readFileSync(path, 'utf8').split('\n');
+      // Split on either ending. A CRLF checkout - which is what git gives a Windows clone by
+      // default - otherwise leaves a trailing \r on every line, and `.` does not match \r in
+      // JavaScript, so the `(\/\/.*)?$` at the end of ANY_DECLARATION_RE stops matching. Every
+      // declared property then reads as "not declared" and the whole class is appended again.
+      // write() puts the file's own endings back.
+      let lines = readFileSync(path, 'utf8').split(/\r?\n/);
       const [headed, wasVersion] = applyHeader(lines, 'members');
       lines = headed;
       if (wasVersion && wasVersion !== GENERATOR_VERSION) {

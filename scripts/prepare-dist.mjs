@@ -55,6 +55,9 @@ const published = {
   types: reroot(pkg.exports['.'].types),
   exports: rerootDeep(pkg.exports),
   sideEffects: rerootDeep(pkg.sideEffects),
+  // `npx breeze-gen-entities`. The script is copied into dist/ below; npm sets the exec bit on
+  // whatever `bin` points at, so the shebang is all it needs.
+  bin: rerootDeep(pkg.bin),
 };
 
 // Deliberately NOT carried over:
@@ -79,6 +82,20 @@ for (const name of ['README.md', 'LICENSE']) {
   } else {
     console.warn(`prepare-dist: ${name} not found at the repo root`);
   }
+}
+
+// The bin scripts are hand-written JavaScript in scripts/, not tsc output, so they have to be
+// copied in. The destination comes from the manifest rather than being spelled twice: whatever
+// `bin` points at inside dist/ is what gets copied there.
+for (const [command, distPath] of Object.entries(pkg.bin ?? {})) {
+  const name = distPath.slice('./dist/'.length);          // reroot() already vetted the prefix
+  const from = join(root, 'scripts', name);
+  if (!existsSync(from)) {
+    console.error(`prepare-dist: bin '${command}' needs scripts/${name}, which does not exist`);
+    process.exit(1);
+  }
+  copyFileSync(from, join(dist, name));
+  copied.push(`${name} (bin: ${command})`);
 }
 
 console.log(`prepare-dist: dist/package.json written (${Object.keys(published.exports).length} exports), copied ${copied.join(', ')}`);

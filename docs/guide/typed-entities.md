@@ -149,14 +149,14 @@ unchanged and there is no runtime cost to any of this.
 
 ## Generating the classes
 
-Writing an entity class per type by hand is tedious and drifts from the server. `test/model/` in
-the Breeze repo is generated from metadata, and the generator is reusable against your own service:
+Writing an entity class per type by hand is tedious and drifts from the server. `breeze-client`
+ships a generator that writes them from your service's metadata:
 
 ```bash
-node scripts/generate-entity-classes.js \
+npx breeze-gen-entities \
   --service http://localhost:34377/breeze/NorthwindIBModel \
   --out src/app/model
 ```
 
 It updates existing files per member rather than overwriting them, so methods and getters you add
-survive regeneration. See `test/model/README.md`.
+survive regeneration. See [Generating entity classes](./generating-entities.md).
