@@ -1,4 +1,4 @@
-﻿import { core, Callback, ErrorCallback } from '../core/core.js';
+﻿import { core, Callback, ErrorCallback, arrayFlatMap, stringStartsWith } from '../core/core.js';
 import { assertParam } from '../core/assert-param.js';
 import { DataType } from '../metadata/data-type.js';
 import { EntityAspect, Entity } from '../entity/entity-aspect.js';
@@ -1098,7 +1098,7 @@ export class OrderByClause {
     // you can also pass in an array of orderByClauses
     if (propertyPaths[0] instanceof OrderByClause) {
       let clauses = propertyPaths as OrderByClause[];
-      this.items = core.arrayFlatMap(clauses, c => c.items);
+      this.items = arrayFlatMap(clauses, c => c.items);
       // this.items = Array.prototype.concat.apply(clauses[0].items, clauses.slice(1).map(core.pluck("items")));
       // this.items = Array.prototype.concat.apply([], clauses.map(core.pluck("items")));
     } else {
@@ -1155,10 +1155,10 @@ export class OrderByItem {
     // parts[0] is the propertyPath; [1] would be whether descending or not.
     // if (parts.length > 1 && isDesc !== true && isDesc !== false) {
     if (parts.length > 1 && isDesc == null) {
-      isDesc = core.stringStartsWith(parts[1].toLowerCase(), "desc");
+      isDesc = stringStartsWith(parts[1].toLowerCase(), "desc");
       if (!isDesc) {
         // isDesc is false but check to make sure its intended.
-        let isAsc = core.stringStartsWith(parts[1].toLowerCase(), "asc");
+        let isAsc = stringStartsWith(parts[1].toLowerCase(), "asc");
         if (!isAsc) {
           throw new Error("the second word in the propertyPath must begin with 'desc' or 'asc'");
         }

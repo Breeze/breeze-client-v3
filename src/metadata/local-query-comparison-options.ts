@@ -1,4 +1,4 @@
-﻿import { core } from '../core/core.js';
+﻿import { core, getUuid } from '../core/core.js';
 import { assertConfig } from '../core/assert-param.js';
 import { config } from '../config/config.js';
 
@@ -57,7 +57,7 @@ export class LocalQueryComparisonOptions {
         .whereParam("usesSql92CompliantStringComparison").isOptional().isBoolean().withDefault(true)
         .applyAll(this);
     if (!this.name) {
-      this.name = core.getUuid();
+      this.name = getUuid();
     }
     config._storeObject(this, "LocalQueryComparisonOptions", this.name);
   }

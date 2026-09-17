@@ -592,7 +592,7 @@ Still open:
 - A query rebuilt by `EntityQuery.fromJSON` without `usePost` has `usePostEnabled`
   `undefined` rather than `false`.
 
-## core.ts: the ES5-era parts are gone (done)
+## core.ts: the ES5-era parts are gone, the rest are built-ins now (done)
 
 Asked whether core.ts could be modernised or partly eliminated. 795 lines -> 691, and the
 `window` / `global` declarations went with them. Removed, each with **zero** references in `src/`,
@@ -618,18 +618,44 @@ and records the four members other modules bolt on at import time (`assertParam`
 `Param`, `config`) plus `Event`, which are easy to miss because they are not in core.ts's own
 object literal.
 
-### Measured, not done
+### The six that are now built-ins (done)
 
-Three idioms worth replacing, and one that is not:
+Each is implemented over the language's own version, and marked `@deprecated` on the `core`
+object so an editor says so:
 
-| current | modern | measured |
+| | now calls | measured |
 |---|---|---|
-| `getUuid`, on `Math.random()` | `crypto.randomUUID()` | **32x faster**, and cryptographically sound where the current one is not — it generates entity keys. About 5% of `createEntity` for a Guid-keyed type. Needs a fallback: browsers expose it only in a secure context |
-| `stringEndsWith`, on `indexOf` | `String.prototype.endsWith` | **2.3x faster** |
-| `arrayFlatMap`, `concat.apply([], map())` | `Array.prototype.flatMap` | clarity |
-| `stringStartsWith` | `String.prototype.startsWith` | **no win** — 45.7 ms vs 47.7 ms. Clarity only |
+| `core.getUuid()` | `crypto.randomUUID()` | **32x faster**, and a cryptographic source where `Math.random()` is not — this names every entity with a Guid key. `createEntity('Customer')` with a generated key: 10.32 -> 9.86 µs |
+| `core.stringEndsWith` | `String.prototype.endsWith` | **2.3x faster** |
+| `core.hasOwnProperty` | `Object.hasOwn` | **1.6x faster** |
+| `core.arrayFlatMap` | `Array.prototype.flatMap` | clarity |
+| `core.arraySlice` | `Array.prototype.slice` | clarity |
+| `core.stringStartsWith` | `String.prototype.startsWith` | **no win** — 45.7 ms vs 47.7 ms. Clarity only |
 
-And two deliberately left as they are:
+Two things had to be got right:
+
+- **The tag goes on the `core` property, not the function.** What is deprecated is the *access
+  path* — `breeze.core.stringEndsWith` is what an application should stop writing. The functions
+  are also exported by name from `core/core.ts`, and Breeze's own 22 call sites use those, so
+  nothing inside the library reads a member it tells applications not to use. Three of those call
+  sites were doc-comment examples, which would otherwise have been teaching a deprecated API.
+- **The string helpers are null-tolerant and the built-ins are not.** `stringStartsWith(null, x)`
+  is `false` where `null.startsWith` throws, and `stringStartsWith(s, null)` is `true` where the
+  built-in looks for the text `"null"`. The local query operators depend on both — a null property
+  does not start with anything — so the guards stay and only the comparison is the built-in.
+
+`crypto.randomUUID` needs a secure context in a browser, so `getUuid` falls back to the old
+implementation over plain HTTP. Both migration pages say so.
+
+`formatString` was modernised without being deprecated — nothing built in replaces it. It declared
+rest parameters and then read `arguments` anyway, and compiled a fresh `RegExp` on every call.
+
+`test/unit/deprecation-core.spec.ts` drives the TypeScript language service to check the tags
+actually reach an editor, and `test/support/deprecation-probe.ts` is that machinery, now shared
+with the callback-argument spec. Removing any one tag fails a case; both specs were checked that
+way rather than assumed.
+
+### Deliberately left as they are
 
 - **`arrayFirst` / `arrayIndexOf` are not `find` / `findIndex`.** `arrayFirst` returns `null`
   where `find` returns `undefined`, and `find` cannot tell "found `undefined`" from "not found".

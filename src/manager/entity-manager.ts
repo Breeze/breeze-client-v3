@@ -1,5 +1,5 @@
 ﻿import { DataServiceAdapter } from '../config/interface-registry.js';
-import { core, Callback, ErrorCallback } from '../core/core.js';
+import { core, Callback, ErrorCallback, arraySlice } from '../core/core.js';
 import { assertParam, assertConfig } from '../core/assert-param.js';
 import { config, setDefaultAdapters } from '../config/config.js';
 import { BreezeEvent } from '../core/event.js';
@@ -2007,11 +2007,11 @@ function getEntitiesCore(em: EntityManager, entityTypes: EntityType | EntityType
 function createEntityKey(em: EntityManager, args: any[]) {
   try {
     if (args[0] instanceof EntityKey) {
-      return { entityKey: args[0] as EntityKey, remainingArgs: core.arraySlice(args, 1) };
+      return { entityKey: args[0] as EntityKey, remainingArgs: arraySlice(args, 1) };
     } else if (args.length >= 2) {
       let entityType = (typeof args[0] === 'string') ? em.metadataStore._getStructuralType(args[0], false)
         : (typeof args[0] === 'function') ? em.metadataStore._getStructuralType(entityTypeForCtor(args[0]).name, false) : args[0];
-      return { entityKey: new EntityKey(entityType, args[1]), remainingArgs: core.arraySlice(args, 2) };
+      return { entityKey: new EntityKey(entityType, args[1]), remainingArgs: arraySlice(args, 2) };
     }
   } catch (e) {/* throw below */
     // throw new Error("Must supply an EntityKey OR an EntityType name or EntityType followed by a key value or an array of key values.");

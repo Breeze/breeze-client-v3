@@ -1,4 +1,4 @@
-﻿import { core } from '../core/core.js';
+﻿import { core, arraySlice, hasOwnProperty as hasOwnProp, stringStartsWith as strStartsWith, stringEndsWith as strEndsWith } from '../core/core.js';
 import { EntityType, StructuralType, DataProperty  } from '../metadata/entity-metadata.js';
 import { QueryOp } from './entity-query.js';
 import type { FilterQueryOp, RecursiveArray } from './entity-query.js';
@@ -405,7 +405,7 @@ export class Predicate {
       context = { entityType: undefined };
     } else if (context instanceof EntityType) {
       context = { entityType: context };
-    } else if (!core.hasOwnProperty(context, "entityType")) {
+    } else if (!hasOwnProp(context, "entityType")) {
       throw new Error("All visitor methods must be called with a context object containing at least an 'entityType' property");
     }
 
@@ -499,7 +499,7 @@ function createPredicateFromKeyValue(key: string, value: any): Predicate {
   if ((typeof value !== 'object') || value == null || core.isDate(value)) {
     // { foo: bar } key='foo', value = bar ( where bar is a literal i.e. a string, a number, a boolean or a date.
     return new BinaryPredicate("eq", key, value);
-  } else if (core.hasOwnProperty(value, 'value')) {
+  } else if (hasOwnProp(value, 'value')) {
     // { foo: { value: bar, dataType: xxx} } key='foo', value = bar ( where bar is an object representing a literal
     return new BinaryPredicate("eq", key, value);
   }
@@ -520,7 +520,7 @@ function createPredicateFromKeyValue(key: string, value: any): Predicate {
     if (BinaryPredicate.prototype._resolveOp(op, true)) {
       // { a: { ">": b }} op = ">", expr=a, value[op] = b
       return new BinaryPredicate(op, expr, value[op]);
-    } else if (core.hasOwnProperty(value[op], 'value')) {
+    } else if (hasOwnProp(value[op], 'value')) {
       // { a: { ">": { value: b, dataType: 'Int32' }} expr = a value[op] = { value: b, dataType: 'Int32' }
       return new BinaryPredicate("eq", expr, value[op]);
     }
@@ -536,9 +536,9 @@ function createPredicateFromKeyValue(key: string, value: any): Predicate {
 function argsForAndOrPredicates(obj: {}, args: any[]) {
   let preds = args[0];
   if (preds instanceof Predicate) {
-    preds = core.arraySlice(args);
+    preds = arraySlice(args);
   } else if (!Array.isArray(preds)) {
-    preds = [new Predicate(core.arraySlice(args))];
+    preds = [new Predicate(arraySlice(args))];
   }
   return [obj].concat(preds);
 }
@@ -934,12 +934,12 @@ export class FnExpr extends PredicateExpression {
     },
     startswith: {
       fn: function (source: string, find: string) {
-        return core.stringStartsWith(source, find);
+        return strStartsWith(source, find);
       }, dataType: DataType.Boolean
     },
     endswith: {
       fn: function (source: string, find: string) {
-        return core.stringEndsWith(source, find);
+        return strEndsWith(source, find);
       }, dataType: DataType.Boolean
     },
     indexof: {
@@ -1351,7 +1351,7 @@ function stringStartsWith(a: any, b: any, lqco: LocalQueryComparisonOptions) {
     a = (a || "").toLowerCase();
     b = (b || "").toLowerCase();
   }
-  return core.stringStartsWith(a, b);
+  return strStartsWith(a, b);
 }
 
 function stringEndsWith(a: any, b: any, lqco: LocalQueryComparisonOptions) {
@@ -1359,7 +1359,7 @@ function stringEndsWith(a: any, b: any, lqco: LocalQueryComparisonOptions) {
     a = (a || "").toLowerCase();
     b = (b || "").toLowerCase();
   }
-  return core.stringEndsWith(a, b);
+  return strEndsWith(a, b);
 }
 
 function stringContains(a: any, b: any, lqco: LocalQueryComparisonOptions) {

@@ -74,7 +74,7 @@ Most validators will be 'property' level validators, like this.
     // v is this function is the value to be validated, in this case a "country" string.
     var valFn = function (v) {
         if (v == null) return true;
-        return (core.stringStartsWith(v, "US"));
+        return v.startsWith("US");
     };
     var countryValidator = new Validator("countryIsUS", valFn, {
         displayName: "Country", 
@@ -341,7 +341,7 @@ export class Validator {
       // v is this function is the value to be validated, in this case a "country" string.
       var valFn = function (v) {
           if (v == null) return true;
-          return (core.stringStartsWith(v, "US"));
+          return v.startsWith("US");
       };
       var countryValidator = new Validator("countryIsUS", valFn, { displayName: "Country" });
       Validator.messageTemplates.countryIsUS = "'%displayName%' must start with 'US'";

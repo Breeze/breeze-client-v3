@@ -1,4 +1,4 @@
-﻿import { core, ErrorCallback } from '../core/core.js';
+﻿import { core, ErrorCallback, hasOwnProperty as hasOwnProp, stringStartsWith } from '../core/core.js';
 import { config, setDefaultAdapters } from '../config/config.js';
 import { BreezeEvent } from '../core/event.js';
 import { assertParam, assertConfig } from '../core/assert-param.js';
@@ -713,7 +713,7 @@ export class MetadataStore {
       return MetadataStore.makeTypeHash(typeParts[0], typeParts[1]);
     }
 
-    if (core.stringStartsWith(entityTypeName, MetadataStore.ANONTYPE_PREFIX)) {
+    if (stringStartsWith(entityTypeName, MetadataStore.ANONTYPE_PREFIX)) {
       let typeHash = MetadataStore.makeTypeHash(entityTypeName);
       (typeHash as any).isAnonymous = true;
       return typeHash;
@@ -1372,7 +1372,7 @@ export class EntityType {
   >      let countryProp = custType.getProperty("Country");
   >      let valFn = function (v) {
   >              if (v == null) return true;
-  >              return (core.stringStartsWith(v, "US"));
+  >              return v.startsWith("US");
   >          };
   >      let countryValidator = new Validator("countryIsUS", valFn,
   >      { displayName: "Country", messageTemplate: "'%displayName%' must start with 'US'" });
@@ -2686,7 +2686,7 @@ function addProperties(entityType: StructuralType, propObj: Object | undefined, 
     propObj.forEach(entityType._addPropertyCore.bind(entityType));
   } else if (typeof (propObj) === 'object') {
     for (let key in propObj) {
-      if (core.hasOwnProperty(propObj, key)) {
+      if (hasOwnProp(propObj, key)) {
         let value = (propObj as Record<string, any>)[key];
         value.name = key;
         let prop = new ctor(value);

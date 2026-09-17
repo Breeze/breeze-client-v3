@@ -4,7 +4,7 @@ import { KeyMapping } from '../manager/entity-manager.js';
 import { MappingContext } from '../query/mapping-context.js';
 import { assertConfig } from '../core/assert-param.js';
 import { config } from '../config/config.js';
-import { core } from '../core/core.js';
+import { core, stringEndsWith } from '../core/core.js';
 
 /** Configuration info to be passed to the {@link DataService} constructor */
 export interface DataServiceConfig {
@@ -153,12 +153,12 @@ export class DataService {
     }
     let url = this.serviceName;
     // remove any trailing "/"
-    if (core.stringEndsWith(url, "/")) {
+    if (stringEndsWith(url, "/")) {
       url = url.substr(0, url.length - 1);
     }
     // ensure that it ends with "/" + suffix
     suffix = "/" + suffix;
-    if (!core.stringEndsWith(url, suffix)) {
+    if (!stringEndsWith(url, suffix)) {
       url = url + suffix;
     }
     return url;

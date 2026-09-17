@@ -421,10 +421,35 @@ may notice.
   | `core.titleCase(s)` | Your own, or a library — it was one regex. |
   | `core.getArray(obj, name)` | `core.getMapArray(map, key)`, or `obj[name] ??= []` |
 
-  An `Object.create` polyfill went with them, so importing Breeze no longer writes to a global.
-  Everything else `core` exposes is unchanged, and `core.hasOwnProperty` and `core.arraySlice`
-  now call `Object.hasOwn` and `Array.prototype.slice` rather than an `uncurry` helper — same
-  results, less work.
+- **Six `core` helpers are deprecated**, because the language now has each of them. They still
+  work, and an editor will strike them through:
+
+  | Deprecated | Instead |
+  |---|---|
+  | `core.hasOwnProperty(obj, key)` | `Object.hasOwn(obj, key)` |
+  | `core.arraySlice(arr, start, end)` | `arr.slice(start, end)` |
+  | `core.arrayFlatMap(arr, fn)` | `arr.flatMap(fn)` |
+  | `core.getUuid()` | `crypto.randomUUID()` |
+  | `core.stringStartsWith(s, prefix)` | `s.startsWith(prefix)` |
+  | `core.stringEndsWith(s, suffix)` | `s.endsWith(suffix)` |
+
+  Each now calls the built-in, so behaviour is unchanged and two of them are faster —
+  `endsWith` by 2.3x, `getUuid` by about 30x, which is worth a few percent of creating an
+  entity with a Guid key. `crypto.randomUUID()` is also a cryptographic source where the old
+  implementation used `Math.random()`.
+
+  Two things to know before you switch:
+
+  - **The string helpers are null-tolerant and the built-ins are not.**
+    `core.stringStartsWith(null, "a")` is `false`, where `null.startsWith("a")` throws; and
+    `core.stringStartsWith("abc", null)` is `true`, where the built-in looks for the text
+    `"null"`. Guard the null yourself.
+  - **`crypto.randomUUID()` needs a secure context in a browser** — it is unavailable over
+    plain HTTP. `core.getUuid()` falls back to the old implementation there, so if you serve
+    over HTTP, keep using it or supply your own fallback.
+
+  An `Object.create` polyfill went with the five removals, so importing Breeze no longer writes
+  to a global. Everything else `core` exposes is unchanged.
 
 **Metadata and data types**
 

@@ -1,5 +1,5 @@
 ﻿import { assertConfig } from '../core/assert-param.js';
-import { core } from '../core/core.js';
+import { core, getUuid } from '../core/core.js';
 import { config } from '../config/config.js';
 
 // TODO: strongly type context object passed to naming convention converter fns.
@@ -52,7 +52,7 @@ export class NamingConvention {
         .whereParam("clientPropertyNameToServer").isFunction()
         .applyAll(this);
     if (!this.name) {
-      this.name = core.getUuid();
+      this.name = getUuid();
     }
     config._storeObject(this, "NamingConvention", this.name);
   }

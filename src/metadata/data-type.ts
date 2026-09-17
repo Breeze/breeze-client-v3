@@ -1,4 +1,4 @@
-﻿import { core } from '../core/core.js';
+﻿import { core, getUuid } from '../core/core.js';
 import { BreezeEnum } from '../core/enum.js';
 import { Validator } from '../validation/validate.js';
 
@@ -177,7 +177,7 @@ export class DataType extends BreezeEnum {
     parse: coerceToGuid,
     getNext: getNextGuid,
     parseRawValue: function (val: string) { return val.toLowerCase(); },
-    getConcurrencyValue: core.getUuid
+    getConcurrencyValue: getUuid
   });
 
   static Binary = new DataType({
@@ -362,7 +362,7 @@ function getNextNumber() {
 }
 
 function getNextGuid() {
-  return core.getUuid();
+  return getUuid();
 }
 
 function getNextDateTime() {
