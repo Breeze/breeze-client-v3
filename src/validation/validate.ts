@@ -376,7 +376,7 @@ export class Validator {
   @example
       // Assume em1 is a preexisting EntityManager.
       var custType = em1.metadataStore.getAsEntityType("Customer");
-      var regionProperty - custType.getProperty("Region");
+      var regionProperty = custType.getProperty("Region");
       // Makes "Region" on Customer a required property.
       regionProperty.validators.push(Validator.required());
       // or to allow empty strings
@@ -401,7 +401,7 @@ export class Validator {
   @example
       // Assume em1 is a preexisting EntityManager.
       var custType = em1.metadataStore.getAsEntityType("Customer");
-      var regionProperty - custType.getProperty("Region");
+      var regionProperty = custType.getProperty("Region");
       // Validates that the value of the Region property on Customer will be less than or equal to 5 characters.
       regionProperty.validators.push(Validator.maxLength( {maxLength: 5}));
   @param context - An object with `maxLength` (number).
@@ -421,7 +421,7 @@ export class Validator {
   @example
       // Assume em1 is a preexisting EntityManager.
       var custType = em1.metadataStore.getAsEntityType("Customer");
-      var regionProperty - custType.getProperty("Region");
+      var regionProperty = custType.getProperty("Region");
       // Validates that the value of the Region property on Customer will be
       // between 2 and 5 characters
       regionProperty.validators.push(Validator.stringLength( {minLength: 2, maxLength: 5});
@@ -444,7 +444,7 @@ export class Validator {
   @example
       // Assume em1 is a preexisting EntityManager.
       var custType = em1.metadataStore.getAsEntityType("Customer");
-      var regionProperty - custType.getProperty("Region");
+      var regionProperty = custType.getProperty("Region");
       // Validates that the value of the Region property on Customer is a string.
       regionProperty.validators.push(Validator.string());
   @returns {Validator} A new Validator
@@ -462,7 +462,7 @@ export class Validator {
   @example
       // Assume em1 is a preexisting EntityManager.
       var custType = em1.metadataStore.getAsEntityType("Customer");
-      var customerIdProperty - custType.getProperty("CustomerID");
+      var customerIdProperty = custType.getProperty("CustomerID");
       // Validates that the value of the CustomerID property on Customer is a Guid.
       customerIdProperty.validators.push(Validator.guid());
   @returns {Validator} A new Validator
@@ -480,7 +480,7 @@ export class Validator {
   @example
       // Assume em1 is a preexisting EntityManager.
       var eventType = em1.metadataStore.getAsEntityType("Event");
-      var elapsedTimeProperty - eventType.getProperty("ElapsedTime");
+      var elapsedTimeProperty = eventType.getProperty("ElapsedTime");
       // Validates that the value of the ElapsedTime property on Customer is a duration.
       elapsedTimeProperty.validators.push(Validator.duration());
   @returns {Validator} A new Validator
@@ -498,7 +498,7 @@ export class Validator {
   @example
       // Assume em1 is a preexisting EntityManager.
       var orderType = em1.metadataStore.getAsEntityType("Order");
-      var freightProperty - orderType.getProperty("Freight");
+      var freightProperty = orderType.getProperty("Freight");
       // Validates that the value of the Freight property on Order is a number.
       freightProperty.validators.push(Validator.number());
   @returns {Validator} A new Validator
@@ -523,7 +523,7 @@ export class Validator {
   @example
       // Assume em1 is a preexisting EntityManager.
       var orderType = em1.metadataStore.getAsEntityType("Order");
-      var freightProperty - orderType.getProperty("Freight");
+      var freightProperty = orderType.getProperty("Freight");
       // Validates that the value of the Freight property on Order is within the range of a 64 bit integer.
       freightProperty.validators.push(Validator.int64());
   @returns {Validator} A new Validator
@@ -545,7 +545,7 @@ export class Validator {
   @example
       // Assume em1 is a preexisting EntityManager.
       var orderType = em1.metadataStore.getAsEntityType("Order");
-      var freightProperty - orderType.getProperty("Freight");
+      var freightProperty = orderType.getProperty("Freight");
       freightProperty.validators.push(Validator.int32());
   @returns {Validator} A new Validator
   **/
@@ -558,7 +558,7 @@ export class Validator {
   @example
       // Assume em1 is a preexisting EntityManager.
       var orderType = em1.metadataStore.getAsEntityType("Order");
-      var freightProperty - orderType.getProperty("Freight");
+      var freightProperty = orderType.getProperty("Freight");
       // Validates that the value of the Freight property on Order is within the range of a 16 bit integer.
       freightProperty.validators.push(Validator.int16());
   @returns {Validator} A new Validator
@@ -572,7 +572,7 @@ export class Validator {
   @example
       // Assume em1 is a preexisting EntityManager.
       var orderType = em1.metadataStore.getAsEntityType("Order");
-      var freightProperty - orderType.getProperty("Freight");
+      var freightProperty = orderType.getProperty("Freight");
       // Validates that the value of the Freight property on Order is within the range of a 16 bit integer.
       // Probably not a very good validation to place on the Freight property.
       regionProperty.validators.push(Validator.byte());
@@ -587,7 +587,7 @@ export class Validator {
   @example
       // Assume em1 is a preexisting EntityManager.
       var productType = em1.metadataStore.getAsEntityType("Product");
-      var discontinuedProperty - productType.getProperty("Discontinued");
+      var discontinuedProperty = productType.getProperty("Discontinued");
       // Validates that the value of the Discontinued property on Product is a boolean
       discontinuedProperty.validators.push(Validator.bool());
   @returns {Validator} A new Validator
@@ -612,7 +612,7 @@ export class Validator {
   @example
       // Assume em1 is a preexisting EntityManager.
       var orderType = em1.metadataStore.getAsEntityType("Order");
-      var orderDateProperty - orderType.getProperty("OrderDate");
+      var orderDateProperty = orderType.getProperty("OrderDate");
       // Validates that the value of the OrderDate property on Order is a date
       // Probably not a very good validation to place on the Freight property.
       orderDateProperty.validators.push(Validator.date());

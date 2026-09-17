@@ -319,7 +319,11 @@ export class BreezeConfig {
         if (instance.checkForRecomposition != null) {
             // now register for own dependencies.
             this.interfaceInitialized.subscribe((interfaceInitializedArgs) => {
-                // TODO: why '!'s needed here for typescript to compile correctly???
+                // The `!` is needed because narrowing does not reach inside the callback:
+                // `instance` is a mutable binding, so TypeScript has to assume the property
+                // could have been cleared before the subscription fires. Reading it off
+                // `instance` here rather than capturing it in a const is deliberate - that is
+                // what gives the adapter its `this`.
                 instance.checkForRecomposition!(interfaceInitializedArgs);
             });
         }

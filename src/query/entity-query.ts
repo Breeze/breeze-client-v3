@@ -83,7 +83,8 @@ export class EntityQuery<T = any> {
     if (resourceName != null && (typeof resourceName !== 'string')) {
       return fromJSON(this, resourceName);
     }
-    // TODO: cast as string below needed for early versions of TypeDoc - but not for regular compile - check later
+    // The cast holds for test/tsconfig.json, which checks src/ again with strictNullChecks off;
+    // without it the guard above narrows to `string | Object` rather than `string | undefined`.
     this.resourceName = resourceName as string;
     this.fromEntityType = undefined;
     this.wherePredicate = undefined;

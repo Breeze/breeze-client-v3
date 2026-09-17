@@ -219,11 +219,7 @@ export class Predicate {
   Any null or undefined values passed in will be automatically filtered out before constructing the composite predicate.
   **/
   static and(...args: any[]) {
-    let pred = new AndOrPredicate("and", args);
-    // TODO removed below
-    // return undefined if empty
-    // return pred.op && pred;
-    return pred;
+    return new AndOrPredicate("and", args);
   }
 
   /**
@@ -241,9 +237,7 @@ export class Predicate {
   Any null or undefined values passed in will be automatically filtered out before constructing the composite predicate.
   **/
   static or(...args: any[]) {
-    let pred = new AndOrPredicate("or", args);
-    // return pred.op && pred;
-    return pred;
+    return new AndOrPredicate("or", args);
   }
 
   /**
@@ -280,27 +274,6 @@ export class Predicate {
   static for<U extends Entity>(ctor: new () => U): TypedPredicateFactory<U> {
     return ((...args: any[]) => Predicate.create(...args as [any])) as TypedPredicateFactory<U>;
   }
-
-  // TODO: determine if/where this is used.
-  // static extendBinaryPredicateFn(opMap: IOpMap, visitorFn: any) {
-  //   let baseVisitorFn = toFunctionVisitor.binaryPredicate;
-  //   for (let op in (opMap || {})) {
-  //     let config = opMap[op];
-  //     config.visitorFn = visitorFn;
-  //     updateAliasMap(BinaryPredicate.prototype.aliasMap, op, opMap[op]);
-  //   }
-  //   if (!toFunctionVisitor.isExtended) {
-  //     toFunctionVisitor.binaryPredicate = function (context, expr1Val, expr2Val) {
-  //       let visitorFn = this.aliasMap[this.op.key].visitorFn;
-  //       if (visitorFn) {
-  //         return visitorFn(context, expr1Val, expr2Val);
-  //       } else {
-  //         return baseVisitorFn(context, expr1Val, expr2Val);
-  //       }
-  //     };
-  //     toFunctionVisitor.isExtended = true;
-  //   }
-  // };
 
   static extendFuncMap (funcMap: {[key: string]: {fn: (...args: any[]) => any, dataType: DataType}}): void {
     for (let func in (funcMap || {})) {
@@ -422,8 +395,6 @@ export class Predicate {
     // don't bother validating if already done so ( or if no _validate method
     if (this._validate && (entityType == null || this._entityType !== entityType)) {
       // don't need to capture return value because validation fn doesn't have one.
-      // TODO: this was old code
-      // this._validate(entityType, context.usesNameOnServer);
       this._validate(entityType, context.toNameOnServer);
       this._entityType = entityType;
     }
@@ -688,11 +659,6 @@ export class AndOrPredicate extends Predicate {
     }).map(function (pred) {
       return new Predicate(pred);
     });
-    // TODO: this was removed - test if really needed.
-    // if (this.preds.length === 0) {
-    //   // marker for an empty predicate
-    //   this.op = null;
-    // }
     if (this.preds.length === 1) {
       return this.preds[0] as AndOrPredicate; // HACK: this.preds[0] is actually NOT a AndOrPredicate but some other kind of pred.
     }
@@ -779,7 +745,9 @@ export class LitExpr extends PredicateExpression {
     // if the DataType comes in as Undefined this means
     // that we should NOT attempt to parse it but just leave it alone
     // for now - this is usually because it is part of a Func expr.
-    // TODO: cast as DataType seems to be needed by early version of TypeDoc - may be able to remove later
+    // The cast holds for test/tsconfig.json, which checks src/ again with strictNullChecks off;
+    // `resolveDataType` returns `DataType | string | undefined`, and only the strict pass drops
+    // the `string` here.
     let dt2 = (dt1 || DataType.fromValue(value)) as DataType;
 
     if (dt2.parse) {
@@ -1105,30 +1073,23 @@ function parseLitOrPropExpr(value: string, exprContext: ExpressionContext): Pred
 }
 
 function parseFnExpr(source: string, parts: string[], tokens: string[], exprContext: ExpressionContext) {
-  try {
-    let fnName = parts[0].trim().toLowerCase();
+  let fnName = parts[0].trim().toLowerCase();
 
-    let argSource = (tokens as unknown as Record<string, string>)[parts[1]].trim() as string;
-    if (argSource.substr(0, 1) === "(") {
-      argSource = argSource.substr(1, argSource.length - 2);
-    }
-    let commaMatchStr = source.indexOf("'") >= 0 ? RX_COMMA_DELIM1 : RX_COMMA_DELIM2;
-    let args = argSource.match(commaMatchStr);
-    let newContext = core.extend({}, exprContext) as ExpressionContext;
-    // a dataType of Undefined on a context basically means not to try parsing
-    // the value if the expr is a literal
-    newContext.dataType = DataType.Undefined;
-    newContext.isFnArg = true;
-    let exprs = args!.map(function (a) {
-      return parseExpr(a, tokens, newContext);
-    });
-    return new FnExpr(fnName, exprs);
-  } catch (e) {
-    // TODO: removed old code here
-    // return null;
-    // and replaced with 
-    throw e;
+  let argSource = (tokens as unknown as Record<string, string>)[parts[1]].trim() as string;
+  if (argSource.substr(0, 1) === "(") {
+    argSource = argSource.substr(1, argSource.length - 2);
   }
+  let commaMatchStr = source.indexOf("'") >= 0 ? RX_COMMA_DELIM1 : RX_COMMA_DELIM2;
+  let args = argSource.match(commaMatchStr);
+  let newContext = core.extend({}, exprContext) as ExpressionContext;
+  // a dataType of Undefined on a context basically means not to try parsing
+  // the value if the expr is a literal
+  newContext.dataType = DataType.Undefined;
+  newContext.isFnArg = true;
+  let exprs = args!.map(function (a) {
+    return parseExpr(a, tokens, newContext);
+  });
+  return new FnExpr(fnName, exprs);
 }
 
 // toFunctionVisitor

@@ -183,8 +183,6 @@ export class EntityAspect {
   /** @hidden @internal */
   _inProcessEntity?: Entity; // used in EntityManager
   /** @hidden @internal */
-  static _nullInstance = new EntityAspect(); // TODO: determine if this works
-  /** @hidden @internal */
   constructor(entity?: Entity) {
 
     // if called without new
@@ -237,16 +235,6 @@ export class EntityAspect {
   static isEntity(obj: StructuralObject): obj is Entity {
     return (obj as any).entityAspect != null;
   }
-
-  // No longer used
-  // static createFrom(entity: Entity): EntityAspect {
-  //   if (entity == null) {
-  //     return EntityAspect._nullInstance;
-  //   } else if (entity.entityAspect) {
-  //     return entity.entityAspect;
-  //   }
-  //   return new EntityAspect(entity);
-  // }
 
   // TODO: refactor this and the instance getPropertyValue method.
   /**
@@ -702,9 +690,6 @@ export class EntityAspect {
   */
   getParentKey(navigationProperty: NavigationProperty) {
     if (!this.entity) return null;
-    // TODO: review this - not sure about the comment.
-    // NavigationProperty doesn't yet exist
-    // assertParam(navigationProperty, "navigationProperty").isInstanceOf(NavigationProperty).check();
     let fkNames = navigationProperty.foreignKeyNames;
     if (fkNames.length === 0) return null;
     let that = this;
@@ -798,8 +783,7 @@ export class EntityAspect {
   }
 
   /** @hidden @internal */
-  // TODO: add/use a ValidationError type
-  _addValidationError(validationError: any) {
+  _addValidationError(validationError: ValidationError) {
     this._validationErrors[validationError.key] = validationError;
     this.hasValidationErrors = true;
     this._pendingValidationResult.added.push(validationError);

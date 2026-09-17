@@ -2410,9 +2410,6 @@ function executeQueryCore(em: EntityManager, query: EntityQuery | string, queryO
         });
         em._pendingPubs = undefined;
         em._hasChangesAction && em._hasChangesAction();
-        // TODO: removed - not sure why needed in first place...
-        // // HACK for GC
-        // query = undefined;
         mappingContext = undefined;
         // A materialization error thrown below needs no help here: wrapExecution rethrows it,
         // which rejects this promise. This cleanup used to return Promise.reject(state.error)

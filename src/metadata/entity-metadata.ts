@@ -528,7 +528,6 @@ export class MetadataStore {
 
     if (aCtor) {
       if (aCtor._$typeName && aCtor._$typeName !== typeName) {
-        // TODO: wrap this - console and especially console.warn does not exist in all browsers.
         console.warn("Registering a constructor for " + typeName + " that is already used for " + aCtor._$typeName + ".");
       }
       aCtor._$typeName = typeName;
@@ -703,11 +702,6 @@ export class MetadataStore {
 
   /** __Dev Only__ - for use when creating a new MetadataParserAdapter  */
   static parseTypeName(entityTypeName: string) {
-    // TODO: removed 
-    // if (!entityTypeName) {
-    //   return null;
-    // }
-
     let typeParts = entityTypeName.split(":#");
     if (typeParts.length > 1) {
       return MetadataStore.makeTypeHash(typeParts[0], typeParts[1]);
@@ -1492,8 +1486,13 @@ export class EntityType {
     return ok ? props : null;
   }
 
-  /** For use in pluggable adapters. */
-  // TODO: document use
+  /** Translates a client-side property path into the names the server uses, applying this type's
+  {@link NamingConvention} to each segment: with the default camelCase convention,
+  `"company.companyName"` becomes `"Company.CompanyName"`. A {@link UriBuilderAdapter} uses it to
+  write a query the server can read.
+  @param propertyPath - a path of property names separated by `.`
+  @param delimiter - what to join the server names with. Defaults to `.`
+  @returns The same path in server terms. */
   clientPropertyPathToServer(propertyPath: string, delimiter: string = '.') {
     let propNames: string[];
     if (this.isAnonymous) {
@@ -1508,8 +1507,13 @@ export class EntityType {
     return propNames.join(delimiter);
   }
 
-  /** For use in pluggable adapters. */
-  // TODO: document use
+  /** Builds the {@link EntityKey} for an entity still in its raw server form, before it has been
+  materialized. A {@link DataServiceAdapter} or {@link JsonResultsAdapter} uses it to find out whether
+  the cache already holds the entity a node describes.
+  @param rawEntity - the untyped node as it arrived from the server
+  @param rawValueFn - reads one {@link DataProperty} off that node. It is given the node and the
+  property, and is what knows whether the node is keyed by client or by server names
+  @returns The key, with each value parsed into its property's {@link DataType}. */
   getEntityKeyFromRawEntity(rawEntity: any, rawValueFn: Function) {
     let keyValues = this.keyProperties.map((dp) => {
       let val = rawValueFn(rawEntity, dp);
@@ -2081,7 +2085,10 @@ export class DataProperty {
   declare isUnmapped: boolean;
   /** Whether this property is 'settable'. __Read Only__ */
   declare isSettable: boolean;
-  // TODO: doc this
+  /** How this property takes part in optimistic concurrency checking, as the server reported it.
+  Any value other than `"None"` puts the property into {@link EntityType.concurrencyProperties}, whose
+  values Breeze sends with a save so the server can detect that someone else changed the row first.
+  A Breeze .NET server reports `"Fixed"` for a rowversion or `[ConcurrencyCheck]` property. __Read Only__ */
   declare concurrencyMode: string;
   /**  The maximum length for the value of this property. Only meaningful for strings. __Read Only__ */
   declare maxLength?: number;
@@ -2096,7 +2103,12 @@ export class DataProperty {
   declare rawTypeName?: string;  // occurs with undefined datatypes
   /**  A free form object that can be used to define any custom metadata for this DataProperty. __Read Only__ */
   declare custom?: any;
-  // TODO: doc this
+  /** For a foreign key in a *unidirectional* relationship, the navigation property on the other type
+  that points back at this one. It is set only when the type holding the foreign key has no navigation
+  property of its own for it: `Territory.regionId` has no `Territory.region`, so its
+  `inverseNavigationProperty` is `Region.territories`, and setting the foreign key still maintains that
+  collection. Where both sides do have a navigation property, {@link DataProperty.relatedNavigationProperty}
+  is set instead. __Read Only__ */
   declare inverseNavigationProperty?: NavigationProperty;
   /**
   The navigation property related to this property.  Will only be set if this is a foreign key property. __Read Only__ */
