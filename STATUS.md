@@ -518,6 +518,22 @@ One thing to know if this is ever extended: the categories must be applied on
 `EVENT_CREATE_DECLARATION`. On `EVENT_RESOLVE_BEGIN` they still render, but `excludeCategories`
 silently ignores them.
 
+## Broken anchors now fail the docs build (done)
+
+VitePress fails a build on a link to a missing *page*, but says nothing about a missing
+`#anchor` — verified by deliberately breaking one and watching the build pass. So renaming a
+heading silently strands every link into it, which is what had happened to three links to
+`#default-adapters` after it became "Adapters and transport".
+
+`scripts/check-doc-anchors.mjs` runs as the last step of `docs:build` and exits non-zero on a
+broken one. It checks against the `id=` attributes the build actually emitted rather than
+reimplementing VitePress's slug rules, so it covers the API reference too, where TypeDoc
+generates the anchors: 234 links across the site, up from the 67 a guide-only check would see.
+Links inside fenced code blocks are ignored, and external URLs are not its business.
+
+Verified in both directions: a typo'd anchor fails `docs:build` with exit 1, and a fence
+containing an invented anchor does not.
+
 ## Deprecated the callback arguments (done)
 
 `saving-changes.md` already called the callback arguments "deprecated"; the source had no
