@@ -592,6 +592,53 @@ Still open:
 - A query rebuilt by `EntityQuery.fromJSON` without `usePost` has `usePostEnabled`
   `undefined` rather than `false`.
 
+## Cache lookups: three quadratics removed (done)
+
+Every one was the same shape - an answer re-derived by scanning, inside a loop that runs once per
+entity - and every one is now a `Map` or a `Set`. Measured on Northwind entities, 40,000 of them:
+
+| | before | after |
+|---|---|---|
+| `entityAspect.acceptChanges` over 40,000 changed entities | 8,478 ms | 33 ms |
+| `entityAspect.rejectChanges` over the same | 9,343 ms | 61 ms |
+| `detachEntity` over the same | 952 ms | 66 ms |
+| `getEntityGraph(customer, 'orders.orderDetails')`, 8,000 orders / 24,000 details | 5,132 ms | 10 ms |
+
+All four were quadratic - each doubling cost 4x - and all four are linear now.
+
+1. **`hasChanges` was recomputed, not tracked.** Turning one changed entity clean tells the
+   manager it may have become clean overall, and it found out by walking the whole cache. Each
+   `EntityGroup` now keeps a `Set` of its entities that are not Unchanged, so `hasChanges` is a
+   size check. `EntityAspect.entityState` became an accessor to maintain it: that is the one
+   place every state change passes through, so the set cannot drift.
+2. **`getEntityGraph` filtered the whole child type per parent.** Expanding a collection
+   navigation over p parents and c children cost p*c. The children are indexed by their foreign
+   key once per path segment. Its `graph.indexOf(entity)` dedupe and its `related.concat(...)`
+   per parent were quadratic too, and are a `Set` and a push.
+3. **`SaveQueuing` checked `queuedChanges.indexOf(e)` per change.** Now a `Set`, which also makes
+   queuing the same entity twice impossible rather than merely unlikely.
+
+`EntityGroup._indexMap` is a `Map` as well, which is a **correctness** fix and not a speed one -
+measured, the object literal was slightly faster on hits. An object inherits `Object.prototype`,
+so an entity whose key was the string `__proto__` was attached but could never be found again.
+Keys there are strings, which the object coerced for us, so `_fixupKey` now converts the numeric
+`tempValue`/`realValue` a save returns - without that every save of a new entity throws.
+
+What it cost: reading `entityState` went from ~2 ns to ~8 ns, so `getChanges()` over a large
+cache is about 1.5x, and the Unchanged -> Modified transition about 20% dearer. Nothing else
+moved - `createEntity`, `getEntityByKey` and steady-state `setProperty` are flat.
+
+Measured and left alone: `EntityType.getProperty(name)` is a linear scan over a freshly
+concatenated array, 193 ns against 57 ns for `getDataProperty`. A name index would fix it, but
+nothing per-entity calls it - the query merge path goes through `dataProperties` directly - so
+there is no evidence it is hot. Re-parenting is still O(collection) per child, as
+docs/guide/performance.md has always said: a `Set` would find the child faster but the `splice`
+would still shift the array.
+
+Guarded by `test/unit/cache-lookups.spec.ts`, `test/unit/key-fixup.spec.ts` and a new case in
+`get-entity-graph.spec.ts`, all of which count the work done rather than time it. Each was
+confirmed to fail against the code it replaced.
+
 ## Observable arrays (done)
 
 The three observable collection types are still plain arrays, but the mixin that used to be copied

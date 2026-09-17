@@ -86,8 +86,27 @@ export class EntityAspect {
   entityManager?: EntityManager;
   /**  @hidden @internal */
   entityGroup?: EntityGroup;
+  /** @hidden @internal */
+  _entityState!: EntityState;
+  // An accessor rather than a plain field because the entity's group keeps the set of its
+  // entities that are not Unchanged, and this is the one place every state change passes through
+  // - setEntityState, _detach, the attach and merge paths, and anything an application or plugin
+  // assigns. Working the set out by scanning instead is what made hasChanges cost the size of the
+  // cache, once per state change. See "Cache lookups that were scans" in CHANGES-DEV.md.
   /** The {@link EntityState} of this entity. __Read Only__ **/
-  entityState: EntityState;
+  get entityState(): EntityState {
+    return this._entityState;
+  }
+  set entityState(entityState: EntityState) {
+    this._entityState = entityState;
+    const group = this.entityGroup;
+    if (group === undefined) return;   // detached: nothing is tracking it
+    if (entityState === EntityState.Unchanged || entityState === EntityState.Detached) {
+      group._changedEntities.delete(this.entity!);
+    } else {
+      group._changedEntities.add(this.entity!);
+    }
+  }
   /**   Whether this entity is in the process of being saved. __Read Only__ */
   isBeingSaved: boolean;
   /** The 'original values' of this entity where they are different from the 'current values'.

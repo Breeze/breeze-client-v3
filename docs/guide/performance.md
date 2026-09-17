@@ -124,6 +124,46 @@ If you subscribe to `arrayChanged`, a detach or delete gives you a single notifi
 event — the same as for the adds a query produces.
 :::
 
+## Cache operations scale with what you touch, not with what is cached
+
+Accepting, rejecting or detaching entities one at a time costs the same whether the manager holds
+a hundred entities or a hundred thousand:
+
+| over 40,000 changed entities | |
+|---|---|
+| `entityAspect.acceptChanges()` each | ~33 ms |
+| `entityAspect.rejectChanges()` each | ~61 ms |
+| `em.detachEntity()` each | ~66 ms |
+
+So the ordinary idiom is fine:
+
+```ts
+em.getChanges().forEach(e => e.entityAspect.acceptChanges());
+```
+
+`em.hasChanges()` is a flag, not a search, so you can bind it to a Save button and read it as
+often as you like. `em.getChanges()` and `em.getEntities()` do look at every cached entity of the
+types you ask for — cheap, about 0.4 ms over 20,000, but not free, so don't call them inside a
+loop over the result.
+
+Looking an entity up by key is a hash lookup:
+
+```ts
+em.getEntityByKey('Customer', 'ALFKI');   // ~150 ns, whatever the cache holds
+```
+
+## Related entities in bulk
+
+`getEntityGraph`, from the `breeze-client/mixin-get-entity-graph` subpath, indexes the children by
+their foreign key once per expand segment, so a deep expand is linear in the entities it returns:
+
+```ts
+import 'breeze-client/mixin-get-entity-graph';
+
+// a customer, its 8,000 orders and their 24,000 details: about 10 ms
+const graph = em.getEntityGraph(customer, 'orders.orderDetails');
+```
+
 ## Reads are cheap
 
 Reading a tracked property goes through an accessor on the prototype to a plain backing object:

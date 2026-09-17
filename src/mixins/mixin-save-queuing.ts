@@ -151,8 +151,8 @@ class SaveQueuing {
       if (changes.length === 0) { return; }
       let queuedChanges = saveMemo.queuedChanges;
       changes.forEach(e => {
-        if (!e.entityAspect.isBeingSaved && queuedChanges.indexOf(e) === -1) {
-          queuedChanges.push(e);
+        if (!e.entityAspect.isBeingSaved) {
+          queuedChanges.add(e);
         }
       });
 
@@ -204,7 +204,7 @@ class SaveQueuing {
       nextSaveMemo.pkFixup(saveResult.keyMappings);
       nextSaveMemo.applyToSavedEntities(self.entityManager, saveResult.entities);
       // remove detached entities from queuedChanges
-      let queuedChanges = nextSaveMemo.queuedChanges.filter(e => {
+      let queuedChanges = Array.from(nextSaveMemo.queuedChanges).filter(e => {
         return !e.entityAspect.entityState.isDetached();
       });
 
@@ -291,10 +291,13 @@ class SaveMemo {
   /** Keyed by 'entityTypeName|keyValues'. A Map: keys are data, entries are added,
       renamed on pk fixup, and deleted. */
   entityMemos: Map<string, EntityMemo>;
-  queuedChanges: Entity[];
+  /** A Set, so that queuing the same entity twice is both free and impossible: this is a
+      membership test per change per queued entity, which as an array was quadratic. Iteration
+      order is insertion order, so the entities are still saved in the order they were queued. */
+  queuedChanges: Set<Entity>;
   constructor() {
     this.entityMemos = new Map();
-    this.queuedChanges = [];
+    this.queuedChanges = new Set();
   }
 
   applyToSavedEntities(entityManager: EntityManager, savedEntities: Entity[]) {
@@ -307,13 +310,13 @@ class SaveMemo {
         let entityMemo = entityMemos.get(key);
         let resave = entityMemo && entityMemo.applyToSavedEntity(saved);
         if (resave) {
-          queuedChanges.push(saved);
+          queuedChanges.add(saved);
         }
       });
     } finally {
       restorePublishing();
       // D#2651 hasChanges will be wrong if changes made while save in progress
-      let hasChanges = queuedChanges.length > 0;
+      let hasChanges = queuedChanges.size > 0;
       // Must use breeze internal method to properly set this flag true
       if (hasChanges) { entityManager._setHasChanges(true); }
     }

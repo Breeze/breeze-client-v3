@@ -479,6 +479,9 @@ Map's insertion order is defined, which one call site was already relying on imp
 | `InterfaceDef._implMap` | `Map<string, IDef<T>>` | `getFirstImpl` takes the first value directly instead of going via `core.objectFirst` |
 | `FnExpr._funcMap` | `Map` | seeded from the existing object literal with `Object.entries`, so the declaration still reads as a table |
 | `SaveMemo.entityMemos` | `Map` | adds, renames a key during pk fixup, deletes, iterates — the best fit of the lot |
+| `SaveMemo.queuedChanges` | `Set<Entity>` | was an array with an `indexOf` per change; see *Cache lookups that were scans* |
+| `EntityGroup._indexMap` | `Map<string, number>` | done later, for correctness rather than speed; see below |
+| `EntityGroup._changedEntities` | `Set<Entity>` | new — what makes `hasChanges` a size check |
 | `BreezeEvent.__eventNameMap` | `Set<string>` | only ever recorded membership; the boolean value carried nothing |
 | `MetadataStore._shortNameMap` | `Map<string, string>` | explicitly documented as not serialized |
 | `MetadataStore._ctorRegistry` | `Map<string, CtorRecord>` | internal |
@@ -531,6 +534,107 @@ Both times this bit, the cause was the same shape: **the object-based helper tol
 
 When converting one of these, check whether the call site can pass `undefined` — the old
 code very often relied on it silently.
+
+## Cache lookups that were scans
+
+A later pass, and a different shape of problem from the one above: not an object used as a
+dictionary, but an **answer re-derived by walking the cache, inside a loop that runs once per
+entity**. Three of those, each quadratic. Northwind entities, 40,000 of them:
+
+| | before | after |
+|---|---|---|
+| `entityAspect.acceptChanges` each | 8,478 ms | 33 ms |
+| `entityAspect.rejectChanges` each | 9,343 ms | 61 ms |
+| `em.detachEntity` each | 952 ms | 66 ms |
+| `getEntityGraph(cust, 'orders.orderDetails')` over 8,000 orders / 24,000 details | 5,132 ms | 10 ms |
+
+### `hasChanges` is tracked, not recomputed
+
+`_notifyStateChange(entity, needsSave)` with `needsSave` false means an entity just became
+clean, so the manager may have become clean overall. It found out with `_hasChangesCore()`,
+which asks every group, and `EntityGroup.hasChanges()` walked `_entities`. Detaching, accepting
+or rejecting n changed entities therefore walked the cache n times.
+
+Each group now keeps `_changedEntities`, a `Set` of its entities that are not Unchanged, and
+`hasChanges()` is `size > 0`.
+
+**`EntityAspect.entityState` became an accessor to maintain it.** A count, or a `Set` updated at
+the handful of assignment sites, would have been faster; there are only seven of them. But two
+are in `EntityGroup.attachEntity` and one is in `mapping-context.ts` — outside `setEntityState`
+entirely — and a set that drifts gives a wrong `hasChanges`, which is a Save button that lies.
+The accessor is the one place every assignment passes through, including anything an application
+or plugin does, so it cannot drift.
+
+Two consequences, both measured before choosing this:
+
+- Reading `entityState` went from ~2 ns to ~8 ns — the same as any other Breeze property read.
+  `getChanges()` over a large cache is about 1.5x as a result, and the Unchanged -> Modified
+  transition about 20% dearer for the `Set.add`. `createEntity`, `getEntityByKey` and
+  steady-state `setProperty` are unchanged.
+- `entityState` is no longer an **own** property of the aspect: `{ ...entityAspect }` and
+  `Object.keys` see `_entityState` instead. Breeze's own export builds that JSON explicitly, so
+  the wire format is unchanged, but it is a visible difference and UPGRADE.md says so.
+
+`attachEntity` had to start assigning `aspect.entityGroup` *before* `aspect.entityState` — the
+setter needs to know which group to file the entity under.
+
+### `getEntityGraph` filtered the child type once per parent
+
+`makePathSegmentFn`'s collection branch found a parent's children by filtering every entity of
+the navigated type, so p parents and c children cost p*c property reads. The children are indexed
+into a `Map` keyed by the foreign key, built on first use of that path segment. Also in the same
+function: `graph.indexOf(entity)` as a membership test (now a `Set` kept beside the array, which
+is still an array because its order is the result), and `related = related.concat(...)` per
+parent (now a push into one array).
+
+`makePathSegmentFn` also reaches straight into `EntityGroup._indexMap`, which is why converting
+that to a `Map` broke it until the lookup was given `String(keyValue)` — a foreign key value is
+usually a number.
+
+### `EntityGroup._indexMap` is a Map for correctness, not speed
+
+Measured at 50,000 keys, the object literal was *slightly faster* on hits. The reason to convert
+it is that an object literal inherits `Object.prototype`:
+
+```ts
+em.createEntity('Customer', { customerID: '__proto__' });   // attached
+em.getEntityByKey('Customer', '__proto__');                 // null, before this change
+```
+
+`_indexMap['__proto__'] = ix` runs the inherited setter and stores nothing, so the entity was in
+the cache but unreachable, and detaching it threw *internal error - entity cannot be found in
+group*.
+
+The keys are strings — `EntityKey.createKeyString` joins the key values — which the object
+coerced on the way in and out. A `Map` does not, so `_fixupKey` now converts the `tempValue` and
+`realValue` a save returns. Without that, **every save of a new entity throws**; `key-fixup.spec.ts`
+pins it, and reverting either `String(...)` fails that test.
+
+### Measured and left alone
+
+- **`EntityType.getProperty(name)`** is a linear scan over an array `getProperties()` freshly
+  concatenates: 193 ns, against 57 ns for `getDataProperty`. A name index would fix it, but
+  nothing per-entity calls it — the query merge path iterates `dataProperties` directly, and the
+  save path calls it once per *changed* property. No evidence it is hot.
+- **Re-parenting** is still O(collection) per child, as docs/guide/performance.md says. A `Set`
+  would find the child without a scan, but the `splice` that follows still shifts the array, so
+  it halves a quadratic at best.
+- The `indexOf` calls in `relation-array`, `default-property-interceptor` and `entity-aspect`
+  are over recursion stacks, key properties or navigation properties — bounded by the metadata,
+  not by the cache.
+
+### Guarded by
+
+`test/unit/cache-lookups.spec.ts`, `test/unit/key-fixup.spec.ts`, and a case in
+`get-entity-graph.spec.ts`. They **count the work done** rather than time it — a timing assertion
+in CI is a flake waiting to happen, the same rule `relation-array-clear.spec.ts` follows:
+
+- a `Proxy` over `EntityGroup._entities` counts slot reads, which catches a walk of the cache and
+  ignores an indexed lookup. Counting `entityState` reads instead would have missed the detach
+  case entirely — detaching leaves a `null` in the slot, so the walk skips the entity without
+  ever reading its state, and is quadratic anyway.
+- an own `getProperty` on each child entity counts the graph's reads: 4,920 against a budget of
+  480 when the old filter is put back.
 
 ## The request path is promise-based
 

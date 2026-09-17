@@ -474,6 +474,17 @@ Small pre-existing defects corrected in v3:
   `saveChanges` again.
 - **`removeValidationError(validator)` removed nothing.** It now removes every error that
   validator produced on the entity.
+- **An entity whose key was the string `__proto__` could not be found again.** The cache's
+  key index was a plain object, so writing that one key ran `Object.prototype`'s inherited
+  setter and stored nothing: the entity was attached, `getEntityByKey` returned `null`, a
+  re-query added a second copy, and detaching it threw *internal error - entity cannot be
+  found in group*. The index is a `Map` now.
+- **Working with many changed entities at once is no longer quadratic.** `acceptChanges`,
+  `rejectChanges` and `detachEntity` each asked the manager to work out afresh whether
+  anything was still dirty, which meant walking the whole cache — once per entity. Over
+  40,000 entities `acceptChanges` took 8.5 seconds; it takes 33 ms. `getEntityGraph` with a
+  two-level expand was the same shape: 5.1 seconds over 8,000 orders and their 24,000
+  details, now 10 ms. See [Performance](/guide/performance).
 - **`BreezeEvent.isEnabled` ignored its object argument**, and
   **`EntityState.isDeletedOrDetached()` returned false for `Deleted`.**
 - **Local projections named nested paths differently from the server.** Only the first

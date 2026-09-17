@@ -9,18 +9,32 @@ import { MergeStrategy } from '../query/query-options.js';
 export class EntityGroup {
   entityManager: EntityManager;
   entityType: EntityType;
-  _indexMap: { [index: string]: number };
+  /**
+   * Key string -> index into `_entities`. A `Map` and not an object literal: an object inherits
+   * `Object.prototype`, so an entity whose string key happened to be `__proto__` was attached but
+   * could never be found again - the assignment ran the inherited setter and stored nothing.
+   * Keys here are always strings (`EntityKey.createKeyString` joins the values), which an object
+   * did for us by coercion and a `Map` does not - see `_fixupKey`.
+   */
+  _indexMap: Map<string, number>;
   _entities: (Entity | null)[];
   _emptyIndexes: number[];
+  /**
+   * The entities in this group whose state is not Unchanged, maintained by `EntityAspect`'s
+   * `entityState` setter. `hasChanges` is then a size check rather than a scan of the group,
+   * which is what made detaching, accepting or rejecting n changed entities quadratic.
+   */
+  _changedEntities: Set<Entity>;
 
   constructor(entityManager: EntityManager, entityType: EntityType) {
     this.entityManager = entityManager;
     this.entityType = entityType;
     // freeze the entityType after the first instance of this type is either created or queried.
     this.entityType.isFrozen = true;
-    this._indexMap = {};
+    this._indexMap = new Map();
     this._entities = [];
     this._emptyIndexes = [];
+    this._changedEntities = new Set();
   }
 
 
@@ -34,8 +48,8 @@ export class EntityGroup {
     delete aspect._initialized;
 
     let keyInGroup = aspect.getKey()._keyInGroup;
-    let ix = this._indexMap[keyInGroup];
-    if (ix >= 0) {
+    let ix = this._indexMap.get(keyInGroup);
+    if (ix !== undefined) {
       // safecast because key was found not ix will not return a null
       let targetEntity = this._entities[ix] as Entity;
       let targetEntityState = targetEntity.entityAspect.entityState;
@@ -59,10 +73,12 @@ export class EntityGroup {
         ix = this._emptyIndexes.pop()!;
         this._entities[ix] = entity;
       }
-      this._indexMap[keyInGroup] = ix;
-      aspect.entityState = entityState;
+      this._indexMap.set(keyInGroup, ix);
+      // The group has to be in place before the state is: the `entityState` setter is what puts
+      // this entity into `_changedEntities`, and it needs to know which group to put it in.
       aspect.entityGroup = this;
       aspect.entityManager = this.entityManager;
+      aspect.entityState = entityState;
       return entity;
     }
   }
@@ -72,12 +88,13 @@ export class EntityGroup {
     // belongs to this group.
     let aspect = entity.entityAspect;
     let keyInGroup = aspect.getKey()._keyInGroup;
-    let ix = this._indexMap[keyInGroup];
+    let ix = this._indexMap.get(keyInGroup);
     if (ix === undefined) {
       // shouldn't happen.
       throw new Error("internal error - entity cannot be found in group");
     }
-    delete this._indexMap[keyInGroup];
+    this._indexMap.delete(keyInGroup);
+    this._changedEntities.delete(entity);
     this._emptyIndexes.push(ix);
     this._entities[ix] = null;
     return entity;
@@ -92,7 +109,7 @@ export class EntityGroup {
     } else {
       keyInGroup = EntityKey.createKeyString(entityKey);
     }
-    let ix = this._indexMap[keyInGroup];
+    let ix = this._indexMap.get(keyInGroup);
     // can't use just (ix) below because 0 is valid
     let r = (ix !== undefined) ? this._entities[ix] : undefined;
     // coerce null to undefined
@@ -100,18 +117,13 @@ export class EntityGroup {
   }
 
   hasChanges() {
-    let entities = this._entities;
-    let unchanged = EntityState.Unchanged;
-    for (let i = 0, len = entities.length; i < len; i++) {
-      let e = entities[i];
-      if (e && e.entityAspect.entityState !== unchanged) {
-        return true;
-      }
-    }
-    return false;
+    return this._changedEntities.size > 0;
   }
 
   getChanges() {
+    // Deliberately still a scan of `_entities` rather than a copy of `_changedEntities`: this is
+    // what fixes the order changed entities are saved in, and `_entities` order is attach order
+    // where a Set's is the order each entity first became dirty.
     let entities = this._entities;
     let unchanged = EntityState.Unchanged;
     let changes: Entity[] = [];
@@ -150,6 +162,7 @@ export class EntityGroup {
     (this as any)._entities = null;
     (this as any)._indexMap = null;
     (this as any)._emptyIndexes = null;
+    (this as any)._changedEntities = null;
   }
 
   _updateFkVal(fkProp: DataProperty, oldValue: any, newValue: any) {
@@ -164,8 +177,11 @@ export class EntityGroup {
   }
 
   _fixupKey(tempValue: any, realValue: any) {
-    // single part keys appear directly in map
-    let ix = this._indexMap[tempValue];
+    // Single part keys appear directly in the map. Both values arrive from the server's
+    // keyMappings and are usually numbers, where the map is keyed by string - the object literal
+    // this used to be coerced them on the way in and a `Map` does not.
+    let tempKey = String(tempValue);
+    let ix = this._indexMap.get(tempKey);
     if (ix === undefined) {
       throw new Error("Internal Error in key fixup - unable to locate entity");
     }
@@ -174,14 +190,14 @@ export class EntityGroup {
     // fks on related entities will automatically get updated by this as well
     entity.setProperty(keyPropName, realValue);
     delete entity.entityAspect.hasTempKey;
-    delete this._indexMap[tempValue];
-    this._indexMap[realValue] = ix;
+    this._indexMap.delete(tempKey);
+    this._indexMap.set(String(realValue), ix);
   }
 
   _replaceKey(oldKey: EntityKey, newKey: EntityKey) {
-    let ix = this._indexMap[oldKey._keyInGroup];
-    delete this._indexMap[oldKey._keyInGroup];
-    this._indexMap[newKey._keyInGroup] = ix;
+    let ix = this._indexMap.get(oldKey._keyInGroup)!;
+    this._indexMap.delete(oldKey._keyInGroup);
+    this._indexMap.set(newKey._keyInGroup, ix);
   }
 
 }

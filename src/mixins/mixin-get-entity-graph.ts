@@ -25,7 +25,7 @@ import { Entity, EntityManager, EntityQuery, EntityState, EntityType, ExpandClau
 
 interface EntityGroup {
   _entities: (Entity | null)[];
-  _indexMap: { [index: string]: number };
+  _indexMap: Map<string, number>;
 }
 
 // module augmentation failed to build with ng-packagr, so we have a separate interface
@@ -80,6 +80,11 @@ function getEntityGraph(roots: Entity | Array<Entity> | EntityQuery, expand: str
 function getEntityGraphCore(root: Entity | Array<Entity>, expand?: string | Array<string> | ExpandClause) {
   let entityGroupMap: Map<string, EntityGroup>;
   let graph = [] as Array<Entity>;
+  // Membership of `graph`, kept beside it. The graph stays an array because that is what is
+  // returned and its order is part of the result; the Set is only how "is it already in there"
+  // is answered, which `indexOf` made cost the size of the graph so far - quadratic over an
+  // expand that pulls in thousands of entities.
+  let inGraph = new Set<Entity>();
   let rootType: EntityType;
   let roots = Array.isArray(root) ? root : [root];
   addToGraph(roots);     // removes dups & nulls
@@ -93,7 +98,8 @@ function getEntityGraphCore(root: Entity | Array<Entity>, expand?: string | Arra
 
   function addToGraph(entities: Array<Entity>) {
     entities.forEach(function (entity) {
-      if (entity && graph.indexOf(entity) < 0) {
+      if (entity && !inGraph.has(entity)) {
+        inGraph.add(entity);
         graph.push(entity);
       }
     });
@@ -214,18 +220,26 @@ function getEntityGraphCore(root: Entity | Array<Entity>, expand?: string | Arra
         // fn to get related entities for this path segment
         let fn = fns[j];
         // get entities related by this path segment
+        // `related = related.concat(...)` per source entity copied the whole array each time,
+        // which is quadratic in its own right; push into the one array instead.
         let related = [] as Array<Entity>;
         for (let k = 0; k < elen; k++) {
-          related = related.concat(fn(entities[k]));
+          let next = fn(entities[k]);
+          if (Array.isArray(next)) {
+            for (let m = 0, nlen = next.length; m < nlen; m++) related.push(next[m]);
+          } else if (next) {
+            related.push(next);
+          }
         }
         addToGraph(related);
         if (j >= flen - 1) { return; } // no more path segments
 
-        // reset entities to deduped related entities
+        // reset entities to deduped related entities - by Set, for the same reason as addToGraph
         entities = [];
+        let seen = new Set<Entity>();
         for (let l = 0, rlen = related.length; l < rlen; l++) {
           let r = related[l];
-          if (entities.indexOf(r) < 0) { entities.push(r); }
+          if (!seen.has(r)) { seen.add(r); entities.push(r); }
         }
       }
     };
@@ -260,9 +274,11 @@ function getEntityGraphCore(root: Entity | Array<Entity>, expand?: string | Arra
         fn = function (entity: Entity) {
           let val = null;
           try {
-            let keyValue = entity.getProperty(fkName);
+            // `_indexMap` is keyed by the key *string*; a foreign key value is often a number.
+            let keyValue = String(entity.getProperty(fkName));
             for (let i = 0; i < grpCount; i += 1) {
-              val = grps[i]._entities[grps[i]._indexMap[keyValue]];
+              let ix = grps[i]._indexMap.get(keyValue);
+              val = ix === undefined ? null : grps[i]._entities[ix];
               if (val) { break; }
             }
           } catch (e) { rethrow(e); }
@@ -273,17 +289,32 @@ function getEntityGraphCore(root: Entity | Array<Entity>, expand?: string | Arra
           nav.inverse.foreignKeyNames[0] :
           nav.invForeignKeyNames[0];
         if (!fkName) { throw new Error("No inverse keys"); }
+        // The children of one parent, indexed by the foreign key that points at it. This used to
+        // filter every entity of the navigated type for every parent entity, so an expand over n
+        // parents and m children cost n*m: `getEntityGraph(customer, 'orders.orderDetails')` on
+        // 8,000 orders and 24,000 details took about 5 s, nearly all of it here.
+        //
+        // Built on first use, so a path segment with no parents to walk still costs nothing, and
+        // in the same order the filter produced: group by group, and index order within a group.
+        // The lookup is by the raw property value, which is what the `===` comparison used.
+        let byFk: Map<any, Array<Entity>> | undefined;
         fn = function (entity: Entity) {
-          let vals = [] as Array<Entity>;
           try {
+            if (byFk === undefined) {
+              byFk = new Map();
+              grps.forEach(function (grp) {
+                grp._entities.forEach(function (en) {
+                  if (!en) return;
+                  let fkValue = en.getProperty(fkName);
+                  let siblings = byFk!.get(fkValue);
+                  if (siblings) { siblings.push(en); } else { byFk!.set(fkValue, [en]); }
+                });
+              });
+            }
             let keyValue = entity.entityAspect.getKey().values[0];
-            grps.forEach(function (grp) {
-              vals = vals.concat(grp._entities.filter(function (en): en is Entity {
-                return !!en && en.getProperty(fkName) === keyValue;
-              }));
-            });
+            return byFk.get(keyValue) ?? ([] as Array<Entity>);
           } catch (e) { rethrow(e); }
-          return vals;
+          return [] as Array<Entity>;
         };
       }
       (fn as any).navType = navType;
