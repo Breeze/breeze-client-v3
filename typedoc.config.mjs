@@ -7,7 +7,10 @@
  */
 /** @type {Partial<import('typedoc').TypeDocOptions>} */
 export default {
-  entryPoints: ['src/breeze.ts'],
+  // Not src/breeze.ts: scripts/docs-entry.ts re-exports it plus the optional mixins, which
+  // an application imports from their own subpaths. Its header says why one entry point and
+  // not three.
+  entryPoints: ['scripts/docs-entry.ts'],
   plugin: ['typedoc-plugin-markdown', 'typedoc-vitepress-theme', './scripts/typedoc-categories.mjs'],
   out: 'docs/api',
   // Sidebar links are computed relative to this. Without it they come out as
@@ -23,6 +26,8 @@ export default {
     // operator types are built from.
     'ElementOf', 'RawPropertyPath', 'RawCollectionPath', 'RawNavigationPath',
     'RawPropertyValue', 'WhereKey', 'EqualityOps', 'ComparisonOps', 'StringOps', 'InOp',
+    // The save-queuing mixin's internal bookkeeping, named by QueuedSaveFailedError.failedSaveMemo.
+    'SaveMemo',
   ],
   excludeInternal: true,
   readme: 'none',
@@ -43,6 +48,7 @@ export default {
     'Typed query paths',
     'Constructor config objects',
     'Adapters and extension points',
+    'Optional mixins',
     '2.x compatibility',
     '*',   // anything the plugin warned about, so a new export is visible rather than lost
   ],

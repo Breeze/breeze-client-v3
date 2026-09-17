@@ -57,6 +57,27 @@ export interface HasEntityGraph extends EntityManager {
 
 }
 
+/**
+ * Adds `getEntityGraph` to `EntityManager.prototype`.
+ *
+ * Importing this module calls it, so an application only needs the import:
+ *
+ * ```ts
+ * import 'breeze-client/mixin-get-entity-graph';
+ * import type { HasEntityGraph } from 'breeze-client/mixin-get-entity-graph';
+ *
+ * const graph = (em as HasEntityGraph).getEntityGraph(customer, 'orders.orderDetails');
+ * ```
+ *
+ * Calling it yourself is for a bundler aggressive enough to drop a module imported only for its
+ * effect. This is the one module in the package that `sideEffects` in package.json names for
+ * that reason.
+ *
+ * @param emclass - Accepted for backwards compatibility and not used: the method always goes on
+ *   `EntityManager.prototype`. Adding it twice is a no-op.
+ *
+ * @see {@link HasEntityGraph} for the method it adds.
+ */
 export function mixinEntityGraph(emclass: { new(): EntityManager }) {
   const proto = EntityManager.prototype;
 

@@ -154,8 +154,9 @@ em.getEntityByKey('Customer', 'ALFKI');   // ~150 ns, whatever the cache holds
 
 ## Related entities in bulk
 
-`getEntityGraph`, from the `breeze-client/mixin-get-entity-graph` subpath, indexes the children by
-their foreign key once per expand segment, so a deep expand is linear in the entities it returns:
+[`getEntityGraph`](/api/interfaces/HasEntityGraph), from the `breeze-client/mixin-get-entity-graph`
+[subpath](/guide/configuration#what-you-can-import), indexes the children by their foreign key
+once per expand segment, so a deep expand is linear in the entities it returns:
 
 ```ts
 import 'breeze-client/mixin-get-entity-graph';

@@ -1600,8 +1600,10 @@ export class EntityManager {
     this.entityChanged.publish(ecArgs);
   }
 
-  /** @hidden @internal */
-  /** `null` means recompute it from the cache, which is the expensive case. */
+  /**
+   * `null` means recompute it from the cache, which is the expensive case.
+   * @hidden @internal
+   */
   _setHasChanges(hasChanges?: boolean | null) {
     if (hasChanges == null) hasChanges = this._hasChangesCore();
     let hadChanges = this._hasChanges;

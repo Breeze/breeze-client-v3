@@ -48,8 +48,10 @@ export interface Subscription {
 Class to support basic event publication and subscription semantics.
 **/
 export class BreezeEvent<T> {
-  /** @hidden @internal */
-  /** Names of every event constructed so far. A Set: it is membership, not mapping. */
+  /**
+   * Names of every event constructed so far. A Set: it is membership, not mapping.
+   * @hidden @internal
+   */
   static __eventNameMap = new Set<string>();
   /** @hidden @internal */
   static __nextUnsubKey = 1;

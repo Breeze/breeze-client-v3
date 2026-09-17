@@ -63,6 +63,42 @@
 import { Entity, EntityManager, KeyMapping, EntityState, SaveResult, BreezeEvent } from '../breeze.js';
 
 
+/**
+ * Turns save queuing on or off for one {@link EntityManager}.
+ *
+ * With it on, a `saveChanges` call made while another save is still in flight is held back
+ * rather than rejected, and sent as a single follow-up save when the first one returns. Each
+ * promise resolves with the result of the save that carried its changes.
+ *
+ * It also keeps edits made *during* a save. Without queuing those are overwritten by the
+ * server's values when the save result merges back, leaving the entity `Unchanged` and
+ * `hasChanges()` false - so nothing tells the application that a change was lost. A foreign key
+ * set during a save is carried over too: if the parent's row is still being inserted, the queued
+ * save substitutes the key the server assigned for the temporary one.
+ *
+ * Intended for short-latency auto-save. It is not an offline story, it reuses the first save's
+ * {@link SaveOptions}, and it does not cope with `rejectChanges`, export/import or primary-key
+ * changes while a save is in flight. Disabling user input for the duration of a save is usually
+ * the better answer; this is for applications that cannot.
+ *
+ * @param em - The manager to wrap. Its `saveChanges` is replaced, and restored when disabled.
+ * @param enable - `false` puts the manager's own `saveChanges` back. Calling this more than
+ *   once on the same manager, in either direction, is harmless.
+ *
+ * @example
+ * ```ts
+ * import { enableSaveQueuing } from 'breeze-client/mixin-save-queuing';
+ *
+ * enableSaveQueuing(em, true);
+ *
+ * const first = em.saveChanges();   // sent now
+ * order.shipName = 'changed';       // typed while that save is out
+ * const second = em.saveChanges();  // queued, and sent when the first returns
+ * ```
+ *
+ * @see {@link QueuedSaveFailedError}, which every pending promise rejects with if a queued
+ *   save fails.
+ */
 export function enableSaveQueuing(em: EntityManager, enable: boolean = true) {
   const emx = em as unknown as Record<string, any>;
   let saveQueuing = emx['_saveQueuing'] ||
@@ -258,20 +294,36 @@ class Deferred<T> {
 }
 
 
-////////// QueuedSaveFailedError /////////
-// Error sub-class thrown when rejecting queued saves.
+/**
+ * What every pending promise rejects with when a queued save fails.
+ *
+ * One failure rejects the whole queue, because the saves behind it were built on the assumption
+ * that the one in front succeeded. Read {@link QueuedSaveFailedError.innerError} for what
+ * actually went wrong; the two memos are there for an application that wants to attempt a
+ * recovery, and are the mixin's internal bookkeeping rather than a documented shape.
+ *
+ * @example
+ * ```ts
+ * try {
+ *   await em.saveChanges();
+ * } catch (e) {
+ *   if (e instanceof QueuedSaveFailedError) {
+ *     console.error(e.innerError);
+ *   }
+ * }
+ * ```
+ */
 export class QueuedSaveFailedError extends Error {
   name = "QueuedSaveFailedError";
+  /** The error the underlying save actually failed with. */
   innerError: Error;
+  /** `"Queued save failed: "` followed by {@link QueuedSaveFailedError.innerError}'s message. */
   message: string;
+  /** The changes that were in the save that failed. */
   failedSaveMemo: SaveMemo;
+  /** The changes queued up behind it, which were never sent. */
   nextSaveMemo: SaveMemo;
 
-  // Error sub-class thrown when rejecting queued saves.
-  // `innerError` is the actual save error
-  // `failedSaveMemo` is the saveMemo that prompted this save
-  // `nextSaveMemo` holds queued changes accumulated since that save.
-  // You may try to recover using this info. Good luck with that.
   constructor(errObject: Error, saveQueuing: any) {
     super();
     this.innerError = errObject;

@@ -326,7 +326,8 @@ const p2 = em.saveChanges();   // queued; sent when p1's save returns
 ```
 
 Each promise resolves with the result of the save that included its changes. If a queued
-save fails, every pending promise rejects with a `QueuedSaveFailedError`. Its
+save fails, every pending promise rejects with a
+[`QueuedSaveFailedError`](/api/classes/QueuedSaveFailedError). Its
 `innerError` is the underlying error.
 
 Limitations:
@@ -339,7 +340,8 @@ Limitations:
   flight.
 
 Turn it off again with `enableSaveQueuing(em, false)`. Calling it more than once on the
-same manager is harmless.
+same manager is harmless. Reference:
+[`enableSaveQueuing`](/api/functions/enableSaveQueuing).
 
 ::: tip Fixed in 3.0
 In 2.x a second call to `enableSaveQueuing` on the same manager, including turning it off,

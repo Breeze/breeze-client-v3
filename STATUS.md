@@ -592,6 +592,45 @@ Still open:
 - A query rebuilt by `EntityQuery.fromJSON` without `usePost` has `usePostEnabled`
   `undefined` rather than `false`.
 
+## The mixins are in the API reference now (done)
+
+Asked where save queuing is documented. One section of docs/guide/saving-changes.md, and
+nothing else - **neither mixin was in the reference at all**, because `entryPoints` was
+`src/breeze.ts` and that does not re-export them. So `enableSaveQueuing`, `QueuedSaveFailedError`,
+`mixinEntityGraph` and `HasEntityGraph` had no page, and the guide told people to catch an error
+class the reference had never heard of.
+
+Adding the two mixins to `entryPoints` is the obvious fix and is wrong. TypeDoc gives each entry
+point a module of its own, so every page moves from `/api/classes/EntityManager` to
+`/api/breeze/classes/EntityManager` - 54 links in the guides - and
+`scripts/typedoc-categories.mjs` only categorises reflections whose parent is the *project*,
+which under modules is none of them, so the reference loses its taxonomy entirely. Both were
+confirmed by running it.
+
+Instead `scripts/docs-entry.ts` re-exports `src/breeze.ts` plus the two mixins, and is the single
+entry point. Flat structure kept, every existing URL unchanged, four pages added and nothing else
+in the generated set moved. It lives outside `src/` and `tsconfig.build.json` now sets its own
+`include`, so it is typechecked but never compiled into `dist/` - verified against the packed
+tarball.
+
+- New category **Optional mixins**, second from the bottom. The plugin's drift check named all
+  four the moment they appeared, which is the check doing its job.
+- `SaveMemo` joins `intentionallyNotExported`: `QueuedSaveFailedError.failedSaveMemo` names it.
+- The four symbols had `//` comments, which TypeDoc does not read, so the pages were signatures
+  with no prose. They have real doc comments now.
+- docs/guide/configuration.md gained **What you can import**, a table of all eight entry points.
+  Nothing listed them; four pages each mentioned one in passing, which is why an earlier link to
+  `mixin-get-entity-graph` had nowhere to point.
+
+### Two stacked doc comments were silently dropping @internal
+
+`EntityManager._setHasChanges` and `BreezeEvent.__eventNameMap` each had `/** @hidden @internal */`
+followed by a *second* doc comment. Only the last one attaches, so the tags were being discarded.
+`stripInternal` kept both out of the `.d.ts` anyway, and the class pages excluded them - but
+`HasEntityGraph extends EntityManager` reaches inherited members by another path, and
+`_setHasChanges` appeared there, linking to an anchor on the EntityManager page that does not
+exist. The anchor guard from `61b7bd3` is what caught it. Both are single comments now.
+
 ## Save queuing: the SaveMemo now has tests, and one bug fewer (done)
 
 Asked whether the mixin earns its place. It does, but not for the reason it is usually

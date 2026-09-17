@@ -16,6 +16,9 @@
     "forceConsistentCasingInFileNames": true,
     "outDir": "dist"
   },
-  "include": ["src/**/*.ts"],
+  // scripts/docs-entry.ts is the TypeDoc entry point (see its header). It is here so that it
+  // is typechecked and so that TypeDoc, which reads this file, can resolve it; tsconfig.build.json
+  // narrows include back to src/ so it is not compiled into dist/.
+  "include": ["src/**/*.ts", "scripts/docs-entry.ts"],
   "exclude": ["node_modules", "dist", "deferred", "test"]
 }

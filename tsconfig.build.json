@@ -6,5 +6,8 @@
     // themselves; declaration maps would point "go to definition" at missing files.
     "inlineSources": true,
     "declarationMap": false
-  }
+  },
+  // Narrower than tsconfig.json, which also pulls in scripts/docs-entry.ts for TypeDoc.
+  // Only src/ is published.
+  "include": ["src/**/*.ts"]
 }

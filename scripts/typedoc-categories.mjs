@@ -82,6 +82,12 @@ export const CATEGORIES = {
     'ChangeRequestInterceptor', 'ChangeRequestInterceptorCtor',
     'JsonResultsAdapter', 'NodeContext', 'NodeMeta', 'KeyGenerator',
   ],
+  // Add-ons an application opts into from their own subpaths - see scripts/docs-entry.ts for
+  // why they reach TypeDoc through a re-export rather than as entry points of their own.
+  'Optional mixins': [
+    'enableSaveQueuing', 'QueuedSaveFailedError',
+    'mixinEntityGraph', 'HasEntityGraph',
+  ],
   '2.x compatibility': [
     'breeze', 'core', 'promises',
     'Callback', 'ErrorCallback', 'QuerySuccessCallback', 'QueryErrorCallback',

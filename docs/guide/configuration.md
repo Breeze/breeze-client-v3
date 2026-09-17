@@ -12,6 +12,26 @@ Every setting has a default, listed below. Change the ones you need at startup, 
 create any `MetadataStore` or `EntityManager`: stores and managers take the defaults in
 force when they are created.
 
+## What you can import
+
+`breeze-client` holds everything a normal application needs. The rest are separate entry
+points so that a bundler leaves out what you do not import:
+
+| Import from | What it is |
+|---|---|
+| `breeze-client` | `EntityManager`, `EntityQuery`, `MetadataStore`, `Predicate`, `Validator`, `configureBreeze` — the library |
+| `breeze-client/mixin-save-queuing` | [`enableSaveQueuing`](/api/functions/enableSaveQueuing) — queue a save made while another is in flight, and keep edits made during it. See [Save queuing](/guide/saving-changes#save-queuing) |
+| `breeze-client/mixin-get-entity-graph` | [`mixinEntityGraph`](/api/functions/mixinEntityGraph), [`HasEntityGraph`](/api/interfaces/HasEntityGraph) — adds `em.getEntityGraph(roots, expand)`. See [Performance](/guide/performance#related-entities-in-bulk) |
+| `breeze-client/adapter-model-library-backing-store` | The default model library adapter |
+| `breeze-client/adapter-data-service-webapi` | The default data service adapter |
+| `breeze-client/adapter-uri-builder-json` | The default URI builder |
+| `breeze-client/adapter-ajax-fetch` | The deprecated ajax adapter — see [Supplying your own transport](/server/transport) |
+| `breeze-client/adapter-ajax-post` | Sends queries as `POST`, for queries too long for a URL |
+
+The four adapter subpaths are the defaults, so you only import one to subclass it or to
+[register it explicitly](#the-older-api-still-works). The two mixins are opt-in: nothing
+pulls them in unless you import them.
+
 ## Defaults
 
 ### Adapters and transport

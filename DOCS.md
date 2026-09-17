@@ -108,10 +108,13 @@ VitePress specifics:
 - **Never write `{{` outside a fenced code block.** VitePress pages are Vue templates, so
   `{{ ... }}` in prose — or in inline code — is treated as an expression, and the build
   breaks. Inside fenced code blocks it is fine.
-- **Dead links fail the build** (`ignoreDeadLinks: false`), including links to anchors that
-  do not exist. That is on purpose.
-- Callouts use `::: tip`, `::: warning` and `::: danger` blocks; the guides use
-  `::: tip Changed in 3.0` for things a 2.x user would trip over.
+- **A link to a page that does not exist fails the build** (`ignoreDeadLinks: false`). A link
+  to an `#anchor` that does not exist does **not** — VitePress does not check those, which is
+  what `npm run docs:check-anchors` is for. It runs as the last step of `docs:build`.
+- Callouts use `::: tip`, `::: warning` and `::: danger` blocks. Anything a 2.x user would trip
+  over belongs in [Migrating from 2.x](docs/guide/migrating-from-2x.md) and UPGRADE.md, not in a
+  callout on the page: the `::: tip Changed in 3.0` blocks that used to be scattered through the
+  guides were consolidated there.
 
 ---
 
@@ -119,13 +122,26 @@ VitePress specifics:
 
 `npm run docs:build` must exit cleanly. It fails on:
 
-- a dead link in any page, or
+- a link to a page that does not exist,
+- a link to an `#anchor` that does not exist (`scripts/check-doc-anchors.mjs`, which checks
+  every link against the ids the built HTML actually emitted), or
 - a `{{` that Vue could not compile.
 
 TypeDoc should also report **0 warnings**. It prints them during `docs:api`, `docs:dev`
-and `docs:build`; the usual causes are a stale `@param` name, an unknown tag, or a public
+and `docs:build`; the usual causes are a stale `@param` name, an unknown tag, a public
 signature that mentions a type which is neither exported nor listed in
-`intentionallyNotExported`.
+`intentionallyNotExported`, or a newly exported symbol that
+`scripts/typedoc-categories.mjs` has no category for.
+
+TypeDoc reads **one** entry point, `scripts/docs-entry.ts`, which re-exports `src/breeze.ts`
+plus the two optional mixins. Its header says why that rather than three entry points; the
+short version is that several entry points would move every page under `/api/breeze/` and
+would stop the category plugin working. A new public symbol appears in the reference by
+itself, and the plugin warns until it has been placed in a category.
+
+Note that TypeDoc reads only the **last** doc comment before a declaration. Two stacked
+`/** ... */` blocks mean the first one's tags — `@hidden @internal` included — are silently
+discarded.
 
 ---
 
