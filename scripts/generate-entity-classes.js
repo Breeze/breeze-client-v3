@@ -43,6 +43,31 @@
 //
 // Every generated file carries the generator version in its header, so a later version can tell
 // what produced what. See test/model/README.md.
+//
+// --- why this is JavaScript, in a TypeScript repository ---------------------------------------
+//
+// So that it runs unbuilt, from wherever it happens to be. Two copies exist and both have to
+// work the moment they are invoked: scripts/generate-entity-classes.js in this repo, and
+// node_modules/breeze-client/generate-entity-classes.js after an install, which prepare-dist.mjs
+// copies into dist/ and package.json declares as the `breeze-gen-entities` bin. Node runs this
+// file directly in both places. tsconfig.json is `include: ["src/**/*.ts"]`, so scripts/ is
+// outside the build graph entirely, and nothing about the tool can be stale against its source.
+//
+// It could be TypeScript - tsc already runs, and emitting it into dist/ next to breeze.js would
+// work. The cost is a coupling that points the wrong way: the generator would not run until the
+// library had been compiled, and its whole job is to run *before* an application has any model
+// code to compile. It would also put a build step between an edit to this file and testing it,
+// for a script whose only consumer is node.
+//
+// What that gives up is type checking, and the mitigation is test/unit/entity-generator.spec.ts,
+// which runs the real script against real metadata in a temp directory and asserts on the files
+// that come out - closer to what actually matters here than types on the string handling would be.
+//
+// The one place types would genuinely help is the Breeze metadata objects this reads through
+// loadBreeze (EntityType, DataProperty, NavigationProperty). Those are `any` today. If that
+// starts causing mistakes rather than just costing autocomplete, revisit it - a JSDoc
+// `@type {import('../src/breeze').EntityType}` buys most of it with no build step, and
+// `checkJs` would enforce it.
 
 import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync } from 'node:fs';
 import { join, dirname, resolve } from 'node:path';
