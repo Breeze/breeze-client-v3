@@ -1,7 +1,9 @@
 import { execFileSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { join, resolve } from 'node:path';
+import { tmpdir } from 'node:os';
 import type { TestProject } from 'vitest/node';
+import { acquireDbLock } from './support/db-lock';
 
 /**
  * Rebuilds the test database before the suite runs, and snapshots it.
@@ -77,8 +79,17 @@ let rebuilding: Promise<void> | undefined;
 
 export async function setup(project: TestProject): Promise<void> {
   project.provide('breezeTestServer', SERVER);
+  // Before anything touches the database - including a run that skips the rebuild, which still
+  // reverts it before every spec file. See test/support/db-lock.ts.
+  acquireDbLock(join(tmpdir(), `breeze-test-${DB}.lock`), DB, runDescription());
   rebuilding ??= rebuild();
   return rebuilding;
+}
+
+/** What to call this run in another run's lock message: the vitest command line, shortened. */
+function runDescription(): string {
+  const args = process.argv.slice(2).filter(a => !a.includes('node_modules'));
+  return ['vitest', ...args].join(' ');
 }
 
 async function rebuild(): Promise<void> {

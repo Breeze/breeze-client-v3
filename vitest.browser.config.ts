@@ -36,6 +36,8 @@ export default defineConfig({
       'test/unit/deprecation-core.spec.ts',
       // The retention tier asks V8 for a garbage collection through node:v8 and node:vm.
       'test/retention/**',
+      // The test-database lock: files and child processes, and the lock is taken in Node anyway.
+      'test/unit/db-lock.spec.ts',
     ],
     setupFiles: ['./test/setup.ts', './test/integration-setup.ts'],
     globalSetup: ['./test/global-setup.ts'],

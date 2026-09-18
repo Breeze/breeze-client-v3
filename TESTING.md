@@ -401,6 +401,19 @@ The server is not running, or not on 34377. Check
 `curl http://localhost:34377/breeze/NorthwindIBModel/Metadata`, or let the test script
 start it.
 
+**`No test files found`, then `[db-lock] another test run is using BreezeTestDb`**
+Another run of the integration or browser tier — or plain `npm test` — is using the database.
+Every such run rebuilds `BreezeTestDb` first and reverts it before each spec file, so two at once
+wreck each other in ways that look like real bugs: spec files failing in setup with most of their
+tests skipped, `[db-reset] inheritance seed returned 500`, foreign-key conflicts from rows the
+other run removed. So the second run refuses to start. Vitest's `No test files found` above it
+only means the setup stopped before collecting any.
+
+Wait for the other run to finish; the message names its pid and command. If there is no such run
+— one killed hard can leave the file behind, though a run normally takes over a lock whose process
+has gone — delete the file the message names. The unit and retention tiers do not use the database
+and take no lock.
+
 **`[db-reset] script not found`**
 `breeze-server-v3` is not a sibling of this repo. Set `BREEZE_TEST_DB_SCRIPT`, or pass
 `-ServerRepo` to the script.
