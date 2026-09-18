@@ -68,7 +68,7 @@ export class EntityQuery<T = any> {
   /**  The entityType that will be returned by this query. 
   This property will only be set if the 'toType' method was called. __Read Only__ */
   declare resultEntityType: EntityType | string;
-  /** Set by {@link EntityQuery.useNameOnServer}. Breeze 3 carries it along but does not read it. __Read Only__ */
+  /** Whether the query's property paths are the server's names, sent as written. Set by {@link EntityQuery.useNameOnServer}. __Read Only__ */
   declare usesNameOnServer?: boolean;
 
   /** Constructor
@@ -510,10 +510,11 @@ export class EntityQuery<T = any> {
   }
 
   /**
-  Returns a query with {@link EntityQuery.usesNameOnServer} set, meant to say that the query's
-  property names are the server's rather than the client's. Breeze 3, like 2.x, does not act on
-  it: property paths in a query are always client names, which Breeze translates with the
-  `MetadataStore`'s naming convention when it sends the query.
+  Returns a query whose property paths are the server's names rather than the client's, so Breeze
+  sends them as written instead of translating them with the `MetadataStore`'s naming convention.
+  >     EntityQuery.from('Customers').where('CompanyName', 'startsWith', 'A').useNameOnServer();
+  Only the query sent to the server is affected: run against the cache, a query works on the
+  client's objects and needs the client's names.
   @param usesNameOnServer - (default = true)
   */
   useNameOnServer(usesNameOnServer?: boolean) {
@@ -689,6 +690,8 @@ export class EntityQuery<T = any> {
   toJSONExt(context?: EntityQueryJsonContext) {
     context = context || {};
     context.entityType = context.entityType || this.fromEntityType;
+    // A query written in the server's names (useNameOnServer) is sent as it is.
+    if (this.usesNameOnServer) context.toNameOnServer = false;
     context.propertyPathFn = context.toNameOnServer ? context.entityType!.clientPropertyPathToServer.bind(context.entityType) : core.identity;
 
     let toJSONExtFn = function (v: any) {

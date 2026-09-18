@@ -1,4 +1,4 @@
-import { DataProperty, DataType } from '../../src/breeze';
+import { core, DataProperty, DataType } from '../../src/breeze';
 
 // No server needed.
 
@@ -111,6 +111,23 @@ describe("DataType.TimeOnly", () => {
 
 });
 
+describe("DataType.Time", () => {
+
+  const stock = DataType.parseTimeFromServer;
+  afterEach(() => { DataType.parseTimeFromServer = stock; });
+
+  test("is held as the duration string the server sends", () => {
+    expect(DataType.parseRawValue('PT4H30M', DataType.Time)).toBe('PT4H30M');
+  });
+
+  // DataType.Time captured the function when it was created, so replacing it did nothing.
+  test("parseTimeFromServer can be replaced, as parseDateFromServer can", () => {
+    DataType.parseTimeFromServer = (v: any) => core.durationToSeconds(v);
+    expect(DataType.parseRawValue('PT4H30M', DataType.Time)).toBe(16200);
+  });
+
+});
+
 // The rules in /guide/date-and-time, and the two hooks that answer the most-asked Breeze date
 // question: a DateTime column comes back a day earlier than it was saved.
 describe("parsing a date from the server", () => {
@@ -123,12 +140,23 @@ describe("parsing a date from the server", () => {
     expect(DataType.parseDateAsUTC('2024-03-15T12:30:00+02:00').toISOString()).toBe('2024-03-15T10:30:00.000Z');
   });
 
+  // An offset without its colon ends in a character and three digits, which is what the old check
+  // for fractional seconds looked for - so it got a Z appended and became an Invalid Date.
+  test("an offset written without a colon is still an offset", () => {
+    expect(DataType.parseDateAsUTC('2024-03-15T12:30:00+0200').toISOString()).toBe('2024-03-15T10:30:00.000Z');
+  });
+
   test("a string with no zone but fractional seconds is read as UTC", () => {
-    // .NET writes 3 or 7 fractional digits; both end in at least three digits, which is what
-    // Breeze looks for before appending the Z.
     expect(DataType.parseDateAsUTC('2024-03-15T10:30:00.000').toISOString()).toBe('2024-03-15T10:30:00.000Z');
     expect(DataType.parseDateAsUTC('2024-03-15T10:30:00.1234567').getTime())
       .toBe(Date.parse('2024-03-15T10:30:00.123Z'));
+  });
+
+  // Json.NET's default format is "...ss.FFFFFFFK": F drops trailing zeros, so 500 ms goes out as
+  // ".5". Breeze used to need three digits, and read these as local time.
+  test("fractional seconds of any length count, not only three or more", () => {
+    expect(DataType.parseDateAsUTC('2024-03-15T10:30:00.5').toISOString()).toBe('2024-03-15T10:30:00.500Z');
+    expect(DataType.parseDateAsUTC('2024-03-15T10:30:00.25').toISOString()).toBe('2024-03-15T10:30:00.250Z');
   });
 
   test("a string with no zone and no fractional seconds is read as LOCAL", () => {

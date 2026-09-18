@@ -155,12 +155,13 @@ export function isConcurrencyError(error: any): boolean {
 
 /** Shape of a save error when returned to the client. */
 export interface SaveError extends ServerError {
-  /** The errors the server reported on particular entities. Undefined when it named none. Breeze
-  also adds each one to its entity's validation errors.
+  /** The errors the server reported on particular entities. Undefined when it named none - after a
+  network failure or a server exception, say - which is how to tell a rejected save from those.
+  Breeze also adds each one to its entity's validation errors.
 
   When client-side validation stops a save before it is sent, the rejection is a plain `Error` with
   `entityErrors` built from the entities' validation errors, and no HTTP members. */
-  entityErrors: EntityError[];
+  entityErrors?: EntityError[];
 }
 
 // not subclasses of Error
@@ -183,7 +184,7 @@ export interface EntityErrorFromServer {
 export interface EntityError {
   /** The entity the error is about. `null` when the server named an entity that is not in this
   manager's cache. */
-  entity: Entity;
+  entity: Entity | null;
   /** What kind of error this is. From the server, the name it gave the error, such as
   `"ConcurrencyError"`; from client-side validation, the validator's name, or the error's key if it
   was added without a validator. */

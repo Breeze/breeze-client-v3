@@ -53,8 +53,7 @@ export interface MetadataStoreConfig {
   localQueryComparisonOptions?: LocalQueryComparisonOptions;
   /** Sets {@link MetadataStore.serializerFn}, the default serializer for every type in the store. */
   serializerFn?: (prop: EntityProperty, val: any) => any;
-  /** Sets {@link MetadataStore.name}. Accepted by {@link MetadataStore.setProperties} only: the
-  constructor rejects it as an unknown property. */
+  /** Sets {@link MetadataStore.name}. */
   name?: string;
 }
 
@@ -170,6 +169,7 @@ export class MetadataStore {
       .whereParam("namingConvention").isOptional().isInstanceOf(NamingConvention).withDefault(NamingConvention.defaultInstance)
       .whereParam("localQueryComparisonOptions").isOptional().isInstanceOf(LocalQueryComparisonOptions).withDefault(LocalQueryComparisonOptions.defaultInstance)
       .whereParam("serializerFn").isOptional().isFunction()
+      .whereParam("name").isOptional().isString()
       .applyAll(this);
     this.dataServices = []; // array of dataServices;
     this._resourceEntityTypeMap = {}; // key is resource name - value is qualified entityType name
@@ -203,12 +203,12 @@ export class MetadataStore {
   General purpose property set method
   
   >     // assume em1 is an EntityManager containing a number of existing entities.
-  >     em1.metadataStore.setProperties( {
-  >         version: "6.1.3",
-  >         serializerFn: function(prop, value) {
-  >         return (prop.isUnmapped) ? undefined : value;
+  >     em1.metadataStore.setProperties({
+  >         name: "Northwind v6.1.3",
+  >         serializerFn: function (prop, value) {
+  >             return (prop.isUnmapped) ? undefined : value;
   >         }
-  >     )};
+  >     });
   @param config -  An object containing the selected properties and values to set.
   */
   setProperties(config: MetadataStoreConfig) {
@@ -945,12 +945,14 @@ export interface EntityTypeConfig {
   /** The resource name used to query this type when no other is given; see
   {@link EntityType.defaultResourceName}. If omitted, a subtype takes its base type's. */
   defaultResourceName?: string;
-  /** The type's data properties: either an array of {@link DataProperty} instances, or an object whose keys
-  are property names and whose values are {@link DataPropertyConfig} objects. */
-  dataProperties?: DataProperty[] | Object[] | Object;  // TODO: see if we can't qualify Object[] a little better.
-  /** The type's navigation properties: either an array of {@link NavigationProperty} instances, or an object
-  whose keys are property names and whose values are {@link NavigationPropertyConfig} objects. */
-  navigationProperties?: NavigationProperty[] | Object[] | Object;
+  /** The type's data properties: an object whose keys are property names and whose values are
+  {@link DataPropertyConfig} objects, or an array of {@link DataProperty} instances or of
+  DataPropertyConfig objects that each include a `name`. */
+  dataProperties?: DataProperty[] | DataPropertyConfig[] | Object;
+  /** The type's navigation properties: an object whose keys are property names and whose values are
+  {@link NavigationPropertyConfig} objects, or an array of {@link NavigationProperty} instances or of
+  NavigationPropertyConfig objects that each include a `name`. */
+  navigationProperties?: NavigationProperty[] | NavigationPropertyConfig[] | Object;
   /** Sets {@link EntityType.serializerFn}. */
   serializerFn?: (prop: EntityProperty, val: any) => any;
   /** Sets {@link EntityType.custom}. */
@@ -1945,9 +1947,10 @@ export interface ComplexTypeConfig {
   shortName?: string;
   /** The namespace of the type. Defaults to `""`. The type's {@link ComplexType.name} is `shortName:#namespace`. */
   namespace?: string;
-  /** The type's data properties: either an array of {@link DataProperty} instances, or an object whose keys
-  are property names and whose values are {@link DataPropertyConfig} objects. */
-  dataProperties?: DataProperty[] | Object[] | Object;
+  /** The type's data properties: an object whose keys are property names and whose values are
+  {@link DataPropertyConfig} objects, or an array of {@link DataProperty} instances or of
+  DataPropertyConfig objects that each include a `name`. */
+  dataProperties?: DataProperty[] | DataPropertyConfig[] | Object;
   /** Set to `true` when passing this config to {@link MetadataStore.addEntityType}, which otherwise creates
   an EntityType. The ComplexType constructor does not need it. */
   isComplexType?: boolean;  // needed because this ctor can get called from the addEntityType method which needs the isComplexType prop
@@ -2722,7 +2725,7 @@ export class NavigationProperty {
       throwSetInverseError(this, "It has already been set on one side or the other.");
     }
     if (invNp.entityType !== this.parentType) {
-      throwSetInverseError(this, invNp.formatName + " is not a valid inverse property for this.");
+      throwSetInverseError(this, invNp.formatName() + " is not a valid inverse property for this.");
     }
     if (this.associationName) {
       invNp.associationName = this.associationName;
@@ -2928,13 +2931,17 @@ export function entityTypeForCtor(entityCtor: Function): EntityType {
 function addProperties(entityType: StructuralType, propObj: Object | undefined, ctor: any) {
   if (propObj == null) return;
   if (Array.isArray(propObj)) {
-    propObj.forEach(entityType._addPropertyCore.bind(entityType));
+    // Each item is a DataProperty/NavigationProperty, or the config to make one from. (Not
+    // forEach(_addPropertyCore): that passed each item's index as `shouldResolve`.)
+    for (const item of propObj) {
+      entityType._addPropertyCore(item instanceof ctor ? item : new ctor(item));
+    }
   } else if (typeof (propObj) === 'object') {
     for (let key in propObj) {
       if (hasOwnProp(propObj, key)) {
+        // A copy with the name added: the caller's config object is left as it was.
         let value = (propObj as Record<string, any>)[key];
-        value.name = key;
-        let prop = new ctor(value);
+        let prop = new ctor({ ...value, name: key });
         entityType._addPropertyCore(prop);
       }
     }

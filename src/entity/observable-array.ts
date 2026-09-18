@@ -26,9 +26,11 @@ export interface ArrayChangedArgs {
   array: any[];
   /** The items added. Undefined when the event reports removals: each change raises its own event,
   so a `splice` that both removes and adds raises one for the removals, then one for the additions.
-  While a query or import is loading, the additions to an array are collected into a single event. */
+  While a query or import is loading, the changes to an array are collected into a single event
+  that can carry both, as the net change: an item added and removed again during the load is in
+  neither list. */
   added?: any[];
-  /** The items removed. Undefined when the event reports additions. */
+  /** The items removed. Undefined when the event reports only additions. */
   removed?: any[];
 }
 
@@ -190,10 +192,15 @@ function publish(publisher: any, eventName: string, eventArgs: any): void {
   const pendingPubs = state.ops.getPendingPubs(publisher);
   if (pendingPubs) {
     if (!state.pendingArgs) {
-      state.pendingArgs = eventArgs;
+      state.pendingArgs = { array: eventArgs.array };
+      combineArgs(state.pendingArgs, eventArgs);
       pendingPubs.push(function () {
-        publisher[eventName].publish(state.pendingArgs);
+        const args = state.pendingArgs;
         state.pendingArgs = null;
+        // Changes that cancelled out leave empty lists, which are left off; none at all, no event.
+        if (!args.added?.length) delete args.added;
+        if (!args.removed?.length) delete args.removed;
+        if (args.added || args.removed) publisher[eventName].publish(args);
       });
     } else {
       combineArgs(state.pendingArgs, eventArgs);
@@ -262,19 +269,25 @@ function isClearing(arr: any): boolean {
   return !!(arr && arr._obs && (arr._obs as ObservableArrayState).isClearing);
 }
 
-function combineArgs(target: Object, source: Object): void {
-  const tgt = target as Record<string, any>, src = source as Record<string, any>;
-  for (const key of Object.keys(src)) {
-    if (key === "array" || !Object.prototype.hasOwnProperty.call(tgt, key)) continue;
-    const sourceValue = src[key];
-    const targetValue = tgt[key];
-    if (targetValue) {
-      if (!Array.isArray(targetValue)) {
-        throw new Error("Cannot combine non array args");
+/**
+ * Folds one change into the batched event, as a net change: an item added and then removed in the
+ * same batch - or removed and then added - drops out of both lists, so applying the event's
+ * removals and additions in either order gives the right result. `target` owns its lists; the
+ * source's are only read.
+ *
+ * It used to copy only keys the target already had, so a batch that started with an addition
+ * lost every later removal, and the reverse.
+ */
+function combineArgs(target: ArrayChangedArgs, source: ArrayChangedArgs): void {
+  const pairs = [["added", "removed"], ["removed", "added"]] as const;
+  for (const [key, opposite] of pairs) {
+    for (const item of source[key] ?? []) {
+      const undone = target[opposite]?.indexOf(item) ?? -1;
+      if (undone >= 0) {
+        target[opposite]!.splice(undone, 1);
+      } else {
+        (target[key] ??= []).push(item);
       }
-      Array.prototype.push.apply(targetValue, sourceValue);
-    } else {
-      tgt[key] = sourceValue;
     }
   }
 }

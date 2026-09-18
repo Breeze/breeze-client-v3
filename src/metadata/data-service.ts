@@ -220,7 +220,7 @@ export interface NodeMeta {
   nodeRefId?: string;
   /** Whether to skip this node. A skipped property is left off the object that holds it; a skipped top-level node is dropped from the results (or is `null` there, when the query includes deleted entities). */
   ignore?: boolean;
-  /** Whether to return a top-level node that has no `entityType` as it is, without mapping its property names to the client's or visiting its properties. */
+  /** Whether to keep the node exactly as the server sent it, without mapping its property names to the client's or visiting what it contains. Ignored for a top-level node that has an `entityType`, which is merged as an entity. */
   passThru?: boolean;
   /** Anything else about the node to keep. Breeze stores it on the entity's `entityAspect.extraMetadata`. */
   extraMetadata?: any;

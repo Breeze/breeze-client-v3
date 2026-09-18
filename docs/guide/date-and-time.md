@@ -35,7 +35,7 @@ like this:
 | Server string | Read as |
 |---|---|
 | has `Z` or an offset: `2024-03-15T10:30:00Z`, `…10:30:00+02:00` | as given |
-| no offset, ends in fractional seconds: `2024-03-15T10:30:00.000`, `…00.1234567` | UTC. Breeze appends `Z`. |
+| no offset, ends in fractional seconds, any number of digits: `2024-03-15T10:30:00.5`, `…00.000`, `…00.1234567` | UTC. Breeze appends `Z`. |
 | no offset, no fractional seconds: `2024-03-15T10:30:00` | **local time**. The string goes to `Date.parse` unchanged. |
 
 The last row is the trap. A .NET `DateTime` whose `Kind` is `Unspecified` is usually
@@ -52,7 +52,7 @@ import { DataType } from 'breeze-client';
 
 // Treat every offset-less date-time from the server as UTC.
 DataType.parseDateFromServer = (value: any) => {
-  if (typeof value === 'string' && !/(Z|[+-]\d\d:\d\d)$/.test(value)) {
+  if (typeof value === 'string' && !/(Z|[+-]\d\d:?\d\d)$/.test(value)) {
     value += 'Z';
   }
   return new Date(value);

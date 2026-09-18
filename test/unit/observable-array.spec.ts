@@ -167,3 +167,81 @@ describe("observable arrays - behaviour", () => {
   });
 
 });
+
+// While a query or import is loading, an array's changes are collected into one arrayChanged. The
+// changes were combined only under keys the first had, so a batch that began with an addition lost
+// every removal after it, and the reverse.
+describe("observable arrays - one event per load", () => {
+
+  /** Runs fn the way a query or import runs its merge: with the manager's events held back. */
+  function asOneLoad(em: EntityManager, fn: () => void) {
+    const held: (() => void)[] = [];
+    (em as any)._pendingPubs = held;
+    try {
+      fn();
+    } finally {
+      (em as any)._pendingPubs = undefined;
+    }
+    held.forEach(publish => publish());
+  }
+
+  function setUp() {
+    const order = newOrder();
+    const np = firstCollectionNav(order);
+    const arr = order.getProperty(np.name);
+    const em = order.entityAspect.entityManager!;
+    const events: any[] = [];
+    arr.arrayChanged.subscribe((args: any) => events.push({ added: args.added, removed: args.removed }));
+    return { em, np, arr, events };
+  }
+
+  test("a removal after an addition is kept", () => {
+    const { em, np, arr, events } = setUp();
+    const existing = createChild(em, np);
+    arr.push(existing);
+    events.length = 0;
+
+    const newcomer = createChild(em, np);
+    asOneLoad(em, () => {
+      arr.push(newcomer);
+      arr.splice(arr.indexOf(existing), 1);
+    });
+
+    expect(events).toEqual([{ added: [newcomer], removed: [existing] }]);
+  });
+
+  test("an addition after a removal is kept", () => {
+    const { em, np, arr, events } = setUp();
+    const existing = createChild(em, np);
+    arr.push(existing);
+    events.length = 0;
+
+    const newcomer = createChild(em, np);
+    asOneLoad(em, () => {
+      arr.splice(arr.indexOf(existing), 1);
+      arr.push(newcomer);
+    });
+
+    expect(events).toEqual([{ added: [newcomer], removed: [existing] }]);
+  });
+
+  test("an item added and removed again in one load is in neither list, and alone raises nothing", () => {
+    const { em, np, arr, events } = setUp();
+    const a = createChild(em, np), b = createChild(em, np);
+    asOneLoad(em, () => {
+      arr.push(a);
+      arr.push(b);
+      arr.splice(arr.indexOf(b), 1);
+    });
+    expect(events).toEqual([{ added: [a], removed: undefined }]);
+
+    events.length = 0;
+    const c = createChild(em, np);
+    asOneLoad(em, () => {
+      arr.push(c);
+      arr.splice(arr.indexOf(c), 1);
+    });
+    expect(events).toEqual([]);
+  });
+
+});

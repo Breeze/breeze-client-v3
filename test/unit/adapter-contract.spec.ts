@@ -212,6 +212,58 @@ describe('the change request interceptor', () => {
 
 });
 
+describe('EntityQuery.useNameOnServer', () => {
+
+  const sentQuery = () => decodeURIComponent(calls[0].url);
+
+  test('a query in client names is translated to the server names', async () => {
+    await newManager().executeQuery(
+      EntityQuery.from('Customers').where('companyName', 'startsWith', 'A').orderBy('companyName'));
+    expect(sentQuery()).toContain('"CompanyName"');
+    expect(sentQuery()).not.toContain('"companyName"');
+  });
+
+  // It set a flag that nothing read, and a server name in the query then failed translation:
+  // "unable to locate property: CompanyName".
+  test('a query in server names is sent as written', async () => {
+    await newManager().executeQuery(
+      EntityQuery.from('Customers').where('CompanyName', 'startsWith', 'A').orderBy('CompanyName')
+        .select('CompanyName, City').useNameOnServer());
+    expect(sentQuery()).toContain('"CompanyName"');
+    expect(sentQuery()).toContain('City');
+    expect(sentQuery()).not.toContain('"companyName"');
+  });
+
+});
+
+describe('NodeMeta.passThru', () => {
+
+  // A resource with no entity type, so the results are anonymous objects, which is what passThru
+  // applies to. Nested, it returned the node from visitNode, whose callers ignore the return
+  // value, so the property was silently dropped from the result.
+  test('keeps a nested property exactly as the server sent it', async () => {
+    respond = () => json([{ CompanyName: 'Co', Raw: { Server_Name: 1, Nested: { A: 2 } } }]);
+    const jra = new JsonResultsAdapter({
+      name: 'passThruNested',
+      visitNode: (node, mappingContext, nodeContext) =>
+        nodeContext.nodeType === 'anonProp' && nodeContext.propertyName === 'raw' ? { passThru: true } : {},
+    });
+    const query = EntityQuery.from('CompanySummaries').using(jra);
+    const { results } = await newManager().executeQuery(query);
+    expect(results[0].companyName).toBe('Co');                          // names still mapped around it
+    expect(results[0].raw).toEqual({ Server_Name: 1, Nested: { A: 2 } }); // but not inside it
+  });
+
+  test('keeps a top-level node exactly as the server sent it', async () => {
+    respond = () => json([{ Server_Name: 1 }]);
+    const jra = new JsonResultsAdapter({ name: 'passThruRoot', visitNode: () => ({ passThru: true }) });
+    const query = EntityQuery.from('CompanySummaries').using(jra);
+    const { results } = await newManager().executeQuery(query);
+    expect(results).toEqual([{ Server_Name: 1 }]);
+  });
+
+});
+
 describe('materialization errors', () => {
 
   test('a throwing visitNode rejects the query, with no unhandled rejection', async () => {

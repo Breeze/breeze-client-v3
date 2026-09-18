@@ -2,7 +2,10 @@
 import { BreezeEnum } from '../core/enum.js';
 import { Validator } from '../validation/validate.js';
 
-let _localTimeRegex = /.\d{3}$/;
+// A date-time with no zone that ends in fractional seconds, of any length: Json.NET drops trailing
+// zeros, so 500 ms is ".5". It used to be /.\d{3}$/, which needed three digits and, with its
+// unescaped dot, also matched an offset written without a colon ("+0200").
+const _fractionalSecondsRegex = /\d\d\.\d+$/;
 
 // Names the .NET servers can write in metadata for types the client knows by another name.
 // EF Core writes the CLR type name (MetadataBuilder.NormalizeDataTypeName); NHibernate its own type names.
@@ -177,7 +180,8 @@ export class DataType extends BreezeEnum {
   /** A duration (.NET `TimeSpan`), held as the ISO 8601 duration string the server sends, such as `PT4H30M`. Compared as a number of seconds in local queries. Default `PT0S`. */
   static Time = new DataType({
     defaultValue: "PT0S",
-    parseRawValue: DataType.parseTimeFromServer
+    // Looked up on each call, not captured here, so that replacing parseTimeFromServer works.
+    parseRawValue: (value: any) => DataType.parseTimeFromServer(value)
   });
 
   /** A time of day (.NET `TimeOnly`), held as the string the server sends: "14:30:00" or "01:23:45.678". */
@@ -263,15 +267,12 @@ export class DataType extends BreezeEnum {
   }
 
   /**
-  Converts a {@link DataType.Time} value from the server. Returns it unchanged: a `Time` is held as
-  the ISO 8601 duration string the server sends. `DataType.Time` took this function as its
-  `parseRawValue` when it was created, so assigning a new `DataType.parseTimeFromServer` has no
-  effect; assign `DataType.Time.parseRawValue` instead.
+  Converts a {@link DataType.Time} value from the server. By default it returns the value unchanged:
+  a `Time` is held as the ISO 8601 duration string the server sends, such as `PT4H30M`. Replace it
+  at startup, before the first query, to hold durations some other way - as a number of seconds,
+  say, with {@link core.durationToSeconds}.
   */
   static parseTimeFromServer(source: any) {
-    if (typeof source === 'string') {
-      return source;
-    }
     return source;
   }
 
@@ -279,18 +280,16 @@ export class DataType extends BreezeEnum {
   Converts a date-time string from the server to a `Date`. This is the default
   {@link DataType.parseDateFromServer}.
   - A string with `Z` or an offset (`2024-03-15T10:30:00Z`, `...10:30:00+02:00`) is read as given.
-  - A string with no offset that ends in at least three digits of fractional seconds
-    (`2024-03-15T10:30:00.000`, `...00.1234567`) is read as UTC: Breeze appends `Z`.
+  - A string with no offset that ends in fractional seconds, of any length
+    (`2024-03-15T10:30:00.5`, `...00.000`, `...00.1234567`), is read as UTC: Breeze appends `Z`.
   - Any other string with no offset, such as `2024-03-15T10:30:00`, goes to `Date.parse`
     unchanged, which reads it as **local** time.
   @param source - The value from the server.
   */
   static parseDateAsUTC(source: any) {
     if (typeof source === 'string') {
-      // convert to UTC string if no time zone specifier.
-      let isLocalTime = _localTimeRegex.test(source);
-      // var isLocalTime = !hasTimeZone(source);
-      source = isLocalTime ? source + 'Z' : source;
+      // No zone but fractional seconds: the server wrote UTC without saying so. Append the Z.
+      if (_fractionalSecondsRegex.test(source)) source = source + 'Z';
     }
     source = new Date(Date.parse(source));
     return source;

@@ -213,7 +213,12 @@ function visitNode(node: any, mc: MappingContext, nodeContext: NodeContext, resu
   node = meta.node || node;
 
   if (meta.ignore) return;
-  if (meta.passThru) return node;
+  if (meta.passThru) {
+    // It used to `return node`, which the callers ignore, so the property was dropped.
+    if (meta.nodeId) mc.refMap[meta.nodeId] = node;
+    result[key] = node;
+    return;
+  }
   if (Array.isArray(node)) {
     nodeContext.nodeType = nodeContext.nodeType + "Item";
     result[key] = node.map(function (v, ix) {
