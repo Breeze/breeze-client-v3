@@ -89,6 +89,7 @@
     "//docs:check-anchors": "VitePress fails a build on a link to a missing page, but not on one to a missing #anchor. This checks those against the ids the build actually emitted; it needs docs:build to have run.",
     "docs:check-anchors": "node scripts/check-doc-anchors.mjs",
     "docs:preview": "vitepress preview docs",
+    "docs:publish": "node scripts/publish-docs.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p test/tsconfig.json",
     "typecheck:test": "tsc -p test/tsconfig.json",
     "clean": "rimraf dist",

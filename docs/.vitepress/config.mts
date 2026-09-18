@@ -107,6 +107,9 @@ export default defineConfig({
   title: 'Breeze',
   description: 'Data management for JavaScript clients',
   lang: 'en-US',
+  // Where the site is served from. GitHub Pages serves this repo at /breeze-client-v3/, and
+  // scripts/publish-docs.mjs sets DOCS_BASE to that; `docs:dev` and `docs:build` serve from /.
+  base: process.env.DOCS_BASE ?? '/',
   cleanUrls: true,
   lastUpdated: true,
 
