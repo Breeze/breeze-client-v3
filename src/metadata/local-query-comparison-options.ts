@@ -38,17 +38,19 @@ export class LocalQueryComparisonOptions {
 
   /**
   LocalQueryComparisonOptions constructor
-  >      // create a 'caseSensitive - non SQL' instance.
-  >      var lqco = new LocalQueryComparisonOptions({
-  >              name: "caseSensitive-nonSQL"
-  >              isCaseSensitive: true;
-  >              usesSql92CompliantStringComparison: false;
-  >          });
-  >      // either apply it globally
-  >      lqco.setAsDefault();
-  >      // or to a specific MetadataStore
-  >      var ms = new MetadataStore({ localQueryComparisonOptions: lqco });
-  >      var em = new EntityManager( { metadataStore: ms });
+  ```ts
+  // create a 'caseSensitive - non SQL' instance.
+  var lqco = new LocalQueryComparisonOptions({
+          name: "caseSensitive-nonSQL"
+          isCaseSensitive: true;
+          usesSql92CompliantStringComparison: false;
+      });
+  // either apply it globally
+  lqco.setAsDefault();
+  // or to a specific MetadataStore
+  var ms = new MetadataStore({ localQueryComparisonOptions: lqco });
+  var em = new EntityManager( { metadataStore: ms });
+  ```
   @param lqcoConfig - A configuration object.
   */
   constructor(lqcoConfig: LocalQueryComparisonOptionsConfig) {
@@ -80,11 +82,13 @@ export class LocalQueryComparisonOptions {
   /**
   Sets the 'defaultInstance' by creating a copy of the current 'defaultInstance' and then applying all of the properties of the current instance.
   The current instance is returned unchanged.
-  >     var lqco = new LocalQueryComparisonOptions({
-  >        isCaseSensitive: false;
-  >        usesSql92CompliantStringComparison: true;
-  >     });
-  >     lqco.setAsDefault();
+  ```ts
+  var lqco = new LocalQueryComparisonOptions({
+     isCaseSensitive: false;
+     usesSql92CompliantStringComparison: true;
+  });
+  lqco.setAsDefault();
+  ```
   */
   setAsDefault() {
     return core.setAsDefault(this, LocalQueryComparisonOptions);

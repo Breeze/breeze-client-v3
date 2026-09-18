@@ -27,12 +27,13 @@ import * as breeze from '../breeze.js';
  *  configureBreeze({ ajax: MyAdapter }). Otherwise wrap your own fetch function instead.
  *
  * Example:
- *   var query = breeze.EntityQuery.from('SimilarCustomersPOST')
- *            .withParameters({
- *                $method: 'POST',
- *                $encoding: 'JSON',
- *               $data: { CompanyName: 'Hilo Hattie', ContactName: 'Donald', City: 'Duck', Country: 'USA', Phone: '808-234-5678' }
- *           });
+ *   const query = EntityQuery.from('SimilarCustomersPOST')
+ *     .toType(Customer)
+ *     .withParameters({
+ *       $method: 'POST',
+ *       $encoding: 'JSON',
+ *       $data: { companyName: 'Hilo Hattie', contactName: 'Donald', city: 'Duck', country: 'USA', phone: '808-234-5678' }
+ *     });
  *
  */
 export class AjaxPostWrapper {

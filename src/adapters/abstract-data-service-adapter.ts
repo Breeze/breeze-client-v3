@@ -235,19 +235,21 @@ export abstract class AbstractDataServiceAdapter implements DataServiceAdapter {
   Initialized with a default, no-op implementation that developers can replace with a
   substantive implementation that changes the individual entity change requests
   or aspects of the entire 'saveBundle' without having to write their own DataService adapters.
-  >     let adapter = breeze.config.getAdapterInstance('dataService');
-  >     adapter.changeRequestInterceptor = function (saveContext, saveBundle) {
-  >         this.getRequest = function (request, entity, index) {
-  >            // alter the request that the adapter prepared for this entity
-  >            // based on the entity, saveContext, and saveBundle
-  >            // e.g., add a custom header or prune the originalValuesMap
-  >            return request;
-  >        };
-  >        this.done = function (requests) {
-  >            // alter the array of requests representing the entire change-set
-  >            // based on the saveContext and saveBundle
-  >        };
-  >     }
+  ```ts
+  let adapter = breeze.config.getAdapterInstance('dataService');
+  adapter.changeRequestInterceptor = function (saveContext, saveBundle) {
+      this.getRequest = function (request, entity, index) {
+         // alter the request that the adapter prepared for this entity
+         // based on the entity, saveContext, and saveBundle
+         // e.g., add a custom header or prune the originalValuesMap
+         return request;
+     };
+     this.done = function (requests) {
+         // alter the array of requests representing the entire change-set
+         // based on the saveContext and saveBundle
+     };
+  }
+  ```
 
   @param saveContext - The BreezeJS "context" for the save operation.
   @param saveBundle - Contains the array of entities-to-be-saved (AKA, the entity change-set).

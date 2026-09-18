@@ -35,8 +35,10 @@ export class SaveOptions {
   /** Creates save options from a {@link SaveOptionsConfig}. Passed to {@link EntityManager.saveChanges},
   they are used for that save in place of the manager's {@link EntityManager.saveOptions} - as a
   whole, not merged with them setting by setting.
-  >     const so = new SaveOptions({ allowConcurrentSaves: true });
-  >     em.saveChanges(null, so);
+  ```ts
+  const so = new SaveOptions({ allowConcurrentSaves: true });
+  em.saveChanges(null, so);
+  ```
   */
   constructor(config?: SaveOptionsConfig) {
     SaveOptions._updateWithConfig(this, config);
@@ -53,7 +55,9 @@ export class SaveOptions {
 
   /**
   Returns a copy of this SaveOptions with the specified config options applied.
-  >     var saveOptions = em1.saveOptions.using( {resourceName: "anotherResource" });
+  ```ts
+  var saveOptions = em1.saveOptions.using( {resourceName: "anotherResource" });
+  ```
   */
   using(config: SaveOptionsConfig) {
     return SaveOptions._updateWithConfig(this, config);

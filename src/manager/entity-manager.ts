@@ -449,15 +449,16 @@ export class EntityManager {
   - entity - The entity that changed. Undefined for {@link EntityAction.Clear}, which affects every entity in the manager.
   - args - Additional information about this event. This will differ based on the entityAction.
 
-  >      let em = new EntityManager( {serviceName: "breeze/NorthwindIBModel" });
-  >      em.entityChanged.subscribe(function(changeArgs) {
-  >          // This code will be executed any time any entity within the entityManager 
-  >          // is added, modified, deleted or detached for any reason.
-  >          let action = changeArgs.entityAction;
-  >          let entity = changeArgs.entity;
-  >          // .. do something to this entity when it is changed.
-  >      });
-  >  });
+  ```ts
+  const em = new EntityManager({ serviceName: "breeze/NorthwindIBModel" });
+  em.entityChanged.subscribe(changeArgs => {
+      // This code will be executed any time any entity within the entityManager
+      // is added, modified, deleted or detached for any reason.
+      const action = changeArgs.entityAction;
+      const entity = changeArgs.entity;
+      // .. do something to this entity when it is changed.
+  });
+  ```
   @event
   */
   entityChanged: BreezeEvent<EntityChangedEventArgs>;
@@ -469,17 +470,17 @@ export class EntityManager {
     - added - An array containing any newly added {@link ValidationError}s
     - removed - An array containing any newly removed {@link ValidationError}s. This is those errors that have been 'fixed'  
 
-  >      let em = new EntityManager( {serviceName: "breeze/NorthwindIBModel" });
-  >      em.validationErrorsChanged.subscribe(function(changeArgs) {
-  >              // This code will be executed any time any entity within the entityManager experiences a change to its validationErrors collection.
-  >              function (validationChangeArgs) {
-  >                  let entity == validationChangeArgs.entity;
-  >                  let errorsAdded = validationChangeArgs.added;
-  >                  let errorsCleared = validationChangeArgs.removed;
-  >                  // ... do something interesting with the order.
-  >              });
-  >          });
-  >      });
+  ```ts
+  const em = new EntityManager({ serviceName: "breeze/NorthwindIBModel" });
+  em.validationErrorsChanged.subscribe(changeArgs => {
+      // This code will be executed any time any entity within the entityManager
+      // experiences a change to its validationErrors collection.
+      const entity = changeArgs.entity;
+      const errorsAdded = changeArgs.added;
+      const errorsCleared = changeArgs.removed;
+      // ... do something interesting with the entity.
+  });
+  ```
   @event
   */
   validationErrorsChanged: BreezeEvent<ValidationErrorsChangedEventArgs>;
@@ -490,13 +491,14 @@ export class EntityManager {
     - entityManager - The EntityManager whose 'hasChanges' status has changed.
     - hasChanges - Whether or not this EntityManager has changes.
 
-  >      let em = new EntityManager( {serviceName: "breeze/NorthwindIBModel" });
-  >      em.hasChangesChanged.subscribe(function(args) {
-  >              let hasChangesChanged = args.hasChanges;
-  >              let entityManager = args.entityManager;
-  >          });
-  >      });
-  @event 
+  ```ts
+  const em = new EntityManager({ serviceName: "breeze/NorthwindIBModel" });
+  em.hasChangesChanged.subscribe(args => {
+      const hasChanges = args.hasChanges;
+      const entityManager = args.entityManager;
+  });
+  ```
+  @event
   */
   hasChangesChanged: BreezeEvent<HasChangesChangedEventArgs>;
 
@@ -533,37 +535,41 @@ export class EntityManager {
   EntityManager constructor.
 
   At its most basic an EntityManager can be constructed with just a service name
-  >     let entityManager = new EntityManager( "breeze/NorthwindIBModel");
+  ```ts
+  const entityManager = new EntityManager("breeze/NorthwindIBModel");
+  ```
 
   This is the same as calling it with the following configuration object
-  >     let entityManager = new EntityManager( {serviceName: "breeze/NorthwindIBModel" });
+  ```ts
+  const entityManager = new EntityManager({ serviceName: "breeze/NorthwindIBModel" });
+  ```
 
   Usually however, configuration objects will contain more than just the 'serviceName';
-  >     let metadataStore = new MetadataStore();
-  >     let entityManager = new EntityManager( {
-  >       serviceName: "breeze/NorthwindIBModel",
-  >       metadataStore: metadataStore
-  >     });
+  ```ts
+  const metadataStore = new MetadataStore();
+  const entityManager = new EntityManager({
+    serviceName: "breeze/NorthwindIBModel",
+    metadataStore: metadataStore
+  });
+  ```
 
   or
-  >     return new QueryOptions({
-  >         mergeStrategy: obj,
-  >         fetchStrategy: this.fetchStrategy
-  >     });
-  >     let queryOptions = new QueryOptions({
-  >         mergeStrategy: MergeStrategy.OverwriteChanges,
-  >         fetchStrategy: FetchStrategy.FromServer
-  >     });
-  >     let validationOptions = new ValidationOptions({
-  >         validateOnAttach: true,
-  >         validateOnSave: true,
-  >         validateOnQuery: false
-  >     });
-  >     let entityManager = new EntityManager({
-  >         serviceName: "breeze/NorthwindIBModel",
-  >         queryOptions: queryOptions,
-  >         validationOptions: validationOptions
-  >     });
+  ```ts
+  const queryOptions = new QueryOptions({
+      mergeStrategy: MergeStrategy.OverwriteChanges,
+      fetchStrategy: FetchStrategy.FromServer
+  });
+  const validationOptions = new ValidationOptions({
+      validateOnAttach: true,
+      validateOnSave: true,
+      validateOnQuery: false
+  });
+  const entityManager = new EntityManager({
+      serviceName: "breeze/NorthwindIBModel",
+      queryOptions: queryOptions,
+      validationOptions: validationOptions
+  });
+  ```
   @param emConfig - Configuration settings or a service name.  
   */
   constructor(emConfig?: EntityManagerConfig | string) {
@@ -602,11 +608,13 @@ export class EntityManager {
   /**
   General purpose property set method.  Any of the properties in the {@link EntityManagerConfig}
   may be set.
-  >      // assume em1 is a previously created EntityManager
-  >      // where we want to change some of its settings.
-  >      em1.setProperties( {
-  >          serviceName: "breeze/foo"
-  >      });
+  ```ts
+  // assume em1 is a previously created EntityManager
+  // where we want to change some of its settings.
+  em1.setProperties( {
+      serviceName: "breeze/foo"
+  });
+  ```
   @param config - An object containing the selected properties and values to set.
   */
   setProperties(config: EntityManagerConfig) {
@@ -659,21 +667,23 @@ export class EntityManager {
   Creates a new entity of a specified type and optionally initializes it. By default the new entity is created with an EntityState of Added
   but you can also optionally specify an EntityState.  An EntityState of 'Detached' will insure that the entity is created but not yet added
   to the EntityManager. 
-  >      // assume em1 is an EntityManager containing a number of preexisting entities.
-  >      // create and add an entity. Passing the registered class types the result:
-  >      let emp1 = em1.createEntity(Employee);            // Employee
-  >      // create and add an initialized entity;
-  >      let emp2 = em1.createEntity(Employee, { lastName: "Smith", firstName: "John" });
-  >      // create and attach (not add) an initialized entity
-  >      let emp3 = em1.createEntity(Employee, { employeeID: 435, lastName: "Smith", firstName: "John" }, EntityState.Unchanged);
-  >      // create but don't attach an entity;
-  >      let emp4 = em1.createEntity(Employee, { employeeID: 435, lastName: "Smith", firstName: "John" }, EntityState.Detached);
-  >      // with the constructor, initialValues is checked: a property Employee does not declare,
-  >      // such as a misspelling, is a compile error rather than a value silently ignored
-  >      let emp6 = em1.createEntity(Employee, { lastNmae: "Smith" });   // error
-  >
-  >      // the type name and the EntityType both still work, and return Entity:
-  >      let emp5 = em1.createEntity("Employee", { lastName: "Smith" });
+  ```ts
+  // assume em1 is an EntityManager containing a number of preexisting entities.
+  // create and add an entity. Passing the registered class types the result:
+  const emp1 = em1.createEntity(Employee);            // Employee
+  // create and add an initialized entity;
+  const emp2 = em1.createEntity(Employee, { lastName: "Smith", firstName: "John" });
+  // create and attach (not add) an initialized entity
+  const emp3 = em1.createEntity(Employee, { employeeID: 435, lastName: "Smith", firstName: "John" }, EntityState.Unchanged);
+  // create but don't attach an entity;
+  const emp4 = em1.createEntity(Employee, { employeeID: 435, lastName: "Smith", firstName: "John" }, EntityState.Detached);
+  // with the constructor, initialValues is checked: a property Employee does not declare,
+  // such as a misspelling, is a compile error rather than a value silently ignored
+  em1.createEntity(Employee, { lastNmae: "Smith" });   // error
+
+  // the type name and the EntityType both still work, and return Entity:
+  const emp5 = em1.createEntity("Employee", { lastName: "Smith" });
+  ```
 
   The constructor overload needs the class to have been registered with
   {@link MetadataStore.registerEntityTypeCtor}; that is what tells Breeze which type it stands
@@ -718,15 +728,17 @@ export class EntityManager {
   static importEntities(exportedData: Object, config?: ImportConfig): EntityManager;
   /**
   Creates a new EntityManager and imports a previously exported result into it.
-  >      // assume em1 is an EntityManager containing a number of preexisting entities.
-  >      let bundle = em1.exportEntities();
-  >      // can be stored via the web storage api
-  >      window.localStorage.setItem("myEntityManager", bundle);
-  >      // assume the code below occurs in a different session.
-  >      let bundleFromStorage = window.localStorage.getItem("myEntityManager");
-  >      // and imported
-  >      let em2 = EntityManager.importEntities(bundleFromStorage);
-  >      // em2 will now have a complete copy of what was in em1
+  ```ts
+  // assume em1 is an EntityManager containing a number of preexisting entities.
+  const bundle = em1.exportEntities() as string;
+  // can be stored via the web storage api
+  window.localStorage.setItem("myEntityManager", bundle);
+  // assume the code below occurs in a different session.
+  const bundleFromStorage = window.localStorage.getItem("myEntityManager");
+  // and imported
+  const em2 = EntityManager.importEntities(bundleFromStorage);
+  // em2 will now have a complete copy of what was in em1
+  ```
   @param exportedString - The result of a previous 'exportEntities' call as a string
   @param exportedData - The result of a previous 'exportEntities' call as an Object.
   @param config - A configuration object.
@@ -764,46 +776,58 @@ export class EntityManager {
   This method takes a snapshot of an EntityManager that can be stored offline or held in memory.
   Use the {@link EntityManager.importEntities} method to restore or merge the snapshot
   into another EntityManager at some later time.
-  >      // let em1 be an EntityManager containing a number of existing entities.
-  >     // export every entity in em1.
-  >     let bundle = em1.exportEntities();
-  >     // save to the browser's local storage
-  >     window.localStorage.setItem("myEntityManager", bundle);
-  >     // later retrieve the export
-  >     let bundleFromStorage = window.localStorage.getItem("myEntityManager");
-  >     // import the retrieved export bundle into another manager
-  >     let em2 = em1.createEmptyCopy();
-  >     em2.importEntities(bundleFromStorage);
-  >     // em2 now has a complete, faithful copy of the entities that were in em1
+  ```ts
+  // let em1 be an EntityManager containing a number of existing entities.
+  // export every entity in em1.
+  const bundle = em1.exportEntities() as string;
+  // save to the browser's local storage
+  window.localStorage.setItem("myEntityManager", bundle);
+  // later retrieve the export
+  const bundleFromStorage = window.localStorage.getItem("myEntityManager");
+  // import the retrieved export bundle into another manager
+  const em2 = em1.createEmptyCopy();
+  em2.importEntities(bundleFromStorage);
+  // em2 now has a complete, faithful copy of the entities that were in em1
+  ```
 
   You can also control exactly which entities are exported.
-  >     // get em1's unsaved changes (an array) and export them.
-  >     let changes = em1.getChanges();
-  >     let bundle = em1.exportEntities(changes);
-  >     // merge these entities into em2 which may contains some of the same entities.
-  >     // do NOT overwrite the entities in em2 if they themselves have unsaved changes.
-  >     em2.importEntities(bundle, { mergeStrategy: MergeStrategy.PreserveChanges} );
+  ```ts
+  // get em1's unsaved changes (an array) and export them.
+  const changes = em1.getChanges();
+  const bundle = em1.exportEntities(changes);
+  // merge these entities into em2 which may contains some of the same entities.
+  // do NOT overwrite the entities in em2 if they themselves have unsaved changes.
+  em2.importEntities(bundle, { mergeStrategy: MergeStrategy.PreserveChanges });
+  ```
 
   Metadata are included in an export by default. You may want to exclude the metadata
   especially if you're exporting just a few entities for local storage.
-  >     let bundle = em1.exportEntities(arrayOfSelectedEntities, {includeMetadata: false});
-  >     window.localStorage.setItem("goodStuff", bundle);
+  ```ts
+  const bundle = em1.exportEntities(arrayOfSelectedEntities, { includeMetadata: false }) as string;
+  window.localStorage.setItem("goodStuff", bundle);
+  ```
 
   You may still express this option as a boolean value although this older syntax is deprecated.
-  >     // Exclude the metadata (deprecated syntax)
-  >     let bundle = em1.exportEntities(arrayOfSelectedEntities, false);
+  ```ts
+  // Exclude the metadata (deprecated syntax)
+  const bundle = em1.exportEntities(arrayOfSelectedEntities, false);
+  ```
 
-  You can export all entities of one or more specified EntityTypes.
-  >     // Export all Customer and Employee entities (and also exclude metadata)
-  >     let bundle = em1.exportEntities(['Customer', 'Employee'], {includeMetadata: false});
+  You can export all entities of one or more specified EntityTypes, by name.
+  ```ts
+  // Export all Customer and Employee entities (and also exclude metadata)
+  const bundle = em1.exportEntities(['Customer', 'Employee'], { includeMetadata: false });
+  ```
 
   All of the above examples return an export bundle as a string which is the default format.
   You can export the bundle as JSON if you prefer by setting the `asString` option to false.
-  >     // Export all Customer and Employee entities as JSON and exclude the metadata
-  >     let bundle = em1.exportEntities(['Customer', 'Employee'],
-  >                                     {asString: false, includeMetadata: false});
-  >     // store JSON bundle somewhere ... perhaps indexDb ... and later import as we do here.
-  >     em2.importEntities(bundle);
+  ```ts
+  // Export all Customer and Employee entities as JSON and exclude the metadata
+  const bundle = em1.exportEntities(['Customer', 'Employee'],
+                                    { asString: false, includeMetadata: false });
+  // store JSON bundle somewhere ... perhaps indexDb ... and later import as we do here.
+  em2.importEntities(bundle);
+  ```
   @param entities - The entities to export or the EntityType(s) of the entities to export;
     all entities are exported if this parameter is omitted or null.
   @param exportConfig - Export configuration options or a boolean
@@ -862,23 +886,27 @@ export class EntityManager {
   This method can be used to make a complete copy of any previously created entityManager, even if created
   in a previous session and stored in localStorage. The static version of this method performs a
   very similar process.
-  >     // assume em1 is an EntityManager containing a number of existing entities.
-  >     let bundle = em1.exportEntities();
-  >     // bundle can be stored in window.localStorage or just held in memory.
-  >     let em2 = new EntityManager({
-  >         serviceName: em1.serviceName,
-  >         metadataStore: em1.metadataStore
-  >     });
-  >     em2.importEntities(bundle);
-  >     // em2 will now have a complete copy of what was in em1
+  ```ts
+  // assume em1 is an EntityManager containing a number of existing entities.
+  const bundle = em1.exportEntities();
+  // bundle can be stored in window.localStorage or just held in memory.
+  const em2 = new EntityManager({
+      serviceName: em1.serviceName,
+      metadataStore: em1.metadataStore
+  });
+  em2.importEntities(bundle);
+  // em2 will now have a complete copy of what was in em1
+  ```
 
   It can also be used to merge the contents of a previously created EntityManager with an
   existing EntityManager with control over how the two are merged.
-  >     let bundle = em1.exportEntities();
-  >     // assume em2 is another entityManager containing some of the same entities possibly with modifications.
-  >     em2.importEntities(bundle, { mergeStrategy: MergeStrategy.PreserveChanges} );
-  >     // em2 will now contain all of the entities from both em1 and em2.  Any em2 entities with previously
-  >     // made modifications will not have been touched, but all other entities from em1 will have been imported.
+  ```ts
+  const bundle = em1.exportEntities();
+  // assume em2 is another entityManager containing some of the same entities possibly with modifications.
+  em2.importEntities(bundle, { mergeStrategy: MergeStrategy.PreserveChanges });
+  // em2 will now contain all of the entities from both em1 and em2.  Any em2 entities with previously
+  // made modifications will not have been touched, but all other entities from em1 will have been imported.
+  ```
   @param exportedString - The result of a previous 'export' call.
   @param importConfig - A configuration object.
   @param importConfig.mergeStrategy -  A {@link MergeStrategy} to use when
@@ -956,9 +984,11 @@ export class EntityManager {
   Clears this EntityManager's cache but keeps all other settings. Note that this
   method is not as fast as creating a new EntityManager via 'new EntityManager'.
   This is because clear actually detaches all of the entities from the EntityManager.
-  >     // assume em1 is an EntityManager containing a number of existing entities.
-  >     em1.clear();
-  >     // em1 is will now contain no entities, but all other setting will be maintained.
+  ```ts
+  // assume em1 is an EntityManager containing a number of existing entities.
+  em1.clear();
+  // em1 is will now contain no entities, but all other setting will be maintained.
+  ```
   */
   clear() {
     // The constructor calls clear() before _entityGroupMap is assigned, so this runs
@@ -976,10 +1006,12 @@ export class EntityManager {
 
   /**
   Creates an empty copy of this EntityManager but with the same DataService, MetadataStore, QueryOptions, SaveOptions, ValidationOptions, etc. 
-  >     // assume em1 is an EntityManager containing a number of existing entities.
-  >     let em2 = em1.createEmptyCopy();
-  >     // em2 is a new EntityManager with all of em1's settings
-  >     // but no entities.
+  ```ts
+  // assume em1 is an EntityManager containing a number of existing entities.
+  const em2 = em1.createEmptyCopy();
+  // em2 is a new EntityManager with all of em1's settings
+  // but no entities.
+  ```
   @returns A new EntityManager.
   */
   createEmptyCopy() {
@@ -990,17 +1022,19 @@ export class EntityManager {
 
   /**
   Attaches an entity to this EntityManager with an  {@link EntityState} of 'Added'.
-  >     // assume em1 is an EntityManager containing a number of existing entities.
-  >     let custType = em1.metadataStore.getAsEntityType("Customer");
-  >     let cust1 = custType.createEntity();
-  >     em1.addEntity(cust1);
+  ```ts
+  // assume em1 is an EntityManager containing a number of existing entities.
+  const cust1 = em1.createEntity(Customer, { companyName: "Acme" }, EntityState.Detached);
+  em1.addEntity(cust1);     // returns cust1, a Customer
+  ```
 
   Note that this is the same as using 'attachEntity' with an {@link EntityState} of 'Added'.
 
-  >     // assume em1 is an EntityManager containing a number of existing entities.
-  >     let custType = em1.metadataStore.getAsEntityType("Customer");
-  >     let cust1 = custType.createEntity();
-  >     em1.attachEntity(cust1, EntityState.Added);
+  ```ts
+  // assume em1 is an EntityManager containing a number of existing entities.
+  const cust1 = em1.createEntity(Customer, { companyName: "Acme" }, EntityState.Detached);
+  em1.attachEntity(cust1, EntityState.Added);
+  ```
   @param entity - The entity to add.
   @returns The added entity.
   */
@@ -1010,10 +1044,11 @@ export class EntityManager {
 
   /**
   Attaches an entity to this EntityManager with a specified {@link EntityState}.
-  >     // assume em1 is an EntityManager containing a number of existing entities.
-  >     let custType = em1.metadataStore.getAsEntityType("Customer");
-  >     let cust1 = custType.createEntity();
-  >     em1.attachEntity(cust1, EntityState.Added);
+  ```ts
+  // assume em1 is an EntityManager containing a number of existing entities.
+  const cust1 = em1.createEntity(Customer, { companyName: "Acme" }, EntityState.Detached);
+  em1.attachEntity(cust1, EntityState.Added);     // returns cust1, a Customer
+  ```
   @param entity - The entity to add.
   @param entityState - (default=EntityState.Unchanged) The EntityState of the newly attached entity. If omitted this defaults to EntityState.Unchanged.
   @param mergeStrategy - (default = MergeStrategy.Disallowed) How the specified entity should be merged into the EntityManager if this EntityManager already contains an entity with the same key.
@@ -1096,11 +1131,13 @@ export class EntityManager {
 
   /**
   Detaches an entity from this EntityManager.
-  >     // assume em1 is an EntityManager containing a number of existing entities.
-  >     // assume cust1 is a customer Entity previously attached to em1
-  >     em1.detachEntity(cust1);
-  >     // em1 will now no longer contain cust1 and cust1 will have an
-  >     // entityAspect.entityState of EntityState.Detached
+  ```ts
+  // assume em1 is an EntityManager containing a number of existing entities.
+  // assume cust1 is a customer Entity previously attached to em1
+  em1.detachEntity(cust1);
+  // em1 will now no longer contain cust1 and cust1 will have an
+  // entityAspect.entityState of EntityState.Detached
+  ```
   @param entity - The entity to detach.
   @returns Whether the entity could be detached. This will return false if the entity is already detached or was never attached.
   */
@@ -1128,14 +1165,12 @@ export class EntityManager {
 
   Usually you will not actually process the results of a fetchMetadata call directly, but will instead
   ask for the metadata from the EntityManager after the fetchMetadata call returns.
-  >     let em1 = new EntityManager( "breeze/NorthwindIBModel");
-  >     em1.fetchMetadata()
-  >       .then(function() {
-  >           let metadataStore = em1.metadataStore;
-  >           // do something with the metadata
-  >       }).catch(function(exception) {
-  >           // handle exception here
-  >       });
+  ```ts
+  const em1 = new EntityManager("breeze/NorthwindIBModel");
+  await em1.fetchMetadata();
+  const metadataStore = em1.metadataStore;
+  // do something with the metadata
+  ```
   
   @param callback - Deprecated. Function called on success.
   @param errorCallback - Deprecated. Function called on failure.
@@ -1169,27 +1204,22 @@ export class EntityManager {
   /**
   Executes the specified query. __Async__ 
   
-  >     let em = new EntityManager(serviceName);
-  >     let query = new EntityQuery("Orders");
-  >     em.executeQuery(query).then( function(data) {
-  >         let orders = data.results;   // typed when the query was built from a class
-  >         ... query results processed here
-  >     }).catch( function(err) {
-  >         ... query failure processed here
-  >     });
+  ```ts
+  const em = new EntityManager(serviceName);
+  const query = EntityQuery.from(Order);
+  const data = await em.executeQuery(query);
+  const orders = data.results;   // Order[], because the query was built from the class
+  ```
 
   The `callback` and `errorCallback` arguments are deprecated. They still work, but the
   promise is the supported form and the callbacks will be removed in a future major version.
 
   This method is the same as calling the {@link EntityQuery} 'execute' method.
-  >     let em = new EntityManager(serviceName);
-  >     let query = new EntityQuery("Orders").using(em);
-  >     query.execute().then( function(data) {
-  >         let orders = data.results;   // typed when the query was built from a class
-  >         ... query results processed here
-  >     }).catch( function(err) {
-  >         ... query failure processed here
-  >     });
+  ```ts
+  const em = new EntityManager(serviceName);
+  const data = await EntityQuery.from(Order).using(em).execute();
+  const orders = data.results;   // Order[]
+  ```
   @param query - The {@link EntityQuery} or query string to execute.
   @param callback - Deprecated. Function called on success.
   @param errorCallback - Deprecated. Function called on failure.
@@ -1229,20 +1259,20 @@ export class EntityManager {
   Executes the specified query against this EntityManager's local cache.
 
   Because this method is executed immediately there is no need for a promise or a callback
-  >     let em = new EntityManager(serviceName);
-  >     let query = new EntityQuery("Orders");
-  >     let orders = em.executeQueryLocally(query);
+  ```ts
+  const em = new EntityManager(serviceName);
+  const query = EntityQuery.from(Order);
+  const orders = em.executeQueryLocally(query);   // Order[]
+  ```
 
   Note that this can also be accomplished using the 'executeQuery' method with
   a FetchStrategy of FromLocalCache and making use of the Promise or callback
-  >     let em = new EntityManager(serviceName);
-  >     let query = new EntityQuery("Orders").using(FetchStrategy.FromLocalCache);
-  >     em.executeQuery(query).then( function(data) {
-  >         let orders = data.results;   // typed when the query was built from a class
-  >         ... query results processed here
-  >     }).catch( function(err) {
-  >         ... query failure processed here
-  >     });
+  ```ts
+  const em = new EntityManager(serviceName);
+  const query = EntityQuery.from(Order).using(FetchStrategy.FromLocalCache);
+  const data = await em.executeQuery(query);
+  const orders = data.results;   // Order[]
+  ```
   @param query - The {@link EntityQuery} to execute.
   @returns  {Array of Entity}  Array of entities from cache that satisfy the query
   */
@@ -1259,25 +1289,22 @@ export class EntityManager {
 
   Often we will be saving all of the entities within an EntityManager that are either added, modified or deleted
   and we will let the 'saveChanges' call determine which entities these are.
-  >      // assume em1 is an EntityManager containing a number of preexisting entities.
-  >      // This could include added, modified and deleted entities.
-  >      em.saveChanges().then(function(saveResult) {
-  >          let savedEntities = saveResult.entities;
-  >          let keyMappings = saveResult.keyMappings;
-  >      }).catch(function (e) {
-  >          // e is any exception that was thrown.
-  >      });
+  ```ts
+  // assume em1 is an EntityManager containing a number of preexisting entities.
+  // This could include added, modified and deleted entities.
+  // A failed save rejects, so the await throws.
+  const saveResult = await em1.saveChanges();
+  const savedEntities = saveResult.entities;
+  const keyMappings = saveResult.keyMappings;
+  ```
 
   But we can also control exactly which entities to save and can specify specific SaveOptions
 
-  >      // assume entitiesToSave is an array of entities to save.
-  >      let saveOptions = new SaveOptions({ allowConcurrentSaves: true });
-  >      em.saveChanges(entitiesToSave, saveOptions).then(function(saveResult) {
-  >          let savedEntities = saveResult.entities;
-  >          let keyMappings = saveResult.keyMappings;
-  >      }).catch(function (e) {
-  >          // e is any exception that was thrown.
-  >      });
+  ```ts
+  // save only the changed customers
+  const saveOptions = new SaveOptions({ allowConcurrentSaves: true });
+  const saveResult = await em1.saveChanges(em1.getChanges(Customer), saveOptions);
+  ```
 
   The `callback` and `errorCallback` arguments are deprecated. They still work, but the
   promise is the supported form and the callbacks will be removed in a future major version.
@@ -1456,39 +1483,47 @@ export class EntityManager {
   Returns the entity in this manager's cache with this key, or `null` if there is none. It does
   not query the server; see {@link EntityManager.fetchEntityByKey} for that. Given the constructor of a class registered with the
   {@link MetadataStore}, the result has that class's type.
-  >      // assume em1 is an EntityManager containing a number of preexisting entities,
-  >      // and that Employee is registered with its MetadataStore.
-  >      let employee = em1.getEntityByKey(Employee, 1);   // Employee | null
+  ```ts
+  // assume em1 is an EntityManager containing a number of preexisting entities,
+  // and that Employee is registered with its MetadataStore.
+  const employee = em1.getEntityByKey(Employee, 1);   // Employee | null
+  ```
   */
   getEntityByKey<T extends Entity>(entityCtor: new () => T, keyValues: any | any[]): T | null;
 
   /**
   Returns the entity in this manager's cache with this key, or `null` if there is none. It does
   not query the server; see {@link EntityManager.fetchEntityByKey} for that.
-  >      // assume em1 is an EntityManager containing a number of preexisting entities.
-  >      let employeeType = em1.metadataStore.getAsEntityType("Employee");
-  >      let employeeKey = new EntityKey(employeeType, 1);
-  >      let employee = em1.getEntityByKey(employeeKey);
-  >      // employee will either be an entity or null.
+  ```ts
+  // assume em1 is an EntityManager containing a number of preexisting entities.
+  const employeeType = em1.metadataStore.getAsEntityType("Employee");
+  const employeeKey = new EntityKey(employeeType, 1);
+  const employee = em1.getEntityByKey(employeeKey);
+  // employee will either be an entity or null.
+  ```
   */
   getEntityByKey(entityKey: EntityKey): Entity | null;
 
   /**
   Returns the entity in this manager's cache with this key, or `null` if there is none. It does
   not query the server; see {@link EntityManager.fetchEntityByKey} for that.
-  >      // assume em1 is an EntityManager containing a number of preexisting entities.
-  >      let employee = em1.getEntityByKey("Employee", 1);
-  >      // employee will either be an entity or null.
+  ```ts
+  // assume em1 is an EntityManager containing a number of preexisting entities.
+  const employee = em1.getEntityByKey("Employee", 1);
+  // employee will either be an entity or null.
+  ```
   */
   getEntityByKey(typeName: string, keyValues: any | any[]): Entity | null;
 
   /**
   Returns the entity in this manager's cache with this key, or `null` if there is none. It does
   not query the server; see {@link EntityManager.fetchEntityByKey} for that.
-  >      // assume em1 is an EntityManager containing a number of preexisting entities.
-  >      let employeeType = em1.metadataStore.getAsEntityType("Employee");
-  >      let employee = em1.getEntityByKey(employeeType, 1);
-  >      // employee will either be an entity or null.
+  ```ts
+  // assume em1 is an EntityManager containing a number of preexisting entities.
+  const employeeType = em1.metadataStore.getAsEntityType("Employee");
+  const employee = em1.getEntityByKey(employeeType, 1);
+  // employee will either be an entity or null.
+  ```
   */
   getEntityByKey(type: EntityType, keyValues: any | any[]): Entity | null;
 
@@ -1522,14 +1557,21 @@ export class EntityManager {
   Attempts to fetch an entity from the server by its {@link EntityKey} with
   an option to check the local cache first. Note the this EntityManager's queryOptions.mergeStrategy
   will be used to merge any server side entity returned by this method.
-  >     // assume em1 is an EntityManager containing a number of preexisting entities.
-  >     let employeeType = em1.metadataStore.getAsEntityType("Employee");
-  >     let employeeKey = new EntityKey(employeeType, 1);
-  >     em1.fetchEntityByKey(employeeKey).then(function(result) {
-  >       let employee = result.entity;
-  >       let entityKey = result.entityKey;
-  >       let fromCache = result.fromCache;
-  >     });
+  ```ts
+  // assume em1 is an EntityManager containing a number of preexisting entities,
+  // and that Employee is registered with its MetadataStore.
+  const result = await em1.fetchEntityByKey(Employee, 1);
+  const employee = result.entity;       // Employee | null
+  const entityKey = result.entityKey;
+  const fromCache = result.fromCache;
+  // look in the cache first, and query the server only if it is not there
+  const { entity } = await em1.fetchEntityByKey(Employee, 1, true);
+  ```
+
+  A type name, an EntityType or an {@link EntityKey} also works; the result's `entity` is then a plain Entity.
+  ```ts
+  const result = await em1.fetchEntityByKey("Employee", 1);
+  ```
   @param typeName  - The EntityType name for this key.
   @param entityType  - The EntityType for this key.
   @param keyValues - The values for this key - will usually just be a single value; an array is only needed for multipart keys.
@@ -1554,11 +1596,13 @@ export class EntityManager {
 
   /**
   [Deprecated] - Attempts to locate an entity within this EntityManager by its  {@link EntityKey}.
-  >     // assume em1 is an EntityManager containing a number of preexisting entities.
-  >     let employeeType = em1.metadataStore.getAsEntityType("Employee");
-  >     let employeeKey = new EntityKey(employeeType, 1);
-  >     let employee = em1.findEntityByKey(employeeKey);
-  >     // employee will either be an entity or null.
+  ```ts
+  // assume em1 is an EntityManager containing a number of preexisting entities.
+  const employeeType = em1.metadataStore.getAsEntityType("Employee");
+  const employeeKey = new EntityKey(employeeType, 1);
+  const employee = em1.findEntityByKey(employeeKey);
+  // employee will either be an entity or null.
+  ```
   @deprecated    Use getEntityByKey instead
   @param entityKey - The  {@link EntityKey} of the Entity to be located.
   @returns An Entity or null;
@@ -1575,21 +1619,17 @@ export class EntityManager {
   The {@link EntityManager.keyGeneratorCtor} property is used internally by this method to actually generate
   the keys - See the  KeyGenerator interface interface description to see
   how a custom key generator can be plugged in.
-  >      // assume em1 is an EntityManager containing a number of preexisting entities.
-  >      let custType = em1.metadataStore.getAsEntityType("Customer");
-  >      let customer = custType.createEntity();
-  >      let customerId = em.generateTempKeyValue(customer);
-  >      // The 'customer' entity 'CustomerID' property is now set to a newly generated unique id value
-  >      // This property will change again after a successful save of the 'customer' entity.
-  >  
-  >      em1.saveChanges().then( function( data) {
-  >          let sameCust1 = data.results[0];
-  >          // cust1 === sameCust1;
-  >          // but cust1.getProperty("CustomerId") != customerId
-  >          // because the server will have generated a new id
-  >          // and the client will have been updated with this
-  >          // new id.
-  >      })
+  ```ts
+  // assume em1 is an EntityManager containing a number of preexisting entities.
+  const customer = em1.createEntity(Customer, { companyName: "Acme" }, EntityState.Detached);
+  const customerId = em1.generateTempKeyValue(customer);
+  // customer.customerID is now set to a newly generated unique id value.
+  // This property will change again after a successful save of the customer.
+  em1.addEntity(customer);
+  await em1.saveChanges();
+  // customer.customerID !== customerId, because the server will have generated
+  // a new id and the client will have been updated with this new id.
+  ```
   @param entity - The Entity to generate a key for.
   @returns The new key value
   */
@@ -1613,25 +1653,28 @@ export class EntityManager {
   has an {@link EntityState} of either Added, Modified or Deleted.
 
   This method can be used to determine if an EntityManager has any changes
-  >      // assume em1 is an EntityManager containing a number of preexisting entities.
-  >      if ( em1.hasChanges() {
-  >          // do something interesting
-  >      }
+  ```ts
+  // assume em1 is an EntityManager containing a number of preexisting entities.
+  if (em1.hasChanges()) {
+      // do something interesting
+  }
+  ```
 
   or if it has any changes on to a specific {@link EntityType}.
-  >      // assume em1 is an EntityManager containing a number of preexisting entities.
-  >      let custType = em1.metadataStore.getAsEntityType("Customer");
-  >      if ( em1.hasChanges(custType) {
-  >          // do something interesting
-  >      }
+  ```ts
+  // assume em1 is an EntityManager containing a number of preexisting entities.
+  if (em1.hasChanges(Customer)) {
+      // do something interesting
+  }
+  ```
 
-  or to a collection of {@link EntityType}s
-  >      // assume em1 is an EntityManager containing a number of preexisting entities.
-  >      let custType = em1.metadataStore.getAsEntityType("Customer");
-  >      let orderType = em1.metadataStore.getAsEntityType("Order");
-  >      if ( em1.hasChanges( [custType, orderType]) {
-  >          // do something interesting
-  >      }
+  or to a collection of {@link EntityType}s, named or given as EntityTypes
+  ```ts
+  // assume em1 is an EntityManager containing a number of preexisting entities.
+  if (em1.hasChanges(["Customer", "Order"])) {
+      // do something interesting
+  }
+  ```
   @param entityTypes - The {@link EntityType} or EntityTypes for which 'changed' entities will be found.
   @param entityTypeNames - The {@link EntityType} name or names for which 'changed' entities will be found.
   @returns Whether there are any changed entities that match the types specified..
@@ -1661,19 +1704,22 @@ export class EntityManager {
   has an {@link EntityState} of either Added, Modified or Deleted.
   
   This method can be used to get all of the changed entities within an EntityManager
-  >      // assume em1 is an EntityManager containing a number of preexisting entities.
-  >      let changedEntities = em1.getChanges();
+  ```ts
+  // assume em1 is an EntityManager containing a number of preexisting entities.
+  const changedEntities = em1.getChanges();
+  ```
 
   or you can specify that you only want the changes on a specific {@link EntityType}
-  >      // assume em1 is an EntityManager containing a number of preexisting entities.
-  >      let custType = em1.metadataStore.getAsEntityType("Customer");
-  >      let changedCustomers = em1.getChanges(Customer);   // Customer[], from the registered class
+  ```ts
+  // assume em1 is an EntityManager containing a number of preexisting entities.
+  const changedCustomers = em1.getChanges(Customer);   // Customer[], from the registered class
+  ```
 
-  or to a collection of {@link EntityType}s
-  >      // assume em1 is an EntityManager containing a number of preexisting entities.
-  >      let custType = em1.metadataStore.getAsEntityType("Customer");
-  >      let orderType = em1.metadataStore.getAsEntityType("Order");
-  >      let changedCustomersAndOrders = em1.getChanges([custType, orderType]);
+  or to a collection of {@link EntityType}s, named or given as EntityTypes
+  ```ts
+  // assume em1 is an EntityManager containing a number of preexisting entities.
+  const changedCustomersAndOrders = em1.getChanges(["Customer", "Order"]);   // Entity[]
+  ```
   @param entityTypes - The {@link EntityType} or EntityTypes for which 'changed' entities will be found.
   @param entityTypeNames - The {@link EntityType} name or names for which 'changed' entities will be found.
   @returns An array of Entities
@@ -1686,8 +1732,10 @@ export class EntityManager {
   /**
   Rejects (reverses the effects) all of the additions, modifications and deletes from this EntityManager.
   Calls {@link EntityAspect.rejectChanges} on every changed entity in this EntityManager.
-  >      // assume em1 is an EntityManager containing a number of preexisting entities.
-  >      let entities = em1.rejectChanges();
+  ```ts
+  // assume em1 is an EntityManager containing a number of preexisting entities.
+  const entities = em1.rejectChanges();
+  ```
   @returns The entities whose changes were rejected. These entities will all have EntityStates of
   either 'Unchanged' or 'Detached'
   */
@@ -1713,25 +1761,29 @@ export class EntityManager {
   Returns a array of all entities of the specified {@link EntityType}s with the specified {@link EntityState}s.
 
   This method can be used to get all of the entities within an EntityManager
-  >      // assume em1 is an EntityManager containing a number of preexisting entities.
-  >      let entities = em1.getEntities();
+  ```ts
+  // assume em1 is an EntityManager containing a number of preexisting entities.
+  const entities = em1.getEntities();
+  ```
 
-  or you can specify that you only want the changes on a specific {@link EntityType}
-  >      // assume em1 is an EntityManager containing a number of preexisting entities.
-  >      let custType = em1.metadataStore.getAsEntityType("Customer");
-  >      let customers = em1.getEntities(Customer);          // Customer[]
+  or you can specify that you only want the entities of a specific {@link EntityType}
+  ```ts
+  // assume em1 is an EntityManager containing a number of preexisting entities.
+  const customers = em1.getEntities(Customer);          // Customer[]
+  ```
 
-  or to a collection of {@link EntityType}s
-  >      // assume em1 is an EntityManager containing a number of preexisting entities.
-  >      let custType = em1.metadataStore.getAsEntityType("Customer");
-  >      let orderType = em1.metadataStore.getAsEntityType("Order");
-  >      let customersAndOrders = em1.getChanges([custType, orderType]);
+  or of a collection of {@link EntityType}s, named or given as EntityTypes
+  ```ts
+  // assume em1 is an EntityManager containing a number of preexisting entities.
+  const customersAndOrders = em1.getEntities(["Customer", "Order"]);   // Entity[]
+  ```
 
   You can also ask for entities with a particular {@link EntityState} or EntityStates.
-  >      // assume em1 is an EntityManager containing a number of preexisting entities.
-  >      let custType = em1.metadataStore.getAsEntityType("Customer");
-  >      let orderType = em1.metadataStore.getAsEntityType("Order");
-  >      let addedCustomersAndOrders = em1.getEntities([custType, orderType], EntityState.Added);
+  ```ts
+  // assume em1 is an EntityManager containing a number of preexisting entities.
+  const addedCustomers = em1.getEntities(Customer, EntityState.Added);   // Customer[]
+  const addedOrModifiedOrders = em1.getEntities(Order, [EntityState.Added, EntityState.Modified]);
+  ```
  
   @param entityTypeName - The {@link EntityType} name or names for which entities will be found.
   If this parameter is omitted, all EntityTypes are searched.  

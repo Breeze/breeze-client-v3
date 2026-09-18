@@ -111,11 +111,13 @@ export class MetadataStore {
     - metadataStore - The MetadataStore into which the metadata was fetched.
     - dataService - The {@link DataService} that metadata was fetched from.
     - rawMetadata - {Object} The raw metadata returned from the service. (It will have already been processed by this point).
-  >      let ms = myEntityManager.metadataStore;
-  >      ms.metadataFetched.subscribe(function(args) {
-  >          let metadataStore = args.metadataStore;
-  >          let dataService = args.dataService;
-  >      });
+  ```ts
+  const ms = myEntityManager.metadataStore;
+  ms.metadataFetched.subscribe(args => {
+      const metadataStore = args.metadataStore;
+      const dataService = args.dataService;
+  });
+  ```
   @event
   */
   metadataFetched: BreezeEvent<MetadataFetchedEventArgs>;
@@ -143,17 +145,23 @@ export class MetadataStore {
   /**
   Constructs a new MetadataStore.
   
-  >     let ms = new MetadataStore();
+  ```ts
+  const ms = new MetadataStore();
+  ```
 
   The store can then be associated with an EntityManager
-  >     let entityManager = new EntityManager( {
-  >         serviceName: "breeze/NorthwindIBModel", 
-  >         metadataStore: ms 
-  >     });
+  ```ts
+  const entityManager = new EntityManager({
+      serviceName: "breeze/NorthwindIBModel",
+      metadataStore: ms
+  });
+  ```
 
   or for an existing EntityManager
-  >    // Assume em1 is an existing EntityManager
-  >    em1.setProperties( { metadataStore: ms });
+  ```ts
+  // Assume em1 is an existing EntityManager
+  em1.setProperties({ metadataStore: ms });
+  ```
   
   @param config - Configuration settings .
     - namingConvention - (default=NamingConvention.defaultInstance) NamingConvention to be used in mapping property names
@@ -202,13 +210,13 @@ export class MetadataStore {
   /**
   General purpose property set method
   
-  >     // assume em1 is an EntityManager containing a number of existing entities.
-  >     em1.metadataStore.setProperties({
-  >         name: "Northwind v6.1.3",
-  >         serializerFn: function (prop, value) {
-  >             return (prop.isUnmapped) ? undefined : value;
-  >         }
-  >     });
+  ```ts
+  // assume em1 is an EntityManager containing a number of existing entities.
+  em1.metadataStore.setProperties({
+      name: "Northwind v6.1.3",
+      serializerFn: (prop, value) => prop.isUnmapped ? undefined : value
+  });
+  ```
   @param config -  An object containing the selected properties and values to set.
   */
   setProperties(config: MetadataStoreConfig) {
@@ -312,13 +320,15 @@ export class MetadataStore {
   /**
   Exports this MetadataStore to a serialized string appropriate for local storage.   This operation is also called
   internally when exporting an EntityManager.
-  >      // assume ms is a previously created MetadataStore
-  >      let metadataAsString = ms.exportMetadata();
-  >      window.localStorage.setItem("metadata", metadataAsString);
-  >      // and later, usually in a different session imported
-  >      let metadataFromStorage = window.localStorage.getItem("metadata");
-  >      let newMetadataStore = new MetadataStore();
-  >      newMetadataStore.importMetadata(metadataFromStorage);
+  ```ts
+  // assume ms is a previously created MetadataStore
+  const metadataAsString = ms.exportMetadata();
+  window.localStorage.setItem("metadata", metadataAsString);
+  // and later, usually in a different session imported
+  const metadataFromStorage = window.localStorage.getItem("metadata");
+  const newMetadataStore = new MetadataStore();
+  newMetadataStore.importMetadata(metadataFromStorage);
+  ```
   @returns A serialized version of this MetadataStore that may be stored locally and later restored.
   */
   exportMetadata() {
@@ -337,13 +347,15 @@ export class MetadataStore {
   /**
   Imports a previously exported serialized MetadataStore into this MetadataStore.
     
-  >      // assume ms is a previously created MetadataStore
-  >      let metadataAsString = ms.exportMetadata();
-  >      window.localStorage.setItem("metadata", metadataAsString);
-  >      // and later, usually in a different session
-  >      let metadataFromStorage = window.localStorage.getItem("metadata");
-  >      let newMetadataStore = new MetadataStore();
-  >      newMetadataStore.importMetadata(metadataFromStorage);
+  ```ts
+  // assume ms is a previously created MetadataStore
+  const metadataAsString = ms.exportMetadata();
+  window.localStorage.setItem("metadata", metadataAsString);
+  // and later, usually in a different session
+  const metadataFromStorage = window.localStorage.getItem("metadata");
+  const newMetadataStore = new MetadataStore();
+  newMetadataStore.importMetadata(metadataFromStorage);
+  ```
 
   A type that is already in this store is left as it is unless 'allowMerge' is set, so importing the same metadata
   twice is harmless. A type that is not in the store is created, with or without 'allowMerge', and its metadata must
@@ -410,12 +422,14 @@ export class MetadataStore {
 
   /**
   Creates a new MetadataStore from a previously exported serialized MetadataStore
-  >      // assume ms is a previously created MetadataStore
-  >      let metadataAsString = ms.exportMetadata();
-  >      window.localStorage.setItem("metadata", metadataAsString);
-  >      // and later, usually in a different session
-  >      let metadataFromStorage = window.localStorage.getItem("metadata");
-  >      let newMetadataStore = MetadataStore.importMetadata(metadataFromStorage);
+  ```ts
+  // assume ms is a previously created MetadataStore
+  const metadataAsString = ms.exportMetadata();
+  window.localStorage.setItem("metadata", metadataAsString);
+  // and later, usually in a different session
+  const metadataFromStorage = window.localStorage.getItem("metadata");
+  const newMetadataStore = MetadataStore.importMetadata(metadataFromStorage);
+  ```
   @param exportedString - A previously exported MetadataStore.
   @returns A new MetadataStore.
   */
@@ -427,10 +441,12 @@ export class MetadataStore {
 
   /**
   Returns whether Metadata has been retrieved for a specified service name.
-  >      // Assume em1 is an existing EntityManager.
-  >      if (!em1.metadataStore.hasMetadataFor("breeze/NorthwindIBModel"))) {
-  >          // do something interesting
-  >      }
+  ```ts
+  // Assume em1 is an existing EntityManager.
+  if (!em1.metadataStore.hasMetadataFor("breeze/NorthwindIBModel")) {
+      // do something interesting
+  }
+  ```
   @param serviceName - The service name.
   @returns Whether metadata has already been retrieved for the specified service name.
   */
@@ -440,9 +456,11 @@ export class MetadataStore {
 
   /**
   Returns the DataService for a specified service name
-  >      // Assume em1 is an existing EntityManager.
-  >      let ds = em1.metadataStore.getDataService("breeze/NorthwindIBModel");
-  >      let adapterName = ds.adapterName; // may be null
+  ```ts
+  // Assume em1 is an existing EntityManager.
+  const ds = em1.metadataStore.getDataService("breeze/NorthwindIBModel");
+  const adapterName = ds.adapterName; // may be null
+  ```
   @param serviceName - The service name.
   @returns The DataService with the specified name.
   */
@@ -464,14 +482,13 @@ export class MetadataStore {
 
   Usually you will not actually process the results of a fetchMetadata call directly, but will instead
   ask for the metadata from the EntityManager after the fetchMetadata call returns.
-  >      let ms = new MetadataStore();
-  >      // or more commonly
-  >      // let ms = anEntityManager.metadataStore;
-  >      ms.fetchMetadata("breeze/NorthwindIBModel").then(function(rawMetadata) {
-  >            // do something with the metadata
-  >      }).catch(function(exception) {
-  >          // handle exception here
-  >      });
+  ```ts
+  const ms = new MetadataStore();
+  // or more commonly
+  // const ms = anEntityManager.metadataStore;
+  const rawMetadata = await ms.fetchMetadata("breeze/NorthwindIBModel");
+  // do something with the metadata
+  ```
   @param dataService -  Either a DataService or just the name of the DataService to fetch metadata for.
   @param callback - Deprecated. Function called on success.
   @param errorCallback - Deprecated. Function called on failure.
@@ -529,16 +546,18 @@ export class MetadataStore {
   the entity as needed.
   This call may be made before or after the corresponding EntityType has been discovered via
   Metadata discovery.
-  >      let Customer = function () {
-  >              this.miscData = "asdf";
-  >          };
-  >      Customer.prototype.doFoo() {
-  >              ...
-  >          }
-  >      // assume em1 is a preexisting EntityManager;
-  >      em1.metadataStore.registerEntityTypeCtor("Customer", Customer);
-  >      // any queries or EntityType.create calls from this point on will call the Customer constructor
-  >      // registered above.
+  ```ts
+  class Customer {
+      miscData = "asdf";    // an unmapped property
+      doFoo() {
+          // ...
+      }
+  }
+  // assume em1 is a preexisting EntityManager;
+  em1.metadataStore.registerEntityTypeCtor("Customer", Customer);
+  // any queries or createEntity calls from this point on will call the Customer constructor
+  // registered above.
+  ```
   @param structuralTypeName - The name of the EntityType or ComplexType.
   @param aCtor - The constructor for this EntityType or ComplexType; may be null if all you want to do is set the next parameter.
   @param initFn - A function or the name of a function on the entity that is to be executed immediately after the entity has been created
@@ -572,10 +591,12 @@ export class MetadataStore {
 
   /**
   Returns whether this MetadataStore contains any metadata yet.
-  >      // assume em1 is a preexisting EntityManager;
-  >      if (em1.metadataStore.isEmpty()) {
-  >          // do something interesting
-  >      }
+  ```ts
+  // assume em1 is a preexisting EntityManager;
+  if (em1.metadataStore.isEmpty()) {
+      // do something interesting
+  }
+  ```
   */
   isEmpty() {
     return core.isEmpty(this._structuralTypeMap);
@@ -583,12 +604,16 @@ export class MetadataStore {
 
   /**
   Returns an {@link EntityType} or null given its name.
-  >      // assume em1 is a preexisting EntityManager
-  >      let odType = em1.metadataStore.getAsEntityType("OrderDetail");
+  ```ts
+  // assume em1 is a preexisting EntityManager
+  const odType = em1.metadataStore.getAsEntityType("OrderDetail");
+  ```
 
   or to throw an error if the type is not found
-  >      let badType = em1.metadataStore.getAsEntityType("Foo", false);
-  >      // badType will not get set and an exception will be thrown.
+  ```ts
+  const badType = em1.metadataStore.getAsEntityType("Foo", false);
+  // badType will not get set and an exception will be thrown.
+  ```
   @param typeName - Either the fully qualified name or a short name may be used. If a short name is specified and multiple types share
   that same short name an exception will be thrown.
   @param okIfNotFound - (default=false) Whether to throw an error if the specified EntityType is not found.
@@ -608,12 +633,16 @@ export class MetadataStore {
 
   /**
   Returns an {@link EntityType} or null given its name.
-  >      // assume em1 is a preexisting EntityManager
-  >      let locType = em1.metadataStore.getAsComplexType("Location");
+  ```ts
+  // assume em1 is a preexisting EntityManager
+  const locType = em1.metadataStore.getAsComplexType("Location");
+  ```
 
   or to throw an error if the type is not found
-  >      let badType = em1.metadataStore.getAsComplexType("Foo", false);
-  >      // badType will not get set and an exception will be thrown.
+  ```ts
+  const badType = em1.metadataStore.getAsComplexType("Foo", false);
+  // badType will not get set and an exception will be thrown.
+  ```
   @param typeName - Either the fully qualified name or a short name may be used. If a short name is specified and multiple types share
   that same short name an exception will be thrown.
   @param okIfNotFound - (default=false) Whether to throw an error if the specified EntityType is not found.
@@ -648,12 +677,16 @@ export class MetadataStore {
 
   /**
   Returns an {@link EntityType} or a {@link ComplexType} given its name.
-  >      // assume em1 is a preexisting EntityManager
-  >      let odType = em1.metadataStore.getStructuralType("OrderDetail");
+  ```ts
+  // assume em1 is a preexisting EntityManager
+  const odType = em1.metadataStore.getStructuralType("OrderDetail");
+  ```
 
   or to throw an error if the type is not found
-  >      let badType = em1.metadataStore.getStructuralType("Foo", false);
-  >      // badType will not get set and an exception will be thrown.
+  ```ts
+  const badType = em1.metadataStore.getStructuralType("Foo", false);
+  // badType will not get set and an exception will be thrown.
+  ```
   Prefer {@link MetadataStore.getAsEntityType} or {@link MetadataStore.getAsComplexType} when you
   know which kind you expect. This is the lookup for when you do not.
   @param typeName - Either the fully qualified name or a short name may be used. If a short name is specified and multiple types share
@@ -681,8 +714,10 @@ export class MetadataStore {
 
   /**
   Returns an array containing all of the {@link EntityType}s or {@link ComplexType}s in this MetadataStore.
-  >      // assume em1 is a preexisting EntityManager
-  >      let allTypes = em1.metadataStore.getEntityTypes();
+  ```ts
+  // assume em1 is a preexisting EntityManager
+  const allTypes = em1.metadataStore.getEntityTypes();
+  ```
   */
   getEntityTypes() {
     return getTypesFromMap(this._structuralTypeMap);
@@ -1071,10 +1106,12 @@ export class EntityType {
 
 
   /** EntityType constructor  
-  >      let entityType = new EntityType( {
-  >          shortName: "person",
-  >          namespace: "myAppNamespace"
-  >      });
+  ```ts
+  const entityType = new EntityType({
+      shortName: "person",
+      namespace: "myAppNamespace"
+  });
+  ```
   @param config - Configuration settings or a MetadataStore.  If this parameter is just a MetadataStore
   then what will be created is an 'anonymous' type that will never be communicated to or from the server. It is purely for
   client side use and will be given an automatically generated name. Normally, however, you will use a configuration object.
@@ -1134,12 +1171,14 @@ export class EntityType {
 
   /**
   General purpose property set method
-  >      // assume em1 is an EntityManager containing a number of existing entities.
-  >      let custType = em1.metadataStore.getAsEntityType("Customer");
-  >      custType.setProperties( {
-  >          autoGeneratedKeyType: AutoGeneratedKeyType.Identity;
-  >          defaultResourceName: "CustomersAndIncludedOrders"
-  >      )};
+  ```ts
+  // assume em1 is an EntityManager containing a number of existing entities.
+  const custType = em1.metadataStore.getAsEntityType("Customer");
+  custType.setProperties({
+      autoGeneratedKeyType: AutoGeneratedKeyType.Identity,
+      defaultResourceName: "CustomersAndIncludedOrders"
+  });
+  ```
   @param config - a configuration object
   */
   setProperties(config: EntityTypeSetConfig) {
@@ -1195,10 +1234,12 @@ export class EntityType {
 
   /**
   Adds a  {@link DataProperty} or a {@link NavigationProperty} to this EntityType.
-  >      // assume myEntityType is a newly constructed EntityType.
-  >      myEntityType.addProperty(dataProperty1);
-  >      myEntityType.addProperty(dataProperty2);
-  >      myEntityType.addProperty(navigationProperty1);
+  ```ts
+  // assume myEntityType is a newly constructed EntityType.
+  myEntityType.addProperty(dataProperty1);
+  myEntityType.addProperty(dataProperty2);
+  myEntityType.addProperty(navigationProperty1);
+  ```
   */
   addProperty(property: EntityProperty) {
     assertParam(property, "property").isInstanceOf(DataProperty).or().isInstanceOf(NavigationProperty).check();
@@ -1287,14 +1328,18 @@ export class EntityType {
   /**
   Creates a new entity of this type, detached: add it to a manager with {@link EntityManager.addEntity},
   or use {@link EntityManager.createEntity}, which does both.
-  >      // assume em1 is an EntityManager containing a number of existing entities.
-  >      let custType = em1.metadataStore.getAsEntityType("Customer");
-  >      let cust1 = custType.createEntity();
-  >      em1.addEntity(cust1);
+  ```ts
+  // assume em1 is an EntityManager containing a number of existing entities.
+  const custType = em1.metadataStore.getAsEntityType("Customer");
+  const cust1 = custType.createEntity<Customer>({ companyName: "Acme" });   // Customer
+  em1.addEntity(cust1);
+  ```
 
   `T` is the type you expect back. Nothing checks it - an EntityType knows its metadata, not your
   class - and it defaults to `any`.
-  >      let order = orderType.createEntity<Order>({ shipName: "Acme" });
+  ```ts
+  const order = custType.createEntity<Order>();   // compiles, but creates a Customer
+  ```
   @param initialValues - Property values to set immediately after creation.
   @returns The new entity.
   */
@@ -1438,25 +1483,30 @@ export class EntityType {
 
   /**
   Adds either an entity or property level validator to this EntityType.
-  >      // assume em1 is an EntityManager containing a number of existing entities.
-  >      let custType = em1.metadataStore.getAsEntityType("Customer");
-  >      let countryProp = custType.getProperty("Country");
-  >      let valFn = function (v) {
-  >              if (v == null) return true;
-  >              return v.startsWith("US");
-  >          };
-  >      let countryValidator = new Validator("countryIsUS", valFn,
-  >      { displayName: "Country", messageTemplate: "'%displayName%' must start with 'US'" });
-  >      custType.addValidator(countryValidator, countryProp);
+  ```ts
+  // assume em1 is an EntityManager containing a number of existing entities.
+  const custType = em1.metadataStore.getAsEntityType("Customer");
+  const countryProp = custType.getProperty("country");
+  const valFn = (v: string | null) => v == null || v.startsWith("US");
+  const countryValidator = new Validator("countryIsUS", valFn,
+      { displayName: "Country", messageTemplate: "'%displayName%' must start with 'US'" });
+  custType.addValidator(countryValidator, countryProp);
+  ```
 
   This is the same as adding an entity level validator via the 'validators' property of DataProperty or NavigationProperty
-  >      countryProp.validators.push(countryValidator);
+  ```ts
+  countryProp.validators.push(countryValidator);
+  ```
 
   Entity level validators can also be added by omitting the 'property' parameter.
-  >      custType.addValidator(someEntityLevelValidator);
+  ```ts
+  custType.addValidator(someEntityLevelValidator);
+  ```
 
   or
-  >      custType.validators.push(someEntityLevelValidator);
+  ```ts
+  custType.validators.push(someEntityLevelValidator);
+  ```
   @param validator - Validator to add.
   @param property - Property to add this validator to.  If omitted, the validator is assumed to be an
   entity level validator and is added to the EntityType's 'validators'.
@@ -1474,9 +1524,11 @@ export class EntityType {
 
   /**
   Returns all of the properties ( dataProperties and navigationProperties) for this EntityType.
-  >      // assume em1 is an EntityManager containing a number of existing entities.
-  >      let custType = em1.metadataStore.getAsEntityType("Customer");
-  >      let arrayOfProps = custType.getProperties();
+  ```ts
+  // assume em1 is an EntityManager containing a number of existing entities.
+  const custType = em1.metadataStore.getAsEntityType("Customer");
+  const arrayOfProps = custType.getProperties();
+  ```
   @returns An array of Data and Navigation properties.
   */
   getProperties(): EntityProperty[] {
@@ -1485,9 +1537,11 @@ export class EntityType {
 
   /**
   Returns all of the property names ( for both dataProperties and navigationProperties) for this EntityType.
-  >      // assume em1 is an EntityManager containing a number of existing entities.
-  >      let custType = em1.metadataStore.getAsEntityType("Customer");
-  >      let arrayOfPropNames = custType.getPropertyNames();
+  ```ts
+  // assume em1 is an EntityManager containing a number of existing entities.
+  const custType = em1.metadataStore.getAsEntityType("Customer");
+  const arrayOfPropNames = custType.getPropertyNames();
+  ```
   */
   getPropertyNames() {
     return this.getProperties().map(core.pluck('name'));
@@ -1495,9 +1549,11 @@ export class EntityType {
 
   /**
   Returns a data property with the specified name or null.
-  >      // assume em1 is an EntityManager containing a number of existing entities.
-  >      let custType = em1.metadataStore.getAsEntityType("Customer");
-  >      let customerNameDataProp = custType.getDataProperty("CustomerName");
+  ```ts
+  // assume em1 is an EntityManager containing a number of existing entities.
+  const custType = em1.metadataStore.getAsEntityType("Customer");
+  const companyNameDataProp = custType.getDataProperty("companyName");
+  ```
   @returns A DataProperty or null if not found.
   */
   getDataProperty(propertyName: string) {
@@ -1506,9 +1562,11 @@ export class EntityType {
 
   /**
   Returns a navigation property with the specified name or null.
-  >      // assume em1 is an EntityManager containing a number of existing entities.
-  >      let custType = em1.metadataStore.getAsEntityType("Customer");
-  >      let customerOrdersNavProp = custType.getDataProperty("Orders");
+  ```ts
+  // assume em1 is an EntityManager containing a number of existing entities.
+  const custType = em1.metadataStore.getAsEntityType("Customer");
+  const customerOrdersNavProp = custType.getNavigationProperty("orders");
+  ```
   @returns A NavigationProperty or null if not found.
   */
   getNavigationProperty(propertyName: string) {
@@ -1520,13 +1578,17 @@ export class EntityType {
   
   This method also accepts a '.' delimited property path and will return the 'property' at the
   end of the path.
-  >      let custType = em1.metadataStore.getAsEntityType("Customer");
-  >      let companyNameProp = custType.getProperty("CompanyName");
+  ```ts
+  const custType = em1.metadataStore.getAsEntityType("Customer");
+  const companyNameProp = custType.getProperty("companyName");
+  ```
 
   This method can also walk a property path to return a property
-  >      let orderDetailType = em1.metadataStore.getAsEntityType("OrderDetail");
-  >      let companyNameProp2 = orderDetailType.getProperty("Order.Customer.CompanyName");
-  >      // companyNameProp === companyNameProp2
+  ```ts
+  const orderDetailType = em1.metadataStore.getAsEntityType("OrderDetail");
+  const companyNameProp2 = orderDetailType.getProperty("order.customer.companyName");
+  // companyNameProp === companyNameProp2
+  ```
   @param [throwIfNotFound=false] {Boolean} Whether to throw an exception if not found.
   @returns A DataProperty or NavigationProperty or null if not found.
   */
@@ -1959,10 +2021,12 @@ export interface ComplexTypeConfig {
 }
 
 /**  Container for all of the metadata about a specific type of Complex object.
->     let complexType = new ComplexType( {
->         shortName: "address",
->         namespace: "myAppNamespace"
->     });
+```ts
+const complexType = new ComplexType({
+    shortName: "address",
+    namespace: "myAppNamespace"
+});
+```
 @param config - Configuration settings
 */
 export class ComplexType {
@@ -2023,8 +2087,10 @@ export class ComplexType {
   getCtor = EntityType.prototype.getCtor;
   /** Creates a new instance of this ComplexType, optionally setting the property values given in
   `initialValues`; the ComplexType counterpart of {@link EntityType.createEntity}.
-  >      let locType = em1.metadataStore.getAsComplexType("Location");
-  >      let loc = locType.createInstance({ city: "Boston" });
+  ```ts
+  const locType = em1.metadataStore.getAsComplexType("Location");
+  const loc = locType.createInstance<Location>({ city: "Boston" });   // Location, unchecked
+  ```
   */
   // note the name change.
   createInstance = EntityType.prototype.createEntity;
@@ -2088,11 +2154,13 @@ export class ComplexType {
 
   /**
   General purpose property set method
-  >      // assume em1 is an EntityManager
-  >      let addresstType = em1.metadataStore.getAsEntityType("Address");
-  >      addressType.setProperties( {
-  >          custom: { foo: 7, bar: "test" }
-  >      });
+  ```ts
+  // assume em1 is an EntityManager
+  const locType = em1.metadataStore.getAsComplexType("Location");
+  locType.setProperties({
+      custom: { foo: 7, bar: "test" }
+  });
+  ```
   @param config - Custom config object
   @param config.custom - {Object}
   */
@@ -2121,8 +2189,10 @@ export class ComplexType {
 
 
   /** Adds a {@link DataProperty} to this ComplexType.
-  >      // assume addressType is a newly constructed ComplexType.
-  >      addressType.addProperty(new DataProperty({ name: "city", dataType: DataType.String }));
+  ```ts
+  // assume addressType is a newly constructed ComplexType.
+  addressType.addProperty(new DataProperty({ name: "city", dataType: DataType.String }));
+  ```
   */
   addProperty(dataProperty: DataProperty) {
     assertParam(dataProperty, "dataProperty").isInstanceOf(DataProperty).check();
@@ -2276,14 +2346,16 @@ export class DataProperty {
   declare baseProperty?: DataProperty;
 
   /** DataProperty constructor
-  >      let lastNameProp = new DataProperty( {
-  >          name: "lastName",
-  >          dataType: DataType.String,
-  >          isNullable: true,
-  >          maxLength: 20
-  >      });
-  >      // assuming personEntityType is a newly constructed EntityType
-  >      personEntityType.addProperty(lastNameProperty);
+  ```ts
+  const lastNameProp = new DataProperty({
+      name: "lastName",
+      dataType: DataType.String,
+      isNullable: true,
+      maxLength: 20
+  });
+  // assuming personEntityType is a newly constructed EntityType
+  personEntityType.addProperty(lastNameProp);
+  ```
   @param config - A configuration Object or a DataProperty
   */
   constructor(config: DataPropertyConfig | DataProperty) {
@@ -2410,11 +2482,13 @@ export class DataProperty {
 
   /**
   General purpose property set method
-  >      // assume em1 is an EntityManager
-  >      let prop = myEntityType.getProperty("myProperty");
-  >      prop.setProperties( {
-  >          custom: { foo: 7, bar: "test" }
-  >      });
+  ```ts
+  // assume myEntityType is an EntityType
+  const prop = myEntityType.getProperty("myProperty");
+  prop.setProperties({
+      custom: { foo: 7, bar: "test" }
+  });
+  ```
   @param config - A configuration object.
   */
   setProperties(config: { displayName?: string, custom?: Object }) {
@@ -2613,20 +2687,22 @@ export class NavigationProperty {
   declare custom: any;
 
   /** NavigationProperty constructor
-  >      let homeAddressProp = new NavigationProperty( {
-  >          name: "homeAddress",
-  >          entityTypeName: "Address:#myNamespace",
-  >          isScalar: true,
-  >          associationName: "address_person",
-  >          foreignKeyNames: ["homeAddressId"]
-  >      });
-  >      let homeAddressIdProp = new DataProperty( {
-  >          name: "homeAddressId"
-  >          dataType: DataType.Integer
-  >      });
-  >      // assuming personEntityType is a newly constructed EntityType
-  >      personEntityType.addProperty(homeAddressProp);
-  >      personEntityType.addProperty(homeAddressIdProp);
+  ```ts
+  const homeAddressProp = new NavigationProperty({
+      name: "homeAddress",
+      entityTypeName: "Address:#myNamespace",
+      isScalar: true,
+      associationName: "address_person",
+      foreignKeyNames: ["homeAddressId"]
+  });
+  const homeAddressIdProp = new DataProperty({
+      name: "homeAddressId",
+      dataType: DataType.Int32
+  });
+  // assuming personEntityType is a newly constructed EntityType
+  personEntityType.addProperty(homeAddressProp);
+  personEntityType.addProperty(homeAddressIdProp);
+  ```
   @param config - A configuration object.
   */
   constructor(config: NavigationPropertyConfig) {
@@ -2653,11 +2729,13 @@ export class NavigationProperty {
 
   /**
   General purpose property set method
-  >      // assume myEntityType is an EntityType
-  >      let prop = myEntityType.getProperty("myProperty");
-  >      prop.setProperties( {
-  >          custom: { foo: 7, bar: "test" }
-  >      });
+  ```ts
+  // assume myEntityType is an EntityType
+  const prop = myEntityType.getProperty("myProperty");
+  prop.setProperties({
+      custom: { foo: 7, bar: "test" }
+  });
+  ```
   @param config - A config object
   */
   // TODO: create an interface for this.
@@ -2911,8 +2989,10 @@ what the constructor-taking overloads of `EntityQuery.from`, `EntityManager.crea
 rest read. A class that was never registered has nothing to read, so this throws rather than
 letting the caller build a query against `undefined`.
 
->     em.metadataStore.registerEntityTypeCtor('Customer', Customer);
->     entityTypeForCtor(Customer).defaultResourceName;   // 'Customers'
+```ts
+em.metadataStore.registerEntityTypeCtor('Customer', Customer);
+entityTypeForCtor(Customer).defaultResourceName;   // 'Customers'
+```
 @param entityCtor - A constructor registered with a MetadataStore.
 */
 export function entityTypeForCtor(entityCtor: Function): EntityType {

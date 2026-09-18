@@ -46,19 +46,18 @@ export class KeyGenerator {
   The return value of this method must be of the correct type as determined by the keyProperties of the
   specified EntityType
   @example
-      // Assume em1 is a preexisting EntityManager
-      let custType = em1.metadataStore.getAsEntityType("Customer");
-      let cust1 = custType.createEntity();
-      // next line both sets cust1's 'CustomerId' property but also returns the value
-      let cid1 = em1.generateTempKeyValue(cust1);
-      em1.saveChanges().then( function( data) {
-        let sameCust1 = data.results[0];
-        // cust1 === sameCust1;
-        // but cust1.getProperty("CustomerId") != cid1
-        // because the server will have generated a new id
-        // and the client will have been updated with this
-        // new id.
-      });
+      // Assume em1 is a preexisting EntityManager, and the server generates Order keys
+      const order1 = em1.createEntity(Order);
+      // next line calls em1.keyGenerator.generateTempKeyValue(order1.entityType),
+      // sets order1's 'orderID' property to the result, and returns it
+      const oid1 = em1.generateTempKeyValue(order1);
+      const saveResult = await em1.saveChanges();
+      const sameOrder1 = saveResult.entities[0];
+      // order1 === sameOrder1;
+      // but order1.orderID != oid1
+      // because the server will have generated a new id
+      // and the client will have been updated with this
+      // new id.
   @param entityType - The type to generate a key for. Its key must be a single property.
   @param valueIfAvail - A key value to use if no entity in the manager holds it. When entities with
   temporary keys are imported, the manager passes each one's key here, so that the key survives the

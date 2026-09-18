@@ -62,19 +62,25 @@ export class DataService {
   declare useJsonp: boolean;
 
   /**   DataService constructor
-  >     var dataService = new DataService({
-  >         serviceName: altServiceName,
-  >         hasServerMetadata: false
-  >     });
+  ```ts
+  var dataService = new DataService({
+      serviceName: altServiceName,
+      hasServerMetadata: false
+  });
+  ```
 
-  >     var metadataStore = new MetadataStore({
-  >         namingConvention: NamingConvention.camelCase
-  >     });
+  ```ts
+  var metadataStore = new MetadataStore({
+      namingConvention: NamingConvention.camelCase
+  });
+  ```
 
-  >     return new EntityManager({
-  >         dataService: dataService,
-  >         metadataStore: metadataStore
-  >     });
+  ```ts
+  return new EntityManager({
+      dataService: dataService,
+      metadataStore: metadataStore
+  });
+  ```
   @param config - A configuration object.
   */
   constructor(config?: DataServiceConfig) {

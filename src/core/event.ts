@@ -64,8 +64,10 @@ export class BreezeEvent<T> {
    * go back to discarding these silently (which is what Breeze did before 3.0, and why handler
    * bugs were so hard to find).
    *
-   * >     BreezeEvent.unhandledErrorCallback = e => myLogger.error(e);
-   * >     BreezeEvent.unhandledErrorCallback = null;   // say nothing
+   * ```ts
+   * BreezeEvent.unhandledErrorCallback = e => myLogger.error(e);
+   * BreezeEvent.unhandledErrorCallback = null;   // say nothing
+   * ```
    */
   static unhandledErrorCallback: ((e: Error) => void) | null = (e: Error) => {
     // `context` is set by publishCore and names the event.
@@ -99,7 +101,9 @@ export class BreezeEvent<T> {
 
   /**
   Constructor for an Event
-  >     salaryEvent = new BreezeEvent("salaryEvent", person);
+  ```ts
+  salaryEvent = new BreezeEvent("salaryEvent", person);
+  ```
   @param name - The name of the event.
   @param publisher - The object that will be doing the publication. i.e. the object to which this event is attached.
   @param defaultErrorCallback - Function to call when an error occurs during subscription execution. 
@@ -126,16 +130,22 @@ export class BreezeEvent<T> {
 
   /**
   Publish data for this event.
-  >      // Assume 'salaryEvent' is previously constructed Event
-  >      salaryEvent.publish( { eventType: "payRaise", amount: 100 });
+  ```ts
+  // Assume 'salaryEvent' is previously constructed Event
+  salaryEvent.publish( { eventType: "payRaise", amount: 100 });
+  ```
 
   This event can also be published asychronously
-  >      salaryEvent.publish( { eventType: "payRaise", amount: 100 }, true);
+  ```ts
+  salaryEvent.publish( { eventType: "payRaise", amount: 100 }, true);
+  ```
 
   And we can add a handler in case the subscriber 'mishandles' the event.
-  >      salaryEvent.publish( { eventType: "payRaise", amount: 100 }, true, function(error) {
-  >          // do something with the 'error' object
-  >      });
+  ```ts
+  salaryEvent.publish( { eventType: "payRaise", amount: 100 }, true, function(error) {
+      // do something with the 'error' object
+  });
+  ```
   @param data - Data to publish
   @param publishAsync - (default=false) Whether to publish asynchonously or not.
   @param errorCallback - Function to be called for any errors that occur during publication. If omitted,
@@ -156,13 +166,17 @@ export class BreezeEvent<T> {
 
   /**
   Publish data for this event asynchronously.
-  >      // Assume 'salaryEvent' is previously constructed Event
-  >      salaryEvent.publishAsync( { eventType: "payRaise", amount: 100 });
+  ```ts
+  // Assume 'salaryEvent' is previously constructed Event
+  salaryEvent.publishAsync( { eventType: "payRaise", amount: 100 });
+  ```
 
   And we can add a handler in case the subscriber 'mishandles' the event.
-  >      salaryEvent.publishAsync( { eventType: "payRaise", amount: 100 }, function(error) {
-  >          // do something with the 'error' object
-  >      });
+  ```ts
+  salaryEvent.publishAsync( { eventType: "payRaise", amount: 100 }, function(error) {
+      // do something with the 'error' object
+  });
+  ```
   @param data - Data to publish
   @param errorCallback - Function to be called for any errors that occur during publication. If omitted,
   errors will be eaten.
@@ -173,20 +187,24 @@ export class BreezeEvent<T> {
 
   /**
   Subscribe to this event.
-  >      // Assume 'salaryEvent' is previously constructed Event
-  >      salaryEvent.subscribe(function (eventArgs) {
-  >          if (eventArgs.eventType === "payRaise") {
-  >              // do something
-  >          }
-  >      });
+  ```ts
+  // Assume 'salaryEvent' is previously constructed Event
+  salaryEvent.subscribe(function (eventArgs) {
+      if (eventArgs.eventType === "payRaise") {
+          // do something
+      }
+  });
+  ```
 
   There are several built in Breeze events, such as {@link EntityAspect.propertyChanged}, {@link EntityAspect.validationErrorsChanged} as well.
-  >      // Assume order is a preexisting 'order' entity
-  >      order.entityAspect.propertyChanged.subscribe(function (pcEvent) {
-  >          if ( pcEvent.propertyName === "OrderDate") {
-  >              // do something
-  >          }
-  >      });
+  ```ts
+  // Assume order is a preexisting 'order' entity
+  order.entityAspect.propertyChanged.subscribe(function (pcEvent) {
+      if ( pcEvent.propertyName === "OrderDate") {
+          // do something
+      }
+  });
+  ```
   @param callback - Called whenever data is published for this event, with that data as its argument. What is published is documented on each specific event.
   @returns This is a key for 'unsubscription'.  It can be passed to the 'unsubscribe' method.
   */
@@ -203,12 +221,14 @@ export class BreezeEvent<T> {
 
   /**
   Unsubscribe from this event.
-  >      // Assume order is a preexisting 'order' entity
-  >      let token = order.entityAspect.propertyChanged.subscribe(function (pcEvent) {
-  >              // do something
-  >      });
-  >      // sometime later
-  >      order.entityAspect.propertyChanged.unsubscribe(token);
+  ```ts
+  // Assume order is a preexisting 'order' entity
+  let token = order.entityAspect.propertyChanged.subscribe(function (pcEvent) {
+          // do something
+  });
+  // sometime later
+  order.entityAspect.propertyChanged.unsubscribe(token);
+  ```
   @param unsubKey - The value returned from the 'subscribe' method may be used to unsubscribe here.
   @returns Whether unsubscription occured. This will return false if already unsubscribed or if the key simply
   cannot be found.
@@ -246,22 +266,32 @@ export class BreezeEvent<T> {
 
   /**
   Enables or disables the named event for an object and all of its children.
-  >      BreezeEvent.enable(“propertyChanged”, myEntityManager, false)
+  ```ts
+  BreezeEvent.enable(“propertyChanged”, myEntityManager, false)
+  ```
 
   will disable all EntityAspect.propertyChanged events within a EntityManager.
-  >      BreezeEvent.enable(“propertyChanged”, myEntityManager, true)
+  ```ts
+  BreezeEvent.enable(“propertyChanged”, myEntityManager, true)
+  ```
 
   will enable all EntityAspect.propertyChanged events within a EntityManager.
-  >      BreezeEvent.enable(“propertyChanged”, myEntity.entityAspect, false)
+  ```ts
+  BreezeEvent.enable(“propertyChanged”, myEntity.entityAspect, false)
+  ```
 
   will disable EntityAspect.propertyChanged events for a specific entity.
-  >      BreezeEvent.enable(“propertyChanged”, myEntity.entityAspect, null)
+  ```ts
+  BreezeEvent.enable(“propertyChanged”, myEntity.entityAspect, null)
+  ```
 
   will removes any enabling / disabling at the entity aspect level so now any 'Event.enable' calls at the EntityManager level,
   made either previously or in the future, will control notification.
-  >      BreezeEvent.enable(“validationErrorsChanged”, myEntityManager, function(em) {
-  >          return em.customTag === “blue”;
-  >      })
+  ```ts
+  BreezeEvent.enable(“validationErrorsChanged”, myEntityManager, function(em) {
+      return em.customTag === “blue”;
+  })
+  ```
 
 
   will either enable or disable myEntityManager based on the current value of a ‘customTag’ property on myEntityManager.
@@ -284,8 +314,10 @@ export class BreezeEvent<T> {
 
   /**
   Returns whether for a specific event and a specific object and its children, notification is enabled or disabled or not set.
-  >      BreezeEvent.isEnabled(“propertyChanged”, myEntityManager)
-  > 
+  ```ts
+  BreezeEvent.isEnabled(“propertyChanged”, myEntityManager)
+
+  ```
   @param eventName - The name of the event.
   @param obj - The object for which we want to know if notifications are enabled.
   @returns Whether notifications are enabled. If nothing is set on the object, the answer comes from its parent chain, and defaults to true.

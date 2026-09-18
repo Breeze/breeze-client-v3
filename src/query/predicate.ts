@@ -59,32 +59,62 @@ works as it always has; those combinators take any Predicate and are not themsel
 export interface TypedPredicateFactory<T> {
   // Escapes first, checked forms last - when no signature matches, the compiler reports the last
   // one, and its message is the useful one. Same arrangement as EntityQuery.where().
-  /** A path only known at run time, or a query function, neither of which can be checked. */
+  /** A path only known at run time, or a query function, neither of which can be checked.
+  ```ts
+  const p = Predicate.for(Customer);
+  const byColumn = p(userChosenColumn, "eq", value);          // userChosenColumn: string
+  const byFunction = p("toLower(companyName)", "startsWith", "c");
+  ```
+  */
   <P extends string>(property: P extends FunctionExpressionPath ? P : (string extends P ? P : never),
     operator: string | FilterQueryOp, value: any): Predicate;
   <P extends string>(collection: string extends P ? P : never, quantifier: string | FilterQueryOp,
     property: string, operator: string | FilterQueryOp, value: any): Predicate;
-  /** A property, an operator that suits its type, and a matching value. */
+  /** A property, an operator that suits its type, and a matching value.
+  ```ts
+  const p = Predicate.for(Order);
+  const pred = p("freight", "gt", 100);
+  const viaNavigation = p("customer.companyName", "startsWith", "A");
+  ```
+  */
   <P extends PropertyPath<T>, O extends FilterOpFor<PropertyValue<T, P>>>(
     property: P, operator: O, value: FilterValueFor<T, PropertyValue<T, P>, O>): Predicate;
-  /** `any` or `all` over a collection, filtered by a Predicate built for the element type. */
+  /** `any` or `all` over a collection, filtered by a Predicate built for the element type.
+  ```ts
+  const pd = Predicate.for(OrderDetail);
+  const pred = Predicate.for(Order)("orderDetails", "any", pd("unitPrice", ">", 20));
+  ```
+  */
   (collection: CollectionPath<T>, quantifier: QuantifierOp | FilterQueryOp, predicate: Predicate): Predicate;
-  /** `any` or `all` over a collection, then a filter on the element type. */
+  /** `any` or `all` over a collection, then a filter on the element type.
+  ```ts
+  const p = Predicate.for(Customer);
+  const pred = p("orders", "all", "freight", "lt", 100);
+  ```
+  */
   <P extends CollectionPath<T>,
     P2 extends PropertyPath<CollectionElement<T, P>>,
     O2 extends FilterOpFor<PropertyValue<CollectionElement<T, P>, P2>>>(
     collection: P, quantifier: QuantifierOp, property: P2, operator: O2,
     value: FilterValueFor<CollectionElement<T, P>, PropertyValue<CollectionElement<T, P>, P2>, O2>): Predicate;
-  /** The object form, checked in full. */
+  /** The object form, checked in full.
+  ```ts
+  const p = Predicate.for(Customer);
+  const pred = p({ city: "London", companyName: { startsWith: "A" } });
+  ```
+  */
   (predicate: WhereObject<T>): Predicate;
 }
 
 /**
 Used to define a 'where' predicate for an {@link EntityQuery}. Predicates are immutable, which means that any
 method that would modify a Predicate actually returns a new Predicate.
->     let p1 = Predicate.create("freight", ">", 100);
->     let p2 = p1.and("shipCity", "startsWith", "C");
->     let query = EntityQuery.from("Orders").where(p2);
+```ts
+const p = Predicate.for(Order);
+const p1 = p("freight", ">", 100);
+const p2 = p1.and(p("shipCity", "startsWith", "C"));
+const query = EntityQuery.from(Order).where(p2);
+```
 */
 export class Predicate {
   /** The operator of this predicate. Its `key` is, for example, `eq` or `gt` for a comparison, `and` or `or` for a composite, `not`, or `any` or `all`. `undefined` for a pass-through predicate made from a raw filter string. __Read Only__ */
@@ -98,13 +128,18 @@ export class Predicate {
 
 
   /**
-  Predicate constructor
-  >     let p1 = new Predicate("CompanyName", "StartsWith", "B");
-  >     let query = new EntityQuery("Customers").where(p1);
+  Predicate constructor. The compiler checks nothing it is given; for that, build the Predicate with
+  {@link Predicate.for} or {@link Predicate.create} and a type argument instead.
+  ```ts
+  const p1 = new Predicate("companyName", "startsWith", "B");
+  const query = EntityQuery.from(Customer).where(p1);
+  ```
 
   or
-  >     let p2 = new Predicate("Region", FilterQueryOp.Equals, null);
-  >     let query = new EntityQuery("Customers").where(p2);
+  ```ts
+  const p2 = new Predicate("region", FilterQueryOp.Equals, null);
+  const query = EntityQuery.from(Customer).where(p2);
+  ```
   @param args - `property, operator, value`, in that order:
   - **property**: A property name, a nested property name or an expression involving a property name.
   - **operator**: the filter query operator.
@@ -143,23 +178,50 @@ export class Predicate {
   static create(property: string, filterop: string, property2: string, filterop2: string,
     property3: string, filterop3: string, value: any): Predicate;
   /** Checks the property path against `T`. The operator and the value are not tied to that
-  property - see the note above - so use the object form or {@link Predicate.for} for those. */
+  property: supplying `T` stops TypeScript inferring the rest from the path. Use the object form,
+  or {@link Predicate.for}, to have them checked too.
+  ```ts
+  const p = Predicate.create<Customer>("companyName", "startsWith", "C");
+  ```
+  */
   static create<T = any>(property: PropertyPath<T> | FunctionExpressionPath,
     operator: string | FilterQueryOp, value: any): Predicate;
-  /** `any` or `all` over a collection, filtered by a Predicate built for the element type. */
+  /** `any` or `all` over a collection, filtered by a Predicate built for the element type.
+  ```ts
+  const pd = Predicate.for(OrderDetail);
+  const p = Predicate.create<Order>("orderDetails", "any", pd("unitPrice", ">", 20));
+  ```
+  */
   static create<T = any>(collection: CollectionPath<T>, quantifier: QuantifierOp | FilterQueryOp,
     predicate: Predicate): Predicate;
-  /** Checks the collection path against `T`. */
+  /** Checks the collection path against `T`.
+  ```ts
+  const p = Predicate.create<Customer>("orders", "any", "freight", ">", 100);
+  ```
+  */
   static create<T = any>(collection: CollectionPath<T>, quantifier: QuantifierOp | FilterQueryOp,
     property: string, operator: string | FilterQueryOp, value: any): Predicate;
-  /** The object form, checked in full against `T`. */
+  /** The object form, checked in full against `T`.
+  ```ts
+  const p = Predicate.create<Order>({ freight: { gt: 100 }, shipCity: { startsWith: "C" } });
+  ```
+  */
   static create<T = any>(predicate: WhereObject<T>): Predicate;
   /**
-  Same as using the ctor.
-  >      // so 
-  >      let p = Predicate.create(a, b, c);
-  >      // is the same as 
-  >      let p = new Predicate(a, b, c); 
+  Same as using the ctor, except that given the entity type as a type argument, the compiler checks
+  the predicate against that type - everything in the object form, the property path in the
+  three-argument form:
+  ```ts
+  const p1 = Predicate.create<Order>({ freight: { gt: 100 } });
+  const p2 = Predicate.create<Order>("freight", ">", 100);
+  ```
+
+  Without one, nothing is checked, and
+  ```ts
+  const p3 = Predicate.create("freight", ">", 100);
+  // is the same as
+  const p4 = new Predicate("freight", ">", 100);
+  ```
   @param args - `property, operator, value`, in that order:
   - **property**:  A property name, a nested property name or an expression involving a property name.
   - **operator**: the filter query operator.
@@ -211,15 +273,20 @@ export class Predicate {
 
   /**
   Creates a 'composite' Predicate by 'and'ing a set of specified Predicates together.
-  >      let dt = new Date(88, 9, 12);
-  >      let p1 = Predicate.create("OrderDate", "ne", dt);
-  >      let p2 = Predicate.create("ShipCity", "startsWith", "C");
-  >      let p3 = Predicate.create("Freight", ">", 100);
-  >      let newPred = Predicate.and(p1, p2, p3);
+  ```ts
+  const p = Predicate.for(Order);
+  const dt = new Date(1988, 9, 12);
+  const p1 = p("orderDate", "ne", dt);
+  const p2 = p("shipCity", "startsWith", "C");
+  const p3 = p("freight", ">", 100);
+  const newPred = Predicate.and(p1, p2, p3);
+  ```
 
   or
-  >      let preds = [p1, p2, p3];
-  >      let newPred = Predicate.and(preds);
+  ```ts
+  const preds = [p1, p2, p3];
+  const newPred = Predicate.and(preds);
+  ```
   @param args - multiple Predicates or an array of Predicate. 
   Any null or undefined values passed in will be automatically filtered out before constructing the composite predicate.
   */
@@ -229,15 +296,20 @@ export class Predicate {
 
   /**
   Creates a 'composite' Predicate by 'or'ing a set of specified Predicates together.
-  >      let dt = new Date(88, 9, 12);
-  >      let p1 = Predicate.create("OrderDate", "ne", dt);
-  >      let p2 = Predicate.create("ShipCity", "startsWith", "C");
-  >      let p3 = Predicate.create("Freight", ">", 100);
-  >      let newPred = Predicate.or(p1, p2, p3);
+  ```ts
+  const p = Predicate.for(Order);
+  const dt = new Date(1988, 9, 12);
+  const p1 = p("orderDate", "ne", dt);
+  const p2 = p("shipCity", "startsWith", "C");
+  const p3 = p("freight", ">", 100);
+  const newPred = Predicate.or(p1, p2, p3);
+  ```
 
   or
-  >      let preds = [p1, p2, p3];
-  >      let newPred = Predicate.or(preds);
+  ```ts
+  const preds = [p1, p2, p3];
+  const newPred = Predicate.or(preds);
+  ```
   @param args - multiple Predicates or an array of Predicate.
   Any null or undefined values passed in will be automatically filtered out before constructing the composite predicate.
   */
@@ -247,14 +319,20 @@ export class Predicate {
 
   /**
   Creates a 'composite' Predicate by 'negating' a specified predicate.
-  >      let p1 = Predicate.create("Freight", "gt", 100);
-  >      let not_p1 = Predicate.not(p1);
+  ```ts
+  const p1 = Predicate.create<Order>({ freight: { gt: 100 } });
+  const not_p1 = Predicate.not(p1);
+  ```
 
   This can also be accomplished using the 'instance' version of the 'not' method
-  >      let not_p1 = p1.not();
+  ```ts
+  const not_p1 = p1.not();
+  ```
 
   Both of which would be the same as
-  >      let not_p1 = Predicate.create("Freight", "le", 100);
+  ```ts
+  const not_p1 = Predicate.create<Order>({ freight: { le: 100 } });
+  ```
   */
   static not(pred: Predicate) {
     return pred.not();
@@ -262,8 +340,10 @@ export class Predicate {
 
   /**
   Builds Predicates checked against one entity type.
-  >      const p = Predicate.for(Customer);
-  >      const pred = p("companyName", "startsWith", "C").and(p("city", "eq", "Vienna"));
+  ```ts
+  const p = Predicate.for(Customer);
+  const pred = p("companyName", "startsWith", "C").and(p("city", "eq", "Vienna"));
+  ```
 
   A standalone Predicate has no query to take an entity type from, so on its own
   {@link Predicate.create} cannot check anything. Naming the type supplies what is missing, the
@@ -281,13 +361,15 @@ export class Predicate {
   }
 
   /**
-  Adds functions that predicates can call, such as `toupper` in `Predicate.create("toupper(companyName)", "==", "ACME")`,
+  Adds functions that predicates can call, such as `toupper` in `Predicate.create<Customer>("toupper(companyName)", "==", "ACME")`,
   or replaces existing ones. Each entry maps a function name to `fn`, which evaluates it in local
   queries, and the {@link DataType} it returns. A server query sends the call by name, so the
   server must support the function too.
-  >     Predicate.extendFuncMap({
-  >       initial: { fn: (s: string) => s.charAt(0), dataType: DataType.String }
-  >     });
+  ```ts
+  Predicate.extendFuncMap({
+    initial: { fn: (s: string) => s.charAt(0), dataType: DataType.String }
+  });
+  ```
   @param funcMap - The functions to add, keyed by name. Write names in lower case: Breeze lower-cases a
   function name when it parses a predicate.
   */
@@ -300,19 +382,29 @@ export class Predicate {
 
   /**
   'And's this Predicate with one or more other Predicates and returns a new 'composite' Predicate
-  >      let dt = new Date(88, 9, 12);
-  >      let p1 = Predicate.create("OrderDate", "ne", dt);
-  >      let p2 = Predicate.create("ShipCity", "startsWith", "C");
-  >      let p3 = Predicate.create("Freight", ">", 100);
-  >      let newPred = p1.and(p2, p3);
+  ```ts
+  const p = Predicate.for(Order);
+  const dt = new Date(1988, 9, 12);
+  const p1 = p("orderDate", "ne", dt);
+  const p2 = p("shipCity", "startsWith", "C");
+  const p3 = p("freight", ">", 100);
+  const newPred = p1.and(p2, p3);
+  ```
 
   or
-  >      let preds = [p2, p3];
-  >      let newPred = p1.and(preds);
+  ```ts
+  const preds = [p2, p3];
+  const newPred = p1.and(preds);
+  ```
 
   The 'and' method is also used to write "fluent" expressions
-  >      let p4 = Predicate.create("ShipCity", "startswith", "F")
-  >        .and("Size", "gt", 2000);
+  ```ts
+  const p4 = p("shipCity", "startsWith", "F")
+    .and(p("freight", "gt", 2000));
+  ```
+
+  It also takes the arguments of {@link Predicate.create} in place of a Predicate - such as
+  `.and("freight", "gt", 2000)` - but the compiler does not check those.
   @param args - multiple Predicates or an array of Predicates. 
   Any null or undefined values passed in will be automatically filtered out before constructing the composite predicate.
   */
@@ -322,19 +414,29 @@ export class Predicate {
 
   /**
   'Or's this Predicate with one or more other Predicates and returns a new 'composite' Predicate
-  >      let dt = new Date(88, 9, 12);
-  >      let p1 = Predicate.create("OrderDate", "ne", dt);
-  >      let p2 = Predicate.create("ShipCity", "startsWith", "C");
-  >      let p3 = Predicate.create("Freight", ">", 100);
-  >      let newPred = p1.or(p2, p3);
+  ```ts
+  const p = Predicate.for(Order);
+  const dt = new Date(1988, 9, 12);
+  const p1 = p("orderDate", "ne", dt);
+  const p2 = p("shipCity", "startsWith", "C");
+  const p3 = p("freight", ">", 100);
+  const newPred = p1.or(p2, p3);
+  ```
 
   or
-  >      let preds = [p2, p3];
-  >      let newPred = p1.or(preds);
+  ```ts
+  const preds = [p2, p3];
+  const newPred = p1.or(preds);
+  ```
 
   The 'or' method is also used to write "fluent" expressions
-  >      let p4 = Predicate.create("ShipCity", "startswith", "F")
-  >        .or("Size", "gt", 2000);
+  ```ts
+  const p4 = p("shipCity", "startsWith", "F")
+    .or(p("freight", "gt", 2000));
+  ```
+
+  It also takes the arguments of {@link Predicate.create} in place of a Predicate - such as
+  `.or("freight", "gt", 2000)` - but the compiler does not check those.
   @param args - multiple Predicates or an array of Predicates. 
   Any null or undefined values passed in will be automatically filtered out before constructing the composite predicate.
   */
@@ -344,15 +446,20 @@ export class Predicate {
 
   /**
   Returns the 'negated' version of this Predicate
-  >      let p1 = Predicate.create("Freight", "gt", 100);
-  >      let not_p1 = p1.not();
+  ```ts
+  const p1 = Predicate.create<Order>({ freight: { gt: 100 } });
+  const not_p1 = p1.not();
+  ```
 
   This can also be accomplished using the 'static' version of the 'not' method
-  >      let p1 = Predicate.create("Freight", "gt", 100);
-  >      let not_p1 = Predicate.not(p1);
+  ```ts
+  const not_p1 = Predicate.not(p1);
+  ```
 
   which would be the same as
-  >      let not_p1 = Predicate.create("Freight", "le", 100);
+  ```ts
+  const not_p1 = Predicate.create<Order>({ freight: { le: 100 } });
+  ```
   */
   not() {
     return new UnaryPredicate("not", this);

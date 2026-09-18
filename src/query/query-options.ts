@@ -93,9 +93,11 @@ export class QueryOptions {
 
   /**
   QueryOptions constructor
-  >     var newQo = new QueryOptions( { mergeStrategy: MergeStrategy.OverwriteChanges });
-  >     // assume em1 is a preexisting EntityManager
-  >     em1.setProperties( { queryOptions: newQo });
+  ```ts
+  var newQo = new QueryOptions( { mergeStrategy: MergeStrategy.OverwriteChanges });
+  // assume em1 is a preexisting EntityManager
+  em1.setProperties( { queryOptions: newQo });
+  ```
   Any QueryOptions property that is not defined will be defaulted from any QueryOptions defined at a higher level in the breeze hierarchy, i.e.
   -  from query.queryOptions
   -  to   entityManager.queryOptions
@@ -121,20 +123,28 @@ export class QueryOptions {
   /**
   Returns a copy of this QueryOptions with the specified {@link MergeStrategy},
   {@link FetchStrategy}, or 'includeDeleted' option applied.
-  >     // Given an EntityManager instance, em
-  >     var queryOptions = em.queryOptions.using(MergeStrategy.PreserveChanges);
+  ```ts
+  // Given an EntityManager instance, em
+  var queryOptions = em.queryOptions.using(MergeStrategy.PreserveChanges);
+  ```
 
   or
-  >     var queryOptions = em.queryOptions.using(FetchStrategy.FromLocalCache);
+  ```ts
+  var queryOptions = em.queryOptions.using(FetchStrategy.FromLocalCache);
+  ```
 
   or
-  >     var queryOptions = em.queryOptions.using({ mergeStrategy: MergeStrategy.OverwriteChanges });
+  ```ts
+  var queryOptions = em.queryOptions.using({ mergeStrategy: MergeStrategy.OverwriteChanges });
+  ```
 
   or
-  >     var queryOptions = em.queryOptions.using({
-  >        includeDeleted: true,
-  >        fetchStrategy:  FetchStrategy.FromLocalCache 
-  >     });
+  ```ts
+  var queryOptions = em.queryOptions.using({
+     includeDeleted: true,
+     fetchStrategy:  FetchStrategy.FromLocalCache 
+  });
+  ```
   @param qoConfig - A configuration object or a standalone {@link MergeStrategy} or {@link FetchStrategy} 
   @returns A new QueryOptions instance.
   */
@@ -152,8 +162,10 @@ export class QueryOptions {
   /**
   Sets the 'defaultInstance' by creating a copy of the current 'defaultInstance' and then applying all of the properties of the current instance.
   The current instance is returned unchanged.
-  >     var newQo = new QueryOptions( { mergeStrategy: MergeStrategy.OverwriteChanges });
-  >     newQo.setAsDefault();
+  ```ts
+  var newQo = new QueryOptions( { mergeStrategy: MergeStrategy.OverwriteChanges });
+  newQo.setAsDefault();
+  ```
   */
   setAsDefault() {
     return core.setAsDefault(this, QueryOptions);

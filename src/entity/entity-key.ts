@@ -25,19 +25,25 @@ export class EntityKey {
 
   /**
   Constructs a new EntityKey.  Each entity within an EntityManager will have a unique EntityKey.
-  >     // assume em1 is an EntityManager containing a number of existing entities.
-  >     var empType = em1.metadataStore.getAsEntityType("Employee");
-  >     var entityKey = new EntityKey(empType, 1);
+  ```ts
+  // assume Employee is registered with the MetadataStore
+  const empType = entityTypeForCtor(Employee);
+  const entityKey = new EntityKey(empType, 1);
+  ```
 
   EntityKey's may also be found by calling EntityAspect.getKey()
-  >     // assume employee1 is an existing Employee entity
-  >     var empKey = employee1.entityAspect.getKey();
+  ```ts
+  // assume employee1 is an existing Employee entity
+  const empKey = employee1.entityAspect.getKey();
+  ```
 
   Multipart keys are created by passing an array as the 'keyValues' parameter
-  >     var empTerrType = em1.metadataStore.getAsEntityType("EmployeeTerritory");
-  >     var empTerrKey = new EntityKey(empTerrType, [ 1, 77]);
-  >     // The order of the properties in the 'keyValues' array must be the same as that
-  >     // returned by empTerrType.keyProperties
+  ```ts
+  const empTerrType = entityTypeForCtor(EmployeeTerritory);
+  const empTerrKey = new EntityKey(empTerrType, [1, 77]);
+  // The order of the properties in the 'keyValues' array must be the same as that
+  // returned by empTerrType.keyProperties
+  ```
   @param entityType - The {@link EntityType} of the entity.
   @param keyValues - A single value or an array of values. 
   */
@@ -100,15 +106,16 @@ export class EntityKey {
   /**
   Used to compare EntityKeys are determine if they refer to the same Entity.
   There is also an static version of 'equals' with the same functionality.
-  
-  >      // assume em1 is an EntityManager containing a number of existing entities.
-  >      var empType = em1.metadataStore.getAsEntityType("Employee");
-  >      var empKey1 = new EntityKey(empType, 1);
-  >      // assume employee1 is an existing Employee entity
-  >      var empKey2 = employee1.entityAspect.getKey();
-  >      if (empKey1.equals(empKey2)) {
-  >          // do something  ...
-  >      }
+
+  ```ts
+  // assume Employee is registered with the MetadataStore
+  const empKey1 = new EntityKey(entityTypeForCtor(Employee), 1);
+  // assume employee1 is an existing Employee entity
+  const empKey2 = employee1.entityAspect.getKey();
+  if (empKey1.equals(empKey2)) {
+      // do something  ...
+  }
+  ```
   */
   equals(entityKey: EntityKey): boolean {
     if (!(entityKey instanceof EntityKey)) return false;
@@ -130,14 +137,15 @@ export class EntityKey {
   /**
   Used to compare EntityKeys are determine if they refer to the same Entity.
   There is also an instance version of 'equals' with the same functionality.
-  >      // assume em1 is an EntityManager containing a number of existing entities.
-  >      var empType = em1.metadataStore.getAsEntityType("Employee");
-  >      var empKey1 = new EntityKey(empType, 1);
-  >      // assume employee1 is an existing Employee entity
-  >      var empKey2 = employee1.entityAspect.getKey();
-  >      if (EntityKey.equals(empKey1, empKey2)) {
-  >          // do something  ...
-  >      }
+  ```ts
+  // assume Employee is registered with the MetadataStore
+  const empKey1 = new EntityKey(entityTypeForCtor(Employee), 1);
+  // assume employee1 is an existing Employee entity
+  const empKey2 = employee1.entityAspect.getKey();
+  if (EntityKey.equals(empKey1, empKey2)) {
+      // do something  ...
+  }
+  ```
   */
   static equals(k1: EntityKey, k2: EntityKey) {
     if (!(k1 instanceof EntityKey)) return false;

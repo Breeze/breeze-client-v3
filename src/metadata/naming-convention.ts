@@ -32,18 +32,20 @@ export class NamingConvention {
 
   /**
   NamingConvention constructor
-  >      // A naming convention that converts the first character of every property name to uppercase on the server
-  >      // and lowercase on the client.
-  >      var namingConv = new NamingConvention({
-  >          serverPropertyNameToClient: function(serverPropertyName) {
-  >              return serverPropertyName.substr(0, 1).toLowerCase() + serverPropertyName.substr(1);
-  >          },
-  >          clientPropertyNameToServer: function(clientPropertyName) {
-  >              return clientPropertyName.substr(0, 1).toUpperCase() + clientPropertyName.substr(1);
-  >          }            
-  >      });
-  >      var ms = new MetadataStore({ namingConvention: namingConv });
-  >      var em = new EntityManager( { metadataStore: ms });
+  ```ts
+  // A naming convention that converts the first character of every property name to uppercase on the server
+  // and lowercase on the client.
+  var namingConv = new NamingConvention({
+      serverPropertyNameToClient: function(serverPropertyName) {
+          return serverPropertyName.substr(0, 1).toLowerCase() + serverPropertyName.substr(1);
+      },
+      clientPropertyNameToServer: function(clientPropertyName) {
+          return clientPropertyName.substr(0, 1).toUpperCase() + clientPropertyName.substr(1);
+      }            
+  });
+  var ms = new MetadataStore({ namingConvention: namingConv });
+  var em = new EntityManager( { metadataStore: ms });
+  ```
   */
   constructor(ncConfig: NamingConventionConfig ) {
     assertConfig(ncConfig || {})
@@ -97,15 +99,17 @@ export class NamingConvention {
   /**
   Sets the 'defaultInstance' by creating a copy of the current 'defaultInstance' and then applying all of the properties of the current instance.
   The current instance is returned unchanged.
-  >      var namingConv = new NamingConvention({
-  >          serverPropertyNameToClient: function(serverPropertyName) {
-  >              return serverPropertyName.substr(0, 1).toLowerCase() + serverPropertyName.substr(1);
-  >          },
-  >          clientPropertyNameToServer: function(clientPropertyName) {
-  >              return clientPropertyName.substr(0, 1).toUpperCase() + clientPropertyName.substr(1);
-  >          }            
-  >      });
-  >      namingConv.setAsDefault();
+  ```ts
+  var namingConv = new NamingConvention({
+      serverPropertyNameToClient: function(serverPropertyName) {
+          return serverPropertyName.substr(0, 1).toLowerCase() + serverPropertyName.substr(1);
+      },
+      clientPropertyNameToServer: function(clientPropertyName) {
+          return clientPropertyName.substr(0, 1).toUpperCase() + clientPropertyName.substr(1);
+      }            
+  });
+  namingConv.setAsDefault();
+  ```
   */
   setAsDefault() {
     return core.setAsDefault(this, NamingConvention);

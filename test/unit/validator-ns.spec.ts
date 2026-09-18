@@ -8,6 +8,15 @@ describe("Validator", () => {
   beforeEach(function () {
   });
 
+  // They declared `context` as required, so the documented `Validator.int32()` did not compile,
+  // though each works without one. This file is type-checked by `npm run typecheck`.
+  test("the integer validators take no arguments, as documented", () => {
+    for (const v of [Validator.integer(), Validator.int64(), Validator.int32(), Validator.int16(), Validator.byte()]) {
+      expect(v.validate(12)).toBeNull();
+      expect(v.validate(1.5)).not.toBeNull();
+    }
+  });
+
   test("should be able to register a validator", () => {
 
     let factory = createNumericRangeValidatorFactory();

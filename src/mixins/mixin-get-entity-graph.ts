@@ -57,7 +57,7 @@ export interface HasEntityGraph extends EntityManager {
   /**
   Execute query locally and return both the query results and their related entities as specified by the optional expand parameter or the query's expand clause.
   @example
-      const query = EntityQuery.from('Customers')
+      const query = EntityQuery.from(Customer)
         .where('companyName', 'startsWith', 'Alfred')
         .expand('orders.orderDetails');
       const graph = (em as HasEntityGraph).getEntityGraph(query);

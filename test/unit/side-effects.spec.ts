@@ -288,4 +288,22 @@ describe("doc comments", () => {
     }
     expect(closers).toEqual([]);
   });
+
+  // 2.x marked example code with a leading `>`, which Markdown renders as a quotation: prose font,
+  // `*` and `_` read as emphasis, and a generic such as `EntityQuery<Customer>` taken for an HTML
+  // tag, which fails the docs build. Examples go in a ```ts fence.
+  test("examples are fenced code, not > quotations", () => {
+    const quoted: string[] = [];
+    for (const name of moduleNames) {
+      const lines = fs.readFileSync(new URL(`${name}.ts`, srcDir), 'utf8').split(/\r?\n/);
+      let inDoc = false;
+      lines.forEach((line, i) => {
+        const t = line.trim();
+        if (t.startsWith('/**')) inDoc = true;
+        else if (inDoc && /^(\*\s*)?>/.test(t)) quoted.push(`${name}.ts:${i + 1}  ${t}`);
+        if (t.endsWith('*/')) inDoc = false;
+      });
+    }
+    expect(quoted).toEqual([]);
+  });
 });

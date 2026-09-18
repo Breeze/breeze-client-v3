@@ -41,9 +41,11 @@ export class ValidationOptions implements ValidationOptionsConfig {
 
   /** 
   ValidationOptions constructor
-  >     var newVo = new ValidationOptions( { validateOnSave: false, validateOnAttach: false });
-  >     // assume em1 is a preexisting EntityManager
-  >     em1.setProperties( { validationOptions: newVo });
+  ```ts
+  var newVo = new ValidationOptions( { validateOnSave: false, validateOnAttach: false });
+  // assume em1 is a preexisting EntityManager
+  em1.setProperties( { validationOptions: newVo });
+  ```
   @param config - A configuration object.
   */
   constructor(config?: ValidationOptionsConfig) {
@@ -53,8 +55,10 @@ export class ValidationOptions implements ValidationOptionsConfig {
 
   /**
   Returns a copy of this ValidationOptions with changes to the specified config properties.
-  >     var validationOptions = new ValidationOptions();
-  >     var newOptions = validationOptions.using( { validateOnQuery: true, validateOnSave: false} );
+  ```ts
+  var validationOptions = new ValidationOptions();
+  var newOptions = validationOptions.using( { validateOnQuery: true, validateOnSave: false} );
+  ```
   @param config - A configuration object
   @returns A new ValidationOptions instance.
   */
@@ -68,9 +72,11 @@ export class ValidationOptions implements ValidationOptionsConfig {
   /**
   Sets the 'defaultInstance' by creating a copy of the current 'defaultInstance' and then applying all of the properties of the current instance.
   The current instance is returned unchanged.
-  >     var validationOptions = new ValidationOptions()
-  >     var newOptions = validationOptions.using( { validateOnQuery: true, validateOnSave: false} );
-  >     var newOptions.setAsDefault();
+  ```ts
+  var validationOptions = new ValidationOptions()
+  var newOptions = validationOptions.using( { validateOnQuery: true, validateOnSave: false} );
+  var newOptions.setAsDefault();
+  ```
   */
   setAsDefault() {
     return core.setAsDefault(this, ValidationOptions);
