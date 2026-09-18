@@ -31,7 +31,6 @@ const docsSidebar = [
       { text: 'Navigation properties', link: '/guide/navigation-properties' },
       { text: 'Complex properties', link: '/guide/complex-properties' },
       { text: 'Change tracking', link: '/guide/change-tracking' },
-      { text: 'RxJS', link: '/guide/rxjs' },
       { text: 'EntityManager and caching', link: '/guide/entitymanager-and-caching' },
       { text: 'Saving changes', link: '/guide/saving-changes' },
       { text: 'Validation', link: '/guide/validation' },
@@ -59,6 +58,18 @@ const docsSidebar = [
       { text: 'Date and time', link: '/guide/date-and-time' },
       { text: 'Performance', link: '/guide/performance' },
       { text: 'Testing', link: '/guide/testing' },
+      // Everything opt-in, under one link, one child per extension. A new one goes here and in
+      // docs/guide/extensions.md; side-effects.spec.ts fails until that page lists it.
+      {
+        text: 'Optional extensions',
+        link: '/guide/extensions',
+        collapsed: true,
+        items: [
+          { text: 'Save queuing', link: '/guide/extensions#save-queuing' },
+          { text: 'Entity graphs', link: '/guide/extensions#entity-graphs' },
+          { text: 'RxJS', link: '/guide/rxjs' },
+        ],
+      },
     ],
   },
   {

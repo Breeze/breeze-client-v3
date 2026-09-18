@@ -147,6 +147,28 @@ same thing and has happened five times here, so `side-effects.spec.ts` now fails
 
 ---
 
+## Adding an optional extension
+
+Save queuing, entity graphs and RxJS are opt-in: each is a subpath of its own that
+`src/breeze.ts` does not re-export, so an application that does not import it pays nothing. A new
+one touches these, and the tests fail on the first three if any is missed:
+
+1. **`package.json` `exports`** — the subpath. If it needs a package, make it a devDependency here
+   and an *optional* peer dependency (`peerDependenciesMeta`), never a dependency: npm 7 and
+   later install a plain peer dependency for everyone. See `breeze-client/rxjs`.
+2. **`docs/guide/extensions.md`** — a row in *At a glance* and a section of its own. A large one
+   can have its own page, linked from its section, as RxJS does.
+3. **`docs/guide/configuration.md`** — a row in the table of everything importable.
+4. **`docs/.vitepress/config.mts`** — a child of *Optional extensions* under *Advanced*.
+5. **`scripts/docs-entry.ts`** — `export *` it, so the API reference covers it.
+6. **`scripts/typedoc-categories.mjs`** — its exports under `'Optional extensions'`. The plugin
+   warns until it has been placed.
+
+If importing the module changes anything by itself, as the entity-graph mixin does, add it to
+`sideEffects` in `package.json` too; `side-effects.spec.ts` checks that list.
+
+---
+
 ## Troubleshooting
 
 **The site fails to start with an error about `typedoc-sidebar.json`**

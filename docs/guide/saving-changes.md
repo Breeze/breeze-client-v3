@@ -293,60 +293,18 @@ returns.
 
 ## Save queuing
 
-Some applications save automatically after every edit, and a user can easily make a
-second change before the first save returns. Save queuing handles that: while a save is
-in flight, further `saveChanges` calls are held back and sent as one follow-up save when
-the first returns.
-
-It also does the thing you would otherwise have to do yourself — **it keeps edits made
-while the save was out**. It records what changed on each entity being saved, re-applies
-those values over the server's response, and sends them in the follow-up save. Without it
-they are [quietly overwritten](#changes-during-a-save):
-
-```ts
-cust.companyName = 'Second';
-em.saveChanges();               // in flight
-cust.companyName = 'Third';     // the user keeps typing
-// without queuing: companyName is back to 'Second' when the save returns
-// with queuing:    'Third', and 'Third' is what the database ends up holding
-```
-
-A foreign key set during a save is handled too: if you point a child at a parent whose row
-is still being inserted, the only key you have is the temporary one, and the queued save
-substitutes the key the server assigned.
+If your application saves after every edit, a user can easily make a second change before the
+first save returns — and that change is [overwritten when it does](#changes-during-a-save). Save
+queuing, an optional extension, holds the second save back until the first returns and keeps the
+edits made in between:
 
 ```ts
 import { enableSaveQueuing } from 'breeze-client/mixin-save-queuing';
-
 enableSaveQueuing(em, true);
-
-const p1 = em.saveChanges();   // sent now
-editSomething();
-const p2 = em.saveChanges();   // queued; sent when p1's save returns
 ```
 
-Each promise resolves with the result of the save that included its changes. If a queued
-save fails, every pending promise rejects with a
-[`QueuedSaveFailedError`](/api/classes/QueuedSaveFailedError). Its
-`innerError` is the underlying error.
-
-Limitations:
-
-- The `SaveOptions` of the first save are reused for the queued saves.
-- Only the promise form works. The deprecated callback arguments are ignored.
-- It does not queue parallel saves, even of independent change-sets.
-- It is meant for short-latency auto-save. It does not help with offline work, and it does
-  not cope with `rejectChanges`, export/import or primary-key changes while a save is in
-  flight.
-
-Turn it off again with `enableSaveQueuing(em, false)`. Calling it more than once on the
-same manager is harmless. Reference:
-[`enableSaveQueuing`](/api/functions/enableSaveQueuing).
-
-::: tip Fixed in 3.0
-In 2.x a second call to `enableSaveQueuing` on the same manager, including turning it off,
-left `saveChanges` returning a promise that never settled.
-:::
+How it works, what it cannot do, and how a failed queued save is reported:
+[Save queuing](/guide/extensions#save-queuing), with the other optional extensions.
 
 ## What goes over the wire
 

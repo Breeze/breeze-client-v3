@@ -6,7 +6,7 @@ application is built on RxJS, as an Angular application usually is, `breeze-clie
 the same events as observables, so they compose with the rest of your streams and tear down the way
 the rest of your subscriptions do.
 
-It is optional, like [save queuing](/guide/saving-changes#save-queuing): nothing changes until you
+It is one of Breeze's [optional extensions](/guide/extensions): nothing changes until you
 import it.
 
 ## Installing

@@ -205,6 +205,31 @@ describe("optional dependencies", () => {
   });
 });
 
+// Every opt-in extension is listed in one place, docs/guide/extensions.md, reached from one link
+// under Advanced in the sidebar. These keep the list complete as extensions are added: a new
+// subpath in package.json that is neither the main entry nor an adapter is an extension, and fails
+// here until the page names it.
+describe("optional extensions are all documented", () => {
+
+  const pkg = JSON.parse(fs.readFileSync(new URL('../../package.json', import.meta.url), 'utf8'));
+  const subpaths = Object.keys(pkg.exports).filter(k => k !== '.' && k !== './package.json');
+  const extensions = subpaths.filter(k => !k.startsWith('./adapter-'));
+  const doc = (page: string) => fs.readFileSync(new URL(`../../docs/guide/${page}.md`, import.meta.url), 'utf8');
+
+  test("the extensions are the ones this test expects", () => {
+    // Fails when one is added or removed, so that whoever does it reads the two below.
+    expect(extensions.sort()).toEqual(['./mixin-get-entity-graph', './mixin-save-queuing', './rxjs']);
+  });
+
+  test.each(extensions)("%s is on the Optional extensions page", subpath => {
+    expect(doc('extensions')).toContain(`breeze-client/${subpath.slice(2)}`);
+  });
+
+  test.each(subpaths)("%s is in Configuration's table of everything importable", subpath => {
+    expect(doc('configuration')).toContain(`\`breeze-client/${subpath.slice(2)}\``);
+  });
+});
+
 // Not about side effects, but this file is already the one that reads src/ off disk.
 //
 // TypeScript attaches only the LAST doc comment before a declaration, so a second `/** ... */`
