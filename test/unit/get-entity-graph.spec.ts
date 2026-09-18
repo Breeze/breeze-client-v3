@@ -3,7 +3,7 @@
 // import '../../src/mixins/mixin-get-entity-graph';
 // import { HasEntityGraph } from '../../src/mixins/mixin-get-entity-graph';
 
-import { EntityManager } from '../../src/breeze';
+import { EntityManager, EntityQuery } from '../../src/breeze';
 import { ModelLibraryBackingStoreAdapter } from '../../src/adapters/adapter-model-library-backing-store';
 
 import '../../src/mixins/mixin-get-entity-graph';
@@ -50,6 +50,20 @@ describe("GetEntityGraph", () => {
     let o2 = em.createEntity("Order", { shipName: "Two", customer: customer });
 
     let graph = (em as HasEntityGraph).getEntityGraph(customer, 'orders');
+    expect(graph.length).toEqual(3);
+  });
+
+  // The query form takes its expand from the query. The Entity graphs guide shows exactly this
+  // call, which did not compile while the signature required a second argument.
+  test("should graph a query using the query's own expand", () => {
+    const em = new EntityManager('test');
+    em.metadataStore.importMetadata(TestFns.sampleMetadata);
+    const customer = em.createEntity("Customer", { companyName: "ACME" });
+    em.createEntity("Order", { shipName: "One", customer: customer });
+    em.createEntity("Order", { shipName: "Two", customer: customer });
+
+    const q = EntityQuery.from("Customers").where("companyName", "==", "ACME").expand("orders");
+    const graph = (em as HasEntityGraph).getEntityGraph(q);
     expect(graph.length).toEqual(3);
   });
 

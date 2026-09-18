@@ -28,32 +28,45 @@ interface EntityGroup {
   _indexMap: Map<string, number>;
 }
 
+/**
+ * An {@link EntityManager} with `getEntityGraph`, which returns entities together with everything
+ * an expand path reaches from them in the cache, including deleted entities. Importing
+ * `breeze-client/mixin-get-entity-graph` adds the method to every manager, but changes the
+ * prototype rather than the `EntityManager` type, so cast to this type to call it:
+ *
+ * ```ts
+ * import 'breeze-client/mixin-get-entity-graph';
+ * import type { HasEntityGraph } from 'breeze-client/mixin-get-entity-graph';
+ *
+ * const graph = (em as HasEntityGraph).getEntityGraph(customer, 'orders.orderDetails');
+ * ```
+ */
 // module augmentation failed to build with ng-packagr, so we have a separate interface
 export interface HasEntityGraph extends EntityManager {
   /**
   Get related entities of root entity (or root entities) as specified by expand.
   @example
-      var graph = breeze.EntityManager.getEntityGraph(customer, 'Orders.OrderDetails');
-      // graph will be the customer, all of its orders and their details even if deleted.
+      const graph = (em as HasEntityGraph).getEntityGraph(customer, 'orders.orderDetails');
+      // the customer, all of its orders, and their details - including deleted ones
   @param roots {Entity|Array of Entity} The root entity or root entities.
   @param expand {String|Array of String|Object} an expand string, a query expand clause, or array of string paths
   @returns {Array of Entity} root entities and their related entities, including deleted entities. Duplicates are removed and entity order is indeterminate.
-  **/
+  */
   getEntityGraph(roots: Entity | Array<Entity>, expand: string | Array<string> | ExpandClause): Array<Entity>;
 
   /**
   Execute query locally and return both the query results and their related entities as specified by the optional expand parameter or the query's expand clause.
   @example
-      var query = breeze.EntityQuery.from('Customers')
-                  .where('CompanyName', 'startsWith', 'Alfred')
-                  .expand('Orders.OrderDetails');
-      var graph = manager.getEntityGraph(query);
-      // graph will be the 'Alfred' customers, their orders and their details even if deleted.
+      const query = EntityQuery.from('Customers')
+        .where('companyName', 'startsWith', 'Alfred')
+        .expand('orders.orderDetails');
+      const graph = (em as HasEntityGraph).getEntityGraph(query);
+      // the 'Alfred' customers, their orders, and their details - including deleted ones
   @param query {EntityQuery} A query to be executed against the manager's local cache.
   @param [expand] {String|Array of String|Object} an expand string, a query expand clause, or array of string paths
   @returns {Array of Entity} local queried root entities and their related entities, including deleted entities. Duplicates are removed and entity order is indeterminate.
-  **/
-  getEntityGraph(query: EntityQuery, expand: string | Array<string> | ExpandClause): Array<Entity>;
+  */
+  getEntityGraph(query: EntityQuery, expand?: string | Array<string> | ExpandClause): Array<Entity>;
 
 }
 
@@ -89,7 +102,7 @@ export function mixinEntityGraph(emclass: { new(): EntityManager }) {
 mixinEntityGraph(EntityManager);
 
 
-function getEntityGraph(roots: Entity | Array<Entity> | EntityQuery, expand: string | Array<string> | ExpandClause) {
+function getEntityGraph(roots: Entity | Array<Entity> | EntityQuery, expand?: string | Array<string> | ExpandClause) {
   if (roots instanceof EntityQuery) {
     let newRoots = this.executeQueryLocally(roots);
     return getEntityGraphCore(newRoots, expand || roots.expandClause);
