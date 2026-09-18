@@ -57,6 +57,9 @@ if (onRemote) git(['fetch', 'origin', `${BRANCH}:${BRANCH}`]);
 const exists = onRemote || git(['branch', '--list', BRANCH]) !== '';
 
 const worktree = mkdtempSync(join(tmpdir(), 'breeze-gh-pages-'));
+/** Git in the gh-pages worktree: the site is committed exactly as built, whatever core.autocrlf says. */
+const pagesGit = (/** @type {string[]} */ args) =>
+  git(['-c', 'core.autocrlf=false', '-c', 'core.safecrlf=false', ...args], worktree);
 try {
   git(exists ? ['worktree', 'add', worktree, BRANCH] : ['worktree', 'add', '--orphan', '-b', BRANCH, worktree]);
 
@@ -69,13 +72,13 @@ try {
   // underscore - and some of VitePress's scripts do.
   writeFileSync(join(worktree, '.nojekyll'), '');
 
-  git(['add', '--all'], worktree);
-  if (!git(['status', '--porcelain'], worktree)) {
+  pagesGit(['add', '--all']);
+  if (!pagesGit(['status', '--porcelain'])) {
     console.log(`publish-docs: ${BRANCH} already holds this build; nothing to publish.`);
   } else {
-    git(['commit', '--quiet', '-m', `Publish docs from ${commit}`], worktree);
+    pagesGit(['commit', '--quiet', '-m', `Publish docs from ${commit}`]);
     if (push) {
-      git(['push', 'origin', BRANCH], worktree);
+      pagesGit(['push', 'origin', BRANCH]);
       console.log(`publish-docs: pushed ${BRANCH}. GitHub Pages updates in a minute or so.`);
     } else {
       console.log(`publish-docs: committed to ${BRANCH}, not pushed. Push it with: git push origin ${BRANCH}`);
