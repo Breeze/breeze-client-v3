@@ -1,6 +1,42 @@
 import { configDefaults, defineConfig } from 'vitest/config';
+import type { Plugin } from 'vite';
 import { breezeAlias } from './vitest.shared.config.js';
 import { playwright } from '@vitest/browser-playwright';
+
+/**
+ * Drops one warning that is Vitest's to fix and not ours.
+ *
+ * In browser mode Vitest hands its mocking plugin to Vite through `applyToEnvironment`, and that
+ * plugin carries a `configureServer` hook, which Vite 8 ignores in that position and says so on
+ * every run:
+ *
+ *   Plugin "vitest:mocks:interceptor" defines Vite-specific hooks (configureServer) in a plugin
+ *   returned from applyToEnvironment. These hooks will be ignored.
+ *
+ * Nothing in this suite is affected, the plugin is the same in Vitest 5.0.1, and under PowerShell
+ * the line arrives dressed as a red `node.exe : ...` error record in an otherwise green run.
+ *
+ * Not `customLogger`: Vitest replaces that with its own logger in its config hook, so one given
+ * here never takes effect. This wraps `warnOnce` on the logger Vite ends up with, once the config
+ * is resolved; Vite reads the method at the moment it warns, so the wrapper applies whichever
+ * plugin built the logger. Vitest silences a Vite warning of its own the same way. Only that
+ * message, from that plugin, is dropped - every other warning still prints. Remove this once a
+ * Vitest release stops producing it.
+ */
+function silenceMockerHookWarning(): Plugin {
+  const isIt = (msg: string) =>
+    msg.startsWith('Plugin "vitest:mocks:interceptor" defines Vite-specific hooks');
+  return {
+    name: 'breeze:silence-mocker-hook-warning',
+    configResolved(config) {
+      const logger = config.logger;
+      const warnOnce = logger.warnOnce.bind(logger);
+      const warn = logger.warn.bind(logger);
+      logger.warnOnce = (msg, options) => { if (!isIt(msg)) warnOnce(msg, options); };
+      logger.warn = (msg, options) => { if (!isIt(msg)) warn(msg, options); };
+    },
+  };
+}
 
 /**
  * Browser run - `npm run test:browser`.
@@ -19,6 +55,7 @@ import { playwright } from '@vitest/browser-playwright';
  */
 export default defineConfig({
   resolve: { alias: breezeAlias },
+  plugins: [silenceMockerHookWarning()],
   test: {
     globals: true,
     include: ['test/**/*.spec.ts'],
