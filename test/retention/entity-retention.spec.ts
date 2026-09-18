@@ -219,16 +219,13 @@ describe('nothing grows without bound', () => {
     expect(shipName.validators.length).toBe(validatorCount);
   });
 
-  // A known, bounded cost rather than a defect: the KeyGenerator records every temporary id it
-  // has handed out, so that an imported entity carrying one does not collide with a live entity.
-  // Nothing prunes it, so the set is proportional to entities *ever created* by a manager, not to
-  // entities in its cache. It holds strings, so no entity is pinned, and clear() replaces the
-  // generator outright - that is the lever for a manager kept alive for millions of creates.
-  //
-  // This asserts the bound. Pruning it would mean reaching into key generation and the import
-  // remap, which is not worth it for one short string per entity; making it worse than linear,
-  // or making clear() stop resetting it, would be, and this catches both.
-  test('the key generator remembers one temp id per entity created, and clear() resets it', () => {
+  // The KeyGenerator records the temporary key values its manager's entities hold, so that an
+  // imported entity carrying one cannot collide with a live entity. It used to record every value it
+  // ever handed out and never forget one, so the set grew with every entity a manager created. Now a
+  // value is released when its entity is saved and given the server's key, or detached, so the set
+  // is bounded by the entities in the cache that have temporary keys. clear() still replaces the
+  // generator outright.
+  test('the key generator records only the temp ids that attached entities hold, and clear() resets it', () => {
     const em = newManager();
     const remembered = () => {
       let n = 0;
@@ -237,10 +234,15 @@ describe('nothing grows without bound', () => {
     };
 
     for (let i = 0; i < 500; i++) {
-      em.detachEntity(em.createEntity('Order', {}));   // Identity key: each gets a temp id
+      em.detachEntity(em.createEntity('Order', {}));   // Identity key: each gets a temp id, then lets it go
     }
+    expect(remembered()).toBe(0);
 
-    expect(remembered()).toBe(500);      // linear in creates, and not affected by the detaches
+    for (let i = 0; i < 500; i++) {
+      em.createEntity('Order', {});                     // these keep theirs
+    }
+    expect(remembered()).toBe(500);
+
     em.clear();
     expect(remembered()).toBe(0);
   });

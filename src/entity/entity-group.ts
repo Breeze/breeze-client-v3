@@ -81,6 +81,7 @@ export class EntityGroup {
       aspect.entityGroup = this;
       aspect.entityManager = this.entityManager;
       aspect.entityState = entityState;
+      if (aspect.hasTempKey) reserveTempKeyValue(this.entityManager, entity.entityType, aspect.getKey().values[0]);
       return entity;
     }
   }
@@ -99,6 +100,7 @@ export class EntityGroup {
     this._changedEntities.delete(entity);
     this._emptyIndexes.push(ix);
     this._entities[ix] = null;
+    if (aspect.hasTempKey) releaseTempKeyValue(this.entityManager, entity.entityType, aspect.getKey().values[0]);
     return entity;
   }
 
@@ -192,6 +194,7 @@ export class EntityGroup {
     // fks on related entities will automatically get updated by this as well
     entity.setProperty(keyPropName, realValue);
     entity.entityAspect.hasTempKey = undefined;   // not delete; see attachEntity above
+    releaseTempKeyValue(this.entityManager, entity.entityType, tempValue);
     this._indexMap.delete(tempKey);
     this._indexMap.set(String(realValue), ix);
   }
@@ -225,3 +228,15 @@ function getFilter(entityStates: EntityState[]) {
 // do not expose EntityGroup - internal only
 
 
+
+// Keep the manager's KeyGenerator's record of temporary key values in step with the entities that
+// hold them: see KeyGenerator._releaseTempKeyValue and _reserveTempKeyValue. A generator passed as
+// `keyGeneratorCtor` need not extend KeyGenerator, hence the optional calls.
+
+function releaseTempKeyValue(em: EntityManager, entityType: EntityType, value: any) {
+  (em.keyGenerator as any)?._releaseTempKeyValue?.(entityType, value);
+}
+
+function reserveTempKeyValue(em: EntityManager, entityType: EntityType, value: any) {
+  (em.keyGenerator as any)?._reserveTempKeyValue?.(entityType, value);
+}

@@ -231,23 +231,35 @@ Breeze's `KeyGenerator` makes one from the key's data type:
 | `String` | `K_` followed by a number |
 | `Guid` | a new GUID |
 
-To change this, subclass `KeyGenerator`, override `generateTempKeyValue(entityType)`, and
-pass the class to the manager:
+To change this, subclass `KeyGenerator`, override `generateTempKeyValue`, and pass the class
+to the manager. Make your value, then hand it to `super.generateTempKeyValue` as its second
+argument rather than returning it yourself:
 
 ```ts
-import { EntityManager, KeyGenerator } from 'breeze-client';
+import { EntityManager, EntityType, KeyGenerator } from 'breeze-client';
 
-class MyKeyGenerator extends KeyGenerator {
-  // override generateTempKeyValue(...)
+/** Temporary integer keys from -1000001 down, where Breeze's own go from -1. */
+class MillionsKeyGenerator extends KeyGenerator {
+  private next = 1000001;
+
+  generateTempKeyValue(entityType: EntityType, valueIfAvail?: any) {
+    return super.generateTempKeyValue(entityType, valueIfAvail ?? -this.next++);
+  }
 }
 
 const em = new EntityManager({
   serviceName: '/breeze/NorthwindIBModel',
-  keyGeneratorCtor: MyKeyGenerator,
+  keyGeneratorCtor: MillionsKeyGenerator,
 });
 ```
 
-Subclassing rather than writing a generator from scratch keeps the rest of `KeyGenerator`,
-including `isTempKey` and `getTempKeys`, working. Set the generator before adding entities
-to the manager. See [`KeyGenerator`](/api/classes/KeyGenerator) and
-[Creating entities](/guide/creating-entities).
+The generator keeps a record of the temporary values its manager's entities hold. It is what
+stops [`importEntities`](/guide/export-import) from giving an imported entity a key that one
+already in the manager has: the manager calls `generateTempKeyValue` with each imported key as
+`valueIfAvail`, and `KeyGenerator` keeps the key if it is free and makes a new one if it is not.
+Passing your value through `super` records it the same way. Returning it yourself leaves it out
+of the record, so an import can reuse it.
+
+Each manager creates its own generator, and a new one when it is cleared, so pass the class,
+not an instance, and do it before adding entities to the manager. See
+[`KeyGenerator`](/api/classes/KeyGenerator) and [Creating entities](/guide/creating-entities).

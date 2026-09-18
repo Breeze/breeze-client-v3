@@ -33,6 +33,9 @@ describe("Key Generation", () => {
     const mapping = keyMappings[0];
     expect(mapping.tempValue).toBe(tempOrderId);
     expect(mapping.realValue).toBe(orderId);
+    // The server's key replaced the temporary one, so the generator no longer records it.
+    expect(em.keyGenerator.isTempKey(new EntityKey(orderEntityType, tempOrderId))).toBe(false);
+    expect(em.keyGenerator.getTempKeys()).toEqual([]);
   });
 
   test("store-gen keys are not re-set by key generator upon add to manager", async function () {
