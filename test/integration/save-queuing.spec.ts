@@ -92,7 +92,12 @@ describe('Save queuing against the server', () => {
     enableSaveQueuing(em, true);
 
     const emp = em.createEntity(Employee, { firstName: 'Test', lastName: 'TestQueuing' });
-    const order = em.createEntity(Order, { shipName: 'Test SaveQueuing order' });
+    // The order belongs to a "Test..." customer so that SaveTestFns.cleanup, which deletes those
+    // customers with their orders, deletes this order too. Without one it deleted the employee and
+    // left the order pointing at it: the cleanup's save hit FK_Order_Employee and, being all or
+    // nothing, removed nothing - and printed a 409 into every run's output.
+    const cust = em.createEntity(Customer, { companyName: 'Test SaveQueuing order customer' });
+    const order = em.createEntity(Order, { shipName: 'Test SaveQueuing order', customer: cust });
     const tempEmployeeID = emp.employeeID;
     expect(tempEmployeeID).toBeLessThan(0);
     expect(emp.entityAspect.hasTempKey).toBe(true);
