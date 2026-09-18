@@ -243,9 +243,8 @@ export const breeze = {
   ValidationOptions: ValidationOptions,
   /** The same as the {@link Validator} export. */
   Validator: Validator,
-  /** Always `"2.1.5"`: it has not changed since Breeze 2.x, so it does not tell you which version
-      of `breeze-client` is installed. */
-  version: "2.1.5"
+  /** The version of `breeze-client`. A test keeps it equal to the one in package.json. */
+  version: "3.0.0"
 };
 
 // breeze.assertConfig = assertConfig as any;

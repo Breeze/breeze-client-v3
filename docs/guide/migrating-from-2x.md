@@ -374,7 +374,10 @@ unbundled, and the empty `promises.IPromiseService` that `breeze-bridge2-angular
 
 One caveat carried over from 2.x unchanged: `breeze.assertParam` and `breeze.assertConfig` are
 `null`, not functions — the lines that would have assigned them are commented out in both
-versions. Call `assertParam` directly. `breeze.version` is likewise still the 2.x string.
+versions. Call `assertParam` directly.
+
+`breeze.version` is `"3.0.0"`, so code that checks it - for example, to take a 2.x-only path -
+now sees Breeze 3.
 
 
 ## Fixed along the way
