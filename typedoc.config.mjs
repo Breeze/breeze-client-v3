@@ -48,7 +48,7 @@ export default {
     'Typed query paths',
     'Constructor config objects',
     'Adapters and extension points',
-    'Optional mixins',
+    'Optional extensions',
     '2.x compatibility',
     '*',   // anything the plugin warned about, so a new export is visible rather than lost
   ],

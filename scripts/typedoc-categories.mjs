@@ -84,9 +84,11 @@ export const CATEGORIES = {
   ],
   // Add-ons an application opts into from their own subpaths - see scripts/docs-entry.ts for
   // why they reach TypeDoc through a re-export rather than as entry points of their own.
-  'Optional mixins': [
+  'Optional extensions': [
     'enableSaveQueuing', 'QueuedSaveFailedError',
     'mixinEntityGraph', 'HasEntityGraph',
+    // breeze-client/rxjs - the only one with a dependency of its own, an optional peer
+    'fromBreezeEvent', 'entityChanged$', 'hasChanges$', 'validationErrorsChanged$', 'propertyChanged$',
   ],
   '2.x compatibility': [
     'breeze', 'core', 'promises',

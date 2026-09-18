@@ -30,3 +30,9 @@ export * from '../src/mixins/mixin-save-queuing.js';
 // mixinEntityGraph, HasEntityGraph. Importing this module patches EntityManager.prototype -
 // that is how the mixin works - which is harmless here because nothing runs this file.
 export * from '../src/mixins/mixin-get-entity-graph.js';
+
+// fromBreezeEvent, entityChanged$, hasChanges$, validationErrorsChanged$, propertyChanged$.
+// breeze-client/rxjs imports rxjs, which is why it is a subpath of its own - see the "optional
+// dependencies" tests in side-effects.spec.ts. Re-exporting it here is safe for the same reason
+// the mixins are: nothing runs this file.
+export * from '../src/rxjs/breeze-rxjs.js';

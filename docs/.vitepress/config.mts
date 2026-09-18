@@ -31,6 +31,7 @@ const docsSidebar = [
       { text: 'Navigation properties', link: '/guide/navigation-properties' },
       { text: 'Complex properties', link: '/guide/complex-properties' },
       { text: 'Change tracking', link: '/guide/change-tracking' },
+      { text: 'RxJS', link: '/guide/rxjs' },
       { text: 'EntityManager and caching', link: '/guide/entitymanager-and-caching' },
       { text: 'Saving changes', link: '/guide/saving-changes' },
       { text: 'Validation', link: '/guide/validation' },

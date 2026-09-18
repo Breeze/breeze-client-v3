@@ -3,7 +3,7 @@
 //
 // The published package has dist/ as its ROOT, so every path in the manifest loses the `./dist/`
 // prefix. That is why this is a transformation of the root package.json rather than a second file
-// to keep in step - the exports map has nine entries and is the thing most likely to drift.
+// to keep in step - the exports map has ten entries and is the thing most likely to drift.
 //
 // Run by `npm run build`.
 import { readFileSync, writeFileSync, copyFileSync, existsSync, mkdirSync } from 'node:fs';
@@ -58,6 +58,10 @@ const published = {
   // `npx breeze-gen-entities`. The script is copied into dist/ below; npm sets the exec bit on
   // whatever `bin` points at, so the shebang is all it needs.
   bin: rerootDeep(pkg.bin),
+  // breeze-client/rxjs needs rxjs; nothing else does. Optional, because npm 7 and later install a
+  // plain peer dependency automatically - which would put rxjs into every Breeze install.
+  peerDependencies: pkg.peerDependencies,
+  peerDependenciesMeta: pkg.peerDependenciesMeta,
 };
 
 // Deliberately NOT carried over:
@@ -65,7 +69,8 @@ const published = {
 //                     would contain nothing but the README and LICENSE.
 //   scripts         - build and test scripts have no meaning in the published package, and a
 //                     stray lifecycle script would run on every install.
-//   devDependencies - not needed to consume the package.
+//   devDependencies - not needed to consume the package. rxjs is one, for the tests; consumers
+//                     get it from the optional peer dependency above, and only if they want it.
 for (const dropped of ['files', 'scripts', 'devDependencies']) {
   if (dropped in published) throw new Error(`prepare-dist: ${dropped} should not be published`);
 }

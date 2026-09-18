@@ -995,3 +995,57 @@ adopts it while empty.
 the default. `ajax-fake.spec.ts` and `complex-type.spec.ts` set `NamingConvention.none`
 explicitly: their fixture, `ComplexTypeMetadata.json`, uses PascalCase client property
 names and names no convention of its own.
+
+## `breeze-client/rxjs`: Breeze events as observables, opt-in
+
+`src/rxjs/breeze-rxjs.ts`, published at `breeze-client/rxjs`: `fromBreezeEvent`, plus
+`entityChanged$`, `hasChanges$`, `validationErrorsChanged$` and `propertyChanged$` built on it.
+Modelled on what applications were already writing by hand - a unit-of-work that re-publishes each
+Breeze event through a Subject - with the two things that pattern usually gets wrong fixed:
+`hasChanges$` starts with the manager's real value rather than a `BehaviorSubject(false)`, and every
+observable removes its Breeze subscription when it is torn down, where the hand-written version
+subscribes once and never lets go.
+
+### Opt-in, and checked
+
+rxjs must not reach anyone who does not ask for it, the same as the save-queuing mixin:
+
+- **devDependency here, optional peer dependency in the package.** The `optional` in
+  `peerDependenciesMeta` is the load-bearing part: npm 7 and later install a plain peer dependency
+  automatically, which would put rxjs into every Breeze install. `prepare-dist.mjs` copies both
+  fields into the published manifest - it is an allowlist, and without that they would silently
+  stay behind.
+- **Its own subpath, never re-exported from `src/breeze.ts`.**
+- **`side-effects.spec.ts` walks the import graph from `breeze`** - value and type-only imports
+  both, since a type-only import survives into the published `.d.ts` - and fails if anything
+  reachable names rxjs, or reaches the rxjs module. Both were confirmed by mutation: a type-only
+  `import type { Observable } from 'rxjs'` in `core/event.ts` fails it, and so does the barrel
+  re-exporting the module.
+
+Verified against a packed tarball in an empty project: installing `breeze-client` adds one package
+and no rxjs; the main entry loads; `breeze-client/rxjs` fails with `ERR_MODULE_NOT_FOUND` until rxjs
+is installed and then works; `breeze.d.ts` does not mention rxjs.
+
+### Only the Observable constructor
+
+No operators, so any rxjs from 7.0 works and there is no `rxjs/operators` versus `rxjs` import to
+get wrong. `hasChanges$` does its own start-with-current and de-duplication inside the constructor
+for the same reason.
+
+Two orderings in `hasChanges$` matter and are tested. It subscribes to Breeze *before* emitting the
+current value, so a subscriber that reacts to that value by changing the manager still hears about
+the change. And `take(1)` unsubscribes during that first emission - before the teardown has been
+returned - which only works because rxjs runs a teardown returned to an already-closed subscriber at
+once; the test counts the event's subscribers afterwards to prove there is no leak.
+
+### Found while documenting it
+
+`entityChanged` is not held back during a query. It fires once per entity as it is merged, with
+`isLoading` true and the later rows not yet in the cache - the first draft of the guide said the
+opposite, reasoning from `_pendingPubs`, which defers the collections' `arrayChanged` and nothing
+else. Measured, corrected, and pinned by a test, since a subscriber that reads the cache mid-query
+sees a partial result.
+
+The guide's recipes run as tests too: the all-validation-errors observable, `shareReplay` with
+`refCount` sharing one Breeze subscription and releasing it, and `shareReplay(1)` keeping it for
+good - the trap the page warns about.

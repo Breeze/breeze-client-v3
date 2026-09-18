@@ -2,6 +2,7 @@ import { EntityManager, MetadataStore, config, configureBreeze } from '../../src
 import { ModelLibraryBackingStoreAdapter } from '../../src/adapters/adapter-model-library-backing-store';
 import { UriBuilderJsonAdapter } from '../../src/adapters/adapter-uri-builder-json';
 import { DataServiceWebApiAdapter } from '../../src/adapters/adapter-data-service-webapi';
+import { hasChanges$, propertyChanged$ } from '../../src/rxjs/breeze-rxjs';
 import { collect, isReleased, pathsTo } from '../support/retention';
 import metadata from '../support/NorthwindIBMetadata.json';
 
@@ -32,6 +33,10 @@ function newManager() {
 }
 
 afterEach(() => { held.length = 0; });
+
+/** One store for the cases that drop a whole manager - the store is what outlives them. */
+const sharedStore = new MetadataStore();
+sharedStore.importMetadata(metadata);
 
 describe('an entity out of the cache is released', () => {
 
@@ -144,6 +149,32 @@ describe('an entity out of the cache is released', () => {
       held.push(survivor, ms);
 
       return new WeakRef(doomed);
+    })).toBe(true);
+  });
+
+  test('when an rxjs subscription to it was unsubscribed but is still held', async () => {
+    // The usual component: `this.sub = propertyChanged$(order).subscribe(...)`, then
+    // `this.sub.unsubscribe()` on destroy - with the component, and so `this.sub`, still alive.
+    // An unsubscribed Subscription must not keep a path to the entity it was watching.
+    expect(await isReleased(() => {
+      const em = newManager();
+      const order = em.createEntity('Order', { orderID: 40 });
+      const sub = propertyChanged$(order).subscribe(() => { });
+      sub.unsubscribe();
+      held.push(sub);                       // the component keeps its field
+      em.detachEntity(order);
+      return new WeakRef(order);
+    })).toBe(true);
+  });
+
+  test('along with its manager, when an hasChanges$ subscription was unsubscribed', async () => {
+    expect(await isReleased(() => {
+      const em = new EntityManager({ serviceName: 'breeze/Northwind', metadataStore: sharedStore });
+      em.createEntity('Order', { orderID: 41 });
+      const sub = hasChanges$(em).subscribe(() => { });
+      sub.unsubscribe();
+      held.push(sub);
+      return new WeakRef(em);
     })).toBe(true);
   });
 

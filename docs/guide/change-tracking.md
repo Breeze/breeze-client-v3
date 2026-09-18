@@ -132,6 +132,12 @@ order.entityAspect.propertyChanged.unsubscribe(token);
 If you are subscribing to many entities, subscribe once to the manager's `entityChanged`
 instead.
 
+::: tip Using RxJS?
+Every event on this page is also available as an observable from `breeze-client/rxjs` —
+`entityChanged$(em)`, `hasChanges$(em)` and the rest — which tear down with the rest of your
+subscriptions. See [RxJS](/guide/rxjs).
+:::
+
 ## EntityManager.entityChanged
 
 The manager raises `entityChanged` for every change to an entity in its cache. Its

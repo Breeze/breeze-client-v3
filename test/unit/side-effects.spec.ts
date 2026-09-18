@@ -147,6 +147,64 @@ describe("import-time effects", () => {
   });
 });
 
+// rxjs is opt-in, like the save-queuing mixin: an application imports breeze-client/rxjs and
+// installs rxjs itself, or it gets neither. These make that a checked fact rather than a
+// convention, because the failure is invisible from inside this repo - rxjs is a devDependency
+// here, so an import of it from a core module would build, pass every test, and then fail to
+// resolve in every application that did not happen to have rxjs already.
+describe("optional dependencies", () => {
+
+  /** Every module reachable from `entry` through relative imports, value AND type-only. */
+  function reachableFrom(entry: string): Map<string, string[]> {
+    const graph = new Map<string, string[]>();        // module -> its bare (package) specifiers
+    const pending = [entry];
+    while (pending.length) {
+      const name = pending.pop()!;
+      if (graph.has(name)) continue;
+      const file = `${name}.ts`;
+      const sf = ts.createSourceFile(file, fs.readFileSync(new URL(file, srcDir), 'utf8'), ts.ScriptTarget.Latest, true);
+      const bare: string[] = [];
+      for (const st of sf.statements) {
+        // `export ... from` pulls a module in exactly as an import does
+        const spec = (ts.isImportDeclaration(st) || ts.isExportDeclaration(st)) && st.moduleSpecifier
+          && ts.isStringLiteral(st.moduleSpecifier) ? st.moduleSpecifier.text : undefined;
+        if (!spec) continue;
+        if (spec.startsWith('.')) {
+          const target = new URL(spec.replace(/\.js$/, ''), new URL(file, srcDir));
+          pending.push(target.pathname.slice(srcDir.pathname.length));
+        } else {
+          bare.push(spec);
+        }
+      }
+      graph.set(name, bare);
+    }
+    return graph;
+  }
+
+  test("nothing reachable from breeze-client imports rxjs, not even for a type", () => {
+    // Type-only imports count: they are erased from the JavaScript but not from the published
+    // .d.ts, so a TypeScript application without rxjs would fail to compile against Breeze.
+    const offenders = [...reachableFrom('breeze')]
+      .filter(([, bare]) => bare.some(s => s === 'rxjs' || s.startsWith('rxjs/')))
+      .map(([name]) => name);
+    expect(offenders).toEqual([]);
+  });
+
+  test("the rxjs module is only reachable through its own subpath", () => {
+    expect(reachableFrom('breeze').has('rxjs/breeze-rxjs')).toBe(false);
+    const pkg = JSON.parse(fs.readFileSync(new URL('../../package.json', import.meta.url), 'utf8'));
+    expect(pkg.exports['./rxjs'].default).toBe('./dist/rxjs/breeze-rxjs.js');
+  });
+
+  test("package.json asks for rxjs only as an optional peer", () => {
+    const pkg = JSON.parse(fs.readFileSync(new URL('../../package.json', import.meta.url), 'utf8'));
+    expect(pkg.dependencies?.rxjs).toBeUndefined();
+    // Without `optional`, npm 7 and later install a peer dependency automatically - for everyone.
+    expect(pkg.peerDependencies?.rxjs).toBeDefined();
+    expect(pkg.peerDependenciesMeta?.rxjs?.optional).toBe(true);
+  });
+});
+
 // Not about side effects, but this file is already the one that reads src/ off disk.
 //
 // TypeScript attaches only the LAST doc comment before a declaration, so a second `/** ... */`
