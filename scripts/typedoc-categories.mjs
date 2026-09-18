@@ -87,8 +87,10 @@ export const CATEGORIES = {
   'Optional extensions': [
     'enableSaveQueuing', 'QueuedSaveFailedError',
     'mixinEntityGraph', 'HasEntityGraph',
-    // breeze-client/rxjs - the only one with a dependency of its own, an optional peer
+    // breeze-client/rxjs - optional peer rxjs
     'fromBreezeEvent', 'entityChanged$', 'hasChanges$', 'validationErrorsChanged$', 'propertyChanged$',
+    // breeze-client/adapter-angular-httpclient - optional peers @angular/common and rxjs
+    'httpClientFetch',
   ],
   '2.x compatibility': [
     'breeze', 'core', 'promises',

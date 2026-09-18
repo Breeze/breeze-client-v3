@@ -66,6 +66,10 @@
       "types": "./dist/rxjs/breeze-rxjs.d.ts",
       "default": "./dist/rxjs/breeze-rxjs.js"
     },
+    "./adapter-angular-httpclient": {
+      "types": "./dist/angular/adapter-angular-httpclient.d.ts",
+      "default": "./dist/angular/adapter-angular-httpclient.js"
+    },
     "./package.json": "./package.json"
   },
   "//bin": "The entity-class generator, so an application can run `npx breeze-gen-entities` after installing the package. scripts/generate-entity-classes.js is copied to dist/ by scripts/prepare-dist.mjs, which also reroots this path for the published manifest.",
@@ -98,6 +102,9 @@
     "test:retention": "vitest run --config vitest.retention.config.ts"
   },
   "devDependencies": {
+    "@angular/common": "^22.1.7",
+    "@angular/compiler": "^22.1.7",
+    "@angular/core": "^22.1.7",
     "@types/node": "^22.20.2",
     "@vitest/browser": "^5.0.0",
     "@vitest/browser-playwright": "^5.0.0",
@@ -130,10 +137,14 @@
     "esm"
   ],
   "peerDependencies": {
-    "rxjs": ">=7.0.0"
+    "rxjs": ">=7.0.0",
+    "@angular/common": ">=13.0.0"
   },
   "peerDependenciesMeta": {
     "rxjs": {
+      "optional": true
+    },
+    "@angular/common": {
       "optional": true
     }
   }

@@ -163,53 +163,23 @@ provideAppInitializer(() => {
 The token is read on every request, so a refreshed token is picked up without reconfiguring.
 
 **Or route Breeze through `HttpClient`**, so that your interceptors, and `HttpTestingController` in
-tests, see its requests:
+tests, see its requests. The [Angular HttpClient](/guide/extensions#angular-httpclient) extension
+does it:
 
 ```ts
-import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
-import { firstValueFrom } from 'rxjs';
-import type { BreezeFetch } from 'breeze-client';
+import { httpClientFetch } from 'breeze-client/adapter-angular-httpclient';
 
-export function httpClientFetch(http: HttpClient): BreezeFetch {
-  return async (input, init) => {
-    try {
-      const res = await firstValueFrom(http.request(init?.method ?? 'GET', String(input), {
-        body: init?.body ?? null,
-        headers: init?.headers as Record<string, string>,
-        observe: 'response',
-        responseType: 'text',
-      }));
-      return toResponse(res.body, res.status, res.statusText, res.headers);
-    } catch (e) {
-      // HttpClient throws on a non-2xx status. Breeze needs that response: its status and body are
-      // how a 400 becomes entityErrors and a 409 a concurrency conflict.
-      if (e instanceof HttpErrorResponse && e.status !== 0) {
-        return toResponse(e.error, e.status, e.statusText, e.headers);
-      }
-      throw e;   // status 0: the request never completed - Breeze reports a transport failure
-    }
-  };
-}
-
-function toResponse(body: unknown, status: number, statusText: string, headers: HttpHeaders) {
-  const h = new Headers();
-  headers.keys().forEach(k => h.set(k, headers.get(k)!));
-  const text = typeof body === 'string' ? body : body == null ? null : JSON.stringify(body);
-  // A 204 or 304 may not carry a body, and new Response() throws if given one.
-  return new Response(status === 204 || status === 304 || text === '' ? null : text, { status, statusText, headers: h });
-}
-```
-
-```ts
 provideAppInitializer(() => { configureBreeze({ fetch: httpClientFetch(inject(HttpClient)) }); }),
 ```
 
-::: warning The `catch` is the important part
-`HttpClient` does not return an error response, it throws one. Without the `catch`, a save the
-server rejected with a 400 reaches Breeze as a failed network request — status 0, no body — so
-`entityErrors` never arrive and a 409 is not recognised as a concurrency conflict. The version
-above hands Breeze the real status and body; `test/unit/angular-httpclient-fetch.spec.ts` checks
-both that and the failure it replaces.
+Your auth interceptor then adds the header to Breeze's requests as it does to every other one.
+
+::: tip Why not write it yourself
+It is a dozen lines, but one detail is easy to miss. `HttpClient` does not return an error
+response, it throws one. A wrapper that lets that escape hands Breeze a save the server rejected
+with a 400 as a failed network request — status 0, no body — so `entityErrors` never arrive and a
+409 is not recognised as a concurrency conflict. `httpClientFetch` hands Breeze the real status,
+body and headers, and its tests check both that and the failure it replaces.
 :::
 
 ### Coming from 2.x's `AjaxHttpClientAdapter`
@@ -227,12 +197,14 @@ constructor(http: HttpClient) {
 }
 ```
 
-Breeze 3 does not have that module, so the import fails. All four lines become one: the other
-three adapters are Breeze 3's defaults and need no registering, and `httpClientFetch` above takes
-the ajax adapter's place:
+Breeze 3 has no module by that name, so the import fails. All four lines become one: the other
+three adapters are Breeze 3's defaults and need no registering, and
+`breeze-client/adapter-angular-httpclient` takes the ajax adapter's place:
 
 ```ts
 // Breeze 3
+import { httpClientFetch } from 'breeze-client/adapter-angular-httpclient';
+
 constructor(http: HttpClient) {
   configureBreeze({ fetch: httpClientFetch(http) });
 }

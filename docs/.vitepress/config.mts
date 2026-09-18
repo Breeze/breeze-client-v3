@@ -75,6 +75,7 @@ const docsSidebar = [
           { text: 'Save queuing', link: '/guide/extensions#save-queuing' },
           { text: 'Entity graphs', link: '/guide/extensions#entity-graphs' },
           { text: 'RxJS', link: '/guide/rxjs' },
+          { text: 'Angular HttpClient', link: '/guide/extensions#angular-httpclient' },
         ],
       },
     ],

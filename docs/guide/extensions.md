@@ -11,15 +11,17 @@ bundler leaves out every one you do not import.
 | [Save queuing](#save-queuing) | `breeze-client/mixin-save-queuing` | a save made while another is in flight waits and follows it, and edits made during a save are kept | — | no: call `enableSaveQueuing(em, true)` for each manager |
 | [Entity graphs](#entity-graphs) | `breeze-client/mixin-get-entity-graph` | an entity and everything an expand path reaches from it, **including deleted entities**, from the cache | — | **yes**: adds `getEntityGraph` to every `EntityManager` |
 | [RxJS](#rxjs) | `breeze-client/rxjs` | Breeze events as RxJS observables | `rxjs`, which you install | no |
+| [Angular HttpClient](#angular-httpclient) | `breeze-client/adapter-angular-httpclient` | Breeze's requests sent through Angular's `HttpClient`, so its interceptors see them | `@angular/common` and `rxjs`, which an Angular application already has | no |
 
 **Needs** is what the extension asks you to install. `breeze-client` itself installs nothing else,
-and none of these change that: RxJS is an *optional* peer dependency, so npm does not install it
-for you, and an application that does not use `breeze-client/rxjs` never gets it. The test suite
-checks that nothing reachable from `breeze-client` imports RxJS.
+and none of these change that: RxJS and `@angular/common` are *optional* peer dependencies, so npm
+does not install them for you, and an application that does not import the extension that uses
+them never gets them. The test suite checks that nothing reachable from `breeze-client` imports
+either one, not even for a type.
 
 **Acts on import** matters for tree-shaking. Entity graphs is the one extension that changes
 something just by being imported, which is why it is the one module named in the package's
-`sideEffects`. The other two are functions: importing them does nothing until you call one.
+`sideEffects`. The others are functions: importing them does nothing until you call one.
 
 ## Save queuing
 
@@ -146,3 +148,30 @@ Install `rxjs` yourself; any version from 7.0 on works.
 
 It has a page of its own, because the part that needs care — unsubscribing, and sharing one
 subscription without leaking it — takes more than a paragraph: **[RxJS](/guide/rxjs)**.
+
+## Angular HttpClient
+
+```ts
+import { httpClientFetch } from 'breeze-client/adapter-angular-httpclient';
+```
+
+Breeze makes its requests with `fetch`, so Angular's `HttpClient` interceptors — the auth header,
+logging, retry — never see them, and neither does `HttpTestingController`. `httpClientFetch` turns
+an `HttpClient` into the `fetch` Breeze calls:
+
+```ts
+provideAppInitializer(() => {
+  configureBreeze({ fetch: httpClientFetch(inject(HttpClient)) });
+}),
+```
+
+`HttpClient` throws on a non-2xx status instead of returning the response. `httpClientFetch` catches
+that and hands Breeze the real status, body and headers, so a rejected save still arrives with its
+`entityErrors` and a 409 is still recognised as a concurrency conflict. A request that never
+completed — status 0 — is reported as a transport failure, as it would be with `fetch`.
+
+It is the replacement for 2.x's `AjaxHttpClientAdapter`. Any Angular version from 13 on works; it
+uses only the types of `@angular/common/http`, so it adds no second copy of Angular to your bundle.
+The [Angular guide](/guide/angular#requests-and-the-auth-header) covers when to use it rather than
+a plain `fetch` that adds the header itself. Reference:
+[`httpClientFetch`](/api/functions/httpClientFetch).

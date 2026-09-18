@@ -36,3 +36,6 @@ export * from '../src/mixins/mixin-get-entity-graph.js';
 // dependencies" tests in side-effects.spec.ts. Re-exporting it here is safe for the same reason
 // the mixins are: nothing runs this file.
 export * from '../src/rxjs/breeze-rxjs.js';
+
+// httpClientFetch. Imports the types of @angular/common/http - the same arrangement as rxjs.
+export * from '../src/angular/adapter-angular-httpclient.js';

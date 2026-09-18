@@ -58,14 +58,20 @@ configureBreeze({ fetch: fakeFetch });
 ## Angular's HttpClient
 
 To have Breeze's requests go through Angular's `HttpClient` — its interceptors, its DI, and
-`HttpTestingController` in tests — wrap it in a `BreezeFetch`. The
-[Angular guide](/guide/angular#requests-and-the-auth-header) has the function.
+`HttpTestingController` in tests — use the
+[Angular HttpClient](/guide/extensions#angular-httpclient) extension:
 
-One thing to get right if you write your own: `HttpClient` throws on a non-2xx status instead of
-returning the response. A wrapper that lets that escape hands Breeze every server error as a
-failed network request, with no status and no body, so a rejected save loses its `entityErrors`
-and a 409 is not seen as a concurrency conflict. The guide's version catches it and passes the real
-response on.
+```ts
+import { httpClientFetch } from 'breeze-client/adapter-angular-httpclient';
+
+configureBreeze({ fetch: httpClientFetch(http) });
+```
+
+One thing to get right if you write your own for another HTTP client: Angular's, like many,
+throws on a non-2xx status instead of returning the response. A wrapper that lets that escape
+hands Breeze every server error as a failed network request, with no status and no body, so a
+rejected save loses its `entityErrors` and a 409 is not seen as a concurrency conflict.
+`httpClientFetch` catches it and passes the real response on.
 
 ## Setting it directly
 

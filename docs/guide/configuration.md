@@ -16,7 +16,7 @@ force when they are created.
 
 `breeze-client` holds everything a normal application needs. The rest are separate entry
 points so that a bundler leaves out what you do not import. The optional extensions among them —
-save queuing, entity graphs and RxJS — are described together in
+save queuing, entity graphs, RxJS and the Angular `HttpClient` bridge — are described together in
 [Optional extensions](/guide/extensions).
 
 | Import from | What it is |
@@ -25,6 +25,7 @@ save queuing, entity graphs and RxJS — are described together in
 | `breeze-client/mixin-save-queuing` | [`enableSaveQueuing`](/api/functions/enableSaveQueuing) — queue a save made while another is in flight, and keep edits made during it. See [Save queuing](/guide/extensions#save-queuing) |
 | `breeze-client/mixin-get-entity-graph` | [`mixinEntityGraph`](/api/functions/mixinEntityGraph), [`HasEntityGraph`](/api/interfaces/HasEntityGraph) — adds `em.getEntityGraph(roots, expand)`. See [Entity graphs](/guide/extensions#entity-graphs) |
 | `breeze-client/rxjs` | [`hasChanges$`](/api/functions/hasChanges$), [`entityChanged$`](/api/functions/entityChanged$) and the rest — Breeze events as RxJS observables. Needs `rxjs`, which you install yourself. See [RxJS](/guide/rxjs) |
+| `breeze-client/adapter-angular-httpclient` | [`httpClientFetch`](/api/functions/httpClientFetch) — sends Breeze's requests through Angular's `HttpClient`, so its interceptors see them. Needs `@angular/common`. See [Angular HttpClient](/guide/extensions#angular-httpclient) |
 | `breeze-client/adapter-model-library-backing-store` | The default model library adapter |
 | `breeze-client/adapter-data-service-webapi` | The default data service adapter |
 | `breeze-client/adapter-uri-builder-json` | The default URI builder |

@@ -87,11 +87,12 @@ If you need CSDL, stay on 2.x or export your metadata to Breeze JSON once and ch
 
 ### Angular
 
-`breeze-client/adapter-ajax-httpclient` is **not** in the v3 package. It is planned as a
-separate `breeze-client-angular` package so that Angular and RxJS are not dependencies of
-the core library. Nothing is needed in the meantime: Breeze 3 makes its requests with `fetch`
-and works in an Angular application as it is. [Angular](/guide/angular) covers setting it up,
-change detection, auth headers, and routing requests through `HttpClient` if you want that.
+`breeze-client/adapter-ajax-httpclient` is **not** in the v3 package. Breeze 3 makes its
+requests with `fetch` and works in an Angular application as it is. To keep them going through
+`HttpClient`, import `httpClientFetch` from `breeze-client/adapter-angular-httpclient`, an
+opt-in subpath: Angular and RxJS are optional peer dependencies, so an application that does not
+import it installs neither. [Angular](/guide/angular) covers setting it up, change detection and
+auth headers.
 
 ## 3. No ajax adapter — supply a `fetch` function instead
 

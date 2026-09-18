@@ -181,44 +181,58 @@ describe("optional dependencies", () => {
     return graph;
   }
 
-  test("nothing reachable from breeze-client imports rxjs, not even for a type", () => {
+  const pkg = JSON.parse(fs.readFileSync(new URL('../../package.json', import.meta.url), 'utf8'));
+  // rxjs, @angular/common - whatever the opt-in extensions need, read from package.json.
+  const optionalPeers = Object.keys(pkg.peerDependencies ?? {});
+  const isOptionalPeer = (spec: string) => optionalPeers.some(p => spec === p || spec.startsWith(p + '/'));
+
+  test("the optional peers are the ones this test expects", () => {
+    // Fails when one is added, so that whoever adds it reads the tests below.
+    expect(optionalPeers.sort()).toEqual(['@angular/common', 'rxjs']);
+  });
+
+  test("nothing reachable from breeze-client imports an optional peer, not even for a type", () => {
     // Type-only imports count: they are erased from the JavaScript but not from the published
-    // .d.ts, so a TypeScript application without rxjs would fail to compile against Breeze.
+    // .d.ts, so a TypeScript application without rxjs or Angular would fail to compile against Breeze.
     const offenders = [...reachableFrom('breeze')]
-      .filter(([, bare]) => bare.some(s => s === 'rxjs' || s.startsWith('rxjs/')))
+      .filter(([, bare]) => bare.some(isOptionalPeer))
       .map(([name]) => name);
     expect(offenders).toEqual([]);
   });
 
-  test("the rxjs module is only reachable through its own subpath", () => {
-    expect(reachableFrom('breeze').has('rxjs/breeze-rxjs')).toBe(false);
-    const pkg = JSON.parse(fs.readFileSync(new URL('../../package.json', import.meta.url), 'utf8'));
-    expect(pkg.exports['./rxjs'].default).toBe('./dist/rxjs/breeze-rxjs.js');
+  test.each([
+    ['rxjs/breeze-rxjs', './rxjs'],
+    ['angular/adapter-angular-httpclient', './adapter-angular-httpclient'],
+  ])("%s is only reachable through its own subpath", (module, subpath) => {
+    expect(reachableFrom('breeze').has(module)).toBe(false);
+    expect(pkg.exports[subpath].default).toBe(`./dist/${module}.js`);
   });
 
-  test("package.json asks for rxjs only as an optional peer", () => {
-    const pkg = JSON.parse(fs.readFileSync(new URL('../../package.json', import.meta.url), 'utf8'));
-    expect(pkg.dependencies?.rxjs).toBeUndefined();
+  test.each(optionalPeers)("package.json asks for %s only as an optional peer", peer => {
+    expect(pkg.dependencies?.[peer]).toBeUndefined();
     // Without `optional`, npm 7 and later install a peer dependency automatically - for everyone.
-    expect(pkg.peerDependencies?.rxjs).toBeDefined();
-    expect(pkg.peerDependenciesMeta?.rxjs?.optional).toBe(true);
+    expect(pkg.peerDependenciesMeta?.[peer]?.optional).toBe(true);
   });
 });
 
 // Every opt-in extension is listed in one place, docs/guide/extensions.md, reached from one link
 // under Advanced in the sidebar. These keep the list complete as extensions are added: a new
-// subpath in package.json that is neither the main entry nor an adapter is an extension, and fails
-// here until the page names it.
+// subpath in package.json that is neither the main entry nor one of Breeze's own adapters - which
+// are the modules published from dist/adapters - is an extension, and fails here until the page
+// names it. By folder rather than by name: adapter-angular-httpclient is an adapter by name and an
+// opt-in extension by nature.
 describe("optional extensions are all documented", () => {
 
   const pkg = JSON.parse(fs.readFileSync(new URL('../../package.json', import.meta.url), 'utf8'));
   const subpaths = Object.keys(pkg.exports).filter(k => k !== '.' && k !== './package.json');
-  const extensions = subpaths.filter(k => !k.startsWith('./adapter-'));
+  const extensions = subpaths.filter(k => !pkg.exports[k].default.startsWith('./dist/adapters/'));
   const doc = (page: string) => fs.readFileSync(new URL(`../../docs/guide/${page}.md`, import.meta.url), 'utf8');
 
   test("the extensions are the ones this test expects", () => {
     // Fails when one is added or removed, so that whoever does it reads the two below.
-    expect(extensions.sort()).toEqual(['./mixin-get-entity-graph', './mixin-save-queuing', './rxjs']);
+    expect(extensions.sort()).toEqual([
+      './adapter-angular-httpclient', './mixin-get-entity-graph', './mixin-save-queuing', './rxjs',
+    ]);
   });
 
   test.each(extensions)("%s is on the Optional extensions page", subpath => {
