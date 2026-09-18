@@ -1705,13 +1705,19 @@ export class EntityManager {
                 unattachedMap.removeChildren(keystring, childToParentNp);
               } else {
                 // 1 -> n  eg: parent: Region child: Terr
-                // TODO: need to remove unattached children from the map after this; only a perf issue.
                 parentToChildNp = np;
                 let currentChildren = entity.getProperty(parentToChildNp.name);
                 unattachedChildren.forEach(function (child) {
                   // we know if can't already be there.
                   observableArray.pushUnchecked(currentChildren, child);
                 });
+                // Deliberately NOT removeChildren, unlike the three branches above. The tuple
+                // stays in the map for the life of the manager, which does hold its children
+                // against collection - but it is what re-links them if this parent is detached
+                // and a new one with the same key attached, because a unidirectional child has
+                // no navigation property of its own to rebuild the collection from. Removing it
+                // leaves the re-attached parent with an empty collection. Measured: it produces
+                // no duplicates, since a given parent key is linked once.
               }
             }
           });

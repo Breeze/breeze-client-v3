@@ -636,6 +636,58 @@ in CI is a flake waiting to happen, the same rule `relation-array-clear.spec.ts`
 - an own `getProperty` on each child entity counts the graph's reads: 4,920 against a budget of
   480 when the old filter is put back.
 
+## Profiled, rather than guessed at
+
+After the cache-lookup, assertion and `delete` work above, the question was what is left. Nine
+workloads were run under `node --cpu-prof` against `dist/` at 12,000 orders and 200 customers —
+materialize, re-merge the same rows, local query, edit, save round trip, export/import, navigate
+a scalar relationship, import metadata, detach — and the self time aggregated per function.
+
+**The profiles are flat.** There is no remaining hotspot: outside the two entries below, no
+Breeze frame holds more than ~5% of self time in any workload, and the largest frames anywhere
+are not Breeze's own work:
+
+| frame | where | what it is |
+|---|---|---|
+| `exportEntities` 13.5% | export/import | `JSON.stringify` of the bundle, attributed to its caller. `asString: false` skips it. |
+| `saveChanges` 8.4% | save | the same, for the save bundle |
+| `proto.setProperty` 5-12.6% | everywhere | the backing store, already the subject of *The backing store* above |
+| `(garbage collector)` 65 ms of 789 | export/import | allocation, not any one call |
+
+Two constant-factor wins came out of it, both of which make the code shorter as well:
+
+- **`EntityKey`'s constructor called `getSelfAndSubtypes()` unconditionally**, which allocates an
+  array and walks the hierarchy — to discover, for a type with no subtypes, that there is
+  nothing to do. A key is built for every entity and again for every foreign key the fixup
+  resolves. Guarding on `entityType.subtypes.length` takes construction from **56 ns to 44 ns**,
+  about 22%. `subtypes` is filled while metadata is built and never touched afterwards, so the
+  guard is exactly equivalent.
+- **`UnattachedChildrenMap.getTuples` allocated twice** on every call — an empty array, then a
+  `concat` of the one entry it found — to support a base-type walk that does nothing unless the
+  type actually has a base type. It now returns the stored array in that case and builds a
+  combined one only for an inheritance hierarchy. Its only caller is `getTuple`, which reads.
+
+**End to end, neither is visible.** Across three runs each of materialize, merge, navigate and
+detach, the differences are inside run-to-run variance — key construction is simply not a large
+enough share. They are kept because they are less work and read better, not because they made
+the library faster, and this file should not be read as claiming otherwise.
+
+### The TODO in `_linkRelatedEntities` was right, and its reason was wrong
+
+`// TODO: need to remove unattached children from the map after this; only a perf issue` sat on
+the unidirectional 1→n branch, the one case of four that does not call `removeChildren`. It
+looks like an oversight, and the tuple really does stay in the map for the life of the manager,
+holding every child it linked.
+
+Adding the `removeChildren` call, with a Region/Territories metadata built for it, showed why it
+is not there: **detach the parent, attach a new one with the same key, and the collection comes
+back empty.** A unidirectional child has no navigation property of its own, so that stale tuple
+is the only thing left that can rebuild the parent's collection. It is retention on purpose.
+
+It also never duplicates, which was the other thing worth checking: a given parent key is linked
+once. Reverted, and the comment now says this so the next reader does not repeat the experiment.
+
+
 ## Assertions on per-object paths
 
 `assertParam(v, name).isX().check()` reads well and composes, and it is not cheap. The chain

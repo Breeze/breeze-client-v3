@@ -46,21 +46,25 @@ export class UnattachedChildrenMap {
   }
 
   getTuples(parentEntityKey: EntityKey) {
-    let allTuples: INavTuple[] = [];
     let tuples = this.map.get(parentEntityKey.toString());
-    if (tuples) {
-      allTuples = allTuples.concat(tuples);
-    }
     let entityType = parentEntityKey.entityType;
+    // Nothing above it in the hierarchy, which is the usual case: there is only one entry to
+    // find, so hand back the stored array rather than copying it into a new one. addChild goes
+    // through here for every child it registers.
+    if (!entityType.baseEntityType) return tuples && tuples.length ? tuples : undefined;
+
+    let allTuples: INavTuple[] | undefined;
     while (entityType.baseEntityType) {
       entityType = entityType.baseEntityType;
-      let baseKey = parentEntityKey.toString(entityType);
-      tuples = this.map.get(baseKey);
-      if (tuples) {
-        allTuples = allTuples.concat(tuples);
+      let baseTuples = this.map.get(parentEntityKey.toString(entityType));
+      if (baseTuples) {
+        // only now is a combined array needed
+        allTuples = allTuples || (tuples ? tuples.slice() : []);
+        allTuples.push(...baseTuples);
       }
     }
-    return (allTuples.length) ? allTuples : undefined;
+    allTuples = allTuples || tuples;
+    return allTuples && allTuples.length ? allTuples : undefined;
   }
 
   getTuplesByString(parentEntityKeyString: string) {

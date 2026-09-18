@@ -47,11 +47,17 @@ export class EntityKey {
     if (!(entityType instanceof EntityType)) {
       throw paramError('entityType', "must be an instance of 'EntityType'");
     }
-    let subtypes = entityType.getSelfAndSubtypes();
-    if (subtypes.length > 1) {
-      this._subtypes = subtypes.filter(function (st) {
-        return st.isAbstract === false;
-      });
+    // Only types that take part in an inheritance hierarchy need this, and getSelfAndSubtypes
+    // allocates an array and walks the hierarchy to find that out. Guarding on `subtypes` keeps
+    // the common case - a type with no subtypes, where the walk can only return [this] -
+    // allocation-free. `subtypes` is filled while metadata is built and not touched after.
+    if (entityType.subtypes.length > 0) {
+      let subtypes = entityType.getSelfAndSubtypes();
+      if (subtypes.length > 1) {
+        this._subtypes = subtypes.filter(function (st) {
+          return st.isAbstract === false;
+        });
+      }
     }
 
     if (!Array.isArray(keyValues)) {
