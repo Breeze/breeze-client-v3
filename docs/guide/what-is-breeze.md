@@ -11,6 +11,7 @@ to them. When you are ready, you send every change back in one request.
 
 Breeze 3 does not depend on any UI framework. It works the same way in a React, Vue,
 Angular, Svelte or plain TypeScript application, and in Node.
+There are guides for [Angular](/guide/angular) and [React](/guide/react).
 
 ## What it does
 

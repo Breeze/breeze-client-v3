@@ -19,6 +19,13 @@ const docsSidebar = [
     ],
   },
   {
+    text: 'Frameworks',
+    items: [
+      { text: 'Angular', link: '/guide/angular' },
+      { text: 'React', link: '/guide/react' },
+    ],
+  },
+  {
     text: 'Core concepts',
     items: [
       { text: 'Inside the entity', link: '/guide/inside-the-entity' },

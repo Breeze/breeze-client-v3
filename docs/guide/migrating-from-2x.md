@@ -88,8 +88,9 @@ and has sensible defaults. See [Writing metadata by hand](/metadata/by-hand).
 ### Angular
 
 There is no `adapter-ajax-httpclient` in the v3 package. A separate
-`breeze-client-angular` is planned. In the meantime you can wrap `HttpClient` yourself —
-see [Supplying your own transport](/server/transport).
+`breeze-client-angular` is planned. Nothing is needed in the meantime: Breeze 3 works in an
+Angular application as it is. [Angular](/guide/angular) covers setting it up, change
+detection, auth headers, and routing requests through `HttpClient` if you want that.
 
 ## 3. Importing an adapter no longer registers it
 

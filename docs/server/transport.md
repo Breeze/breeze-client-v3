@@ -57,26 +57,15 @@ configureBreeze({ fetch: fakeFetch });
 
 ## Angular's HttpClient
 
-Breeze 3 does not ship an Angular adapter. If you want requests to pass through Angular's
-interceptors, DI and `HttpTestingController`, wrap `HttpClient` in a `BreezeFetch`:
+To have Breeze's requests go through Angular's `HttpClient` — its interceptors, its DI, and
+`HttpTestingController` in tests — wrap it in a `BreezeFetch`. The
+[Angular guide](/guide/angular#requests-and-the-auth-header) has the function.
 
-```ts
-// Sketch. Requests go through Angular's interceptor chain.
-function httpClientFetch(http: HttpClient): BreezeFetch {
-  return async (input, init) => {
-    const body = await firstValueFrom(http.request(
-      init?.method ?? 'GET',
-      String(input),
-      { body: init?.body, headers: init?.headers as any, observe: 'response', responseType: 'text' },
-    ));
-    return new Response(body.body, { status: body.status, statusText: body.statusText });
-  };
-}
-```
-
-This is deliberately a sketch rather than a supported adapter — the response mapping
-depends on what your interceptors do. A supported `breeze-client-angular` package is
-planned.
+One thing to get right if you write your own: `HttpClient` throws on a non-2xx status instead of
+returning the response. A wrapper that lets that escape hands Breeze every server error as a
+failed network request, with no status and no body, so a rejected save loses its `entityErrors`
+and a 409 is not seen as a concurrency conflict. The guide's version catches it and passes the real
+response on.
 
 ## Setting it directly
 
