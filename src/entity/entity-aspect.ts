@@ -440,6 +440,10 @@ export class EntityAspect {
       // no group === already detached.
       if (!group) return false;
       group.detachEntity(entity);
+      // An entity whose foreign keys named parents that are not in the cache is parked in the
+      // unattached-children map, waiting for them. Detaching it has to take it back out, or the
+      // manager holds it for good: clear() replaces the whole map, but detachEntity does not.
+      em._unattachedChildrenMap.removeChild(entity);
       // needs to occur early here - so this IS deliberately redundent with the same code later in this method.
       this.entityState = entityState;
       removeFromRelations(entity, EntityState.Detached);

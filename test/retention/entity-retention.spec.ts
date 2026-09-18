@@ -87,6 +87,29 @@ describe('an entity out of the cache is released', () => {
     })).toBe(true);
   });
 
+  test('when its foreign keys pointed at parents that were never attached', async () => {
+    // A child whose parent is not in the cache is parked in _unattachedChildrenMap, under one
+    // entry per absent parent, so that it can be linked if that parent arrives later. Detaching
+    // the child has to take it back out: em.clear() replaces the whole map, but detachEntity
+    // is the path an application uses to drop one row.
+    expect(await isReleased(() => {
+      const em = newManager();
+      // OrderDetail's orderID and productID both name parents that do not exist here
+      const detail = em.createEntity('OrderDetail', { orderID: 900, productID: 12345 });
+      em.detachEntity(detail);
+      return new WeakRef(detail);
+    })).toBe(true);
+  });
+
+  test('and the map entry itself goes, not just the child', async () => {
+    const em = newManager();
+    const detail = em.createEntity('OrderDetail', { orderID: 901, productID: 12346 });
+    expect((em as any)._unattachedChildrenMap.map.size).toBeGreaterThan(0);
+    em.detachEntity(detail);
+    // an empty tuple list left behind would grow without bound over a long session
+    expect((em as any)._unattachedChildrenMap.map.size).toBe(0);
+  });
+
   // The control: without one of these the suite would pass even if nothing were ever released.
   test('but an ATTACHED entity is not released', async () => {
     expect(await isReleased(() => {
