@@ -552,14 +552,23 @@ export class EntityAspect {
   >      if (!isOk) {
   >          var errors = order.entityAspect.getValidationErrors();
   >      }
-  @returns Whether the entity passed validation.
+  @returns Whether the entity can be saved: every validator passes, and no error added with
+  {@link EntityAspect.addValidationError} remains. Errors from the server are not counted - a save
+  clears them before validating, and the server checks again. This is the check `saveChanges`
+  makes, so the two always agree.
   **/
   validateEntity() {
     let ok = true;
     this._processValidationOpAndPublish(function (that: any) {
       ok = validateTarget(that.entity);
     });
-    return ok;
+    // validateTarget re-runs the validators, so on its own it answers only for the errors
+    // validators make. An error added with addValidationError is still an error, and the entity is
+    // not valid while it stands - it used to be ignored here, and so saveChanges, which asks this,
+    // sent the entity anyway. The server's errors are the exception: every save clears them before
+    // validating, because the server checks again, and counting them here would make this answer
+    // differ from the one a save gets.
+    return ok && !this._hasBlockingErrors();
   }
 
   validateProperty(property: string, context?: any): boolean;
@@ -579,12 +588,16 @@ export class EntityAspect {
   @param property - The {@link DataProperty} or {@link NavigationProperty} to validate or a string 
   with the name of the property or a property path with the path to a property of a complex object.
   @param context -  A context object used to pass additional information to each {@link Validator}.
-  @returns Whether the entity passed validation.
+  @returns Whether the property can be saved: its validators pass, and no error added with
+  {@link EntityAspect.addValidationError} about it remains. As with {@link EntityAspect.validateEntity},
+  errors from the server are not counted.
   **/
   validateProperty(property: EntityProperty | string, context: any) {
     let value = this.getPropertyValue(property); // performs validations
+    // As validateEntity: an error added with addValidationError for this property counts too.
+    const propertyName = typeof property === "string" ? property : property.name;
     if (value && value.complexAspect) {
-      return validateTarget(value);
+      return validateTarget(value) && !this._hasBlockingErrors(propertyName);
     }
     context = context || {};
     context.entity = this.entity;
@@ -596,7 +609,7 @@ export class EntityAspect {
       context.propertyName = property.name;
     }
 
-    return this._validateProperty(value, context);
+    return this._validateProperty(value, context) && !this._hasBlockingErrors(context.propertyName);
   }
 
   getValidationErrors(): ValidationError[];
@@ -626,8 +639,12 @@ export class EntityAspect {
     let result = core.getOwnPropertyValues(this._validationErrors);
     if (property) {
       let propertyName = typeof (property) === 'string' ? property : property.name;
+      // By propertyName as well as by the property object: an error added with only a
+      // propertyName in its context - as the validation guide shows - has no property object, and
+      // was missing from this list while validateProperty reported the property invalid because
+      // of it. A form asking "why is this field wrong?" got an empty answer.
       result = result.filter(function (ve: ValidationError) {
-        return ve.property && (ve.property.name === propertyName || (propertyName.indexOf(".") !== -1 && ve.propertyName === propertyName));
+        return (ve.property && ve.property.name === propertyName) || ve.propertyName === propertyName;
       });
     }
     return result;
@@ -635,6 +652,12 @@ export class EntityAspect {
 
   /**
   Adds a validation error.
+
+  An error added here stops the entity being saved - `validateEntity` returns false and
+  `saveChanges` rejects - until it is removed with {@link EntityAspect.removeValidationError} or
+  {@link EntityAspect.clearValidationErrors}. Editing the property does not remove it: Breeze
+  cannot re-check a rule it did not run. Give the error a key, and a failed save names it by that
+  key in `errorName`.
   **/
   addValidationError(validationError: ValidationError) {
     assertParam(validationError, "validationError").isInstanceOf(ValidationError).check();
@@ -787,6 +810,39 @@ export class EntityAspect {
   }
 
   /** @hidden @internal */
+  // Whether an error stands that should stop this entity being saved - every error except the
+  // server's, which a save clears before validating. With a property name, only errors about that
+  // property, or about a property inside it when it is a complex property.
+  _hasBlockingErrors(propertyName?: string) {
+    if (!this.hasValidationErrors) return false;
+    const errors = this._validationErrors;
+    for (const key in errors) {
+      const ve = errors[key];
+      if (!ve || ve.isServerError) continue;
+      if (propertyName == null || isAbout(ve, propertyName)) return true;
+    }
+    return false;
+  }
+
+  /** @hidden @internal */
+  // Drops the server's errors about a property once it has been edited: they were about a value
+  // the entity no longer has. Runs on every edit that is not part of a load, so the entity with no
+  // errors - nearly all of them - pays one flag check.
+  _clearServerErrors(propertyName: string) {
+    if (!this.hasValidationErrors) return;
+    const keys: string[] = [];
+    const errors = this._validationErrors;
+    for (const key in errors) {
+      const ve = errors[key];
+      if (ve && ve.isServerError && isAbout(ve, propertyName)) keys.push(key);
+    }
+    if (keys.length === 0) return;
+    this._processValidationOpAndPublish(function (that: EntityAspect) {
+      keys.forEach(key => that._removeValidationError(key));
+    });
+  }
+
+  /** @hidden @internal */
   _addValidationError(validationError: ValidationError) {
     this._validationErrors[validationError.key] = validationError;
     this.hasValidationErrors = true;
@@ -892,6 +948,12 @@ function removeFromRelationsCore(entity: Entity) {
 }
 
 // note entityAspect only - ( no complex aspect allowed on the call).
+/** Whether a validation error concerns a property: that property, or one inside it by path. */
+function isAbout(ve: ValidationError, propertyName: string) {
+  const name = ve.propertyName;
+  return name === propertyName || (name != null && name.startsWith(propertyName + '.'));
+}
+
 function validate(entityAspect: EntityAspect, validator: Validator, value: any, context?: any) {
   let ve = validator.validate(value, context);
   if (ve) {

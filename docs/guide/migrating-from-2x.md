@@ -520,6 +520,23 @@ may notice.
 - `importMetadata` for a new type with no `dataProperties` throws a clear error instead of
   a `TypeError`.
 
+**Validation**
+
+- **An error you add with `addValidationError` now stops a save.** `validateEntity()` returned
+  `true` while one stood, and `saveChanges` sent the entity anyway; `validateProperty()` ignored one
+  about its property. All three now treat it as an error until you remove it. Errors from the
+  server still do not stop a save — every save clears them first. If you added errors as
+  *warnings* that were not meant to block, remove them before saving, or keep warnings somewhere
+  other than the entity's validation errors. See
+  [Which errors stop a save](/guide/validation#which-errors-stop-a-save).
+- **A save stopped by an added error beside an ordinary validation failure threw a `TypeError`**
+  — `Cannot read properties of undefined (reading 'name')` — in place of the validation error and
+  its `entityErrors`. It now rejects properly, naming the added error by its key in `errorName`.
+- **A server validation error goes when the property it is about is edited**, instead of staying
+  until the next save.
+- `getValidationErrors('someProperty')` includes an error added with only a `propertyName` in its
+  context, which it used to leave out.
+
 **Errors and adapters**
 
 - **A failed request's `ServerError` now carries `statusText`, `body` and `url`**, which

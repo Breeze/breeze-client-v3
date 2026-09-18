@@ -1879,7 +1879,10 @@ function createEntityErrors(entities: Entity[]) {
     core.objectForEach(entity.entityAspect._validationErrors, function (key, ve) {
       let cfg = core.extend({
         entity: entity,
-        errorName: ve.validator.name
+        // An error added with addValidationError has no validator. Reading one threw a TypeError,
+        // which replaced the whole validation error - and its entityErrors - with "Cannot read
+        // properties of undefined". Such an error is named by its key.
+        errorName: ve.validator ? ve.validator.name : ve.key
       }, ve, ["errorMessage", "propertyName", "isServerError", "custom"]) as EntityError;
       entityErrors.push(cfg);
     });

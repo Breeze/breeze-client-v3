@@ -117,7 +117,9 @@ if (!cust.entityAspect.validateProperty('companyName')) {
 }
 ```
 
-Both return `true` if everything passed.
+Both return `true` if nothing stands that would stop a save: the validators all pass, and no error
+[you added yourself](#removing-validators-and-errors) remains. Errors from the server do not count —
+see [which errors stop a save](#which-errors-stop-a-save).
 
 ## Server validation errors
 
@@ -126,10 +128,12 @@ errors, Breeze adds each one to the entity it names and marks it `isServerError`
 [Save errors](/guide/saving-changes#save-errors).
 
 Breeze removes a client error when the problem is fixed, because it can re-run the rule.
-It cannot re-run server logic, so server errors stay until:
+It cannot re-run server logic, so a server error stays until:
 
+- the property it is about is edited — it was about the old value, so it goes as soon as the user
+  changes it, whether or not `validateOnPropertyChange` is on;
 - the entity is saved again — Breeze clears server errors before validating for save — or
-- you remove them.
+- you remove it.
 
 ```ts
 const aspect = cust.entityAspect;
@@ -139,6 +143,25 @@ aspect.getValidationErrors()
 ```
 
 `clearValidationErrors()` removes every error, client and server.
+
+## Which errors stop a save
+
+An entity's errors come from three places, and Breeze can re-check only one of them:
+
+| Where it came from | Re-checked by `validateEntity` | Stops a save | Goes away when |
+|---|---|---|---|
+| a validator | yes | **yes** | the value passes the rule |
+| your code, through `addValidationError` | no — there is nothing to re-run | **yes** | you remove it |
+| the server, after a failed save (`isServerError`) | no — only the server can | no | the property is edited, or the next save |
+
+`validateEntity()` and `validateProperty()` answer the same question a save asks: *can this be
+sent?* So an error you add yourself makes them return `false` and stops `saveChanges` until you
+remove it — it is your code saying the entity is invalid, and nothing else can decide otherwise.
+The server's errors do not stop a save, because every save clears them first and the server checks
+again; blocking on them would leave a user who has fixed the problem unable to send the fix.
+
+`hasValidationErrors` and `getValidationErrors()` still include the server's errors, so a form can
+show everything that is currently known to be wrong.
 
 ## Validators from metadata
 
@@ -361,9 +384,14 @@ nothing, because a validator has no `key` of its own.
 You can also add an error of your own, with or without a validator behind it:
 
 ```ts
-const error = new ValidationError(null, { propertyName: 'companyName' }, 'Name already in use');
+const error = new ValidationError(null, { propertyName: 'companyName' }, 'Name already in use', 'nameInUse');
 cust.entityAspect.addValidationError(error);
 ```
+
+An error you add stops the entity being saved until you remove it — editing the property does not
+remove it, because Breeze cannot know whether the edit fixed what your code objected to. Give it a
+key, as above, so that removing it is `removeValidationError('nameInUse')`; a save that it stops
+names it by that key, as `errorName` in [`entityErrors`](/guide/saving-changes#save-errors).
 
 ## Validation events
 
