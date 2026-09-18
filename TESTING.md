@@ -223,6 +223,7 @@ recreating the database by hand** — otherwise those tables are empty.
 | `npm run test:integration` | integration | 457 (450 + 7 skipped), 27 files | yes | ~46s |
 | `npm test` | both | 809 (802 + 7 skipped), 54 files † | yes | ~50s |
 | `npm run test:browser` | both, in Chromium | 758 (751 + 7 skipped), 53 files ‡ | yes | ~34s |
+| `npm run test:retention` | retention | 7, 1 file | **no** | under a second |
 | `npm run test:watch` | unit | 352 | no | watch mode |
 
 All of these were measured on 2026-09-15, on the same clean database, except the `npm test`
@@ -247,6 +248,43 @@ Where a test needs a server response, it supplies a fake `fetch` through
 `configureBreeze({ fetch })` (`fetch-transport.spec.ts` shows how), or, to cover the
 deprecated ajax adapter path, registers `AjaxFakeAdapter` from `test/support/`. No
 database, no server, files run in parallel. **This is the tier to iterate against.**
+
+### The retention tier
+
+`test/retention/` — leak tests. `npm run test:retention`, no server, under a second.
+
+They ask one question: once an entity is out of the cache, does anything in the library still
+point at it? Each case keeps the `EntityManager` and its `MetadataStore` alive — which is the
+situation that matters, since an application holds a manager for a long time and a store for
+longer — takes a `WeakRef` to an entity, drops every other reference, forces a full garbage
+collection, and asks whether the entity survived.
+
+Two rules make these trustworthy rather than decorative:
+
+- **Assert what is reachable, never how many bytes are in use.** A heap-size threshold is a CI
+  flake, the same reason the timing assertions were dropped in `relation-array-clear.spec.ts`.
+  A `WeakRef` is exact: the object is there or it is not.
+- **Keep a control.** `but an ATTACHED entity is not released` has to fail if the collector is
+  not actually running, otherwise every other test in the file passes for the wrong reason.
+
+`test/support/retention.ts` has the two helpers, and they answer different questions:
+
+| helper | question | use it for |
+|---|---|---|
+| `isReleased(make)` | did this survive a full GC? | the assertion |
+| `pathsTo(root, target)` | how is it reached? | the diagnosis, when `isReleased` says no |
+
+**Do not assert with `pathsTo`.** It only sees what its walk reaches, and the first version
+written for this repo skipped `entityType` as "shared metadata, not the suspect" — which is
+exactly where the leak it was hunting turned out to live, so it reported a clean bill of health
+for an entity that was pinned sixteen ways. The collector has no skip list; a graph walk has
+whatever one you gave it.
+
+Forcing a collection does not need `--expose-gc`. The flag does not reach a Vitest worker, because
+the pool forks its children and they do not inherit it, so `retention.ts` asks V8 for the function
+through `node:v8` and `node:vm` instead. That is also why the tier is excluded from browser mode:
+there is no forced collection in Chromium.
+
 
 ### The integration tier
 

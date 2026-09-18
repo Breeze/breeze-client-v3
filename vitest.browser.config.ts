@@ -25,14 +25,17 @@ export default defineConfig({
     // These specs check the repository rather than runtime behaviour, and none has what it needs
     // in Chromium: side-effects.spec.ts reads src/ off disk and parses it with the TypeScript
     // API, entity-generator.spec.ts runs scripts/generate-entity-classes.js as a child process
-    // against a temp directory, and the two deprecation specs drive the TypeScript language
-    // service over src/. There is no fs, no child_process and no compiler in a browser.
+    // against a temp directory, the two deprecation specs drive the TypeScript language
+    // service over src/, and the retention tier needs node:v8. There is no fs, no child_process,
+    // no compiler and no forced garbage collection in a browser.
     exclude: [
       ...configDefaults.exclude,
       'test/unit/side-effects.spec.ts',
       'test/unit/entity-generator.spec.ts',
       'test/unit/deprecation.spec.ts',
       'test/unit/deprecation-core.spec.ts',
+      // The retention tier asks V8 for a garbage collection through node:v8 and node:vm.
+      'test/retention/**',
     ],
     setupFiles: ['./test/setup.ts', './test/integration-setup.ts'],
     globalSetup: ['./test/global-setup.ts'],

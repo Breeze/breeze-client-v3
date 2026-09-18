@@ -249,6 +249,13 @@ export class Validator {
 
     try {
       if (this.valFn(value, currentContext)) {
+        // Drop the per-call context on success. It names the entity being validated, and a
+        // Validator lives on a DataProperty, so on an EntityType, so on the MetadataStore -
+        // the longest-lived object there is, and shared between managers. Holding it pins that
+        // entity, and everything its navigation properties reach, for the life of the store.
+        // Nothing asks for a message after a validation that passed; `this.context` keeps
+        // getMessage() answering, without naming a subject.
+        this.currentContext = this.context;
         return null;
       } else {
         currentContext.value = value;
