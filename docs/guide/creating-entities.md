@@ -19,12 +19,21 @@ const order = em.createEntity(Order, {
 });
 ```
 
-The first argument is the name of the entity *type* (`'Order'`). Don't confuse it with
-the *resource* name (`'Orders'`) you use in `EntityQuery.from`.
+The first argument is the entity's registered class (`Order`), or the name of the entity *type*
+(`'Order'`). Don't confuse the name with the *resource* name (`'Orders'`) you use in
+`EntityQuery.from`.
 
 The second argument, the **initializer**, is optional. It is a plain object whose values
 are copied onto the new entity. It is usually the simplest way to create and initialize an
 entity in one step.
+
+Passing the class also checks the initializer: every property must be one the class declares, and
+each value its declared type. That matters, because at runtime `createEntity` **ignores a property
+it does not recognize, without a word** — `{ ShipName: 'Acme' }` in server casing, or a typo,
+creates the entity without the value. A collection navigation property takes a plain array of
+entities and a complex property a plain object of its own values, as they do at runtime. For
+values the compiler cannot see, pass a `Record<string, any>` or use the type name. The type is
+[`InitialValues`](/api/type-aliases/InitialValues).
 
 `createEntity` does three things:
 

@@ -21,7 +21,9 @@ describe("Unusual Datatypes", () => {
     const dt = new Date();
     dt.setUTCMilliseconds(100);
     let c1 = em.createEntity(Comment, { createdOn: dt, seqNum: 11, comment1: "now is the time for" });
-    c1 = em.createEntity(Comment, { createdOn: dt, seqNum: '7', comment1: "foo" });
+    // a string for a numeric property: Breeze coerces it, which is what this case exercises.
+    // The typed initial values want the declared type, as assigning the property would.
+    c1 = em.createEntity(Comment, { createdOn: dt, seqNum: '7' as unknown as number, comment1: "foo" });
 
     const sr = await em.saveChanges();
     const comments = sr.entities;

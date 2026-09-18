@@ -743,7 +743,7 @@ describe("Entity operations - no server", () => {
   test("detached entity - setting another EntityState on a detached entity throws exception",
     () => {
       const em = TestFns.newEntityManager(); // new empty EntityManager
-      const order = em.createEntity(Order, { OrderID: 1 });
+      const order = em.createEntity(Order, { orderID: 1 });
 
       const aspect = order.entityAspect;
 

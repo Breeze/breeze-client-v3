@@ -117,7 +117,7 @@ describe("Entity operations - no server", () => {
     const em = TestFns.newEntityManager();
 
     const cust = em.createEntity(Customer, {
-      CustomerID: breeze.core.getUuid()
+      customerID: breeze.core.getUuid()
     }, breeze.EntityState.Unchanged);
 
     // We need a validator to make a ValidationError

@@ -1,6 +1,6 @@
 import { Entity, EntityQuery, EntityType, MetadataStore, EntityManager, EntityState, ComplexType, core, RelationArray, MergeStrategy, breeze, EntityAspect, PropertyChangedEventArgs, ArrayChangedArgs, DataProperty, NavigationProperty, StructuralType, DataType } from '../../src/breeze';
 import { TestFns, JsonObj } from '../test-fns';
-import { Customer, Employee, Order, OrderDetail, Supplier, User, registerModelClasses } from '../model';
+import { Customer, Employee, Order, OrderDetail, Product, Supplier, User, registerModelClasses } from '../model';
 
 TestFns.initNonServerEnv();
 // Types the calls below; see test/model/README.md. A constructor stands for its type name, so one
@@ -143,7 +143,7 @@ describe("Entity Creation - no server", () => {
     const parentOrder = em.createEntity(Order, cfg, breeze.EntityState.Unchanged);
     cfg = {};
     cfg[productKeyName] = 1;
-    const parentProduct = em.createEntity("Product", cfg, breeze.EntityState.Unchanged);
+    const parentProduct = em.createEntity(Product, cfg, breeze.EntityState.Unchanged);
     newDetail = em.createEntity(OrderDetail, { order: parentOrder, product: parentProduct });
 
     expect(newDetail && newDetail.entityAspect.entityState.isAdded()).toBe(true);
@@ -164,7 +164,7 @@ describe("Entity Creation - no server", () => {
     const parentOrder = em.createEntity(Order, cfg, breeze.EntityState.Detached);
     cfg = {};
     cfg[productKeyName] = 1;
-    const parentProduct = em.createEntity("Product", cfg, breeze.EntityState.Detached);
+    const parentProduct = em.createEntity(Product, cfg, breeze.EntityState.Detached);
     newDetail = em.createEntity(OrderDetail, { order: parentOrder, product: parentProduct });
 
     expect(newDetail && newDetail.entityAspect.entityState.isAdded()).toBe(true);

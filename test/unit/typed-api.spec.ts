@@ -1,6 +1,6 @@
 import { EntityManager, EntityQuery, EntityState, MetadataStore, entityTypeForCtor } from '../../src/breeze';
 import type { Entity } from '../../src/breeze';
-import { Customer, Employee, Order, registerModelClasses } from '../model';
+import { Customer, Employee, Order, OrderDetail, Supplier, registerModelClasses } from '../model';
 import northwindMetadata from '../support/NorthwindIBMetadata_ETNOPAYLOAD.json';
 
 // The generics have two entry points, and they are not equivalent:
@@ -247,6 +247,33 @@ describe("Typed API - the resource-name path", () => {
 
 });
 
+describe("Typed API - createEntity's initial values", () => {
+
+  // The shapes compilerMustAccept lets through, run: each is what createEntity really does with it.
+  test("navigation, collection and complex values are all set", () => {
+    const em = newEntityManager();
+    const customer = em.createEntity(Customer);
+    const detail = em.createEntity(OrderDetail, { orderID: 7, productID: 1 });
+
+    const order = em.createEntity(Order, { orderID: 7, shipName: 'Acme', customer, orderDetails: [detail] });
+    const supplier = em.createEntity(Supplier, { supplierID: 1, location: { city: 'Oslo' } });
+
+    expect(order.shipName).toBe('Acme');
+    expect(order.customer).toBe(customer);
+    expect(order.orderDetails).toContain(detail);
+    expect(supplier.location.city).toBe('Oslo');
+  });
+
+  // Why the property names are checked: at runtime one Breeze does not know is dropped silently.
+  test("a property the type does not have is ignored at runtime, not reported", () => {
+    const em = newEntityManager();
+    const order = em.createEntity('Order', { orderID: 8, OrderID: 99, shipNmae: 'Acme' }) as Order;
+
+    expect(order.orderID).toBe(8);
+    expect(order.shipName).toBeFalsy();
+  });
+});
+
 // What the compiler must reject. `@ts-expect-error` fails the build when the line below it does
 // NOT error, so these are enforced by `npm run typecheck`, not by running anything. Without them
 // the type parameters could quietly become decorative and every runtime test above would still
@@ -292,7 +319,42 @@ function compilerMustReject() {
   // @ts-expect-error - the type argument on createEntity is honoured
   em.metadataStore.getAsEntityType('Order').createEntity<Order>().companyName;
 
+  // createEntity's initial values, with the constructor. At runtime each of these property names
+  // would be ignored without a word, so the entity would be created without the value.
+  // @ts-expect-error - server casing: the property is orderID
+  em.createEntity(Order, { OrderID: 1 });
+  // @ts-expect-error - a misspelling
+  em.createEntity(Order, { shipNmae: 'Acme' });
+  // @ts-expect-error - a Customer property, not an Order one
+  em.createEntity(Order, { companyName: 'Acme' });
+  // @ts-expect-error - the declared type, as assigning the property would require
+  em.createEntity(Order, { freight: 'lots' });
+  // @ts-expect-error - a member every entity has is not an initial value; passing it throws
+  em.createEntity(Order, { entityAspect: cust.entityAspect });
+  // @ts-expect-error - a navigation property takes the right type of entity
+  em.createEntity(Order, { customer: em.createEntity(Employee) });
+
   return [mislabelled, wrong];
+}
+
+// And what must still compile. Called by nothing either - the runtime half is the test below.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function compilerMustAccept(detail: OrderDetail, supplier: Supplier) {
+  const em = newEntityManager();
+  const customer = em.createEntity(Customer);
+  // data and navigation properties, each optional
+  em.createEntity(Order, { orderID: 1, shipName: 'Acme', customer });
+  // a collection navigation property takes a plain array, as it does at runtime
+  em.createEntity(Order, { orderDetails: [detail] });
+  // a complex property takes a plain object of its own values
+  em.createEntity(Supplier, { location: { city: 'Oslo' } });
+  // or the complex object itself
+  em.createEntity(Supplier, { location: supplier.location });
+  // values built at runtime still go through, as a Record carries no property names to check
+  const dynamic: Record<string, any> = { ['order' + 'ID']: 2 };
+  em.createEntity(Order, dynamic);
+  // and the name overload is untyped, for values the compiler cannot see
+  em.createEntity('Order', { anything: 'goes' });
 }
 
 describe("Typed API - existing untyped code is unaffected", () => {

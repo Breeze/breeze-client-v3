@@ -209,7 +209,7 @@ export type {
   MetadataFetchedEventArgs, MetadataStoreConfig, NavigationPropertyConfig,
 } from './metadata/entity-metadata.js';
 export type {
-  EntityByKeyResult, EntityTypeArg, IEntityByKeyResult, ImportConfig, ImportResult, ITempKeyMap,
+  EntityByKeyResult, EntityTypeArg, IEntityByKeyResult, ImportConfig, ImportResult, InitialValues, ITempKeyMap,
   QueryErrorCallback, QuerySuccessCallback, SaveError,
 } from './manager/entity-manager.js';
 export type { LocalQueryComparisonOptionsConfig } from './metadata/local-query-comparison-options.js';

@@ -33,7 +33,9 @@ const changed = em.getChanges(Customer);       // Customer[]
 
 `T` is inferred from a real value, so there is no type to keep in sync with a string, and the
 resource name comes from the metadata (`Customer.prototype.entityType.defaultResourceName`) rather
-than being written out again.
+than being written out again. The same applies to what `createEntity` is given: with the
+constructor, a property the class does not declare is a compile error rather than a value
+[silently dropped](/guide/creating-entities#entitymanager-createentity).
 
 **This requires [registering the constructor](/guide/extending-entities#registering-a-constructor).**
 That is what puts `entityType` on the class's prototype. A class that was never registered has
