@@ -4,7 +4,8 @@ The Breeze documentation is one [VitePress](https://vitepress.dev) site: hand-wr
 guides plus an API reference that [TypeDoc](https://typedoc.org) generates from the
 TypeScript source. Both live in `docs/` and share one navigation and one search box.
 
-Nothing is published yet. For now you view the site locally.
+The site is published to GitHub Pages at https://breeze.github.io/breeze-client-v3/, by hand:
+see [Publishing](#publishing).
 
 ---
 
@@ -13,7 +14,52 @@ Nothing is published yet. For now you view the site locally.
 ```bash
 npm install          # once
 npm run docs:dev     # then open http://localhost:5173/ and click "API"
+npm run docs:publish # build the site and push it to GitHub Pages
 ```
+
+---
+
+## Publishing
+
+```bash
+npm run docs:publish                 # build, commit to the gh-pages branch, push
+npm run docs:publish -- --no-push    # build and commit; push later with: git push origin gh-pages
+npm run docs:publish -- --force      # publish again from a commit that is already published
+```
+
+The site is whatever was last published, not what is on `master`: nothing publishes it
+automatically. So publish after pushing a change to the docs, or to the doc comments in `src/`.
+
+`scripts/publish-docs.mjs`:
+
+1. **Refuses uncommitted changes**, so the published site always matches a commit. Commit or
+   stash first.
+2. **Builds** the site with `npm run docs:build`, setting `DOCS_BASE=/breeze-client-v3/`,
+   because Pages serves this repo from that path rather than from `/`. A dead link or a stale
+   anchor fails the build and stops the publish.
+3. **Commits the built site to `gh-pages`**, in a temporary worktree, so the branch you are on
+   and your working copy are never touched. `gh-pages` holds only the built site. Its commits
+   are named after the source commit: `Publish docs from 51a0000`.
+4. **Pushes `gh-pages`**, unless you passed `--no-push`. Pages updates a minute or two later.
+
+If `gh-pages` was already published from the commit you are on, it does nothing, or only
+pushes a publish that `--no-push` left behind. It decides that by commit, not by comparing
+files: VitePress writes its search index in the order pages finish rendering, so two builds of
+the same source are never byte-identical.
+
+### One-time setup
+
+- The repository must be **public**. Pages on a private repository needs a paid plan.
+- After the first publish, set **Settings → Pages → Source** to *Deploy from a branch*, branch
+  `gh-pages`, folder `/ (root)`. The branch is not in that list until it has been pushed once.
+
+### Moving to GitHub Actions later
+
+Keep the build (`DOCS_BASE=/breeze-client-v3/ npm run docs:build`), upload
+`docs/.vitepress/dist` with `actions/upload-pages-artifact`, deploy it with
+`actions/deploy-pages`, and set the Pages source to *GitHub Actions*. Check out with
+`fetch-depth: 0`: the "last updated" dates come from git history. `gh-pages` is then no longer
+needed.
 
 ---
 
@@ -25,6 +71,7 @@ npm run docs:dev     # then open http://localhost:5173/ and click "API"
 | `npm run docs:build` | generates the API reference, then builds the static site | `docs/.vitepress/dist/` |
 | `npm run docs:preview` | serves the last `docs:build` output, exactly as it would be published | http://localhost:4173/ |
 | `npm run docs:api` | regenerates only the API reference markdown | `docs/api/` |
+| `npm run docs:publish` | builds the site for GitHub Pages and pushes it to `gh-pages` — see [Publishing](#publishing) | https://breeze.github.io/breeze-client-v3/ |
 
 The API reference is at `/api/` on either server — for example
 http://localhost:5173/api/classes/EntityManager. VitePress prints the actual URL when it
@@ -193,9 +240,8 @@ VitePress moves to the next free port and prints it. Use the URL it prints.
 
 ## Not set up yet
 
-- **Publishing.** The site is not deployed anywhere. `npm run docs:build` produces a static
-  site in `docs/.vitepress/dist/` that any static host (GitHub Pages, for example) can
-  serve; deploying it is still to be done.
+- **Automatic publishing.** Publishing is by hand, with `npm run docs:publish`; see
+  [Moving to GitHub Actions later](#moving-to-github-actions-later).
 - **The .NET API reference** is a separate DocFX site in breeze-server-v3; its
   [DOCS.md](https://github.com/Breeze/breeze-server-v3/blob/master/DOCS.md) says how to build
   and view it locally. It is not published either, so for now the nav's
