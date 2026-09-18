@@ -10,10 +10,10 @@ export interface ValidationOptionsConfig {
   A failed validation will force the save to fail early. (default = true)  */
   validateOnSave?: boolean;
   /** Whether entity and property level validation should occur after entities are queried from a remote server.
-  (default = false)  **/
+  (default = false)  */
   validateOnQuery?: boolean;
   /** Whether property level validation should occur after entities are modified.
-  (default = true)  **/
+  (default = true)  */
   validateOnPropertyChange?: boolean;
 }
 
@@ -31,10 +31,10 @@ export class ValidationOptions implements ValidationOptionsConfig {
   A failed validation will force the save to fail early. (default = true) __Read Only__ */
   declare validateOnSave: boolean;
   /** Whether entity and property level validation should occur after entities are queried from a remote server.
-  (default = false) __Read Only__  **/
+  (default = false) __Read Only__  */
   declare validateOnQuery: boolean;
   /** Whether property level validation should occur after entities are modified.
-  (default = true) __Read Only__ **/
+  (default = true) __Read Only__ */
   declare validateOnPropertyChange: boolean;
 
 
@@ -45,7 +45,7 @@ export class ValidationOptions implements ValidationOptionsConfig {
   >     // assume em1 is a preexisting EntityManager
   >     em1.setProperties( { validationOptions: newVo });
   @param config - A configuration object.
-  **/
+  */
   constructor(config?: ValidationOptionsConfig) {
     updateWithConfig(this, config);
   }
@@ -57,7 +57,7 @@ export class ValidationOptions implements ValidationOptionsConfig {
   >     var newOptions = validationOptions.using( { validateOnQuery: true, validateOnSave: false} );
   @param config - A configuration object
   @returns A new ValidationOptions instance.
-  **/
+  */
   using(config: ValidationOptionsConfig) {
     if (!config) return this;
     let result = new ValidationOptions(this);
@@ -71,14 +71,14 @@ export class ValidationOptions implements ValidationOptionsConfig {
   >     var validationOptions = new ValidationOptions()
   >     var newOptions = validationOptions.using( { validateOnQuery: true, validateOnSave: false} );
   >     var newOptions.setAsDefault();
-  **/
+  */
   setAsDefault() {
     return core.setAsDefault(this, ValidationOptions);
   }
 
   /**
   The default instance for use whenever ValidationOptions are not specified.
-  **/
+  */
   static defaultInstance = new ValidationOptions({
     validateOnAttach: true,
     validateOnSave: true,

@@ -27,7 +27,7 @@ An EntityQuery instance is used to query entities either from a remote datasourc
 
 EntityQueries are immutable - this means that all EntityQuery methods that return an EntityQuery actually create a new EntityQuery.  This means that
 EntityQueries can be 'modified' without affecting any current instances.
-**/
+*/
 export class EntityQuery<T = any> {
   /** @hidden @internal */
   declare _$typeName: string; // actually placed on prototype
@@ -58,16 +58,17 @@ export class EntityQuery<T = any> {
   declare noTrackingEnabled: boolean;
   /** Whether to send query as the body of a POST request.  (Server needs to accomodate POST). __Read Only__ */
   declare usePostEnabled: boolean;
-  /** The {@link QueryOptions} for this query. __Read Only__  **/
+  /** The {@link QueryOptions} for this query. __Read Only__  */
   // default is to get queryOptions and dataService from the entityManager.
   declare queryOptions?: QueryOptions;
-  /** The {@link DataService} for this query. __Read Only__  **/
+  /** The {@link DataService} for this query. __Read Only__  */
   declare dataService?: DataService;
-  /** The {@link EntityManager} for this query. This may be null and can be set via the 'using' method.  **/
+  /** The {@link EntityManager} for this query. This may be null and can be set via the 'using' method.  */
   declare entityManager?: EntityManager;
   /**  The entityType that will be returned by this query. 
   This property will only be set if the 'toType' method was called. __Read Only__ */
   declare resultEntityType: EntityType | string;
+  /** Set by {@link EntityQuery.useNameOnServer}. Breeze 3 carries it along but does not read it. __Read Only__ */
   declare usesNameOnServer?: boolean;
 
   /** Constructor
@@ -78,7 +79,7 @@ export class EntityQuery<T = any> {
   >        .where("CompanyName", "startsWith", "C")
   >        .orderBy("Region");
   @param resourceName - either a resource name or a serialized EntityQuery ( created by {@link EntityQuery.toJSON})
-  **/
+  */
   constructor(resourceName?: string | Object) {
     if (resourceName != null && (typeof resourceName !== 'string')) {
       return fromJSON(this, resourceName);
@@ -113,7 +114,7 @@ export class EntityQuery<T = any> {
   is the same as
   >      let query = new EntityQuery("Customers");
   @param resourceName - The resource to query.
-  **/
+  */
   from(resourceName: string) {
     // TODO: think about allowing entityType as well
     assertParam(resourceName, "resourceName").isString().check();
@@ -142,7 +143,7 @@ export class EntityQuery<T = any> {
   not a guarantee, and `EntityQuery.from<Customer>("Orders")` compiles:
   >      let query = EntityQuery.from<CustomerDto>("CompanyNamesAndIds");
   @param entityCtor - A constructor registered for the EntityType to query.
-  **/
+  */
   static from<U extends Entity>(entityCtor: new () => U): EntityQuery<U>;
   /**
   Creates a 'base' entityQuery for the specified resource name.
@@ -150,7 +151,7 @@ export class EntityQuery<T = any> {
   `U` is the caller's claim about what the resource returns; nothing checks it against the name.
   It defaults to `any`, so `from("Customers")` behaves exactly as it always has.
   @param resourceName - The resource to query.
-  **/
+  */
   static from<U = any>(resourceName: string): EntityQuery<U>;
   static from(arg: string | (new () => Entity)): EntityQuery<any> {
     if (typeof arg === 'function') {
@@ -172,7 +173,7 @@ export class EntityQuery<T = any> {
   >      let query = EntityQuery.from("CustomersAndOrders").toType(Customer);   // EntityQuery<Customer>
   @param entityCtor - A constructor registered for the EntityType this query will return.
   @summary If the json result consists of more than a simple entity or array of entities, consider using a {@link JsonResultsAdapter} instead.
-  **/
+  */
   toType<U extends Entity>(entityCtor: new () => U): EntityQuery<U>;
   /**
   Specifies the top level EntityType that this query will return.  Only needed when a query returns a json result that does not include type information,
@@ -182,7 +183,7 @@ export class EntityQuery<T = any> {
   >        .toType("Customer")
   @param entityType - The top level EntityType that this query will return.
   @summary If the json result consists of more than a simple entity or array of entities, consider using a {@link JsonResultsAdapter} instead.
-  **/
+  */
   toType(entityType: string | EntityType): EntityQuery<any>;
   toType(entityType: string | EntityType | (new () => Entity)): EntityQuery<any> {
     // Naming the type is what `toType` is for, so a registered constructor names it *and* types
@@ -286,7 +287,7 @@ export class EntityQuery<T = any> {
     an object with a 'value' property and a 'dataType'property set to one of the DataType enumeration instances.
 
     - a null or undefined ( this causes any existing where clause to be removed)
-  **/
+  */
   where(...args: any[]) {
     let wherePredicate: Predicate | undefined;
     if (args.length > 0 && args[0] != null) {
@@ -332,7 +333,7 @@ export class EntityQuery<T = any> {
   @param propertyPaths - A comma-separated (',') string of property paths or an array of property paths.
   Each property path can optionally end with " desc" to force a descending sort order. If 'propertyPaths' is either null or omitted then all ordering is removed.
   @param isDescending - If specified, overrides all of the embedded 'desc' tags in the previously specified property paths.
-  **/
+  */
   orderBy(propertyPaths?: string | string[], isDescending?: boolean) {
     // propertyPaths: can pass in create("A.X,B") or create("A.X desc, B") or create("A.X desc,B", true])
     // isDesc parameter trumps isDesc in propertyName.
@@ -360,7 +361,7 @@ export class EntityQuery<T = any> {
   >        .orderByDesc("Category.CategoryName");
   @param propertyPaths - A comma-separated (',') string of property paths or an array of property paths.
   If 'propertyPaths' is either null or omitted then all ordering is removed.
-  **/
+  */
   orderByDesc(propertyPaths: string | string[]) {
     return this.orderBy(propertyPaths as any, true);
   }
@@ -395,7 +396,7 @@ export class EntityQuery<T = any> {
   >        .select("Customer.CompanyName, Customer, OrderDate");
   @param propertyPaths - A comma-separated (',') string of property paths or an array of property paths.
   If 'propertyPaths' is either null or omitted then any existing projection on the query is removed.
-  **/
+  */
   select(propertyPaths?: string | string[]): EntityQuery<any> {
     let selectClause = propertyPaths == null ? null : new SelectClause(normalizePropertyPaths(propertyPaths));
     // A projection no longer returns the entity type, so the type parameter is dropped rather
@@ -410,7 +411,7 @@ export class EntityQuery<T = any> {
   >       .where("CompanyName", "startsWith", "C")
   >       .skip(5);
   @param count - The number of entities to skip over. If omitted or null any existing skip count on the query is removed.
-  **/
+  */
   skip(count?: number) {
     assertParam(count, "count").isOptional().isNumber().check();
     return clone(this, "skipCount", (count == null) ? null : count);
@@ -423,7 +424,7 @@ export class EntityQuery<T = any> {
   >        .top(5);
   @param count - The number of entities to return.
   If 'count' is either null or omitted then any existing 'top' count on the query is removed.
-  **/
+  */
   top(count?: number) {
     return this.take(count);
   }
@@ -435,7 +436,7 @@ export class EntityQuery<T = any> {
   >        .take(5);
   @param count - The number of entities to return.
   If 'count' is either null or omitted then any existing 'take' count on the query is removed.
-  **/
+  */
   take(count?: number) {
     assertParam(count, "count").isOptional().isNumber().check();
     return clone(this, "takeCount", (count == null) ? null : count);
@@ -463,7 +464,7 @@ export class EntityQuery<T = any> {
   @param propertyPaths - A comma-separated list of navigation property names or an array of navigation property names. Each Navigation Property name can be followed
   by a '.' and another navigation property name to enable identifying a multi-level relationship.
   If 'propertyPaths' is either null or omitted then any existing 'expand' clause on the query is removed.
-  **/
+  */
   expand(propertyPaths?: string | string[]) {
     let expandClause = propertyPaths == null ? null : new ExpandClause(normalizePropertyPaths(propertyPaths));
     return clone(this, "expandClause", expandClause);
@@ -484,7 +485,7 @@ export class EntityQuery<T = any> {
   >        .where("LastName", "startsWith", "S")
   >        .orderBy("BirthDate");
   @param parameters - A parameters object where the keys are the parameter names and the values are the parameter values.
-  **/
+  */
   withParameters(parameters: Object) {
     assertParam(parameters, "parameters").isObject().check();
     return clone(this, "parameters", parameters);
@@ -501,13 +502,20 @@ export class EntityQuery<T = any> {
 
   will return the first 20 customers as well as a count of _all_ of the customers in the remote store.
   @param enabled - (default = true) Whether or not inlineCount capability should be enabled. If this parameter is omitted, true is assumed.
-  **/
+  */
   inlineCount(enabled?: boolean) {
     assertParam(enabled, "enabled").isBoolean().isOptional().check();
     enabled = (enabled === undefined) ? true : !!enabled;
     return clone(this, "inlineCountEnabled", enabled);
   }
 
+  /**
+  Returns a query with {@link EntityQuery.usesNameOnServer} set, meant to say that the query's
+  property names are the server's rather than the client's. Breeze 3, like 2.x, does not act on
+  it: property paths in a query are always client names, which Breeze translates with the
+  `MetadataStore`'s naming convention when it sends the query.
+  @param usesNameOnServer - (default = true)
+  */
   useNameOnServer(usesNameOnServer?: boolean) {
     assertParam(usesNameOnServer, "usesNameOnServer").isBoolean().isOptional().check();
     usesNameOnServer = (usesNameOnServer === undefined) ? true : !!usesNameOnServer;
@@ -522,7 +530,7 @@ export class EntityQuery<T = any> {
   >         .orderBy("CompanyName")
   >         .noTracking(true);
   @param enabled - (default = true) Whether or not the noTracking capability should be enabled. If this parameter is omitted, true is assumed.
-  **/
+  */
   noTracking(enabled?: boolean) {
     assertParam(enabled, "enabled").isBoolean().isOptional().check();
     enabled = (enabled === undefined) ? true : !!enabled;
@@ -539,7 +547,7 @@ export class EntityQuery<T = any> {
   results in a POST request to `{host}/{path}/Customers`
   with body `{"where": {"companyId":{"eq":1}}}`
   @param enabled - (default = true) Whether or not usePost should be enabled. If this parameter is omitted, true is assumed.
-  **/
+  */
   usePost(enabled?: boolean) {
     assertParam(enabled, "enabled").isBoolean().isOptional().check();
     enabled = (enabled === undefined) ? true : !!enabled;
@@ -570,7 +578,7 @@ export class EntityQuery<T = any> {
   >      let query = new EntityQuery("Orders")
   >        .using(FetchStrategy.FromLocalCache);
   @param obj - The object to update in creating a new EntityQuery from an existing one.
-  **/
+  */
   using(obj: any) {
     if (!obj) return this;
     let eq = clone(this);
@@ -622,7 +630,7 @@ export class EntityQuery<T = any> {
   @param callback - Deprecated. Function called on success.
   @param errorCallback - Deprecated. Function called on failure.
   @returns Promise
-  **/
+  */
   execute(callback?: Callback, errorCallback?: ErrorCallback): Promise<QueryResult<T>> {
     if (!this.entityManager) {
       throw new Error("An EntityQuery must have its EntityManager property set before calling 'execute'");
@@ -637,7 +645,7 @@ export class EntityQuery<T = any> {
   >      let orders = query.executeLocally();
 
   Note that calling this method is the same as calling {@link EntityManager.executeQueryLocally}.
-  **/
+  */
   executeLocally(): T[] {
     if (!this.entityManager) {
       throw new Error("An EntityQuery must have its EntityManager property set before calling 'executeLocally'");
@@ -652,7 +660,7 @@ export class EntityQuery<T = any> {
 
   It is `take(0).inlineCount(true)` and reads `inlineCount` off the result, so the server must
   support inline count.
-  **/
+  */
   async executeCount(): Promise<number> {
     if (!this.entityManager) {
       throw new Error("An EntityQuery must have its EntityManager property set before calling 'executeCount'");
@@ -661,6 +669,12 @@ export class EntityQuery<T = any> {
     return qr.inlineCount!;
   }
 
+  /**
+  Returns the serializable form of this query: its resource name, clauses, parameters and options,
+  with client property names. `JSON.stringify` calls it, and passing the parsed JSON to the
+  `EntityQuery` constructor recreates the query. The `EntityManager` and `DataService` are not
+  included.
+  */
   toJSON() {
     const json = this.toJSONExt() as Record<string, any>;
     // usePost is not part of the query sent to the server, so toJSONExt leaves it out;
@@ -724,7 +738,7 @@ export class EntityQuery<T = any> {
 
   will create a query that will return an array containing a single customer entity.
   @param entities - The entities for which we want to create an EntityQuery.
-  **/
+  */
   static fromEntities(entities: Entity | Entity[]) {
     assertParam(entities, "entities").isEntity().or().isNonEmptyArray().isEntity().check();
     let ents = (Array.isArray(entities)) ? entities : [entities];
@@ -761,7 +775,7 @@ export class EntityQuery<T = any> {
   >      let entityKey = employee.entityAspect.getKey();
   >      let query = EntityQuery.fromEntityKey(entityKey);
   @param entityKey - The {@link EntityKey} for which a query will be created.
-  **/
+  */
   static fromEntityKey(entityKey: EntityKey) {
     assertParam(entityKey, "entityKey").isInstanceOf(EntityKey).check();
     let q = new EntityQuery(entityKey.entityType.defaultResourceName);
@@ -779,7 +793,7 @@ export class EntityQuery<T = any> {
   will return a query for the "Orders" of the specified 'employee'.
   @param entity - The Entity whose navigation property will be queried.
   @param navigationProperty - The {@link NavigationProperty} or name of the NavigationProperty to be queried.
-  **/
+  */
   static fromEntityNavigation = function (entity: Entity, navigationProperty: NavigationProperty | string) {
     assertParam(entity, "entity").isEntity().check();
     let navProperty = entity.entityType._checkNavProperty(navigationProperty);
@@ -1019,32 +1033,32 @@ export interface QueryOp {
 /**
 FilterQueryOp is an 'Enum' containing all of the valid  {@link Predicate}
 filter operators for an {@link EntityQuery}.
-**/
+*/
 export class FilterQueryOp extends BreezeEnum implements QueryOp {
   /** The operator for this enum. */
   declare operator: string;
 
-  /** Aliases: "eq", "==" **/
+  /** Aliases: "eq", "==" */
   static Equals = new FilterQueryOp({ operator: "eq" });
-  /**  Aliases: "ne", "!="  **/
+  /**  Aliases: "ne", "!="  */
   static NotEquals = new FilterQueryOp({ operator: "ne" });
-  /** Aliases: "gt", ">"   **/
+  /** Aliases: "gt", ">"   */
   static GreaterThan = new FilterQueryOp({ operator: "gt" });
-  /** Aliases: "lt", "<"  **/
+  /** Aliases: "lt", "<"  */
   static LessThan = new FilterQueryOp({ operator: "lt" });
-  /**  Aliases: "ge", ">="  **/
+  /**  Aliases: "ge", ">="  */
   static GreaterThanOrEqual = new FilterQueryOp({ operator: "ge" });
-  /**  Aliases: "le", "<="  **/
+  /**  Aliases: "le", "<="  */
   static LessThanOrEqual = new FilterQueryOp({ operator: "le" });
-  /**  String operation: Is a string a substring of another string.  Aliases: "substringof"   **/
+  /**  String operation: Is a string a substring of another string.  Aliases: "substringof"   */
   static Contains = new FilterQueryOp({ operator: "contains" });
   /** No aliases */
   static StartsWith = new FilterQueryOp({ operator: "startswith" });
   /** No aliases */
   static EndsWith = new FilterQueryOp({ operator: "endswith" });
-  /**  Aliases: "some"  **/
+  /**  Aliases: "some"  */
   static Any = new FilterQueryOp({ operator: "any" });
-  /**  Aliases: "every"  **/
+  /**  Aliases: "every"  */
   static All = new FilterQueryOp({ operator: "all" });
   /** No aliases */
   static In = new FilterQueryOp({ operator: "in" });
@@ -1056,7 +1070,7 @@ FilterQueryOp.resolveSymbols();
 /**
  BooleanQueryOp is an 'Enum' containing all of the valid  boolean
 operators for an {@link EntityQuery}.
-**/
+*/
 export class BooleanQueryOp extends BreezeEnum implements QueryOp {
   /** The operator for this enum. */
   declare operator: string;
@@ -1220,7 +1234,7 @@ export class OrderByItem {
 /** For use by breeze plugin authors only.  The class is used in most {@link UriBuilderAdapter} implementations
 @adapter (see {@link UriBuilderAdapter})    
 @hidden 
-**/
+*/
 export class SelectClause {
   propertyPaths: string[];
   /** @hidden @internal */
@@ -1278,7 +1292,7 @@ export class SelectClause {
 /** For use by breeze plugin authors only.  The class is used in most {@link UriBuilderAdapter} implementations
 @adapter (see {@link UriBuilderAdapter})    
 @hidden 
-**/
+*/
 export class ExpandClause {
   propertyPaths: string[];
 

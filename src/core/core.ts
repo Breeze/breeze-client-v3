@@ -40,7 +40,12 @@ function objectMap(obj: Object, kvFn?: (key: string, val: any) => any): any[] {
     return results;
 }
 
-function objectFirst(obj: Object, kvPredicate: (key: string, val: any) => boolean): { key: string, value: any } | null {
+function objectFirst(obj: Object, kvPredicate: (key: string, val: any) => boolean): {
+    /** The property's name. */
+    key: string,
+    /** The property's value. */
+    value: any
+} | null {
     const rec = obj as Indexed;
     for (const key of Object.keys(rec || {})) {
         let value = rec[key];
@@ -658,59 +663,130 @@ export function stringEndsWith(str: string, suffix: string) {
 // strings for error messages
 
 const strings = {
+    /** Advice appended to errors about a query whose entity type Breeze cannot determine. */
     "TO_TYPE": "Add 'EntityQuery.toType()' to your query, or call 'MetadataStore.setEntityTypeForResourceName()' to register an EntityType for this resourceName."
 }
 
 // // not all methods above are exported
+/** Utility functions that Breeze 2.x exposed as `breeze.core`, kept for code written against 2.x.
+    Several now just call a JavaScript built-in; those are marked deprecated and name it. */
 export const core = {
     /** @deprecated Use `Object.hasOwn(obj, key)`, which this now calls. */
     hasOwnProperty: hasOwnProperty,
+    /** The values of an object's own enumerable properties. `Object.values(obj)`, except that null
+        or undefined gives `[]`. */
     getOwnPropertyValues: getOwnPropertyValues,
+    /** The descriptor of `propertyName` on `obj` or, failing that, on the nearest prototype that
+        has it; `undefined` if none does. Unlike `Object.getOwnPropertyDescriptor`, it searches the
+        prototype chain. */
     getPropertyDescriptor: getPropDescriptor,
+    /** Calls `kvFn(key, value)` for each of an object's own enumerable properties. Does nothing for
+        null or undefined. */
     objectForEach: objectForEach,
+    /** The first of an object's own enumerable properties for which `kvPredicate(key, value)` is
+        true, as `{ key, value }`; `null` if there is none. */
     objectFirst: objectFirst,
+    /** Calls `kvFn(key, value)` for each of an object's own enumerable properties and returns the
+        results, leaving out any that are `undefined`. Without `kvFn`, returns the values. */
     objectMap: objectMap, // TODO: replace this with something strongly typed.
+    /** Copies properties from `source` onto `target` and returns `target`: all of `source`'s own
+        enumerable properties, or only `propNames` when given. A shallow copy, like `Object.assign`. */
     extend: extend,
+    /** A predicate that is true for an object whose `propertyName` is `=== value`:
+        `people.filter(core.propEq('firstName', 'John'))`. */
     propEq: propEq,
+    /** A predicate that is true for an object whose `property1Name` or `property2Name` is
+        `=== value`. */
     propsEq: propsEq,
+    /** A function that returns an object's `propertyName`: `people.map(core.pluck('firstName'))`. */
     pluck: pluck,
+    /** `Array.prototype.map` that also takes a single value, which it passes to `fn` and returns
+        the result of. Null or undefined is returned as is. With `includeNull` false, an element
+        whose result is null or undefined is left as a hole in the returned array. */
     map: map,
+    /** An object with each of `propertyNames` taken from the first of `sources` in which it is not
+        `undefined`. Breeze uses it to combine a query's settings with its manager's and the
+        defaults, in {@link QueryOptions.resolve} and {@link DataService.resolve}. */
     resolveProperties: resolveProperties,
+    /** Creates an instance of `ctor` from `target`, fills in whatever it leaves unset from the
+        current `ctor.defaultInstance`, and makes that the new `ctor.defaultInstance`. Returns
+        `target`. The `setAsDefault()` methods of {@link QueryOptions}, {@link SaveOptions},
+        {@link NamingConvention} and {@link LocalQueryComparisonOptions} are built on it. */
     setAsDefault: setAsDefault,
+    /** Copies each property of `defaults` onto `target` where `target`'s is `undefined`, and
+        returns `target`. */
     updateWithDefaults: updateWithDefaults,
+    /** The array stored in `map` under `key`, after storing an empty one there if there was none. */
     getMapArray: getMapArray,
+    /** `[]` for null or undefined, the array itself for an array, and `[item]` for anything else. */
     toArray: toArray,
+    /** Whether two arrays have the same length and equal elements, compared with `===` or with
+        `equalsFn` if given. An element that is itself an array is compared element by element, with
+        `===`. False if either array is null or undefined. */
     arrayEquals: arrayEquals,
     /** @deprecated Use `arr.slice(start, end)`, or `Array.prototype.slice.call(arrayLike)` for
         an arguments object. That is what this now does. */
     arraySlice: arraySlice,
+    /** The first element for which `predicate` is true, or `null`. Like `Array.prototype.find`,
+        except for returning `null` rather than `undefined`. */
     arrayFirst: arrayFirst,
+    /** The index of the first element for which `predicate` is true, or -1. The same as
+        `Array.prototype.findIndex`. */
     arrayIndexOf: arrayIndexOf,
+    /** Removes from `array`, in place, either `predicateOrItem` itself or the elements that
+        `predicateOrItem`, a function, matches. Removes only the last match unless
+        `shouldRemoveMultiple` is true. Returns whether anything was removed. */
     arrayRemoveItem: arrayRemoveItem,
+    /** Combines the elements of two arrays pairwise with `callback`. The result is as long as the
+        shorter array. */
     arrayZip: arrayZip,
+    /** Pushes `item` onto `array` unless the array already holds it. */
     arrayAddItemUnique: arrayAddItemUnique,
     /** @deprecated Use `arr.flatMap(fn)`, which this now calls. */
     arrayFlatMap: arrayFlatMap,
 
+    /** Sets `obj[property]` to `tempValue`, calls `fn`, then restores the original value, deleting
+        the property if it had none, whether or not `fn` throws. Returns what `fn` returns. */
     using: using,
+    /** Calls `startFn()`, then `fn()`, then `endFn(state)` with what `startFn` returned, whether or
+        not `fn` throws. If it throws and the state is an object, the error is set on `state.error`
+        first. Returns what `fn` returns. */
     wrapExecution: wrapExecution,
 
+    /** Wraps `fn` so that it runs once for each distinct set of arguments and afterwards returns
+        the stored result. Arguments are keyed by value, objects by their `JSON.stringify`. The
+        results are stored on `fn` itself and never released. */
     memoize: memoize,
     /** @deprecated Use `crypto.randomUUID()`. This calls it where it exists and falls back to a
         `Math.random()` implementation in a browser outside a secure context, where it does not. */
     getUuid: getUuid,
+    /** Converts an ISO 8601 duration such as `PT1H30M` to seconds, counting a year as 360 days and
+        a month as 30. Throws for a string that is not a duration. */
     durationToSeconds: durationToSeconds,
 
+    /** Whether `obj[propertyName]` can be assigned: true if no object on the prototype chain
+        defines it, or if its descriptor is writable or has a setter. */
     isSettable: isSettable,
 
+    /** Whether `o` is a `Date` holding a valid time - not an Invalid Date. */
     isDate: isDate,
+    /** Whether `s` is an ISO 8601 date-time with a time zone, such as `2024-05-01T10:30:00Z` or
+        `2024-05-01T10:30:00.5+02:00`. A string with no time zone, or a date with no time, is not. */
     isDateString: isDateString,
+    /** Whether `value` is a string in GUID form: 8-4-4-4-12 hexadecimal digits. */
     isGuid: isGuid,
+    /** Whether `value` is a string that looks like an ISO 8601 duration, such as `PT1H`. A quick
+        check of its shape, not a full parse - see {@link core.durationToSeconds}. */
     isDuration: isDuration,
+    /** Whether `o` is an ordinary function. False for async and generator functions: it checks
+        `Object.prototype.toString`, which names those differently. */
     isFunction: isFunction,
+    /** Whether `obj` is null, undefined, or has no own enumerable properties. */
     isEmpty: isEmpty,
 
+    /** Returns its argument. */
     identity: identity,
+    /** Does nothing. */
     noop: noop,
 
     /** @deprecated Use `str.startsWith(prefix)`. Not quite the same: this answers `false` for a
@@ -720,12 +796,30 @@ export const core = {
     /** @deprecated Use `str.endsWith(suffix)`, with the same caveat about nulls as
         {@link core.stringStartsWith}. */
     stringEndsWith: stringEndsWith,
+    /** Replaces `%1`, `%2`, ... in `str` with the arguments that follow it:
+        `formatString('a %1 and a %2', 'cat', 'dog')` is `'a cat and a dog'`. */
     formatString: formatString,
 
+    /** Copies properties of `source` to `target`, a new object by default, as `template` directs,
+        and returns `target`. Each key of `template` names a property to copy; a key such as `'a,b'`
+        also accepts `b` as another name for `a`. The template's value is the property's default: a
+        property equal to it (by `==`), `undefined`, or an empty array is left out. If the
+        template's value is a function, it converts the property's value instead, and a
+        {@link BreezeEnum} is written as its name. Breeze's metadata classes build their `toJSON`
+        output with it. */
     toJson: toJson,
+    /** A copy of `obj` that `JSON.stringify` can serialize even when the object graph has cycles: a
+        reference back to an object already being copied is left out. Uses an object's own `toJSON`
+        when it has one, leaves out functions, and passes each property through `replacer` when
+        given, leaving out any it returns `undefined` for. */
     toJSONSafe: toJSONSafe,
+    /** A `replacer` for {@link core.toJSONSafe} that leaves out an entity's Breeze members -
+        `entityAspect`, `complexAspect`, `entityType`, `complexType`, `getProperty`, `setProperty`
+        and `constructor` - and any property whose name starts with `_` or `$`. Breeze serializes
+        unmapped property values with it. */
     toJSONSafeReplacer: toJSONSafeReplacer,
 
+    /** Text that Breeze uses in its error messages. */
     strings: strings
 };
 

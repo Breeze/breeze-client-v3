@@ -8,20 +8,20 @@ import { core, stringEndsWith } from '../core/core.js';
 
 /** Configuration info to be passed to the {@link DataService} constructor */
 export interface DataServiceConfig {
-  /** The serviceName for this DataService.  **/
+  /** The serviceName for this DataService.  */
   serviceName?: string;
-  /** The adapter name for the {@link DataServiceAdapter} to be used with this service.  **/
+  /** The adapter name for the {@link DataServiceAdapter} to be used with this service.  */
   adapterName?: string;
-  /** The adapter name for the {@link UriBuilderAdapter} to be used with this service.  **/
+  /** The adapter name for the {@link UriBuilderAdapter} to be used with this service.  */
   uriBuilderName?: string;
-  /** Whether the server can provide metadata for this service.  **/
+  /** Whether the server can provide metadata for this service.  */
   hasServerMetadata?: boolean;
-  /** The {@link JsonResultsAdapter} used to process the results of any query against this DataService.  **/
+  /** The {@link JsonResultsAdapter} used to process the results of any query against this DataService.  */
   jsonResultsAdapter?: JsonResultsAdapter;
   /** Whether to use JSONP when performing a 'GET' request against this service.
   @deprecated No effect on Breeze's own transport, which has no JSONP support. Kept because it is
   part of a serialized DataService, and because a registered (deprecated) ajax adapter can still
-  act on the dataType and crossDomain settings it produces. **/
+  act on the dataType and crossDomain settings it produces. */
   useJsonp?: boolean;
 }
 /**
@@ -37,28 +37,28 @@ Each metadataStore contains a list of DataServices, each accessible via its ‘s
 ( see MetadataStore.getDataService and MetadataStore.addDataService).  The ‘addDataService’ method is called internally
 anytime a MetadataStore.fetchMetadata call occurs with a new dataService ( or service name).
 
-**/
+*/
 export class DataService {
   /** @hidden @internal */
   declare _$typeName: string; // actually put on prototype.
-  /** The serviceName for this DataService. __Read Only__ **/
+  /** The serviceName for this DataService. __Read Only__ */
   declare serviceName: string;
-  /** The adapter name for the {@link DataServiceAdapter} to be used with this service. __Read Only__  **/
+  /** The adapter name for the {@link DataServiceAdapter} to be used with this service. __Read Only__  */
   declare adapterName: string;
-  /**  The {@link DataServiceAdapter} implementation instance associated with this EntityManager. __Read Only__  **/
+  /**  The {@link DataServiceAdapter} implementation instance associated with this EntityManager. __Read Only__  */
   declare adapterInstance?: DataServiceAdapter;
-  /** The adapter name for the {@link UriBuilderAdapter} to be used with this service. __Read Only__  **/
+  /** The adapter name for the {@link UriBuilderAdapter} to be used with this service. __Read Only__  */
   declare uriBuilderName: string;
-  /**  The {@link UriBuilderAdapter} implementation instance associated with this EntityManager. __Read Only__  **/
+  /**  The {@link UriBuilderAdapter} implementation instance associated with this EntityManager. __Read Only__  */
   declare uriBuilder?: UriBuilderAdapter;
-  /** Whether the server can provide metadata for this service. __Read Only__   **/
+  /** Whether the server can provide metadata for this service. __Read Only__   */
   declare hasServerMetadata: boolean;
-  /** The {@link JsonResultsAdapter} used to process the results of any query against this DataService. __Read Only__ **/
+  /** The {@link JsonResultsAdapter} used to process the results of any query against this DataService. __Read Only__ */
   declare jsonResultsAdapter: JsonResultsAdapter;
   /** Whether to use JSONP when performing a 'GET' request against this service. __Read Only__
   @deprecated No effect on Breeze's own transport, which has no JSONP support. Kept because it is
   part of a serialized DataService, and because a registered (deprecated) ajax adapter can still
-  act on the dataType and crossDomain settings it produces. **/
+  act on the dataType and crossDomain settings it produces. */
   declare useJsonp: boolean;
 
   /**   DataService constructor
@@ -76,7 +76,7 @@ export class DataService {
   >         metadataStore: metadataStore
   >     });
   @param config - A configuration object.
-  **/
+  */
   constructor(config?: DataServiceConfig) {
     updateWithConfig(this, config);
   }
@@ -85,13 +85,22 @@ export class DataService {
   /**
   Returns a copy of this DataService with the specified properties applied.
   @param config - The configuration object to apply to create a new DataService.
-  **/
+  */
   using(config: DataServiceConfig) {
     if (!config) return this;
     let result = new DataService(this);
     return updateWithConfig(result, config);
   }
 
+  /**
+  Combines several DataServices into one, taking each property from the first of them that has it
+  set, and filling in the adapters: the named ones, or the defaults. Breeze uses it to combine a
+  query's or save's own DataService with the EntityManager's before each request; applications do
+  not normally need it.
+  @param dataServices - The DataServices to combine, most specific first. Entries may be null or
+  undefined. The array is modified.
+  @throws if none of them has a `serviceName`.
+  */
   static resolve(dataServices: DataService[]) {
     // final defaults
     // Deliberate use of 'as any' below.
@@ -121,7 +130,13 @@ export class DataService {
     }
   }
 
-  /**  */
+  /**
+  Returns the serializable form of this DataService: `serviceName`, `adapterName`,
+  `uriBuilderName`, `hasServerMetadata`, `useJsonp` and the `name` of its `jsonResultsAdapter`,
+  leaving out any that are not set. `JSON.stringify` calls it when `MetadataStore.exportMetadata`
+  and `EntityManager.exportEntities` serialize their DataServices; {@link DataService.fromJSON}
+  reads it back.
+  */
   toJSON() {
     // don't use default value here - because we want to be able to distinguish undefined props for inheritence purposes.
     return core.toJson(this, {
@@ -136,6 +151,13 @@ export class DataService {
     });
   }
 
+  /**
+  Creates a DataService from the output of {@link DataService.toJSON}. Used when importing metadata
+  and exported entities. The `jsonResultsAdapter` name is looked up among the
+  {@link JsonResultsAdapter}s created so far, so create a custom one before importing.
+  @param json - A serialized DataService. Its `jsonResultsAdapter` property is replaced.
+  @throws if the named `jsonResultsAdapter` does not exist.
+  */
   static fromJSON(json: any) {
     json.jsonResultsAdapter = config._fetchObject(JsonResultsAdapter, json.jsonResultsAdapter);
     return new DataService(json);
@@ -146,7 +168,7 @@ export class DataService {
    with or without trailing '/'s.  If the suffix starts with "http" then it will be returned as-is.
    @param suffix {String} The resulting url.
    @returns {a Url string}
-   **/
+   */
   qualifyUrl(suffix: string) {
     if (suffix && suffix.startsWith("http")) {
       return suffix;
@@ -184,20 +206,35 @@ function updateWithConfig(obj: DataService, dsConfig?: DataServiceConfig) {
   return obj;
 }
 
+/**
+What a {@link JsonResultsAdapter}'s `visitNode` returns for one node of a query or save result,
+telling Breeze how to treat it. Every property is optional; returning `{}` (or nothing) treats the
+node as plain data.
+*/
 export interface NodeMeta {
+  /** The type of entity or complex object this node is, or its name. When set, Breeze materializes the node as an entity of that type and merges it into the cache (unless the query is `noTracking`); a complex type is mapped without merging. For a top-level query result with no type, Breeze uses the query's result type. */
   entityType?: EntityType;
+  /** An id for this node, such as a Json.NET `$id`, that other nodes can refer to with `nodeRefId`. */
   nodeId?: string;
+  /** The `nodeId` of another node that this node stands for, such as a Json.NET `$ref`. Breeze returns the entity or object read from that node in its place. */
   nodeRefId?: string;
+  /** Whether to skip this node. A skipped property is left off the object that holds it; a skipped top-level node is dropped from the results (or is `null` there, when the query includes deleted entities). */
   ignore?: boolean;
+  /** Whether to return a top-level node that has no `entityType` as it is, without mapping its property names to the client's or visiting its properties. */
   passThru?: boolean;
+  /** Anything else about the node to keep. Breeze stores it on the entity's `entityAspect.extraMetadata`. */
   extraMetadata?: any;
   /** Use this object in place of the node that was visited. */
   node?: any;
 }
 
+/** Where a node passed to a {@link JsonResultsAdapter}'s `visitNode` sits in the result. */
 export interface NodeContext {
+  /** `"root"` for a top-level result, `"navProp"` or `"navPropItem"` for the value or an item of a navigation property, and `"anonProp"` or `"anonPropItem"` for the value or an item of a property of a plain (non-entity) object. */
   nodeType: string;
+  /** For an `"anonProp"` or `"anonPropItem"` node, the client name of the property that holds it. */
   propertyName?: string;
+  /** For a `"navProp"` or `"navPropItem"` node, the navigation property that holds it. */
   navigationProperty?: NavigationProperty;
 }
 
@@ -227,7 +264,7 @@ export interface JsonResultsAdapterConfig {
 /**
 A JsonResultsAdapter instance is used to provide custom extraction and parsing logic on the json results returned by any web service.
 This facility makes it possible for breeze to talk to virtually any web service and return objects that will be first class 'breeze' citizens.
-**/
+*/
 export class JsonResultsAdapter {
   /** @hidden @internal */
   declare _$typeName: string; // actually put on prototype.
@@ -284,7 +321,7 @@ export class JsonResultsAdapter {
 
   @param jsConfig - A configuration object.
 
-  **/
+  */
   constructor(jsConfig: JsonResultsAdapterConfig) {
     if (arguments.length !== 1) {
       throw new Error("The JsonResultsAdapter ctor should be called with a single argument that is a configuration object.");

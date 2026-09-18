@@ -23,20 +23,42 @@ import { EntityQuery } from '../query/entity-query.js';
 import { UnattachedChildrenMap } from '../entity/unattached-children-map.js';
 import { serverDefaultAdapters } from '../config/default-adapters.js';
 
+/** The response to one HTTP request Breeze made, as its data service adapter received it. Found on
+{@link ServerError.httpResponse}, {@link QueryResult.httpResponse} and {@link SaveResult.httpResponse}. */
 export interface HttpResponse {
+  /** The request that was sent: its {@link AjaxConfig} without the callbacks - `url`, `type` (the
+  HTTP method), `params`, `data`, `headers` and so on. */
   config: any;
+  /** The response body: the parsed JSON of a successful response, or the text of a failed one.
+  Null when the request failed before any response arrived, or its body could not be read. */
   data: any;
+  /** Set only when the request failed: the error the transport threw if the request could not be
+  completed or its body could not be read, otherwise the status text. */
   error?: any;
+  /** Set by Breeze on the response to a save request, where it is used to turn the server's
+  per-entity errors into {@link EntityError}s. Undefined for queries and metadata requests.
+  Applications do not normally need it. */
   saveContext?: any;
+  /** The HTTP status code. `0` when the request failed before any response arrived: offline, DNS,
+  CORS, a server that is down, or an aborted request. */
   status: number;
   /** The HTTP status text, such as "Not Found". Empty when the server sent none (HTTP/2 never does), and set to
   the transport's error message when the request failed before any response arrived. May be absent with a custom ajax adapter. */
   statusText?: string;
+  /** Returns the value of the named response header, or `null` if the response did not include it.
+  Called with an empty name, returns an object holding every header, keyed by lower-case name.
+  When no response arrived, returns `""` for a name and `{}` without one. */
   getHeaders(headerName: string): string;
 }
 
+/** What {@link EntityManager.importEntities} returns. */
 export interface ImportResult {
+  /** The entities in the bundle as they now are in this manager: the ones newly attached, and the
+  cached ones they were merged into - including any the {@link ImportConfig.mergeStrategy} left
+  unchanged. */
   entities: Entity[];
+  /** The temporary keys in the bundle, each mapped to the temporary key its entity has in this
+  manager. See {@link ITempKeyMap}. */
   tempKeyMapping: ITempKeyMap;
 }
 
@@ -44,8 +66,14 @@ export interface ImportResult {
 
 /** Base shape of any errors returned from the server. */
 export interface ServerError extends Error {
+  /** The failed response, for anything the other members do not cover. */
   httpResponse: HttpResponse;
+  /** The HTTP status code - see {@link HttpResponse.status}. `0` when the request failed before any
+  response arrived. */
   status: number;
+  /** The best description Breeze could find: the message in the response body (a .NET exception's
+  message, or the `message`, `detail` or `title` of a JSON error), otherwise the transport's error
+  text. When the status is `0`, it also says the server was probably not reached. */
   message: string;
   /** The status text of the failed response - see {@link HttpResponse.statusText}. */
   statusText?: string;
@@ -127,6 +155,11 @@ export function isConcurrencyError(error: any): boolean {
 
 /** Shape of a save error when returned to the client. */
 export interface SaveError extends ServerError {
+  /** The errors the server reported on particular entities. Undefined when it named none. Breeze
+  also adds each one to its entity's validation errors.
+
+  When client-side validation stops a save before it is sent, the rejection is a plain `Error` with
+  `entityErrors` built from the entities' validation errors, and no HTTP members. */
   entityErrors: EntityError[];
 }
 
@@ -148,24 +181,25 @@ export interface EntityErrorFromServer {
 
 /** Shape of an error on a specific entity.  Part of a {@link SaveError} */
 export interface EntityError {
+  /** The entity the error is about. `null` when the server named an entity that is not in this
+  manager's cache. */
   entity: Entity;
+  /** What kind of error this is. From the server, the name it gave the error, such as
+  `"ConcurrencyError"`; from client-side validation, the validator's name, or the error's key if it
+  was added without a validator. */
   errorName: string;
+  /** The error message. */
   errorMessage: string;
+  /** The client-side name of the property the error is about; empty or null when it is about the
+  whole entity. */
   propertyName: string;
+  /** `true` for an error the server reported, `false` for one from client-side validation. */
   isServerError: boolean;
+  /** Whatever extra information the server attached to the error. Undefined for client-side
+  errors. */
   custom?: any;
 }
 
-/**
- * The shape of the Promise an {@link EntityManager.executeQuery} call returns.
- *
- * The result of a query. `T` is what the query was built for: `EntityQuery.from(Customer)` gives a
- * `QueryResult<Customer>`, so `results` is `Customer[]`.
- *
- * It defaults to `any`, which is what `results` has always been, so code written before the type
- * parameter existed is unaffected. Widening that default to `Entity` would be a breaking change:
- * every `qr.results[0].companyName` in existing code stops compiling.
- */
 /**
  * Anything the type-taking APIs accept in place of an {@link EntityType}: the type itself, its
  * name, or a constructor registered for it with {@link MetadataStore.registerEntityTypeCtor}.
@@ -187,7 +221,7 @@ A property the class does not declare is a compile error, which is the point: at
 
 Only the constructor overload is checked. Pass the type's name or its `EntityType` to create one
 from values the compiler cannot see.
-**/
+*/
 export type InitialValues<T> = {
   [K in keyof T as K extends keyof Entity | keyof ComplexObject ? never
     : T[K] extends Function ? never
@@ -198,6 +232,9 @@ export type InitialValues<T> = {
       : T[K];
 };
 
+/** What an {@link EntityManager.executeQuery} call resolves with - as do `EntityQuery.execute` and
+`RelationArray.load`. `T` is what the query was built for: `EntityQuery.from(Customer)` gives a
+`QueryResult<Customer>`, whose `results` is `Customer[]`. It defaults to `any`. */
 export interface QueryResult<T = any> {
   /** Top level entities returned.  Excludes entities that are Deleted. */
   results: T[];
@@ -227,11 +264,26 @@ export interface QueryErrorCallback {
 
 /** Key mapping information returned as part of an {@link SaveResult}. */
 export interface KeyMapping {
+  /** The qualified name of the entity's type, such as `"Order:#Northwind.Models"`. */
   entityTypeName: string;
+  /** The temporary key value the entity had on the client. */
   tempValue: any;
+  /** The permanent key value the server assigned. */
   realValue: any;
 }
 
+/** Maps each temporary key in a bundle imported by {@link EntityManager.importEntities} to the
+temporary key its entity was given in the importing manager. Returned as
+{@link ImportResult.tempKeyMapping}.
+
+Each property name is an old key in its {@link EntityKey.toString} form - the entity type's
+qualified name, a hyphen and the key value, such as `"Order:#Northwind.Models--1"` for the key
+`-1` - and its value is the new {@link EntityKey}. Both are temporary: the entity is still unsaved,
+and gets its permanent key when it is saved. The new key keeps the old value unless this manager's
+{@link KeyGenerator} has already handed that value out.
+
+With {@link ImportConfig.mergeAdds} set, imported entities keep their old keys and this map does not
+describe them. */
 export interface ITempKeyMap {
   [index: string]: EntityKey;
 }
@@ -240,7 +292,15 @@ export interface ITempKeyMap {
 export interface ImportConfig {
   /** If true, merge Added entities (with temp keys) as well.  This can be dangerous. */
   mergeAdds?: boolean;
+  /** How to merge an imported entity into one with the same key already in this manager. Defaults
+  to the manager's `queryOptions.mergeStrategy`. With {@link MergeStrategy.Disallowed} the import
+  throws on such an entity. Added entities with temporary keys are never merged unless `mergeAdds`
+  is set. */
   mergeStrategy?: MergeStrategy;  
+  /** Called before anything is imported when the bundle was exported without metadata, with the
+  `MetadataStore.metadataVersion` of the Breeze that exported it and the name of the exporting
+  manager's `MetadataStore`. Throw from it to stop the import if the bundle does not match this
+  manager's metadata. Not called when the bundle includes metadata. */
   metadataVersionFn?: (arg: { metadataVersion: any, metadataStoreName: any }) => void;
 }
 
@@ -250,9 +310,24 @@ interface ImportConfigExt extends ImportConfig {
 
 /** The shape of the Promise returned by an {@link EntityManager.saveChanges} call. */
 export interface SaveResult {
+  /** The entities the server returned for the save, as merged into this manager's cache. Empty
+  when there was nothing to save. */
   entities: Entity[];
+  /** For each entity saved with a temporary key, the permanent key the server assigned. Breeze has
+  already applied them - to the entities and to the foreign keys that pointed at them - by the time
+  the save resolves. */
   keyMappings: KeyMapping[];
-  deletedKeys?: { entityTypeName: string, keyValues: any[]}[];
+  /** The entities the server reports it deleted during the save, by type name and key values. This
+  can include entities the client did not send, such as ones deleted by server-side logic. Breeze
+  detaches any of them that are in the cache. */
+  deletedKeys?: {
+    /** The name of the deleted entity's type, as the server sent it. */
+    entityTypeName: string,
+    /** The deleted entity's key values, one per key property. */
+    keyValues: any[]
+  }[];
+  /** The raw response to the save request. Undefined when there was nothing to save, and so no
+  request. */
   httpResponse?: HttpResponse;
 }
 
@@ -280,65 +355,88 @@ export interface SaveBundle {
 
 /** Configuration info to be passed to the {@link EntityManager} constructor */
 export interface EntityManagerConfig {
-  /** The service name associated with this EntityManager.  **/
+  /** The service name associated with this EntityManager.  */
   serviceName?: string;
-  /** The DataService associated with this EntityManager. **/
+  /** The DataService associated with this EntityManager. */
   dataService?: DataService;
-  /** The {@link QueryOptions} associated with this EntityManager.  **/
+  /** The {@link QueryOptions} associated with this EntityManager.  */
   queryOptions?: QueryOptions;
-  /** The {@link SaveOptions} associated with this EntityManager. **/
+  /** The {@link SaveOptions} associated with this EntityManager. */
   saveOptions?: SaveOptions;
-  /** The {@link ValidationOptions} associated with this EntityManager.  **/
+  /** The {@link ValidationOptions} associated with this EntityManager.  */
   validationOptions?: ValidationOptions;
   /** The {@link KeyGenerator} constructor associated with this EntityManager. The manager creates its own
-  instance, and a new one whenever it is cleared, so a generator cannot be passed in as an instance. **/
+  instance, and a new one whenever it is cleared, so a generator cannot be passed in as an instance. */
   keyGeneratorCtor?: { new (): KeyGenerator }; // TODO: review this
-  /** The {@link MetadataStore} associated with this EntityManager. **/
+  /** The {@link MetadataStore} associated with this EntityManager. */
   metadataStore?: MetadataStore;
 }
 
 /** The shape returned by callbacks registered with {@link EntityManager.entityChanged} event */
 export interface EntityChangedEventArgs {
+  /** What happened - see {@link EntityAction}. */
   entityAction: EntityAction;
+  /** The entity the action happened to. Undefined for {@link EntityAction.Clear}, which affects every
+  entity in the manager. */
   entity?: Entity;
+  /** Set only for {@link EntityAction.PropertyChange}: the same {@link PropertyChangedEventArgs} the
+  entity's `propertyChanged` event receives. Undefined for every other action. */
   args?: PropertyChangedEventArgs;
 }
 
+/** The argument to the `validationErrorsChanged` event of an {@link EntityManager} and of an
+{@link EntityAspect}. Raised once per operation - a validation, or a call that adds, removes or
+clears errors - that added or removed at least one error. */
 export interface ValidationErrorsChangedEventArgs {
+  /** The entity whose validation errors changed. */
   entity: Entity; 
+  /** The errors the operation added. An error found again when the entity is re-validated appears
+  here again, replacing the one with the same key. */
   added: ValidationError[]; 
+  /** The errors the operation removed: ones that no longer fail validation, and ones removed with
+  {@link EntityAspect.removeValidationError} or {@link EntityAspect.clearValidationErrors}. */
   removed: ValidationError[];
 }
 
+/** The argument to the {@link EntityManager.hasChangesChanged} event. */
 export interface HasChangesChangedEventArgs {
+  /** The manager whose `hasChanges` state changed. */
   entityManager: EntityManager; 
+  /** Whether the manager now has changes - see {@link EntityManager.hasChanges}. */
   hasChanges: boolean;
 }
 
 /**
 Instances of the EntityManager contain and manage collections of entities, either retrieved from a backend datastore or created on the client.
-**/
+*/
 export class EntityManager {
   /** @hidden @internal */
   declare _$typeName: string; // actually defined on prototype
 
-  /** The service name associated with this EntityManager. __Read Only__ **/
+  /** The service name associated with this EntityManager. __Read Only__ */
   declare serviceName: string;
-  /** The DataService associated with this EntityManager. __Read Only__ **/
+  /** The DataService associated with this EntityManager. __Read Only__ */
   declare dataService: DataService;
-  /** The {@link QueryOptions} associated with this EntityManager. __Read Only__ **/
+  /** The {@link QueryOptions} associated with this EntityManager. __Read Only__ */
   declare queryOptions: QueryOptions;
-  /** The {@link SaveOptions} associated with this EntityManager. __Read Only__ **/
+  /** The {@link SaveOptions} associated with this EntityManager. __Read Only__ */
   declare saveOptions: SaveOptions;
-  /** The {@link ValidationOptions} associated with this EntityManager. __Read Only__ **/
+  /** The {@link ValidationOptions} associated with this EntityManager. __Read Only__ */
   declare validationOptions: ValidationOptions;
-  /** The {@link KeyGenerator} associated with this EntityManager. __Read Only__ **/
+  /** The {@link KeyGenerator} associated with this EntityManager. __Read Only__ */
   declare keyGenerator: KeyGenerator;
-  /** The {@link KeyGenerator} constructor associated with this EntityManager. __Read Only__ **/
+  /** The {@link KeyGenerator} constructor associated with this EntityManager. __Read Only__ */
   declare keyGeneratorCtor: { new (): KeyGenerator }; // TODO: review this
-  /** The {@link MetadataStore} associated with this EntityManager. __Read Only__ **/
+  /** The {@link MetadataStore} associated with this EntityManager. __Read Only__ */
   declare metadataStore: MetadataStore;
+  /** True while Breeze is loading entities into this manager - merging query or save results, or
+  attaching or creating entities. While it is set, property changes do not mark entities Modified,
+  are not validated, and raise no property-change events. Used by Breeze; applications do not
+  normally need it. */
   declare isLoading: boolean;
+  /** True while {@link EntityAspect.rejectChanges} restores an entity's original values, so that
+  restoring them raises no property-change events. Used by Breeze; applications do not normally need
+  it. */
   declare isRejectingChanges: boolean;
 
   // events
@@ -347,7 +445,7 @@ export class EntityManager {
 
   @eventArgs - 
   - entityAction - The {@link EntityAction} that occured.
-  - entity - The entity that changed.  If this is null, then all entities in the entityManager were affected.
+  - entity - The entity that changed. Undefined for {@link EntityAction.Clear}, which affects every entity in the manager.
   - args - Additional information about this event. This will differ based on the entityAction.
 
   >      let em = new EntityManager( {serviceName: "breeze/NorthwindIBModel" });
@@ -360,7 +458,7 @@ export class EntityManager {
   >      });
   >  });
   @event
-  **/
+  */
   entityChanged: BreezeEvent<EntityChangedEventArgs>;
 
   /**
@@ -382,7 +480,7 @@ export class EntityManager {
   >          });
   >      });
   @event
-  **/
+  */
   validationErrorsChanged: BreezeEvent<ValidationErrorsChangedEventArgs>;
 
   /**
@@ -398,7 +496,7 @@ export class EntityManager {
   >          });
   >      });
   @event 
-  **/
+  */
   hasChangesChanged: BreezeEvent<HasChangesChangedEventArgs>;
 
 
@@ -417,9 +515,16 @@ export class EntityManager {
   /** @hidden @internal */
   _inKeyFixup: boolean;
 
+  /** Functions a {@link DataServiceAdapter} uses to build the save request: `unwrapInstance` turns an
+  entity or complex object into a plain object with server property names, `unwrapOriginalValues`
+  does the same for its original values, and `unwrapChangedValues` for the current values of its
+  changed properties. For adapter authors; applications do not normally need it. */
   helper = {
+    /** Turns an entity or complex object into a plain object keyed by server property names. */
     unwrapInstance: unwrapInstance,
+    /** The same, for the original values of an entity's changed properties. */
     unwrapOriginalValues: unwrapOriginalValues,
+    /** The same, for the current values of an entity's changed properties. */
     unwrapChangedValues: unwrapChangedValues
   };
 
@@ -459,7 +564,7 @@ export class EntityManager {
   >         validationOptions: validationOptions
   >     });
   @param emConfig - Configuration settings or a service name.  
-  **/
+  */
   constructor(emConfig?: EntityManagerConfig | string) {
 
     if (arguments.length > 1) {
@@ -502,7 +607,7 @@ export class EntityManager {
   >          serviceName: "breeze/foo"
   >      });
   @param config - An object containing the selected properties and values to set.
-  **/
+  */
   setProperties(config: EntityManagerConfig) {
     EntityManager._updateWithConfig(this, config, false);
   }
@@ -626,12 +731,13 @@ export class EntityManager {
   @param config - A configuration object.
   @param config.mergeStrategy - A  {@link MergeStrategy} to use when 
   merging into an existing EntityManager.
-  @param config.metadataVersionFn - A function that takes two arguments (the current metadataVersion and the imported store's 'name')
-  and may be used to perform version checking.
+  @param config.metadataVersionFn - A function called with `{ metadataVersion, metadataStoreName }` from the
+  import bundle, for version checking; throw from it to reject the import. Only called when the bundle was
+  exported without its metadata.
   @returns A new EntityManager.  Note that the return value of this method call is different from that
   provided by the same named method on an EntityManager instance. Use that method if you need additional information
   regarding the imported entities.
-  **/
+  */
   static importEntities(exported: string | Object, config?: ImportConfig) {
     let em = new EntityManager();
     em.importEntities(exported, config);
@@ -642,7 +748,7 @@ export class EntityManager {
 
   /**
   Calls {@link EntityAspect.acceptChanges} on every changed entity in this EntityManager.
-  **/
+  */
   acceptChanges() {
     this.getChanges().map(function (entity) {
       return entity.entityAspect._checkOperation("acceptChanges");
@@ -709,7 +815,7 @@ export class EntityManager {
   The export bundle internals are deliberately undocumented.  This Breeze-internal representation of entity data is
   suitable for export, storage, and import. The schema and contents of the bundle may change in future versions of Breeze.
   Manipulate it at your own risk with appropriate caution.
-  **/
+  */
   exportEntities(entities?: Entity[] | EntityType[] | string[], exportConfig?: { asString?: boolean, includeMetadata?: boolean } | boolean): string | Object {
     assertParam(entities, "entities").isArray().isEntity()
       .or().isNonEmptyArray().isInstanceOf(EntityType)
@@ -776,12 +882,13 @@ export class EntityManager {
   @param importConfig - A configuration object.
   @param importConfig.mergeStrategy -  A {@link MergeStrategy} to use when
   merging into an existing EntityManager.
-  @param importConfig.metadataVersionFn - A function that takes two arguments (the current metadataVersion and the imported store's 'name')
-  and may be used to perform version checking.
+  @param importConfig.metadataVersionFn - A function called with `{ metadataVersion, metadataStoreName }` from the
+  import bundle, for version checking; throw from it to reject the import. Only called when the bundle was
+  exported without its metadata.
   @returns result 
     - result.entities {Array of Entities} The entities that were imported.
-    - result.tempKeyMap {Object} Mapping from original EntityKey in the import bundle to its corresponding EntityKey in this EntityManager.
-  **/
+    - result.tempKeyMapping {Object} For each temporary key in the bundle, the temporary {@link EntityKey} the entity has in this manager - see {@link ITempKeyMap}.
+  */
   importEntities(exported: string | Object, importConfig?: ImportConfig) {
     importConfig = importConfig || {};
     assertConfig(importConfig)
@@ -851,7 +958,7 @@ export class EntityManager {
   >     // assume em1 is an EntityManager containing a number of existing entities.
   >     em1.clear();
   >     // em1 is will now contain no entities, but all other setting will be maintained.
-  **/
+  */
   clear() {
     // The constructor calls clear() before _entityGroupMap is assigned, so this runs
     // once with it undefined. core.objectMap used to absorb that; Map.values() does not.
@@ -873,7 +980,7 @@ export class EntityManager {
   >     // em2 is a new EntityManager with all of em1's settings
   >     // but no entities.
   @returns A new EntityManager.
-  **/
+  */
   createEmptyCopy() {
     let copy = new EntityManager(core.extend({}, this,
       ["dataService", "metadataStore", "queryOptions", "saveOptions", "validationOptions", "keyGeneratorCtor"]));
@@ -895,7 +1002,7 @@ export class EntityManager {
   >     em1.attachEntity(cust1, EntityState.Added);
   @param entity - The entity to add.
   @returns The added entity.
-  **/
+  */
   addEntity<T extends Entity>(entity: T): T {
     return this.attachEntity(entity, EntityState.Added);
   }
@@ -910,7 +1017,7 @@ export class EntityManager {
   @param entityState - (default=EntityState.Unchanged) The EntityState of the newly attached entity. If omitted this defaults to EntityState.Unchanged.
   @param mergeStrategy - (default = MergeStrategy.Disallowed) How the specified entity should be merged into the EntityManager if this EntityManager already contains an entity with the same key.
   @returns The attached entity.
-  **/
+  */
   attachEntity<T extends Entity>(entity: T, entityState?: EntityState, mergeStrategy?: MergeStrategy): T {
     assertParam(entity, "entity").isRequired().check();
     // Before the enum checks, so that an unregistered entity is still reported ahead of a bad
@@ -995,7 +1102,7 @@ export class EntityManager {
   >     // entityAspect.entityState of EntityState.Detached
   @param entity - The entity to detach.
   @returns Whether the entity could be detached. This will return false if the entity is already detached or was never attached.
-  **/
+  */
   detachEntity(entity: Entity) {
     assertParam(entity, "entity").isEntity().check();
     let aspect = entity.entityAspect;
@@ -1034,7 +1141,7 @@ export class EntityManager {
   @returns {Promise}
     - schema {Object} The raw Schema object from metadata provider - Because this schema will differ depending on the metadata provider
         it is usually better to access metadata via the 'metadataStore' property of the EntityManager instead of using this 'raw' data.
-  **/
+  */
   fetchMetadata(dataService?: DataService, callback?: Callback, errorCallback?: ErrorCallback): Promise<any> {
     if (typeof (dataService) === "function") {
       // legacy support for when dataService was not an arg. i.e. first arg was callback
@@ -1094,7 +1201,7 @@ export class EntityManager {
     - inlineCount -  Only available if 'inlineCount(true)' was applied to the query.  Returns the count of
     items that would have been returned by the query before applying any skip or take operators, but after any filter/where predicates
     would have been applied.
-  **/
+  */
   executeQuery(query: EntityQuery | string, callback?: QuerySuccessCallback, errorCallback?: QueryErrorCallback) {
     assertParam(query, "query").isInstanceOf(EntityQuery).or().isString().check();
     assertParam(callback, "callback").isFunction().isOptional().check();
@@ -1137,7 +1244,7 @@ export class EntityManager {
   >     });
   @param query - The {@link EntityQuery} to execute.
   @returns  {Array of Entity}  Array of entities from cache that satisfy the query
-  **/
+  */
   executeQueryLocally<T>(query: EntityQuery<T>): T[] {
     return executeQueryLocallyCore(this, query).results;
   }
@@ -1184,7 +1291,7 @@ export class EntityManager {
   @param callback - Deprecated. Function called on success.
   @param errorCallback - Deprecated. Function called on failure.
   @returns {Promise} Promise
-  **/
+  */
   saveChanges(entities?: Entity[] | null, saveOptions?: SaveOptions, callback?: Function, errorCallback?: Function): Promise<SaveResult> {
     assertParam(entities, "entities").isOptional().isArray().isEntity().check();
     assertParam(saveOptions, "saveOptions").isInstanceOf(SaveOptions).isOptional().check();
@@ -1321,7 +1428,7 @@ export class EntityManager {
   
   @param entitiesToSave {Array of Entity} The list of entities to save (to validate).
   @returns {Error} Validation error or null if no error
-  **/
+  */
   saveChangesValidateOnClient(entitiesToSave: Entity[]) {
 
     if (this.validationOptions.validateOnSave) {
@@ -1345,34 +1452,43 @@ export class EntityManager {
   }
 
   /**
+  Returns the entity in this manager's cache with this key, or `null` if there is none. It does
+  not query the server; see {@link EntityManager.fetchEntityByKey} for that. Given the constructor of a class registered with the
+  {@link MetadataStore}, the result has that class's type.
+  >      // assume em1 is an EntityManager containing a number of preexisting entities,
+  >      // and that Employee is registered with its MetadataStore.
+  >      let employee = em1.getEntityByKey(Employee, 1);   // Employee | null
+  */
+  getEntityByKey<T extends Entity>(entityCtor: new () => T, keyValues: any | any[]): T | null;
+
+  /**
+  Returns the entity in this manager's cache with this key, or `null` if there is none. It does
+  not query the server; see {@link EntityManager.fetchEntityByKey} for that.
   >      // assume em1 is an EntityManager containing a number of preexisting entities.
   >      let employeeType = em1.metadataStore.getAsEntityType("Employee");
   >      let employeeKey = new EntityKey(employeeType, 1);
   >      let employee = em1.getEntityByKey(employeeKey);
   >      // employee will either be an entity or null.
-  **/
-  /**
-  >      // assume em1 is an EntityManager containing a number of preexisting entities,
-  >      // and that Employee is registered with its MetadataStore.
-  >      let employee = em1.getEntityByKey(Employee, 1);   // Employee | null
-  **/
-  getEntityByKey<T extends Entity>(entityCtor: new () => T, keyValues: any | any[]): T | null;
-
+  */
   getEntityByKey(entityKey: EntityKey): Entity | null;
 
-  /**  
+  /**
+  Returns the entity in this manager's cache with this key, or `null` if there is none. It does
+  not query the server; see {@link EntityManager.fetchEntityByKey} for that.
   >      // assume em1 is an EntityManager containing a number of preexisting entities.
   >      let employee = em1.getEntityByKey("Employee", 1);
   >      // employee will either be an entity or null.
-  **/
+  */
   getEntityByKey(typeName: string, keyValues: any | any[]): Entity | null;
 
-  /**  
+  /**
+  Returns the entity in this manager's cache with this key, or `null` if there is none. It does
+  not query the server; see {@link EntityManager.fetchEntityByKey} for that.
   >      // assume em1 is an EntityManager containing a number of preexisting entities.
   >      let employeeType = em1.metadataStore.getAsEntityType("Employee");
   >      let employee = em1.getEntityByKey(employeeType, 1);
   >      // employee will either be an entity or null.
-  **/
+  */
   getEntityByKey(type: EntityType, keyValues: any | any[]): Entity | null;
 
   /**  
@@ -1382,7 +1498,7 @@ export class EntityManager {
   @param typeName - The EntityType name for this key.
   @param keyValues - The values for this key - will usually just be a single value; an array is only needed for multipart keys.  
   @returns An Entity or null;
-  **/
+  */
   getEntityByKey(...args: any[]) {
     let entityKey = createEntityKey(this, args).entityKey;
     let entityTypes = entityKey._subtypes || [entityKey.entityType];
@@ -1423,7 +1539,7 @@ export class EntityManager {
       - entity {Object} The entity found, or null if there is none. (Before 3.0 this was undefined; see UPGRADE.md.)
       - entityKey {EntityKey} The entityKey of the entity to fetch.
       - fromCache {Boolean} Whether this entity was fetched from the server or was found in the local cache.
-  **/
+  */
   fetchEntityByKey(...args: any[]) {
     let dataService = DataService.resolve([this.dataService]);
     if ((!dataService.hasServerMetadata) || this.metadataStore.hasMetadataFor(dataService.serviceName)) {
@@ -1445,7 +1561,7 @@ export class EntityManager {
   @deprecated    Use getEntityByKey instead
   @param entityKey - The  {@link EntityKey} of the Entity to be located.
   @returns An Entity or null;
-  **/
+  */
   findEntityByKey(entityKey: EntityKey) {
     return this.getEntityByKey(entityKey);
   }
@@ -1475,7 +1591,7 @@ export class EntityManager {
   >      })
   @param entity - The Entity to generate a key for.
   @returns The new key value
-  **/
+  */
   generateTempKeyValue(entity: Entity) {
     // TODO - check if this entity is attached to this EntityManager.
     assertParam(entity, "entity").isEntity().check();
@@ -1518,7 +1634,7 @@ export class EntityManager {
   @param entityTypes - The {@link EntityType} or EntityTypes for which 'changed' entities will be found.
   @param entityTypeNames - The {@link EntityType} name or names for which 'changed' entities will be found.
   @returns Whether there are any changed entities that match the types specified..
-  **/
+  */
   hasChanges(entityTypes?: EntityTypeArg | EntityTypeArg[]) {
     if (!this._hasChanges) return false;
     if (entityTypes === undefined) return this._hasChanges;
@@ -1560,7 +1676,7 @@ export class EntityManager {
   @param entityTypes - The {@link EntityType} or EntityTypes for which 'changed' entities will be found.
   @param entityTypeNames - The {@link EntityType} name or names for which 'changed' entities will be found.
   @returns An array of Entities
-  **/
+  */
   getChanges(entityTypes?: EntityTypeArg | EntityTypeArg[]) {
     let ets = checkEntityTypes(this, entityTypes);
     return getChangesCore(this, ets);
@@ -1573,7 +1689,7 @@ export class EntityManager {
   >      let entities = em1.rejectChanges();
   @returns The entities whose changes were rejected. These entities will all have EntityStates of
   either 'Unchanged' or 'Detached'
-  **/
+  */
   rejectChanges() {
     if (!this._hasChanges) return [];
     let changes = getChangesCore(this);
@@ -1623,7 +1739,7 @@ export class EntityManager {
   @param entityStates - The {@link EntityState}s for which entities will be found.
   If this parameter is omitted, entities of all EntityStates are returned.
   @returns An array of Entities
-  **/
+  */
   getEntities(entityTypes?: EntityTypeArg | EntityTypeArg[], entityStates?: EntityState | EntityState[]) {
     let entTypes = checkEntityTypes(this, entityTypes);
     assertParam(entityStates, "entityStates").isOptional().isEnumOf(EntityState).or().isNonEmptyArray().isEnumOf(EntityState).check();
@@ -1931,6 +2047,7 @@ function processServerErrors(saveContext: SaveContext, saveError: SaveErrorFromS
   return <SaveError> <any> saveError;
 }
 
+/** What an {@link EntityManager.fetchEntityByKey} call resolves with. */
 export interface IEntityByKeyResult {
   /** The entity, or `null` if there is none.
 
@@ -1939,7 +2056,12 @@ export interface IEntityByKeyResult {
   and {@link EntityManager.getEntityByKey} returns `null`. Before 3.0 this one property was the
   exception. See UPGRADE.md. */
   entity: Entity | null;
+  /** The key that was looked up. */
   entityKey: EntityKey;
+  /** True if the answer came from the local cache, which is only checked when `checkLocalCacheFirst`
+  is true; false if the server was queried. It can be true with a null `entity`: the cached entity is
+  Deleted, and the manager's `queryOptions` exclude deleted entities and do not use
+  {@link MergeStrategy.OverwriteChanges}. */
   fromCache: boolean;
 }
 

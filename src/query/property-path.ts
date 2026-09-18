@@ -184,6 +184,7 @@ whether to read `value` as a literal or as the name of another property, and wha
 it has.
 */
 export interface FilterValueExpression {
+  /** The value to compare against: a literal, or the name of another property when `isProperty` is set or `isLiteral` is `false`. */
   value: any;
   /** Read `value` as a literal rather than as a property name. */
   isLiteral?: boolean;

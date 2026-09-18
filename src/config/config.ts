@@ -8,6 +8,11 @@ export interface AdapterCtor<T extends BaseAdapter> { new (...args: any[]): T; }
 /** @hidden */
 export interface IDef<T extends BaseAdapter> { ctor: AdapterCtor<T>; defaultInstance?: T; }
 
+/**
+The names of the adapter interfaces, as passed to the 2.x-style methods on {@link BreezeConfig}
+such as `registerAdapter` and `initializeAdapterInstance`. With {@link configureBreeze} you pass
+the adapter classes instead and never need these names.
+*/
 export type AdapterType = 'dataService'|'modelLibrary'|'ajax'|'uriBuilder';
 
 export class InterfaceDef<T extends BaseAdapter> {
@@ -47,9 +52,16 @@ export class InterfaceDef<T extends BaseAdapter> {
 
 /** Registers adapters used by Breeze */
 export class InterfaceRegistry {
+    /** Creates a registry with no adapters in it. {@link config} holds the one Breeze uses;
+    applications do not create their own. */
+    constructor() { }
+    /** The registered {@link AjaxAdapter}s, and the default one if any. Deprecated: Breeze 3 sends requests through `config.fetch` and needs no ajax adapter. */
     ajax = new InterfaceDef<AjaxAdapter>("ajax");
+    /** The registered {@link ModelLibraryAdapter}s, and the default one. */
     modelLibrary = new InterfaceDef<ModelLibraryAdapter>("modelLibrary");
+    /** The registered {@link DataServiceAdapter}s, and the default one. */
     dataService = new InterfaceDef<DataServiceAdapter>("dataService");
+    /** The registered {@link UriBuilderAdapter}s, and the default one. */
     uriBuilder = new InterfaceDef<UriBuilderAdapter>("uriBuilder");
 }
 
@@ -57,11 +69,30 @@ export class InterfaceRegistry {
 // come first. Same order as configureBreeze.
 const initOrder: AdapterType[] = ['modelLibrary', 'uriBuilder', 'ajax', 'dataService'];
 
+/**
+What every Breeze adapter implements: the model library, data service, URI builder and
+(deprecated) ajax adapters all extend this interface.
+*/
 export interface BaseAdapter {
     /** @hidden @internal */
     _$impl?: any;
+    /**
+    The name the adapter is registered under, such as `'webApi'` or `'backingStore'`. Names are
+    matched without regard to case. `registerAdapter` reads it from a throwaway instance and throws
+    if it is empty.
+    */
     name: string;
+    /**
+    Called by Breeze each time the adapter is initialized: when it is first created, and again
+    whenever it is initialized by name or registered again, for example by {@link configureBreeze}.
+    Resolve anything the adapter depends on here, not in the constructor.
+    */
     initialize(): void;
+    /**
+    Optional. Called each time any adapter is initialized after this one first was, with
+    `{ interfaceName, instance, isDefault }`, so that this adapter can pick up a new dependency. The data service adapters use
+    it to re-resolve their ajax adapter when a new default ajax adapter is initialized.
+    */
     checkForRecomposition?: (context: any) => void;
 }
 
@@ -86,11 +117,49 @@ export function setDefaultAdapters(defaults: Partial<Record<AdapterType, Default
     Object.assign(defaultAdapters, defaults);
 }
 
+/**
+Breeze's global configuration: the adapter registry, the `fetch` transport, and registries Breeze
+uses to find functions and objects by name when it deserializes metadata. The single instance is
+{@link config}.
+
+To configure Breeze, use {@link configureBreeze}. The adapter methods here (`registerAdapter`,
+`initializeAdapterInstance`, `getAdapterInstance` and the rest) are the 2.x API. They still
+work, and adapters' own static `register()` methods use them, but an application does not
+normally need to call them.
+*/
 export class BreezeConfig {
+    /**
+    Functions registered by name with {@link BreezeConfig.registerFunction}. Breeze looks up
+    validator factories here, under `"Validator." + name`, when it imports metadata. Applications do
+    not normally need it; use {@link Validator.register} and {@link Validator.registerFactory}.
+    */
     functionRegistry: Record<string, Function> = {};
+    /**
+    Constructors registered by name with {@link BreezeConfig.registerType}. Nothing in Breeze 3
+    reads it; applications do not normally need it.
+    */
     typeRegistry: Record<string, Function> = {};
+    /**
+    Named instances Breeze can find again by name, keyed `"<TypeName>.<name>"`: every
+    {@link JsonResultsAdapter}, {@link NamingConvention} and {@link LocalQueryComparisonOptions}
+    registers itself here when created. Breeze uses it to resolve the names in exported metadata and
+    exported entities. Applications do not normally need it.
+    */
     objectRegistry: Record<string, any> = {};
-    interfaceInitialized: BreezeEvent<{ interfaceName: string, instance: BaseAdapter, isDefault: boolean }>;
+    /**
+    Published each time an adapter is initialized, with the interface name, the adapter instance
+    and whether it became the default for its interface. Breeze uses it to let adapters that depend
+    on each other recompose (see {@link BaseAdapter.checkForRecomposition}); applications do not
+    normally need it.
+    */
+    interfaceInitialized: BreezeEvent<{
+        /** The interface the adapter implements: `"ajax"`, `"dataService"`, `"modelLibrary"` or `"uriBuilder"`. */
+        interfaceName: string,
+        /** The adapter that was initialized. */
+        instance: BaseAdapter,
+        /** Whether it became the default adapter for its interface. */
+        isDefault: boolean
+    }>;
 
     /**
      * Adapter instances already subscribed to `interfaceInitialized` for recomposition, so that
@@ -100,6 +169,11 @@ export class BreezeConfig {
      */
     private _recomposers = new WeakSet<BaseAdapter>();
 
+    /**
+    The indentation Breeze passes to `JSON.stringify` when it serializes exported entities
+    (`EntityManager.exportEntities`) and exported metadata (`MetadataStore.exportMetadata`).
+    The default, `''`, produces compact JSON; set it to, say, `'  '` for readable output.
+    */
     stringifyPad = '';
     /**
      * The function Breeze makes HTTP requests with, unless a (deprecated) ajax adapter is
@@ -116,9 +190,11 @@ export class BreezeConfig {
     @param irConfig - The name of a previously registered adapter for each interface to initialize,
     e.g. `{ ajax: 'fetch', dataService: 'webApi' }`. Interfaces not named are left as they are.
     @hidden @internal
-    **/
+    */
     declare initializeAdapterInstances: (irConfig: InterfaceRegistryConfig) => void;
 
+    /** Creates a configuration with nothing registered. Breeze creates the one instance there is,
+    {@link config}; applications do not create their own. */
     constructor() {
         this.interfaceInitialized = new BreezeEvent("interfaceInitialized", this);
     }
@@ -128,8 +204,7 @@ export class BreezeConfig {
     made as the last step within an adapter implementation.
     @param interfaceName {String} - one of the following interface names: "ajax", "dataService", "modelLibrary", "uriBuilder"
     @param adapterCtor {Function} - an ctor function that returns an instance of the specified interface.
-    **/
-    /**
+
     @deprecated For configuring an application, use `configureBreeze({ ajax: MyAdapter, ... })`
     instead: the adapter classes are passed directly, so a misspelled name is a compile error
     rather than a runtime one. An adapter's own static `register()` still calls this - that is
@@ -154,7 +229,7 @@ export class BreezeConfig {
     @param [adapterName] {String} The name of any previously registered adapter. If this parameter is omitted then
     this method returns the "default" adapter for this interface. If there is no default adapter, then a null is returned.
     @returns {Function|null} Returns either a ctor function or null.
-    **/
+    */
     getAdapter(interfaceName: AdapterType, adapterName: string) {
         let idef = this.getInterfaceDef(interfaceName);
         if (adapterName) {
@@ -173,8 +248,7 @@ export class BreezeConfig {
     @param adapterName {String} - The name of a previously registered adapter to initialize.
     @param [isDefault=true] {Boolean} - Whether to make this the default "adapter" for this interface.
     @returns {an instance of the specified adapter}
-    **/
-    /**
+
     @deprecated For configuring an application, use `configureBreeze({ ajax: MyAdapter, ... })`
     instead: the adapter classes are passed directly, so a misspelled name is a compile error
     rather than a runtime one. An adapter's own static `register()` still calls this - that is
@@ -202,7 +276,7 @@ export class BreezeConfig {
     omitted then the default implementation of the specified interface is returned. If there is
     no defaultInstance of this interface, then the first registered instance of this interface is returned.
     @returns {an instance of the specified adapter}
-    **/
+    */
     getAdapterInstance<T extends BaseAdapter>(interfaceName: AdapterType, adapterName?: string) {
         let idef = this.getInterfaceDef<T>(interfaceName);
         let impl: IDef<T>;
@@ -234,6 +308,13 @@ export class BreezeConfig {
         this.functionRegistry[fnName] = fn;
     }
 
+    /**
+    Registers a constructor under a type name: stamps the name on its prototype as `_$typeName` and
+    adds it to {@link BreezeConfig.typeRegistry}. Breeze registers `KeyGenerator` this way;
+    applications do not normally need it.
+    @param ctor - The constructor to register.
+    @param typeName - The name to register it under.
+    */
     registerType(ctor: Function, typeName: string) {
         assertParam(ctor, "ctor").isFunction().check();
         assertParam(typeName, "typeName").isString().check();
@@ -243,10 +324,23 @@ export class BreezeConfig {
         this.typeRegistry[typeName] = ctor;
     }
 
+    /**
+    Returns the function registered under the given name with {@link BreezeConfig.registerFunction},
+    or `undefined` if there is none. Validators are registered as `"Validator." + name`, so
+    `config.getRegisteredFunction('Validator.maxLength')` returns the `maxLength` factory.
+    @param fnName - The name the function was registered under.
+    */
     getRegisteredFunction(fnName: string) {
         return this.functionRegistry[fnName];
     }
 
+    /**
+    Returns the registry entry for one adapter interface, which holds its registered adapters and
+    its default instance. The name is matched without regard to case.
+    Used by the adapter registration methods; applications do not normally need it.
+    @param interfaceName - `'ajax'`, `'dataService'`, `'modelLibrary'` or `'uriBuilder'`.
+    @throws if there is no interface with that name.
+    */
     getInterfaceDef<T extends BaseAdapter>(interfaceName: string) {
         let lcName = interfaceName.toLowerCase();
         // source may be null
@@ -347,6 +441,13 @@ export class BreezeConfig {
 
 }
 
+/**
+The global {@link BreezeConfig}, used by every `EntityManager`, `MetadataStore` and `DataService`.
+
+To configure Breeze, use {@link configureBreeze}, which sets this object's adapters and `fetch`.
+The 2.x calls on it, such as `config.registerAdapter(...)` and
+`config.initializeAdapterInstance(...)`, still work and are not scheduled for removal.
+*/
 export const config = new BreezeConfig();
 
 // The adapter interfaces. They are set here rather than in interface-registry.ts because every

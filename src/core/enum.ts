@@ -57,9 +57,16 @@ export class BreezeEnum {
   /** Type of the enum; set in prototype of each enum */
   declare _$typeName: string;
   /** @hidden @internal */
-  static _resolvedNamesAndSymbols: { name: string, symbol: BreezeEnum }[];
+  static _resolvedNamesAndSymbols: {
+    /** The symbol's name, such as `"Added"`. */
+    name: string,
+    /** The symbol itself, such as `EntityState.Added`. */
+    symbol: BreezeEnum
+  }[];
 
-  /**  */
+  /** Creates a symbol, copying each property of `propertiesObj` onto it. Used to declare the
+  symbols of an enum, as static members of its class; its name is set when the class calls
+  {@link BreezeEnum.resolveSymbols}. */
   constructor(propertiesObj?: Object) {
     if (propertiesObj) {
       const self = this as Record<string, any>, props = propertiesObj as Record<string, any>;
@@ -71,7 +78,7 @@ export class BreezeEnum {
   Returns all of the symbols contained within this Enum.
   >     let symbols = DayOfWeek.getSymbols();
   @returns All of the symbols contained within this Enum.
-  **/
+  */
   static getSymbols<T extends typeof BreezeEnum>(this: T): InstanceType<T>[] {
     // Typed through `this` so a subclass gets its own instances: FilterQueryOp.getSymbols() is
     // FilterQueryOp[], not BreezeEnum[]. The example above depends on that - nextDay() returns a
@@ -83,7 +90,7 @@ export class BreezeEnum {
   Returns the names of all of the symbols contained within this Enum.
   >     let symbols = DayOfWeek.getNames();
   @returns  All of the names of the symbols contained within this Enum.
-  **/
+  */
   static getNames() {
     return this.resolveSymbols().map(ks => ks.name);
   }
@@ -94,7 +101,7 @@ export class BreezeEnum {
   >     // nowdayOfWeek === DayOfWeek.Thursday
   @param name - Name for which an enum symbol should be returned.
   @returns The symbol that matches the name or 'undefined' if not found.
-  **/
+  */
   static fromName(name: string) {
     return (this as Record<string, any>)[name];
   }
@@ -103,7 +110,7 @@ export class BreezeEnum {
   Seals this enum so that no more symbols may be added to it. This should only be called after all symbols
   have already been added to the Enum. This method also sets the 'name' property on each of the symbols.
   >     DayOfWeek.resolveSymbols();
-  **/
+  */
   static resolveSymbols() {
     if (this._resolvedNamesAndSymbols) return this._resolvedNamesAndSymbols;
     let result: {name: string, symbol: BreezeEnum }[] = [];
@@ -131,7 +138,7 @@ export class BreezeEnum {
   >     }
   @param sym - Object or symbol to test.
   @returns Whether this Enum contains the specified symbol.
-  **/
+  */
   static contains(sym: BreezeEnum) {
     if (!(sym instanceof BreezeEnum)) {
       return false;
@@ -160,7 +167,9 @@ export class BreezeEnum {
   /** Return enum name and symbol name */
   toJSON() {
     return {
+      /** The name of the enum, such as `"EntityState"`. */
       _$typeName: this['_$typeName'] || (this.constructor as any).name,
+      /** The name of the symbol, such as `"Added"`. */
       name: this.name
     };
   }

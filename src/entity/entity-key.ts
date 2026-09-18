@@ -7,7 +7,7 @@ import { DataType } from '../metadata/data-type.js';
 An EntityKey is an object that represents the unique identity of an entity.  EntityKey's are immutable.
 
 
-**/
+*/
 export class EntityKey {
   /** @hidden @internal */
   declare _$typeName: string; // actually placed on prototype
@@ -78,13 +78,20 @@ export class EntityKey {
   }
 
 
+  /** Returns the plain form of this key - `{ entityType, values }`, with the entity type's qualified
+  name - which `JSON.stringify` uses and {@link EntityKey.fromJSON} turns back into a key. Breeze
+  uses it to record temporary keys in an {@link EntityManager.exportEntities} bundle. */
   toJSON() {
     return {
+      /** The qualified name of the key's entity type, such as `"Customer:#Northwind.Models"`. */
       entityType: this.entityType.name,
+      /** The key's values, one per key property. */
       values: this.values
     };
   }
 
+  /** Recreates a key from the output of {@link EntityKey.toJSON}, looking its entity type up in
+  `metadataStore`. Throws if the type is not there. Used by {@link EntityManager.importEntities}. */
   static fromJSON(json: any, metadataStore: MetadataStore) {
     let et = metadataStore._getStructuralType(json.entityType, true) as EntityType;
     return new EntityKey(et, json.values);
@@ -102,13 +109,17 @@ export class EntityKey {
   >      if (empKey1.equals(empKey2)) {
   >          // do something  ...
   >      }
-  **/
+  */
   equals(entityKey: EntityKey): boolean {
     if (!(entityKey instanceof EntityKey)) return false;
     return (this.entityType === entityKey.entityType) &&
       core.arrayEquals(this.values, entityKey.values);
   }
 
+  /** Returns this key as a string: the entity type's qualified name, a hyphen, and the key values
+  joined by `:::` - such as `"Order:#Northwind.Models-10248"`. Given `altEntityType`, that type's
+  name is used instead. Breeze uses this form in error messages and as the property names of an
+  {@link ITempKeyMap}. */
   /*
   Returns a human readable representation of this EntityKey.
   */
@@ -127,7 +138,7 @@ export class EntityKey {
   >      if (EntityKey.equals(empKey1, empKey2)) {
   >          // do something  ...
   >      }
-  **/
+  */
   static equals(k1: EntityKey, k2: EntityKey) {
     if (!(k1 instanceof EntityKey)) return false;
     return k1.equals(k2);

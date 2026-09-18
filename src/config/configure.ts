@@ -12,6 +12,11 @@ export interface AdapterRegistration {
 
 /** An ajax adapter, which may additionally accept a custom transport. */
 export interface AjaxAdapterRegistration {
+  /**
+   * Registers the adapter and initializes it as the default ajax adapter, as
+   * `AjaxFetchAdapter.register` does. {@link configureBreeze} calls it
+   * with its target config and, when you pass one, the `fetch` option as the adapter's transport.
+   */
   register(breezeConfig?: BreezeConfig, fetchFn?: BreezeFetch): any;
 }
 

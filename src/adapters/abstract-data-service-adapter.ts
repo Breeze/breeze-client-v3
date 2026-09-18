@@ -252,7 +252,7 @@ export abstract class AbstractDataServiceAdapter implements DataServiceAdapter {
   @param saveContext - The BreezeJS "context" for the save operation.
   @param saveBundle - Contains the array of entities-to-be-saved (AKA, the entity change-set).
   @returns Constructor for a "ChangeRequestInterceptor".
-  **/
+  */
   changeRequestInterceptor: ChangeRequestInterceptorCtor = DefaultChangeRequestInterceptor;
 
   /**

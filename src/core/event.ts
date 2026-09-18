@@ -46,7 +46,7 @@ export interface Subscription {
 
 /**
 Class to support basic event publication and subscription semantics.
-**/
+*/
 export class BreezeEvent<T> {
   /**
    * Names of every event constructed so far. A Set: it is membership, not mapping.
@@ -104,7 +104,7 @@ export class BreezeEvent<T> {
   @param publisher - The object that will be doing the publication. i.e. the object to which this event is attached.
   @param defaultErrorCallback - Function to call when an error occurs during subscription execution. 
   If omitted then subscriber notification failures will be ignored.
-  **/
+  */
   constructor(name: string, publisher: Object, defaultErrorCallback?: (e: Error) => any) {
     // Checked inline rather than with assertParam: every entity constructs two of these,
     // and the chain allocates several objects to answer what is one typeof. Same wording.
@@ -141,7 +141,7 @@ export class BreezeEvent<T> {
   @param errorCallback - Function to be called for any errors that occur during publication. If omitted,
   errors will be eaten.
   @returns false if event is disabled; true otherwise.
-  **/
+  */
   publish(data: T, publishAsync: boolean = false, errorCallback?: (e: Error) => any) {
 
     if (!BreezeEvent._isEnabled(this.name, this.publisher)) return false;
@@ -166,7 +166,7 @@ export class BreezeEvent<T> {
   @param data - Data to publish
   @param errorCallback - Function to be called for any errors that occur during publication. If omitted,
   errors will be eaten.
-  **/
+  */
   publishAsync(data: T, errorCallback: (e: Error) => any) {
     this.publish(data, true, errorCallback);
   }
@@ -189,7 +189,7 @@ export class BreezeEvent<T> {
   >      });
   @param callback - Called whenever data is published for this event, with that data as its argument. What is published is documented on each specific event.
   @returns This is a key for 'unsubscription'.  It can be passed to the 'unsubscribe' method.
-  **/
+  */
   subscribe(callback: (data: T) => any) {
     if (!this._subscribers) {
       this._subscribers = [];
@@ -212,7 +212,7 @@ export class BreezeEvent<T> {
   @param unsubKey - The value returned from the 'subscribe' method may be used to unsubscribe here.
   @returns Whether unsubscription occured. This will return false if already unsubscribed or if the key simply
   cannot be found.
-  **/
+  */
   // A method, not a field holding a function: written as a field, every event carried its own
   // copy of it rather than sharing one on the prototype.
   unsubscribe(unsubKey: number) {
@@ -270,7 +270,7 @@ export class BreezeEvent<T> {
   @param obj - The object at which enabling or disabling will occur.  All event notifications that occur to this object or
   children of this object will be enabled or disabled.
   @param isEnabled - A boolean, a null or a function that returns either a boolean or a null.
-  **/
+  */
  static enable(eventName: string, obj: Object, isEnabled: boolean | ((x: any) => boolean)) {
     assertParam(eventName, "eventName").isNonEmptyString().check();
     assertParam(obj, "obj").isObject().check();
@@ -289,7 +289,7 @@ export class BreezeEvent<T> {
   @param eventName - The name of the event.
   @param obj - The object for which we want to know if notifications are enabled.
   @returns Whether notifications are enabled. If nothing is set on the object, the answer comes from its parent chain, and defaults to true.
-  **/
+  */
   static isEnabled(eventName: string, obj: Object) {
     assertParam(eventName, "eventName").isNonEmptyString().check();
     assertParam(obj, "obj").isObject().check();

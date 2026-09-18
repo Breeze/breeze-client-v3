@@ -118,7 +118,7 @@ export function enableSaveQueuing(em: EntityManager, enable: boolean = true) {
 /**
  * Replacement for EntityManager.saveChanges
  * This version queues saveChanges calls while a real save is in progress
- **/
+ */
 function saveChangesWithQueuing(entities: Entity[] | null, saveOptions: any) {
   try {
     // `this` is an EntityManager
@@ -314,6 +314,8 @@ class Deferred<T> {
  * ```
  */
 export class QueuedSaveFailedError extends Error {
+  /** Always `"QueuedSaveFailedError"`, so the error can be recognized by name as well as with
+  `instanceof`. */
   name = "QueuedSaveFailedError";
   /** The error the underlying save actually failed with. */
   innerError: Error;
@@ -324,6 +326,8 @@ export class QueuedSaveFailedError extends Error {
   /** The changes queued up behind it, which were never sent. */
   nextSaveMemo: SaveMemo;
 
+  /** Created by save queuing when a queued save fails; applications receive it rather than
+  create it. `errObject` is the error the save failed with. */
   constructor(errObject: Error, saveQueuing: any) {
     super();
     this.innerError = errObject;

@@ -34,7 +34,7 @@ import * as breeze from '../breeze.js';
  *               $data: { CompanyName: 'Hilo Hattie', ContactName: 'Donald', City: 'Duck', Country: 'USA', Phone: '808-234-5678' }
  *           });
  *
- **/
+ */
 export class AjaxPostWrapper {
 
   static wrapAjax(ajaxAdapter: breeze.AjaxAdapter) {

@@ -3,20 +3,25 @@ import { ObservableArray, ObservableArrayOps, observableArray } from './observab
 import type { ComplexObject, StructuralObject } from './entity-aspect.js';
 import type { DataProperty } from '../metadata/entity-metadata.js';
 
+/** The value of a complex property that holds an array of complex objects. It is a real array:
+adding or removing an element marks the owning entity Modified, can be undone by `rejectChanges`,
+and raises the array's `arrayChanged` event with an {@link ArrayChangedArgs}. */
 export interface ComplexArray<T extends ComplexObject = ComplexObject> extends ObservableArray<T> {
+  /** The entity or complex object that owns this array. */
   parent?: StructuralObject;
+  /** The complex {@link DataProperty} of `parent` that holds this array. */
   parentProperty?: DataProperty;
 }
 
-/**
+/*
  Complex arrays are not a class: they are real arrays whose mutating methods are replaced, so that
  changing one updates the entity that owns it. A complex array is a collection of complexTypes
  associated with a data property on a single entity or other complex object, i.e. customer.orders
  or order.orderDetails.
  @class {complexArray}
- **/
+ */
 
-/**
+/*
 An {@link BreezeEvent} that fires whenever the contents of this array changed.  This event
 is fired any time a new entity is attached or added to the EntityManager and happens to belong to this collection.
 Adds that occur as a result of query or import operations are batched so that all of the adds or removes to any individual
@@ -32,7 +37,7 @@ collections are collected into a single notification event for each relation arr
 @param added {Array of Entity} An array of all of the entities added to this collection.
 @param removed {Array of Entity} An array of all of the removed from this collection.
 @readOnly
-**/
+*/
 
 const complexArrayOps: ObservableArrayOps = {
 

@@ -2,7 +2,7 @@ import { BreezeEvent } from '../core/event.js';
 import type { EntityAspect } from './entity-aspect.js';
 import type { DataProperty } from '../metadata/entity-metadata.js';
 
-/**
+/*
  * The observable arrays - relation, complex and primitive - are real arrays, and have to be:
  * applications index them, iterate them, spread them and `JSON.stringify` them, and every one of
  * those is the engine's fast path only while the object stays a plain array with
@@ -22,8 +22,13 @@ import type { DataProperty } from '../metadata/entity-metadata.js';
 
 /** The argument to the `arrayChanged` event of a relation, complex or primitive array. */
 export interface ArrayChangedArgs {
+  /** The array that changed. */
   array: any[];
+  /** The items added. Undefined when the event reports removals: each change raises its own event,
+  so a `splice` that both removes and adds raises one for the removals, then one for the additions.
+  While a query or import is loading, the additions to an array are collected into a single event. */
   added?: any[];
+  /** The items removed. Undefined when the event reports additions. */
   removed?: any[];
 }
 

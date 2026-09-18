@@ -12,8 +12,13 @@ import { EntityManager, QueryResult, QueryErrorCallback, QuerySuccessCallback, V
 import { Validator, ValidationError } from '../validation/validate.js';
 import { EntityQuery } from '../query/entity-query.js';
 
+/** An instance of an {@link EntityType}: an object with a key, tracked by an {@link EntityManager}
+once attached. Breeze gives every entity these members, whether its class declares them or not. */
 export interface Entity {
+  /** The {@link EntityAspect} that holds this entity's Breeze state: its {@link EntityState}, key,
+  original values, validation errors and manager. */
   entityAspect: EntityAspect;
+  /** The {@link EntityType} that describes this entity. */
   entityType: EntityType;
   /** Get the property with the given name */
   getProperty(prop: string): any;
@@ -32,8 +37,12 @@ export interface Entity {
   _$entityType?: EntityType;
 }
 
+/** An instance of a {@link ComplexType}: a value with no key of its own, held in a complex property
+of an entity or of another complex object. */
 export interface ComplexObject {
+  /** The {@link ComplexAspect} that holds this object's parent, parent property and original values. */
   complexAspect: ComplexAspect;
+  /** The {@link ComplexType} that describes this object. */
   complexType: ComplexType;
   /** Get the property with the given name */
   getProperty(prop: string): any;
@@ -44,23 +53,40 @@ export interface ComplexObject {
   prototype?: { _$typeName: string };
 }
 
+/** An entity or a complex object - either kind of object Breeze tracks the properties of. Used where
+either is accepted, such as {@link ComplexAspect.parent}. */
 export type StructuralObject = Entity | ComplexObject;
 
 /**
- * The type a query derived from existing entities should carry.
- *
- * Given `Customer`, the query is a `Customer` query. Given plain `Entity` - which is all a caller
- * had before the type parameters existed - it stays `any`, so `results[0].whatever` keeps
- * compiling. Widening that case to `Entity` would break every existing caller.
+ * The type of the results of a query built from entities you already have, such as
+ * {@link EntityQuery.fromEntities} or {@link RelationArray.load}: the entities' own class when it
+ * is known - `QueriedAs<Customer>` is `Customer` - and `any` when all that is known is
+ * {@link Entity}, so that `results[0].companyName` compiles without a cast.
  */
+// `any` rather than `Entity` for the plain case: that is what these results were before the type
+// parameters existed, and narrowing it would break every existing caller.
 export type QueriedAs<U> = Entity extends U ? any : U;
 
+/** The argument to an entity's {@link EntityAspect.propertyChanged} event. It is also the `args` of
+an {@link EntityChangedEventArgs} for {@link EntityAction.PropertyChange}. */
 export interface PropertyChangedEventArgs {
+  /** The entity that changed. For a property of a complex object, the entity that holds it. */
   entity: Entity;
+  /** The name of the property that changed. For a property of a complex object it is a path from
+  the entity, such as `"location.city"`, with no index for an element of a complex array.
+
+  `null` when any number of properties may have changed at once - when a query or save merges
+  values into the entity, or its changes are rejected. The other members are then not set. */
   propertyName: string | null;
+  /** The object whose property was set: the entity itself, or the complex object that owns the
+  property. */
   parent?: StructuralObject;
+  /** The {@link DataProperty} or {@link NavigationProperty} that changed. It belongs to the type of
+  `parent`, which is not the entity's type when `parent` is a complex object. */
   property?: EntityProperty;
+  /** The value before the change. */
   oldValue?: any;
+  /** The value after the change, converted to the property's data type where Breeze can. */
   newValue?: any;
 }
 
@@ -78,11 +104,11 @@ a query, import or {@link EntityManager.createEntity} call.
 >      var aspect = order.entityAspect;
 >      var currentState = aspect.entityState;
 
-**/
+*/
 export class EntityAspect {
-  /** The Entity that this aspect is associated with. __Read Only__  **/
+  /** The Entity that this aspect is associated with. __Read Only__  */
   entity?: Entity;
-  /** The {@link EntityManager} that contains this entity. __Read Only__ **/
+  /** The {@link EntityManager} that contains this entity. __Read Only__ */
   entityManager?: EntityManager;
   /**  @hidden @internal */
   entityGroup?: EntityGroup;
@@ -93,7 +119,7 @@ export class EntityAspect {
   // - setEntityState, _detach, the attach and merge paths, and anything an application or plugin
   // assigns. Working the set out by scanning instead is what made hasChanges cost the size of the
   // cache, once per state change. See "Cache lookups that were scans" in CHANGES-DEV.md.
-  /** The {@link EntityState} of this entity. __Read Only__ **/
+  /** The {@link EntityState} of this entity. __Read Only__ */
   get entityState(): EntityState {
     return this._entityState;
   }
@@ -120,7 +146,7 @@ export class EntityAspect {
   wasLoaded?: boolean;
   /** Extra metadata about this entity such as the entity's etag.
   You may extend this object with your own metadata information.
-  Breeze (de)serializes this object when importing/exporting the entity. **/
+  Breeze (de)serializes this object when importing/exporting the entity. */
   extraMetadata?: any;
   /**
   A {@link BreezeEvent} that fires whenever any of the validation errors on this entity change.
@@ -140,7 +166,7 @@ export class EntityAspect {
 >          var errorsCleared = validationChangeArgs.removed;
 >      });
   @event
-  **/
+  */
   validationErrorsChanged: BreezeEvent<ValidationErrorsChangedEventArgs>;
   /**
   A {@link BreezeEvent} that fires whenever a value of one of this entity's properties change.
@@ -165,7 +191,7 @@ export class EntityAspect {
   >          var newValue = propertyChangedArgs.newValue;
   >      });
   @event
-  **/
+  */
   propertyChanged: BreezeEvent<PropertyChangedEventArgs>;
 
   /** @hidden @internal */
@@ -241,7 +267,7 @@ export class EntityAspect {
   Returns the value of a specified 'property path' for a specified entity.
 
   The propertyPath can be either a string delimited with '.' or a string array.  
-  **/
+  */
   // used by EntityQuery and Predicate
   static getPropertyPathValue(obj: Entity, propertyPath: string | string[]) {
     let properties = Array.isArray(propertyPath) ? propertyPath : propertyPath.split(".");
@@ -267,7 +293,7 @@ export class EntityAspect {
   >      var entityKey = order.entityAspect.getKey();
   @param forceRefresh - (boolean=false) Forces the recalculation of the key.  This should normally be unnecessary.
   @returns The {@link EntityKey} associated with this Entity.
-  **/
+  */
   getKey(forceRefresh: boolean = false) {
     // Inline, not assertParam: getKey runs several times per entity created and again on
     // every attach, merge and foreign key lookup. Same wording.
@@ -291,7 +317,7 @@ export class EntityAspect {
   >      // assume order is an order entity attached to an EntityManager.
   >      order.entityAspect.acceptChanges();
   >      // The 'order' entity will now be in an 'Unchanged' state with any changes committed.
-  **/
+  */
   acceptChanges() {
     if (!this.entity) return;
     this._checkOperation("acceptChanges");
@@ -310,7 +336,7 @@ export class EntityAspect {
   >      // assume order is an order entity attached to an EntityManager.
   >      order.entityAspect.rejectChanges();
   >      // The 'order' entity will now be in an 'Unchanged' state with any changes rejected.
-  **/
+  */
   rejectChanges() {
     this._checkOperation("rejectChanges");
     let entity = this.entity!;
@@ -349,7 +375,7 @@ export class EntityAspect {
   >      // assume order is an order entity attached to an EntityManager.
   >      order.entityAspect.setAdded();
   >      // The 'order' entity will now be in an 'Added' state.
-  **/
+  */
   setAdded() {
     return this.setEntityState(EntityState.Added);
   }
@@ -360,7 +386,7 @@ export class EntityAspect {
   >      // assume order is an order entity attached to an EntityManager.
   >      order.entityAspect.setUnchanged();
   >      // The 'order' entity will now be in an 'Unchanged' state with any changes committed.
-  **/
+  */
   setUnchanged = function () {
     return this.setEntityState(EntityState.Unchanged);
   };
@@ -372,7 +398,7 @@ export class EntityAspect {
   >      // assume order is an order entity attached to an EntityManager.
   >      order.entityAspect.setModified();
   >      // The 'order' entity will now be in a 'Modified' state.
-  **/
+  */
   setModified = function () {
     return this.setEntityState(EntityState.Modified);
   };
@@ -384,7 +410,7 @@ export class EntityAspect {
   >      // assume order is an order entity attached to an EntityManager.
   >      order.entityAspect.setDeleted();
   >      // The 'order' entity will now be in a 'Deleted' state and it will no longer have any 'related' entities.
-  **/
+  */
   setDeleted = function () {
     return this.setEntityState(EntityState.Deleted);
   };
@@ -395,7 +421,7 @@ export class EntityAspect {
   >      // assume order is an order entity attached to an EntityManager.
   >      order.entityAspect.setDetached();
   >      // The 'order' entity will now be in a 'Detached' state and it will no longer have any 'related' entities.
-  **/
+  */
   setDetached = function () {
     return this.setEntityState(EntityState.Detached);
   };
@@ -405,7 +431,7 @@ export class EntityAspect {
   >      // assume order is an order entity attached to an EntityManager.
   >      order.entityAspect.setEntityState(EntityState.Unchanged);
   >      // The 'order' entity will now be in a 'Unchanged' state.
-  **/
+  */
   setEntityState(entityState: EntityState) {
     if (this.entityState === entityState) return false;
     this._checkOperation("setEntityState");
@@ -476,7 +502,7 @@ export class EntityAspect {
     - results {Array of Entity}
     - query {EntityQuery} The original query
     - httpResponse {httpResponse} The HttpResponse returned from the server.
-  **/
+  */
   loadNavigationProperty(navigationProperty: NavigationProperty | string, callback?: QuerySuccessCallback, errorCallback?: QueryErrorCallback): Promise<QueryResult> {
     let entity = this.entity!;
     let navProperty = entity.entityType._checkNavProperty(navigationProperty);
@@ -499,7 +525,7 @@ export class EntityAspect {
   Marks this navigationProperty on this entity as already having been loaded.
   >      emp.entityAspect.markNavigationPropertyAsLoaded("Orders");
   @param navigationProperty - The NavigationProperty or name of NavigationProperty to 'load'.
-  **/
+  */
   markNavigationPropertyAsLoaded(navigationProperty: NavigationProperty | string) {
     if (!this.entity) return;
     let navProperty = this.entity.entityType._checkNavProperty(navigationProperty);
@@ -521,7 +547,7 @@ export class EntityAspect {
   
   >     var wasLoaded = emp.entityAspect.isNavigationPropertyLoaded("Orders");
   @param navigationProperty - The NavigationProperty or name of NavigationProperty to 'load'.
-  **/
+  */
   isNavigationPropertyLoaded(navigationProperty: NavigationProperty | string): boolean {
     // Both returns below used to hand back `undefined` - a bare `return`, and `this._loadedNps &&`
     // when nothing has been marked yet - while the overload signatures above promise `boolean`.
@@ -556,7 +582,7 @@ export class EntityAspect {
   {@link EntityAspect.addValidationError} remains. Errors from the server are not counted - a save
   clears them before validating, and the server checks again. This is the check `saveChanges`
   makes, so the two always agree.
-  **/
+  */
   validateEntity() {
     let ok = true;
     this._processValidationOpAndPublish(function (that: any) {
@@ -591,7 +617,7 @@ export class EntityAspect {
   @returns Whether the property can be saved: its validators pass, and no error added with
   {@link EntityAspect.addValidationError} about it remains. As with {@link EntityAspect.validateEntity},
   errors from the server are not counted.
-  **/
+  */
   validateProperty(property: EntityProperty | string, context: any) {
     let value = this.getPropertyValue(property); // performs validations
     // As validateEntity: an error added with addValidationError for this property counts too.
@@ -633,7 +659,7 @@ export class EntityAspect {
   @param property - The property for which validation errors should be retrieved.
   If omitted, all of the validation errors for this entity will be returned.
   @returns A array of validation errors.
-  **/
+  */
   getValidationErrors(property?: DataProperty | NavigationProperty | string) {
     assertParam(property, "property").isOptional().isEntityProperty().or().isString().check();
     let result = core.getOwnPropertyValues(this._validationErrors);
@@ -658,7 +684,7 @@ export class EntityAspect {
   {@link EntityAspect.clearValidationErrors}. Editing the property does not remove it: Breeze
   cannot re-check a rule it did not run. Give the error a key, and a failed save names it by that
   key in `errorName`.
-  **/
+  */
   addValidationError(validationError: ValidationError) {
     assertParam(validationError, "validationError").isInstanceOf(ValidationError).check();
     this._processValidationOpAndPublish(function (that: any) {
@@ -673,7 +699,7 @@ export class EntityAspect {
   Removes a validation error.
   @param validationErrorOrKey - A ValidationError, a ValidationError 'key' value, or a Validator -
   in which case every error that validator produced on this entity is removed.
-  **/
+  */
   removeValidationError(validationErrorOrKey: ValidationError | string | Validator) {
     assertParam(validationErrorOrKey, "validationErrorOrKey").isString().or().isInstanceOf(ValidationError).or().isInstanceOf(Validator).check();
 
@@ -694,7 +720,7 @@ export class EntityAspect {
 
   /**
   Removes all of the validation errors for a specified entity
-  **/
+  */
   clearValidationErrors() {
     this._processValidationOpAndPublish(function (that: any) {
       core.objectForEach(that._validationErrors, function (key: string, valError: ValidationError) {
@@ -729,7 +755,7 @@ export class EntityAspect {
   // TODO: refactor this and the static getPropertyPathValue.
   /**
   Returns the value of a specified DataProperty or NavigationProperty or 'property path'.  
-  **/
+  */
   getPropertyValue(property: string | DataProperty | NavigationProperty) {
     assertParam(property, "property").isString().or().isEntityProperty().check();
     let value: any;
@@ -1018,7 +1044,7 @@ entity via either a query, import or EntityManager.createEntity call.
 >      // assume address is a complex property on the 'Customer' type
 >      var aspect = aCustomer.address.complexAspect;
 >      // aCustomer === aspect.parent;
-**/
+*/
 export class ComplexAspect {
 
   /** The complex object that this aspect is associated with. __Read Only__ */
@@ -1031,6 +1057,8 @@ export class ComplexAspect {
   parent?: StructuralObject;
   /** The {@link DataProperty} on the 'parent' that contains this complex object. __Read Only__ */
   parentProperty?: DataProperty;
+  /** Unlike {@link EntityAspect.extraMetadata}, Breeze does not fill this in and does not export it.
+  An application may use it to hold its own data about the complex object. */
   extraMetadata?: any;
 
   /** You will rarely, if ever, create a ComplexAspect directly. */
@@ -1076,7 +1104,7 @@ export class ComplexAspect {
 
   /**
   Returns the EntityAspect for the top level entity that contains this complex object.
-  **/
+  */
   getEntityAspect() {
     let parent = <any>this.parent;
     if (!parent) return new EntityAspect();

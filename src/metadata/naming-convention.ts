@@ -19,7 +19,7 @@ A NamingConvention instance is used to specify the naming conventions under whic
 will translate property names between the server and the javascript client.
 
 The default NamingConvention does not perform any translation, it simply passes property names thru unchanged.
-**/
+*/
 export class NamingConvention {
   /** @hidden @internal */
   declare _$typeName: string;
@@ -44,7 +44,7 @@ export class NamingConvention {
   >      });
   >      var ms = new MetadataStore({ namingConvention: namingConv });
   >      var em = new EntityManager( { metadataStore: ms });
-  **/
+  */
   constructor(ncConfig: NamingConventionConfig ) {
     assertConfig(ncConfig || {})
         .whereParam("name").isOptional().isString()
@@ -63,7 +63,7 @@ export class NamingConvention {
   /**
   A no-op naming convention: client property names are the server property names. Set it with
   `NamingConvention.none.setAsDefault()` for a server that already sends the names the client should use.
-  **/
+  */
   static none = new NamingConvention({
     name: "noChange",
     serverPropertyNameToClient: (serverPropertyName) => {
@@ -77,7 +77,7 @@ export class NamingConvention {
   /**
   The "camelCase" naming convention - This implementation only lowercases the first character of the server property name
   but leaves the rest of the property name intact.  If a more complicated version is needed then one should be created via the ctor.
-  **/
+  */
   static camelCase = new NamingConvention({
     name: "camelCase",
     serverPropertyNameToClient: (serverPropertyName) => {
@@ -91,7 +91,7 @@ export class NamingConvention {
   /**
   The default value whenever NamingConventions are not specified: `camelCase`, which suits a .NET
   server. (2.x defaulted to `none`.)
-  **/
+  */
   static defaultInstance = new NamingConvention(NamingConvention.camelCase);
 
   /**
@@ -106,7 +106,7 @@ export class NamingConvention {
   >          }            
   >      });
   >      namingConv.setAsDefault();
-  **/
+  */
   setAsDefault() {
     return core.setAsDefault(this, NamingConvention);
   }

@@ -11,7 +11,8 @@ export default {
   // an application imports from their own subpaths. Its header says why one entry point and
   // not three.
   entryPoints: ['scripts/docs-entry.ts'],
-  plugin: ['typedoc-plugin-markdown', 'typedoc-vitepress-theme', './scripts/typedoc-categories.mjs'],
+  // typedoc-require-docs fails the build on an entry with no description; its header says what counts.
+  plugin: ['typedoc-plugin-markdown', 'typedoc-vitepress-theme', './scripts/typedoc-categories.mjs', './scripts/typedoc-require-docs.mjs'],
   out: 'docs/api',
   // Sidebar links are computed relative to this. Without it they come out as
   // /docs/api/... instead of the /api/... the site actually serves.

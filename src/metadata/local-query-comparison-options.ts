@@ -22,7 +22,7 @@ manner in which your remote service interprets certain comparison operations.
 
 The default LocalQueryComparisonOptions stipulates 'caseInsensitive" queries with ANSI SQL rules regarding comparisons of unequal
 length strings.
-**/
+*/
 export class LocalQueryComparisonOptions {
   /** @hidden @internal */
   declare _$typeName: string; // on prototype
@@ -30,6 +30,7 @@ export class LocalQueryComparisonOptions {
   declare name: string;
   /** Whether predicates that involve strings will be interpreted in a "caseSensitive" manner. (default = false).  */
   declare isCaseSensitive: boolean;
+  /** Whether `==` and `!=` comparisons of strings ignore leading and trailing spaces, to match a SQL server's comparison of strings of unequal length. `startsWith`, `endsWith` and `contains` are unaffected. (default = true). */
   /* Whether or not to enforce the ANSI SQL standard
   of padding strings of unequal lengths before comparison with spaces. Note that per the standard, padding only occurs with equality and
   inequality predicates, and not with operations like 'startsWith', 'endsWith' or 'contains'.  Default is true. */
@@ -49,7 +50,7 @@ export class LocalQueryComparisonOptions {
   >      var ms = new MetadataStore({ localQueryComparisonOptions: lqco });
   >      var em = new EntityManager( { metadataStore: ms });
   @param lqcoConfig - A configuration object.
-  **/
+  */
   constructor(lqcoConfig: LocalQueryComparisonOptionsConfig) {
     assertConfig(lqcoConfig || {})
         .whereParam("name").isOptional().isString()
@@ -64,7 +65,7 @@ export class LocalQueryComparisonOptions {
 
   /**
   Case insensitive SQL compliant options - this is also the default unless otherwise changed.
-  **/
+  */
   static caseInsensitiveSQL = new LocalQueryComparisonOptions({
     name: "caseInsensitiveSQL",
     isCaseSensitive: false,
@@ -73,7 +74,7 @@ export class LocalQueryComparisonOptions {
 
   /**
   The default value whenever LocalQueryComparisonOptions are not specified. By default this is 'caseInsensitiveSQL'.
-  **/
+  */
   static defaultInstance = new LocalQueryComparisonOptions(LocalQueryComparisonOptions.caseInsensitiveSQL);
 
   /**
@@ -84,7 +85,7 @@ export class LocalQueryComparisonOptions {
   >        usesSql92CompliantStringComparison: true;
   >     });
   >     lqco.setAsDefault();
-  **/
+  */
   setAsDefault() {
     return core.setAsDefault(this, LocalQueryComparisonOptions);
   }

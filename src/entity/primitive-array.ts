@@ -8,15 +8,15 @@ export interface PrimitiveArray extends ObservableArray<any> {
   parentProperty?: DataProperty;
 }
 
-/**
+/*
  Primitive arrays are not a class: they are real arrays whose mutating methods are replaced, so
  that changing one updates the entity that owns it. A primitive array is a collection of primitive
  values associated with a data property on a single entity or complex object, i.e.
  customer.invoiceNumbers.
  @class {primitiveArray}
- **/
+ */
 
-/**
+/*
 An {@link BreezeEvent} that fires whenever the contents of this array changed.  This event
 is fired any time a new entity is attached or added to the EntityManager and happens to belong to this collection.
 Adds that occur as a result of query or import operations are batched so that all of the adds or removes to any individual
@@ -32,7 +32,7 @@ collections are collected into a single notification event for each relation arr
 @param added {Array of Primitives} An array of all of the items added to this collection.
 @param removed {Array of Primitives} An array of all of the items removed from this collection.
 @readOnly
-**/
+*/
 
 const primitiveArrayOps: ObservableArrayOps = {
 

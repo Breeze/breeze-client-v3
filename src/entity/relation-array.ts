@@ -6,24 +6,31 @@ import type { Entity, QueriedAs } from './entity-aspect.js';
 import type { QueryErrorCallback, QueryResult, QuerySuccessCallback } from '../manager/entity-manager.js';
 import type { DataProperty, NavigationProperty } from '../metadata/entity-metadata.js';
 
+/** The value of a collection navigation property, such as `customer.orders`. It is a real array:
+adding an entity sets the entity's inverse navigation property (or foreign key) to point at the
+parent, attaching it to the parent's manager if it is detached, and removing one sets its inverse
+navigation property to null. Changes raise the array's `arrayChanged` event with an {@link ArrayChangedArgs}. */
 export interface RelationArray<T extends Entity = Entity> extends ObservableArray<T> {
+  /** The entity whose navigation property holds this array. */
   parentEntity: Entity;
+  /** Not set on a relation array: always undefined. Use `navigationProperty`. */
   parentProperty?: DataProperty;
+  /** The {@link NavigationProperty} of `parentEntity` that holds this array. */
   navigationProperty: NavigationProperty;
   load(): Promise<QueryResult<QueriedAs<T>>>;
   /** @deprecated Await the returned promise instead of passing callbacks. */
   load(querySuccessCallback?: QuerySuccessCallback, queryErrorCallback?: QueryErrorCallback): Promise<QueryResult<QueriedAs<T>>>;
 }
 
-/**
+/*
  Relation arrays are not a class: they are real arrays whose mutating methods are replaced, so that
  changing one updates both ends of the relationship. A relation array is a collection of entities
  associated with a navigation property on a single entity, i.e. customer.orders or
  order.orderDetails.
  @class {relationArray}
- **/
+ */
 
-/**
+/*
 An {@link BreezeEvent} that fires whenever the contents of this array changed.  This event
 is fired any time a new entity is attached or added to the EntityManager and happens to belong to this collection.
 Adds that occur as a result of query or import operations are batched so that all of the adds or removes to any individual
@@ -39,7 +46,7 @@ collections are collected into a single notification event for each relation arr
 @param added {Array of Entity} An array of all of the entities added to this collection.
 @param removed {Array of Entity} An array of all of the removed from this collection.
 @readOnly
-**/
+*/
 
 /**
 Performs an asynchronous load of all other the entities associated with this relationArray.
@@ -52,7 +59,7 @@ form and they will be removed in a future major version.
 @param [callback] {Function} Deprecated.
 @param [errorCallback] {Function} Deprecated.
 @returns {Promise}
-**/
+*/
 function load(this: RelationArray, callback?: QuerySuccessCallback, errorCallback?: QueryErrorCallback): Promise<QueryResult> {
   const parent = this.parentEntity;
   const query = EntityQuery.fromEntityNavigation(this.parentEntity, this.navigationProperty);

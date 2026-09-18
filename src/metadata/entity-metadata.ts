@@ -13,7 +13,12 @@ import { LocalQueryComparisonOptions } from './local-query-comparison-options.js
 import { defaultPropertyInterceptor } from '../entity/default-property-interceptor.js';
 import { ModelLibraryBackingStoreAdapter } from '../adapters/adapter-model-library-backing-store.js';
 
+/** A property of an {@link EntityType} or {@link ComplexType}: either a {@link DataProperty} or a
+{@link NavigationProperty}. Returned by methods such as {@link EntityType.getProperty}; test
+`isDataProperty` or `isNavigationProperty` to tell which. */
 export type EntityProperty = DataProperty | NavigationProperty;
+/** A type held by a {@link MetadataStore}: either an {@link EntityType} or a {@link ComplexType}.
+Returned by {@link MetadataStore.getStructuralType}; test `isComplexType` to tell which. */
 export type StructuralType = EntityType | ComplexType;
 
 /** @hidden @internal */
@@ -46,13 +51,21 @@ export interface MetadataStoreConfig {
   namingConvention?: NamingConvention;
   /** The  {@link LocalQueryComparisonOptions} associated with this MetadataStore. */
   localQueryComparisonOptions?: LocalQueryComparisonOptions;
+  /** Sets {@link MetadataStore.serializerFn}, the default serializer for every type in the store. */
   serializerFn?: (prop: EntityProperty, val: any) => any;
+  /** Sets {@link MetadataStore.name}. Accepted by {@link MetadataStore.setProperties} only: the
+  constructor rejects it as an unknown property. */
   name?: string;
 }
 
+/** The argument passed to subscribers of the {@link MetadataStore.metadataFetched} event. */
 export interface MetadataFetchedEventArgs {
+  /** The MetadataStore into which the metadata was fetched. */
   metadataStore: MetadataStore;
+  /** The {@link DataService} the metadata was fetched from. */
   dataService: DataService | string;
+  /** The metadata as the server returned it, parsed from JSON. It has already been imported into
+  the store when the event fires. */
   rawMetadata: any;
 }
 
@@ -60,7 +73,7 @@ export interface MetadataFetchedEventArgs {
 An instance of the MetadataStore contains all of the metadata about a collection of {@link EntityType}'s.
 MetadataStores may be shared across {@link EntityManager}'s.  If an EntityManager is created without an
 explicit MetadataStore, the MetadataStore from the MetadataStore.defaultInstance property will be used.
-**/
+*/
 export class MetadataStore {
   /** @hidden @internal */
   declare _$typeName: string; // on proto
@@ -72,13 +85,25 @@ export class MetadataStore {
   /** The version of any MetadataStores created by this class */
   static metadataVersion = '1.0.5';
 
+  /** An optional name for this MetadataStore, set with {@link MetadataStore.setProperties}.
+  {@link MetadataStore.exportMetadata} writes it, but {@link MetadataStore.importMetadata} does not
+  restore it. When {@link EntityManager.exportEntities} leaves out the metadata it records this name,
+  and {@link EntityManager.importEntities} passes it to {@link ImportConfig.metadataVersionFn}. */
   name: string;
+  /** The {@link DataService}s this store has metadata for, one per service name. Entries are added by
+  {@link MetadataStore.fetchMetadata}, {@link MetadataStore.importMetadata} and
+  {@link MetadataStore.addDataService}. __Read Only__ */
   dataServices: DataService[];
 
   /** The  {@link NamingConvention} associated with this MetadataStore. __Read Only__ */
   namingConvention: NamingConvention;
   /** The  {@link LocalQueryComparisonOptions} associated with this MetadataStore. __Read Only__ */
   localQueryComparisonOptions: LocalQueryComparisonOptions;
+  /** A function that customizes how data property values are serialized, both when entities are
+  sent to the server in a save and when {@link EntityManager.exportEntities} writes them. It is called
+  as `serializerFn(property, value)`; its return value is used in place of `value`, and returning
+  `undefined` leaves the property out. Applies to every type in the store that has no
+  `serializerFn` of its own (see {@link EntityType.serializerFn}). */
   serializerFn?: (prop: EntityProperty, val: any) => any;
   /**
   An {@link BreezeEvent} that fires after a MetadataStore has completed fetching metadata from a remote service.
@@ -93,7 +118,7 @@ export class MetadataStore {
   >          let dataService = args.dataService;
   >      });
   @event
-  **/
+  */
   metadataFetched: BreezeEvent<MetadataFetchedEventArgs>;
   /** @hidden @internal */
   _resourceEntityTypeMap: Record<string, string>;
@@ -101,19 +126,19 @@ export class MetadataStore {
   _entityTypeResourceMap: Record<string, string>;
   /** @hidden @internal key is qualified structuraltype name - value is structuralType. ( structural = entityType or complexType). */
   _structuralTypeMap: IStructuralTypeMap;
-  /** @hidden @internal key is shortName, value is qualified name - does not need to be serialized. **/
+  /** @hidden @internal key is shortName, value is qualified name - does not need to be serialized. */
   _shortNameMap: Map<string, string>;
-  /** @hidden @internal key is either short or qual type name - value is ctor; **/
+  /** @hidden @internal key is either short or qual type name - value is ctor; */
   _ctorRegistry: Map<string, CtorRecord>;
-  /** @hidden @internal key is entityTypeName; value is array of nav props **/
+  /** @hidden @internal key is entityTypeName; value is array of nav props */
   _incompleteTypeMap: Map<string, NavigationProperty[]>;
-  /** @hidden @internal **/
+  /** @hidden @internal */
   _incompleteComplexTypeMap: Map<string, DataProperty[]>;
-  /** @hidden @internal { json: any, stype: StructuralType }[] **/
+  /** @hidden @internal { json: any, stype: StructuralType }[] */
   _deferredTypes: Map<string, any[]>;
-  /** @hidden @internal **/
+  /** @hidden @internal */
   _id: number;
-  /** @hidden @internal Whether the comparison options were chosen on the client; they then win over imported metadata. **/
+  /** @hidden @internal Whether the comparison options were chosen on the client; they then win over imported metadata. */
   _hasClientLqco: boolean;
 
   /**
@@ -138,7 +163,7 @@ export class MetadataStore {
   used when performing "local queries" in order to match the semantics of queries against a remote service. Options passed
   here, or made the default with setAsDefault(), win over any that imported metadata names.
     - serializerFn - A function that is used to mediate the serialization of instances of this type.
-  **/
+  */
   constructor(config?: MetadataStoreConfig) {
     config = config || {};
     assertConfig(config)
@@ -163,6 +188,10 @@ export class MetadataStore {
 
   }
 
+  /** __Dev Only__ - for use when writing a {@link DataServiceAdapter} or {@link JsonResultsAdapter}.
+  Converts a type name as a server sends it, such as the .NET `"Northwind.Models.Customer, Northwind"`,
+  into Breeze's qualified form, `"Customer:#Northwind.Models"`. Results are cached; a null or empty
+  name is returned unchanged. */
   // needs to be made avail to dataService.xxx files
   static normalizeTypeName = core.memoize(function (rawTypeName: string) {
     return rawTypeName && MetadataStore.parseTypeName(rawTypeName).typeName;
@@ -181,7 +210,7 @@ export class MetadataStore {
   >         }
   >     )};
   @param config -  An object containing the selected properties and values to set.
-  **/
+  */
   setProperties(config: MetadataStoreConfig) {
     assertConfig(config)
       .whereParam("name").isString().isOptional()
@@ -194,7 +223,7 @@ export class MetadataStore {
   in the MetadataStore an exception will be thrown.
   @param dataService - The {@link DataService} to add
   @param shouldOverwrite - (default=false) Permit overwrite of existing DataService rather than throw exception
-  **/
+  */
   addDataService(dataService: DataService, shouldOverwrite?: boolean) {
     assertParam(dataService, "dataService").isInstanceOf(DataService).check();
     assertParam(shouldOverwrite, "shouldOverwrite").isBoolean().isOptional().check();
@@ -222,7 +251,7 @@ export class MetadataStore {
   type afterwards, until the first entity of that type is attached to an EntityManager - after
   that the type is frozen.
   @param stype - The EntityType or ComplexType to add
-  **/
+  */
   addEntityType(stype: StructuralType | EntityTypeConfig | ComplexTypeConfig) {
     let structuralType: StructuralType;
     if (stype instanceof EntityType || stype instanceof ComplexType) {
@@ -291,7 +320,7 @@ export class MetadataStore {
   >      let newMetadataStore = new MetadataStore();
   >      newMetadataStore.importMetadata(metadataFromStorage);
   @returns A serialized version of this MetadataStore that may be stored locally and later restored.
-  **/
+  */
   exportMetadata() {
     let result = JSON.stringify({
       "metadataVersion": MetadataStore.metadataVersion,
@@ -324,7 +353,7 @@ export class MetadataStore {
   @param allowMerge -  Allows custom metadata to be merged into existing metadata types.
   @returns This MetadataStore.
   @chainable
-  **/
+  */
   importMetadata(exportedMetadata: string | Object, allowMerge: boolean = false) {
     assertParam(allowMerge, "allowMerge").isOptional().isBoolean().check();
     this._deferredTypes = new Map();
@@ -389,7 +418,7 @@ export class MetadataStore {
   >      let newMetadataStore = MetadataStore.importMetadata(metadataFromStorage);
   @param exportedString - A previously exported MetadataStore.
   @returns A new MetadataStore.
-  **/
+  */
   static importMetadata(exportedString: string) {
     let ms = new MetadataStore();
     ms.importMetadata(exportedString);
@@ -404,7 +433,7 @@ export class MetadataStore {
   >      }
   @param serviceName - The service name.
   @returns Whether metadata has already been retrieved for the specified service name.
-  **/
+  */
   hasMetadataFor(serviceName: string) {
     return !!this.getDataService(serviceName);
   }
@@ -416,7 +445,7 @@ export class MetadataStore {
   >      let adapterName = ds.adapterName; // may be null
   @param serviceName - The service name.
   @returns The DataService with the specified name.
-  **/
+  */
   getDataService(serviceName: string) {
     assertParam(serviceName, "serviceName").isString().check();
 
@@ -447,7 +476,7 @@ export class MetadataStore {
   @param callback - Deprecated. Function called on success.
   @param errorCallback - Deprecated. Function called on failure.
   @returns Promise
-  **/
+  */
   fetchMetadata(dataService: string | DataService, callback?: (schema: any) => void, errorCallback?: ErrorCallback): Promise<any> {
     try {
       assertParam(dataService, "dataService").isString().or().isInstanceOf(DataService).check();
@@ -485,7 +514,7 @@ export class MetadataStore {
   i.e. an unmapped type.
   @param entityCtor - The constructor function for the 'unmapped' type.
   @param interceptor - An interceptor function
-  **/
+  */
   trackUnmappedType(entityCtor: any, interceptor: any) {
     assertParam(entityCtor, "entityCtor").isFunction().check();
     assertParam(interceptor, "interceptor").isFunction().isOptional().check();
@@ -516,7 +545,7 @@ export class MetadataStore {
   and populated with any initial values. Called with 'initFn(entity)'
   @param noTrackingFn - A function that is executed immediately after a noTracking entity has been created and whose return
   value will be used in place of the noTracking entity.
-  **/
+  */
   registerEntityTypeCtor(structuralTypeName: string, aCtor?: any, initFn?: Function | string, noTrackingFn?: Function) {
     assertParam(structuralTypeName, "structuralTypeName").isString().check();
     assertParam(aCtor, "aCtor").isFunction().isOptional().check();
@@ -547,7 +576,7 @@ export class MetadataStore {
   >      if (em1.metadataStore.isEmpty()) {
   >          // do something interesting
   >      }
-  **/
+  */
   isEmpty() {
     return core.isEmpty(this._structuralTypeMap);
   }
@@ -564,7 +593,7 @@ export class MetadataStore {
   that same short name an exception will be thrown.
   @param okIfNotFound - (default=false) Whether to throw an error if the specified EntityType is not found.
   @returns The EntityType. ComplexType or 'null' if not not found.
-  **/
+  */
   getAsEntityType(typeName: string, okIfNotFound: boolean = false) {
     const st = this._getStructuralType(typeName, okIfNotFound);
     if (st instanceof EntityType) {
@@ -589,7 +618,7 @@ export class MetadataStore {
   that same short name an exception will be thrown.
   @param okIfNotFound - (default=false) Whether to throw an error if the specified EntityType is not found.
   @returns The EntityType. ComplexType or 'null' if not not found.
-  **/
+  */
  getAsComplexType(typeName: string, okIfNotFound: boolean = false) {
   const st = this._getStructuralType(typeName, okIfNotFound);
   if (st instanceof ComplexType) {
@@ -612,7 +641,7 @@ export class MetadataStore {
   that same short name an exception will be thrown.
   @param okIfNotFound - (default=false) Whether to throw an error if the specified EntityType is not found.
   @returns The EntityType. ComplexType or 'null' if not not found.
-  **/
+  */
   getEntityType(typeName: string, okIfNotFound: boolean = false) {
     return this._getStructuralType(typeName, okIfNotFound);
   }
@@ -631,7 +660,7 @@ export class MetadataStore {
   that same short name an exception will be thrown.
   @param okIfNotFound - (default=false) Whether to throw an error if the specified EntityType is not found.
   @returns The EntityType. ComplexType or 'null' if not not found.
-  **/
+  */
   getStructuralType(typeName: string, okIfNotFound: boolean = false) {
     assertParam(typeName, "typeName").isString().check();
     assertParam(okIfNotFound, "okIfNotFound").isBoolean().isOptional().check(false);
@@ -654,11 +683,16 @@ export class MetadataStore {
   Returns an array containing all of the {@link EntityType}s or {@link ComplexType}s in this MetadataStore.
   >      // assume em1 is a preexisting EntityManager
   >      let allTypes = em1.metadataStore.getEntityTypes();
-  **/
+  */
   getEntityTypes() {
     return getTypesFromMap(this._structuralTypeMap);
   }
 
+  /**
+  Returns the navigation properties whose target {@link EntityType} has not been added to this store
+  yet, as one array per missing type. An empty result means every navigation property has been
+  resolved; useful for checking metadata that is built by hand or imported in pieces.
+  */
   getIncompleteNavigationProperties() {
     return Array.from(this._incompleteTypeMap.values());
   }
@@ -666,7 +700,7 @@ export class MetadataStore {
   /**
   Returns a fully qualified entityTypeName for a specified resource name.  The reverse of this operation
   can be obtained via the  {@link EntityType.defaultResourceName} property
-  **/
+  */
   getEntityTypeNameForResourceName(resourceName: string) {
     assertParam(resourceName, "resourceName").isString().check();
     return this._resourceEntityTypeMap[resourceName];
@@ -681,7 +715,7 @@ export class MetadataStore {
   @param resourceName - The resource name
   @param entityTypeOrName - If passing a string either the fully qualified name or a short name may be used. If a short name is specified and multiple types share
   that same short name an exception will be thrown. If the entityType has not yet been discovered then a fully qualified name must be used.
-  **/
+  */
   setEntityTypeForResourceName(resourceName: string, entityTypeOrName: EntityType | string) {
     assertParam(resourceName, "resourceName").isString().check();
     assertParam(entityTypeOrName, "entityTypeOrName").isInstanceOf(EntityType).or().isString().check();
@@ -727,8 +761,11 @@ export class MetadataStore {
   /** __Dev Only__ - for use when creating a new MetadataParserAdapter  */
   static makeTypeHash(shortName: string, ns?: string) {
     return {
+      /** The unqualified name, such as `"Customer"`. */
       shortTypeName: shortName,
+      /** The namespace, such as `"Northwind.Models"`; undefined if there is none. */
       namespace: ns,
+      /** The qualified name, such as `"Customer:#Northwind.Models"`. */
       typeName: qualifyTypeName(shortName, ns)
     };
   }
@@ -892,92 +929,127 @@ function getQualifiedTypeName(metadataStore: MetadataStore, structTypeName: stri
 
 /** Configuration info to be passed to the {@link EntityType} constructor */
 export interface EntityTypeConfig {
+  /** The unqualified name of the type, such as `"Customer"`. Required, although the interface marks it optional. */
   shortName?: string;
+  /** The namespace of the type. Defaults to `""`. The type's {@link EntityType.name} is `shortName:#namespace`. */
   namespace?: string;
+  /** The name, short or qualified, of the base EntityType this type inherits from. The base type must
+  already be in the {@link MetadataStore} when this type is added to it. */
   baseTypeName?: string;
+  /** Whether the type is abstract, i.e. only its subtypes have instances. An abstract type may be added to
+  a MetadataStore without key properties. Defaults to `false`. */
   isAbstract?: boolean;
+  /** How keys of new entities are generated. Defaults to {@link AutoGeneratedKeyType.None}, in which case a
+  subtype takes its base type's setting. */
   autoGeneratedKeyType?: AutoGeneratedKeyType;
+  /** The resource name used to query this type when no other is given; see
+  {@link EntityType.defaultResourceName}. If omitted, a subtype takes its base type's. */
   defaultResourceName?: string;
+  /** The type's data properties: either an array of {@link DataProperty} instances, or an object whose keys
+  are property names and whose values are {@link DataPropertyConfig} objects. */
   dataProperties?: DataProperty[] | Object[] | Object;  // TODO: see if we can't qualify Object[] a little better.
+  /** The type's navigation properties: either an array of {@link NavigationProperty} instances, or an object
+  whose keys are property names and whose values are {@link NavigationPropertyConfig} objects. */
   navigationProperties?: NavigationProperty[] | Object[] | Object;
+  /** Sets {@link EntityType.serializerFn}. */
   serializerFn?: (prop: EntityProperty, val: any) => any;
+  /** Sets {@link EntityType.custom}. */
   custom?: any;
 }
 
 /** Configuration info to be passed to the {@link EntityType.setProperties} method */
 export interface EntityTypeSetConfig {
+  /** Sets {@link EntityType.autoGeneratedKeyType}. */
   autoGeneratedKeyType?: AutoGeneratedKeyType;
+  /** Sets {@link EntityType.defaultResourceName}. */
   defaultResourceName?: string;
+  /** Sets {@link EntityType.serializerFn}. */
   serializerFn?: (prop: EntityProperty, val: any) => any;
+  /** Sets {@link EntityType.custom}. */
   custom?: any;
 }
 
 /** Container for all of the metadata about a specific type of Entity.
-**/
+*/
 export class EntityType {
   /** @hidden @internal */
   declare _$typeName: string; // on proto
   /** @hidden @internal */
   static __nextAnonIx = 0;
-  /** Always false for an EntityType. **/
+  /** Always false for an EntityType. */
   isComplexType = false;
-  /** The {@link MetadataStore} that contains this EntityType. __Read Only__ **/
+  /** The {@link MetadataStore} that contains this EntityType. __Read Only__ */
   metadataStore: MetadataStore;
-  /** The DataProperties (see {@link DataProperty} associated with this EntityType. __Read Only__  **/
+  /** The DataProperties (see {@link DataProperty} associated with this EntityType. __Read Only__  */
   dataProperties: DataProperty[];
-  /**  The NavigationProperties (see {@link NavigationProperty} associated with this EntityType. __Read Only__  **/
+  /**  The NavigationProperties (see {@link NavigationProperty} associated with this EntityType. __Read Only__  */
   navigationProperties: NavigationProperty[];
   /**
-  The DataProperties associated with this EntityType that make up it's {@link EntityKey}. __Read Only__ **/
+  The DataProperties associated with this EntityType that make up it's {@link EntityKey}. __Read Only__ */
   keyProperties: DataProperty[];
-  /** The DataProperties associated with this EntityType that are foreign key properties. __Read Only__ **/
+  /** The DataProperties associated with this EntityType that are foreign key properties. __Read Only__ */
   foreignKeyProperties: DataProperty[];
+  /** The foreign key DataProperties on *other* EntityTypes that refer to this EntityType. When an
+  entity's key changes, such as when a temporary key is replaced on save, Breeze uses these to update
+  the foreign keys of cached entities it cannot reach through a navigation property. __Read Only__ */
   inverseForeignKeyProperties: DataProperty[];
-  /**  The DataProperties associated with this EntityType that are concurrency properties. __Read Only__ **/
+  /**  The DataProperties associated with this EntityType that are concurrency properties. __Read Only__ */
   concurrencyProperties: DataProperty[];
-  /** The DataProperties for this EntityType that contain instances of a {@link ComplexType}. __Read Only__   **/
+  /** The DataProperties for this EntityType that contain instances of a {@link ComplexType}. __Read Only__   */
   complexProperties: DataProperty[];
   /** The DataProperties associated with this EntityType that are not mapped to any backend datastore. These are effectively free standing
-  properties. __Read Only__ **/
+  properties. __Read Only__ */
   unmappedProperties: DataProperty[];
 
-  /** The fully qualified name of this EntityType. __Read Only__  **/
+  /** The fully qualified name of this EntityType. __Read Only__  */
   name: string;
-  /** The short, unqualified, name for this EntityType. __Read Only__  **/
+  /** The short, unqualified, name for this EntityType. __Read Only__  */
   shortName: string;
-  /** The namespace for this EntityType. __Read Only__  **/
+  /** The namespace for this EntityType. __Read Only__  */
   namespace: string;
   /** The name of this EntityType's base EntityType  (if any) */
   baseTypeName?: string;
-  /** The base EntityType (if any) for this EntityType. __Read Only__   **/
+  /** The base EntityType (if any) for this EntityType. __Read Only__   */
   baseEntityType: EntityType;
+  /** The EntityTypes that derive directly from this one. See {@link EntityType.getSelfAndSubtypes} for
+  the whole hierarchy. __Read Only__ */
   subtypes: EntityType[];
 
-  /**  Whether this EntityType is abstract. __Read Only__ **/
+  /**  Whether this EntityType is abstract. __Read Only__ */
   isAbstract: boolean;
   /**  Whether this EntityType is anonymous. Anonymous types will never be communicated to or from the server. They are purely for
-  client side use and are given an automatically generated name.  __Read Only__ **/
+  client side use and are given an automatically generated name.  __Read Only__ */
   isAnonymous: boolean;
   /** Whether this EntityType has been 'frozen'.  EntityTypes become frozen after the first instance 
   of that type has been created and attached to an EntityManager. */
   isFrozen: boolean;
 
-  /** The {@link AutoGeneratedKeyType} for this EntityType. __Read Only__ **/
+  /** The {@link AutoGeneratedKeyType} for this EntityType. __Read Only__ */
   autoGeneratedKeyType: AutoGeneratedKeyType;
   /**   The default resource name associated with this EntityType.  An EntityType may be queried via a variety of 'resource names' but this one
   is used as the default when no resource name is provided.  This will occur when calling {@link EntityAspect.loadNavigationProperty}
-  or when executing any {@link EntityQuery} that was created via an {@link EntityKey}. __Read Only__ **/
+  or when executing any {@link EntityQuery} that was created via an {@link EntityKey}. __Read Only__ */
   defaultResourceName: string;
   /** A function that is used to customize the serialization of any EntityProperties of this type. */
   serializerFn?: (prop: EntityProperty, val: any) => any;
-  /**  A free form object that can be used to define any custom metadata for this EntityType. __Read Only__  **/
+  /**  A free form object that can be used to define any custom metadata for this EntityType. __Read Only__  */
   custom?: any;
   /** The entity level validators associated with this EntityType. Validators can be added and
-  removed from this collection. __Read Only__.   **/
+  removed from this collection. __Read Only__.   */
   validators: Validator[];
 
+  /** Not used by breeze-client 3: always an empty array. In 2.x the CSDL metadata parser recorded
+  data types it did not recognize here; v3 reports them with `console.warn` instead. */
   warnings: any[];
+  /** The function, or the name of a method on the entity, that is called with each entity of this type
+  once it has been created and populated, whether by {@link EntityType.createEntity} or from query
+  results. A base type's `initFn` runs first. Set from the `initFn` argument of
+  {@link MetadataStore.registerEntityTypeCtor}; applications set it there rather than here. */
   initFn?: Function | string;
+  /** The function that a query with {@link EntityQuery.noTracking} enabled calls for each result of this
+  type, as `noTrackingFn(node, entityType)`; its return value replaces the result. Set from the
+  `noTrackingFn` argument of {@link MetadataStore.registerEntityTypeCtor}; applications set it there
+  rather than here. */
   noTrackingFn?: Function;
 
   /** @hidden @internal */
@@ -1004,7 +1076,7 @@ export class EntityType {
   @param config - Configuration settings or a MetadataStore.  If this parameter is just a MetadataStore
   then what will be created is an 'anonymous' type that will never be communicated to or from the server. It is purely for
   client side use and will be given an automatically generated name. Normally, however, you will use a configuration object.
-  **/
+  */
   constructor(config: MetadataStore | EntityTypeConfig) {
     if (arguments.length > 1) {
       throw new Error("The EntityType ctor has a single argument that is either a 'MetadataStore' or a configuration object.");
@@ -1067,7 +1139,7 @@ export class EntityType {
   >          defaultResourceName: "CustomersAndIncludedOrders"
   >      )};
   @param config - a configuration object
-  **/
+  */
   setProperties(config: EntityTypeSetConfig) {
     assertConfig(config)
       .whereParam("autoGeneratedKeyType").isEnumOf(AutoGeneratedKeyType).isOptional()
@@ -1082,7 +1154,7 @@ export class EntityType {
 
   /**
   Returns whether this type is a subtype of a specified type.
-  **/
+  */
   isSubtypeOf(entityType: EntityType) {
     assertParam(entityType, "entityType").isInstanceOf(EntityType).check();
     let baseType: EntityType = this;
@@ -1095,7 +1167,7 @@ export class EntityType {
 
   /**
   Returns an array containing this type and any/all subtypes of this type down thru the hierarchy.
-  **/
+  */
   getSelfAndSubtypes() {
     let result = [this];
     this.subtypes.forEach(function (st) {
@@ -1105,6 +1177,10 @@ export class EntityType {
     return result;
   }
 
+  /**
+  Returns the entity level validators that apply to this type: its own {@link EntityType.validators}
+  followed by those of each base type. Returns a new array, so changing it does not change the type.
+  */
   getAllValidators() {
     let result = this.validators.slice(0);
     let bt = this.baseEntityType;
@@ -1121,7 +1197,7 @@ export class EntityType {
   >      myEntityType.addProperty(dataProperty1);
   >      myEntityType.addProperty(dataProperty2);
   >      myEntityType.addProperty(navigationProperty1);
-  **/
+  */
   addProperty(property: EntityProperty) {
     assertParam(property, "property").isInstanceOf(DataProperty).or().isInstanceOf(NavigationProperty).check();
 
@@ -1207,20 +1283,19 @@ export class EntityType {
   }
 
   /**
-  Create a new entity of this type.
+  Creates a new entity of this type, detached: add it to a manager with {@link EntityManager.addEntity},
+  or use {@link EntityManager.createEntity}, which does both.
   >      // assume em1 is an EntityManager containing a number of existing entities.
   >      let custType = em1.metadataStore.getAsEntityType("Customer");
   >      let cust1 = custType.createEntity();
   >      em1.addEntity(cust1);
-  @param initialValues - Configuration object of the properties to set immediately after creation.
-  @returns The new entity.
-  **/
-  /**
-  Creates a new instance of this type. `T` is the caller's claim about what this type is - nothing
-  checks it, because an EntityType knows its metadata, not your class. It defaults to `any`, which
-  is what this has always returned, so existing calls are unaffected.
+
+  `T` is the type you expect back. Nothing checks it - an EntityType knows its metadata, not your
+  class - and it defaults to `any`.
   >      let order = orderType.createEntity<Order>({ shipName: "Acme" });
-  **/
+  @param initialValues - Property values to set immediately after creation.
+  @returns The new entity.
+  */
   createEntity<T = any>(initialValues?: any): T;
   createEntity(initialValues?: any): any {
     // ignore the _$eref once the entity is attached to an entityManager.
@@ -1300,7 +1375,7 @@ export class EntityType {
   Returns the constructor for this EntityType.
   @param forceRefresh - Whether to ignore any cached version of this constructor. (default == false)
   @returns The constructor for this EntityType.
-  **/
+  */
   getCtor(forceRefresh: boolean = false): { new (): StructuralObject } {
     if (this._ctor && !forceRefresh) return this._ctor;
 
@@ -1383,7 +1458,7 @@ export class EntityType {
   @param validator - Validator to add.
   @param property - Property to add this validator to.  If omitted, the validator is assumed to be an
   entity level validator and is added to the EntityType's 'validators'.
-  **/
+  */
   addValidator(validator: Validator, property?: EntityProperty | string) {
     assertParam(validator, "validator").isInstanceOf(Validator).check();
     assertParam(property, "property").isOptional().isString().or().isEntityProperty().check();
@@ -1401,7 +1476,7 @@ export class EntityType {
   >      let custType = em1.metadataStore.getAsEntityType("Customer");
   >      let arrayOfProps = custType.getProperties();
   @returns An array of Data and Navigation properties.
-  **/
+  */
   getProperties(): EntityProperty[] {
     return (this.dataProperties as EntityProperty[]).concat(this.navigationProperties);
   }
@@ -1411,7 +1486,7 @@ export class EntityType {
   >      // assume em1 is an EntityManager containing a number of existing entities.
   >      let custType = em1.metadataStore.getAsEntityType("Customer");
   >      let arrayOfPropNames = custType.getPropertyNames();
-  **/
+  */
   getPropertyNames() {
     return this.getProperties().map(core.pluck('name'));
   }
@@ -1422,7 +1497,7 @@ export class EntityType {
   >      let custType = em1.metadataStore.getAsEntityType("Customer");
   >      let customerNameDataProp = custType.getDataProperty("CustomerName");
   @returns A DataProperty or null if not found.
-  **/
+  */
   getDataProperty(propertyName: string) {
     return core.arrayFirst(this.dataProperties, core.propEq('name', propertyName));
   }
@@ -1433,7 +1508,7 @@ export class EntityType {
   >      let custType = em1.metadataStore.getAsEntityType("Customer");
   >      let customerOrdersNavProp = custType.getDataProperty("Orders");
   @returns A NavigationProperty or null if not found.
-  **/
+  */
   getNavigationProperty(propertyName: string) {
     return core.arrayFirst(this.navigationProperties, core.propEq('name', propertyName));
   }
@@ -1452,7 +1527,7 @@ export class EntityType {
   >      // companyNameProp === companyNameProp2
   @param [throwIfNotFound=false] {Boolean} Whether to throw an exception if not found.
   @returns A DataProperty or NavigationProperty or null if not found.
-  **/
+  */
   getProperty(propertyPath: string, throwIfNotFound: boolean = false) {
     let props = this.getPropertiesOnPath(propertyPath, false, throwIfNotFound);
     return (props && props.length > 0) ? props[props.length - 1] : null;
@@ -1600,11 +1675,17 @@ export class EntityType {
 
   /**
   Returns a string representation of this EntityType.
-  **/
+  */
   toString() {
     return this.name;
   }
 
+  /**
+  Returns this type's metadata as a plain object in Breeze's native JSON metadata format, leaving out
+  default values and empty arrays. Only the properties this type declares are included, not those it
+  inherits from a base type. `JSON.stringify` calls it when {@link MetadataStore.exportMetadata}
+  serializes the store.
+  */
   toJSON() {
     return core.toJson(this, {
       shortName: null,
@@ -1857,11 +1938,20 @@ function calcUnmappedProperties(stype: StructuralType, instance: any) {
   });
 }
 
+/** Configuration info to be passed to the {@link ComplexType} constructor, or to
+{@link MetadataStore.addEntityType} to create a ComplexType there. */
 export interface ComplexTypeConfig {
+  /** The unqualified name of the type, such as `"Location"`. Required, although the interface marks it optional. */
   shortName?: string;
+  /** The namespace of the type. Defaults to `""`. The type's {@link ComplexType.name} is `shortName:#namespace`. */
   namespace?: string;
+  /** The type's data properties: either an array of {@link DataProperty} instances, or an object whose keys
+  are property names and whose values are {@link DataPropertyConfig} objects. */
   dataProperties?: DataProperty[] | Object[] | Object;
+  /** Set to `true` when passing this config to {@link MetadataStore.addEntityType}, which otherwise creates
+  an EntityType. The ComplexType constructor does not need it. */
   isComplexType?: boolean;  // needed because this ctor can get called from the addEntityType method which needs the isComplexType prop
+  /** Sets {@link ComplexType.custom}. */
   custom?: any;
 }
 
@@ -1871,7 +1961,7 @@ export interface ComplexTypeConfig {
 >         namespace: "myAppNamespace"
 >     });
 @param config - Configuration settings
-**/
+*/
 export class ComplexType {
   /** @hidden @internal */
   declare _$typeName: string; // on proto
@@ -1881,12 +1971,12 @@ export class ComplexType {
   /** The {@link MetadataStore} containing this ComplexType. */
   metadataStore: MetadataStore;
 
-  /**  The fully qualifed name of this ComplexType. __Read Only__  **/
+  /**  The fully qualifed name of this ComplexType. __Read Only__  */
   name: string;
-  /**  The short, unqualified, name for this ComplexType. __Read Only__ **/
+  /**  The short, unqualified, name for this ComplexType. __Read Only__ */
   shortName: string;
 
-  /** The namespace for this ComplexType. __Read Only__ **/
+  /** The namespace for this ComplexType. __Read Only__ */
   namespace: string;
   /** The DataProperties (see {@link DataProperty} associated with this ComplexType. __Read Only__ */
   dataProperties: DataProperty[];
@@ -1895,22 +1985,30 @@ export class ComplexType {
 
   /**
   The entity level validators associated with this ComplexType. Validators can be added and
-  removed from this collection. __Read Only__  **/
+  removed from this collection. __Read Only__  */
   validators: Validator[];
   /** For polymorphic purpose only - always empty here */
   concurrencyProperties: DataProperty[];
   /** The DataProperties associated with this ComplexType that are not mapped to any backend datastore. These are effectively free standing
-  properties. __Read Only__   **/
+  properties. __Read Only__   */
   unmappedProperties: DataProperty[];
 
+  /** Always empty: a ComplexType has no navigation properties. Present so that code can treat an
+  EntityType and a ComplexType alike. __Read Only__ */
   // keyProperties and navigationProperties are not used on complexTypes - but here to allow sharing of code between EntityType and ComplexType.
   navigationProperties: DataProperty[];
+  /** Always empty: a ComplexType has no key. Present so that code can treat an EntityType and a
+  ComplexType alike. __Read Only__ */
   // and may be used later to enforce uniqueness on arrays of complextypes.
   keyProperties: DataProperty[];
+  /** Not used by breeze-client 3, and never set on a ComplexType. See {@link EntityType.warnings}. */
   warnings: any[];
+  /** A function that customizes how this type's data properties are serialized when an entity holding
+  it is saved; see {@link MetadataStore.serializerFn}, which is used when this is not set. The
+  constructor does not accept it: assign it directly. */
   serializerFn?: (prop: EntityProperty, val: any) => any;
 
-  /** A free form object that can be used to define any custom metadata for this ComplexType. ***/
+  /** A free form object that can be used to define any custom metadata for this ComplexType. */
   custom?: any;
   /** @hidden @internal */
   _mappedPropertiesCount: number;
@@ -1920,12 +2018,24 @@ export class ComplexType {
   // copy entityType methods onto complexType
   /** See {@link EntityType.getCtor} */
   getCtor = EntityType.prototype.getCtor;
+  /** Creates a new instance of this ComplexType, optionally setting the property values given in
+  `initialValues`; the ComplexType counterpart of {@link EntityType.createEntity}.
+  >      let locType = em1.metadataStore.getAsComplexType("Location");
+  >      let loc = locType.createInstance({ city: "Boston" });
+  */
   // note the name change.
   createInstance = EntityType.prototype.createEntity;
   /** See [EntityType.addValidator] */
   addValidator = EntityType.prototype.addValidator;
+  /** Returns the {@link DataProperty} with the specified name, or null. Also accepts a `.` delimited
+  path through nested complex properties. See {@link EntityType.getProperty}. */
   getProperty = EntityType.prototype.getProperty;
+  /** Returns the properties along a `.` delimited property path, one per segment, or null if a segment
+  is not found (unless `throwIfNotFound` is true, which throws instead). `useServerName` matches
+  segments against `nameOnServer` when true, `name` when false, and either when null. Used by Breeze
+  internally; applications normally use {@link ComplexType.getProperty}. */
   getPropertiesOnPath = EntityType.prototype.getPropertiesOnPath;
+  /** Returns the names of all of this type's data properties. */
   getPropertyNames = EntityType.prototype.getPropertyNames;
   /** @hidden @internal */
   _addPropertyCore = EntityType.prototype._addPropertyCore;
@@ -1942,6 +2052,8 @@ export class ComplexType {
   /** @hidden @internal */
   _setCtor = EntityType.prototype._setCtor;
 
+  /** Creates a ComplexType from a {@link ComplexTypeConfig}. Add it to a {@link MetadataStore}
+  with {@link MetadataStore.addEntityType} before using it. */
   constructor(config: ComplexTypeConfig) {
     if (arguments.length > 1) {
       throw new Error("The ComplexType ctor has a single argument that is a configuration object.");
@@ -1980,7 +2092,7 @@ export class ComplexType {
   >      });
   @param config - Custom config object
   @param config.custom - {Object}
-  **/
+  */
   setProperties(config: { custom?: any }) {
     assertConfig(config)
       .whereParam("custom").isOptional()
@@ -1988,6 +2100,8 @@ export class ComplexType {
   }
 
 
+  /** Returns the type level validators for this ComplexType: its own {@link ComplexType.validators}
+  array itself, not a copy, since ComplexTypes have no base types. */
   getAllValidators() {
     // ComplexType inheritance is not YET supported.
     return this.validators;
@@ -2003,15 +2117,24 @@ export class ComplexType {
   }
 
 
+  /** Adds a {@link DataProperty} to this ComplexType.
+  >      // assume addressType is a newly constructed ComplexType.
+  >      addressType.addProperty(new DataProperty({ name: "city", dataType: DataType.String }));
+  */
   addProperty(dataProperty: DataProperty) {
     assertParam(dataProperty, "dataProperty").isInstanceOf(DataProperty).check();
     return this._addPropertyCore(dataProperty);
   }
 
+  /** Returns all of the properties of this ComplexType: its {@link ComplexType.dataProperties} array
+  itself, not a copy. */
   getProperties(): EntityProperty[] {
     return this.dataProperties;
   }
 
+  /** Returns this type's metadata as a plain object in Breeze's native JSON metadata format, leaving
+  out default values and empty arrays. `JSON.stringify` calls it when
+  {@link MetadataStore.exportMetadata} serializes the store. */
   toJSON() {
     return core.toJson(this, {
       shortName: null,
@@ -2028,23 +2151,54 @@ ComplexType.prototype._$typeName = "ComplexType";
 /** Creates an instance of this complexType */
 ComplexType.prototype.createInstance = EntityType.prototype.createEntity;
 
+/** Configuration info to be passed to the {@link DataProperty} constructor. Either `name` or
+`nameOnServer` is required. */
 export interface DataPropertyConfig {
+  /** The client-side name of the property. If omitted, it is derived from `nameOnServer` by the
+  store's {@link NamingConvention} when the property's type is added to a {@link MetadataStore}. */
   name?: string;
+  /** The name of the property on the server. If omitted, it is derived from `name` by the store's
+  {@link NamingConvention}. */
   nameOnServer?: string;
+  /** The {@link DataType} of the property, or its name. Defaults to {@link DataType.String}. For a
+  property that holds a complex object, set `complexTypeName` instead. */
   dataType?: DataType | string | ComplexType;
+  /** The name, short or qualified, of the {@link ComplexType} this property holds. Setting it makes the
+  property a complex property; it is linked to the ComplexType once both are in the same MetadataStore. */
   complexTypeName?: string;
+  /** Whether the property may be null. Defaults to `true`. Breeze does not create a `required`
+  validator from it; that comes with the server's metadata. */
   isNullable?: boolean;
+  /** Whether the property holds a single value. Defaults to `true`; set it to `false` for a property
+  that holds an array of values or complex objects. */
   isScalar?: boolean; // will be false for some NoSQL databases.
+  /** The value a new entity gets for this property. Defaults to `null` for a nullable property and to
+  the {@link DataType}'s default value otherwise. A numeric default given as a string is parsed. */
   defaultValue?: any;
+  /** Whether the property is part of its EntityType's key. Defaults to `false`. */
   isPartOfKey?: boolean;
+  /** Whether the property exists only on the client, with no counterpart on the server. Defaults to
+  `false`. Breeze marks the properties it discovers on a registered constructor as unmapped itself. */
   isUnmapped?: boolean;
+  /** Whether the property can be written. Defaults to `true`. Breeze does not set a property that is
+  not settable when it populates an entity from query results. */
   isSettable?: boolean;
+  /** How the property takes part in optimistic concurrency checking; see
+  {@link DataProperty.concurrencyMode}. Any value other than `"None"` makes it a concurrency property. */
   concurrencyMode?: string;
+  /** The maximum length of a string value. Breeze does not create a `maxLength` validator from it;
+  that comes with the server's metadata. */
   maxLength?: number;
+  /** The {@link Validator}s for this property. Defaults to an empty array. */
   validators?: Validator[];
+  /** The name used for this property in validation messages. Defaults to the property name. */
   displayName?: string;
+  /** The full name of the server-side enum type, for a property whose values are enum members. */
   enumType?: string;
+  /** The server's name for the property's type, when the client has no matching {@link DataType} and
+  `dataType` is {@link DataType.Undefined}. */
   rawTypeName?: string;  // occurs with undefined datatypes
+  /** Sets {@link DataProperty.custom}. */
   custom?: any;
 }
 
@@ -2053,7 +2207,7 @@ A DataProperty describes the metadata for a single property of an  {@link Entity
 
 Instances of the DataProperty class are constructed automatically during Metadata retrieval. However it is also possible to construct them
 directly via the constructor.
-**/
+*/
 export class DataProperty {
   /** @hidden @internal */
   declare _$typeName: string; // on proto
@@ -2061,9 +2215,9 @@ export class DataProperty {
   isDataProperty = true;
   /** Is this a NavigationProperty? - always false here.  Allows polymorphic treatment of DataProperties and NavigationProperties. __Read Only__ */
   isNavigationProperty = false;
-  /** The name of this property. __Read Only__  **/
+  /** The name of this property. __Read Only__  */
   declare name: string;
-  /** The name of this property on the server. __Read Only__ **/
+  /** The name of this property on the server. __Read Only__ */
   declare nameOnServer: string;
   /** The {@link DataType} of this property. __Read Only__ */
   declare dataType: DataType | ComplexType; // this will be a complexType when dp is a complexProperty
@@ -2200,6 +2354,13 @@ export class DataProperty {
 
   }
 
+  /**
+  Reads a property's value from a raw entity whose keys are server property names, such as a node
+  in query results. Returns the property's `defaultValue` when the node has no value for it; for an
+  unmapped property it reads `nameOnServer`, falling back to `name`, and applies no default. Pass it as
+  the `rawValueFn` of {@link EntityType.getEntityKeyFromRawEntity} when writing an adapter;
+  applications do not normally need it.
+  */
   static getRawValueFromServer(rawEntity: Object & Record<string, any>, dp: DataProperty) {
     if (dp.isUnmapped) {
       return rawEntity[dp.nameOnServer || dp.name];
@@ -2209,11 +2370,23 @@ export class DataProperty {
     }
   }
 
+  /**
+  Reads a property's value from a raw entity whose keys are client property names, such as an entity
+  in the output of {@link EntityManager.exportEntities}. Returns the property's `defaultValue` when the
+  raw entity has no value for it. The client-name counterpart of
+  {@link DataProperty.getRawValueFromServer}; applications do not normally need it.
+  */
   static getRawValueFromClient(rawEntity: Object & Record<string, any>, dp: DataProperty) {
     let val = rawEntity[dp.name];
     return val !== undefined ? val : dp.defaultValue;
   }
 
+  /**
+  Returns the value of the named field of this property, such as `"displayName"`. If it is null or
+  undefined here, the value is taken from the property this one inherits from on a base type (see
+  {@link DataProperty.baseProperty}), and so on up the hierarchy. Validation uses it to find a
+  property's display name.
+  */
   resolveProperty(propName: string) {
     let result = (this as Record<string, any>)[propName];
     let baseProp = this.baseProperty;
@@ -2224,6 +2397,9 @@ export class DataProperty {
     return result;
   }
 
+  /** Returns a name that identifies this property across the store: the qualified name of its parent
+  type and the property name, joined by `--`. Breeze uses it in error messages and to generate
+  association names; applications do not normally need it. */
   formatName() {
     return this.parentType.name + "--" + this.name;
   }
@@ -2237,7 +2413,7 @@ export class DataProperty {
   >          custom: { foo: 7, bar: "test" }
   >      });
   @param config - A configuration object.
-  **/
+  */
   setProperties(config: { displayName?: string, custom?: Object }) {
     assertConfig(config)
       .whereParam("displayName").isOptional()
@@ -2245,6 +2421,8 @@ export class DataProperty {
       .applyAll(this);
   }
 
+  /** Returns the validators that apply to this property: its own {@link DataProperty.validators}
+  followed by those of the properties it inherits from on base types. Returns a new array. */
   getAllValidators() {
     let validators = this.validators.slice(0);
     let baseProp = this.baseProperty;
@@ -2255,6 +2433,9 @@ export class DataProperty {
     return validators;
   }
 
+  /** Returns this property's metadata as a plain object in Breeze's native JSON metadata format,
+  leaving out default values; a complex property is described by its `complexTypeName`. Used when
+  {@link MetadataStore.exportMetadata} serializes the store. */
   toJSON() {
     // do not serialize dataTypes that are complexTypes
     return core.toJson(this, {
@@ -2279,6 +2460,10 @@ export class DataProperty {
     });
   }
 
+  /** Creates a DataProperty from the JSON form that {@link DataProperty.toJSON} produces. Used by
+  {@link MetadataStore.importMetadata}. A `dataType` name the client does not know becomes
+  {@link DataType.Undefined}, with the name kept in `rawTypeName` and a console warning. Modifies the
+  object passed in. */
   static fromJSON(json: any) {
     const typeName = json.dataType;
     json.dataType = DataType.fromName(typeName);
@@ -2312,18 +2497,43 @@ function warnUnknownDataType(typeName: string) {
     "'. Its properties are imported as DataType.Undefined, with the name in 'rawTypeName'.");
 }
 
+/** Configuration info to be passed to the {@link NavigationProperty} constructor. `entityTypeName`
+and either `name` or `nameOnServer` are required. */
 export interface NavigationPropertyConfig {
+  /** The client-side name of the property. If omitted, it is derived from `nameOnServer` by the
+  store's {@link NamingConvention}. */
   name?: string;
+  /** The name of the property on the server. If omitted, it is derived from `name` by the store's
+  {@link NamingConvention}. */
   nameOnServer?: string;
+  /** The name of the {@link EntityType} the property returns. Required. A name without a namespace
+  (no `:#`) is taken to be in the namespace of the type the property is added to. */
   entityTypeName?: string;
+  /** Whether the property returns a single entity. Defaults to `true`; set it to `false` for a
+  property that returns an array of entities. */
   isScalar?: boolean;
+  /** The name of the relationship. Two navigation properties, one on each type, with the same
+  association name are each other's {@link NavigationProperty.inverse}. */
   associationName?: string;
+  /** The names of the foreign key DataProperties, on the type that holds this property, that refer to
+  the entity it returns. Defaults to an empty array. Set on the dependent side of a relationship,
+  e.g. `["customerId"]` for `Order.customer`. */
   foreignKeyNames?: string[];
+  /** The server-side names of the `foreignKeyNames`; either list may be given and the other is
+  derived. Defaults to an empty array. */
   foreignKeyNamesOnServer?: string[];
+  /** The names of the foreign key DataProperties, on the type the property returns, that refer back to
+  the type that holds it. Defaults to an empty array. Set on the principal side of a relationship,
+  e.g. `["customerId"]` for `Customer.orders`. */
   invForeignKeyNames?: string[];
+  /** The server-side names of the `invForeignKeyNames`; either list may be given and the other is
+  derived. Defaults to an empty array. */
   invForeignKeyNamesOnServer?: string[];
+  /** The {@link Validator}s for this property. Defaults to an empty array. */
   validators?: Validator[];
+  /** The name used for this property in validation messages. Defaults to the property name. */
   displayName?: string;
+  /** Sets {@link NavigationProperty.custom}. */
   custom?: any;
 }
 
@@ -2331,7 +2541,7 @@ export interface NavigationPropertyConfig {
 
 Instances of the NavigationProperty class are constructed automatically during Metadata retrieval.   However it is also possible to construct them
 directly via the constructor.
-**/
+*/
 export class NavigationProperty {
   /** @hidden @internal */
   declare _$typeName: string;
@@ -2342,8 +2552,14 @@ export class NavigationProperty {
   Allows polymorphic treatment of DataProperties and NavigationProperties. __Read Only__ */
   isNavigationProperty = true;
 
+  /** Returns the qualified name of the parent type and the property name, joined by `--`. See
+  {@link DataProperty.formatName}; applications do not normally need it. */
   formatName = DataProperty.prototype.formatName;
+  /** Returns the validators that apply to this property, including those inherited from base types.
+  See {@link DataProperty.getAllValidators}. */
   getAllValidators = DataProperty.prototype.getAllValidators;
+  /** Returns the value of the named field of this property, falling back to the property it inherits
+  from on a base type. See {@link DataProperty.resolveProperty}. */
   resolveProperty = DataProperty.prototype.resolveProperty;
 
   /** The {@link EntityType} returned by this property. __Read Only__ */
@@ -2387,8 +2603,10 @@ export class NavigationProperty {
   declare validators: Validator[];
   /** The display name of this property. __Read Only__ */
   declare displayName: string;
+  /** Always undefined: a NavigationProperty cannot be unmapped. Declared so that `isUnmapped` can be
+  read from any {@link EntityProperty}. __Read Only__ */
   declare isUnmapped: boolean;
-  /** A free form object that can be used to define any custom metadata for this NavigationProperty.   **/
+  /** A free form object that can be used to define any custom metadata for this NavigationProperty.   */
   declare custom: any;
 
   /** NavigationProperty constructor
@@ -2407,7 +2625,7 @@ export class NavigationProperty {
   >      personEntityType.addProperty(homeAddressProp);
   >      personEntityType.addProperty(homeAddressIdProp);
   @param config - A configuration object.
-  **/
+  */
   constructor(config: NavigationPropertyConfig) {
     assertConfig(config)
       .whereParam("name").isString().isOptional()
@@ -2438,7 +2656,7 @@ export class NavigationProperty {
   >          custom: { foo: 7, bar: "test" }
   >      });
   @param config - A config object
-  **/
+  */
   // TODO: create an interface for this.
   setProperties(config: {
     displayName?: string,
@@ -2482,6 +2700,16 @@ export class NavigationProperty {
     return np._inverse;
   }
 
+  /**
+  Makes the specified navigation property, on the type this property returns, the inverse of this one.
+  Both get the same {@link NavigationProperty.associationName}: this property's if it has one, otherwise
+  the other's, otherwise a generated one. For metadata built by hand; metadata from the server already
+  pairs inverses by association name. Also available as the `inverse` option of
+  {@link NavigationProperty.setProperties}. Both types must already be in the same MetadataStore.
+  @param inverseNp - The inverse NavigationProperty, or its name on the type this property returns.
+  Throws if it is not found, does not point back at this property's parent type, or either property
+  already has an inverse.
+  */
   setInverse(inverseNp: NavigationProperty | string) {
     // let invNp: NavigationProperty;
     let invNp = (inverseNp instanceof NavigationProperty) ? inverseNp : this.entityType.getNavigationProperty(inverseNp);
@@ -2531,6 +2759,9 @@ export class NavigationProperty {
 
 
 
+  /** Returns this property's metadata as a plain object in Breeze's native JSON metadata format,
+  leaving out default values. Only client-side names are written. Used when
+  {@link MetadataStore.exportMetadata} serializes the store. */
   toJSON() {
     return core.toJson(this, {
       name: null,
@@ -2545,6 +2776,8 @@ export class NavigationProperty {
     });
   }
 
+  /** Creates a NavigationProperty from the JSON form that {@link NavigationProperty.toJSON} produces.
+  Used by {@link MetadataStore.importMetadata}. Modifies the object passed in. */
   static fromJSON(json: any) {
     if (json.validators) {
       json.validators = json.validators.map(Validator.fromJSON);
@@ -2627,25 +2860,25 @@ function resolveRelated(np: NavigationProperty) {
 
 /**
 AutoGeneratedKeyType is an 'Enum' containing all of the valid states for an automatically generated key.
-**/
+*/
 export class AutoGeneratedKeyType extends BreezeEnum {
 
   /**
   This entity does not have an autogenerated key.
   The client must set the key before adding the entity to the EntityManager
-  **/
+  */
   static None = new AutoGeneratedKeyType();
   /** 
   This entity's key is an Identity column and is set by the backend database.
   Keys for new entities will be temporary until the entities are saved at which point the keys will
   be converted to their 'real' versions.
-  **/
+  */
   static Identity = new AutoGeneratedKeyType();
   /**
   This entity's key is generated by a KeyGenerator and is set by the backend database.
   Keys for new entities will be temporary until the entities are saved at which point the keys will
   be converted to their 'real' versions.
-  **/
+  */
   static KeyGenerator = new AutoGeneratedKeyType();
 
 }
@@ -2678,7 +2911,7 @@ letting the caller build a query against `undefined`.
 >     em.metadataStore.registerEntityTypeCtor('Customer', Customer);
 >     entityTypeForCtor(Customer).defaultResourceName;   // 'Customers'
 @param entityCtor - A constructor registered with a MetadataStore.
-**/
+*/
 export function entityTypeForCtor(entityCtor: Function): EntityType {
   const entityType = entityCtor && entityCtor.prototype && (entityCtor.prototype as any).entityType;
   if (!entityType) {

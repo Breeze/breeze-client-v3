@@ -15,17 +15,25 @@ export const BYTE_MAX = 255;
 
 /** Passed to ValidationFn */
 export interface ValidationContext {
+  /** The entity whose property is being validated. Set when Breeze validates a property of an entity; an entity-level validator gets the entity as its value instead. */
   entity?: Entity;
+  /** The {@link DataProperty} or {@link NavigationProperty} being validated. Set when Breeze validates a property. */
   property?: DataProperty | NavigationProperty;
+  /** The name of the property being validated: a property path, such as `address.city`, for a property of a complex object. */
   propertyName?: string;
+  /** The value that failed validation, so that a message template can show it as `%value%`. Set by {@link Validator.validate} when validation fails. */
   value?: any;
 }
 
 /** Used by Validator to compose messages */
 export interface ValidationMessageContext extends ValidationContext {
+  /** The name of the validator. Set by the {@link Validator} constructor. */
   name?: string;
+  /** The name to show for the property in messages, as `%displayName%`. When it is not set, Breeze uses the property's `displayName`, or else `propertyName`, or `"Value"` when there is no property. */
   displayName?: string;
+  /** The error message template. Each `%token%` is replaced with the context property of that name, calling it with the context if it is a function. Defaults to the entry for the validator's name in {@link Validator.messageTemplates}. */
   messageTemplate?: string;
+  /** A message to use instead of `messageTemplate`: a string, or a function that returns one from the context. */
   message?: string | ((vc: ValidationContext) => string);
   [key:string]: any;
 }
@@ -57,10 +65,7 @@ property, `maxLength` for a string with a maximum length, and a data-type valida
 `int32` or `date`. They are not inferred on the client, so metadata written by hand has
 none unless you add them.
 
-**/
-
-/**
-Validator constructor - This method is used to create create custom validations.  Several
+To write your own, construct one with a name, a validation function and a context. Several
 basic "Validator" construction methods are also provided as static methods to this class. These methods
 provide a simpler syntax for creating basic validations.
 
@@ -177,17 +182,28 @@ error message is generated.
 @param [context] {Object} A free form object whose properties will made available during the validation and error message creation process.
 This object will be passed into the Validator's validation function whenever 'validate' is called. See above for a description
 of additional properties that will be automatically added to this object if not otherwise specified.
-**/
+*/
 export class Validator {
   /** @hidden @internal */
   declare _$typeName: string; // on proto
 
+  /** The name of this validator, such as `required` or `maxLength`. It picks the default message template and forms part of each {@link ValidationError}'s key. __Read Only__ */
   declare name: string;
+  /** The function that performs the validation. It returns `true` if the value is valid. __Read Only__ */
   declare valFn: ValidationFn;
+  /** The context this validator was created with, plus `name`, `messageTemplate` and a `displayName` function. It is passed to `valFn` and used to compose error messages. __Read Only__ */
   declare context: ValidationMessageContext;
+  /** The context of the most recent call to {@link Validator.validate}: `context` extended with any additional context passed to it. {@link Validator.getMessage} reads it. After a validation that passed, it is `context` again. __Read Only__ */
   declare currentContext: ValidationMessageContext;
   declare private _baseContext: ValidationMessageContext;
 
+  /** Creates a validator. See the class description for examples.
+  @param name - The validator's name. Also the default `key` of the errors it produces.
+  @param valFn - The function that validates: called with the value (or, for an entity-level
+    validator, the entity) and the context, it returns whether the value is valid.
+  @param context - Settings for the validator and its messages, such as `displayName` and
+    `messageTemplate`. They are available to `valFn` and to the error message template.
+  */
   constructor(name: string, valFn: ValidationFn, context?: ValidationMessageContext) {
     // _baseContext is what will get serialized
     this._baseContext = context || {} as ValidationMessageContext;
@@ -198,22 +214,6 @@ export class Validator {
     this.valFn = valFn;
     this.context = context;
   }
-
-  /**
-  The name of this validator.
-
-  __readOnly__
-  @property name {String}
-  **/
-
-  /**
-  The context for this validator.
-
-  This object will typically contain at a minimum the following properties. "name", "displayName", and "message" or "messageTemplate".
-  __readOnly__
-  @property context {Object}
-  **/
-
 
   /**
   Run this validator against the specified value.  This method will usually be called internally either
@@ -237,7 +237,7 @@ export class Validator {
   @param additionalContext {Object} Any additional contextual information that the Validator
   can make use of.
   @returns {ValidationError|null} A ValidationError if validation fails, null otherwise
-  **/
+  */
   validate(value: any, additionalContext?: ValidationMessageContext) {
     let currentContext: ValidationMessageContext; // { value?: Object };
     if (additionalContext) {
@@ -276,7 +276,7 @@ export class Validator {
       v0.validate("adasdfasdf");
       var errMessage = v0.getMessage());
   @returns {String}
-  **/
+  */
   getMessage() {
     try {
       let context = this.currentContext;
@@ -297,6 +297,11 @@ export class Validator {
     }
   }
 
+  /**
+  Returns the serializable form of this validator: its `name` plus the context it was created with,
+  such as `{ name: "maxLength", maxLength: 50 }`. Breeze uses it when it exports metadata;
+  {@link Validator.fromJSON} reads it back through the factory registered under that name.
+  */
   toJSON() {
     return this._baseContext;
   }
@@ -304,7 +309,7 @@ export class Validator {
   /**
   Creates a validator instance from a JSON object or an array of instances from an array of JSON objects.
   @param json {Object} JSON object that represents the serialized version of a validator.
-  **/
+  */
   public static fromJSON(json: any): any {
     if (Array.isArray(json)) {
       return json.map(function (js) {
@@ -325,7 +330,7 @@ export class Validator {
   /**
   Register a validator instance so that any deserialized metadata can reference it.
   @param validator {Validator} Validator to register.
-  **/
+  */
   public static register(validator: Validator) {
     config.registerFunction(function () {
       return validator;
@@ -336,7 +341,7 @@ export class Validator {
   Register a validator factory so that any deserialized metadata can reference it.
   @param validatorFactory {Function} A function that optionally takes a context property and returns a Validator instance.
   @param name {String} The name of the validator.
-  **/
+  */
   public static registerFactory(validatorFactory: (options?: any) => Validator, name: string) {
     config.registerFunction(validatorFactory, "Validator." + name);
   }
@@ -358,7 +363,7 @@ export class Validator {
           messageTemplate: "'%displayName%' must start with 'US'" 
       });
   @property messageTemplates {Object}
-  **/
+  */
   public static messageTemplates: Record<string, any> = {
     bool: "'%displayName%' must be a 'true' or 'false' value",
     creditCard: "The %displayName% is not a valid credit card number",
@@ -390,7 +395,7 @@ export class Validator {
       regionProperty.validators.push(Validator.required({ allowEmptyStrings: true }););
   @param context - An object with `allowEmptyStrings` (boolean) - If this parameter is omitted or false then empty strings do NOT pass validation.
   @returns {Validator} A new Validator
-  **/
+  */
   public static required = function(context?: any) {
     let valFn = function (v: any, ctx: any) {
       if (typeof v === "string") {
@@ -413,7 +418,7 @@ export class Validator {
       regionProperty.validators.push(Validator.maxLength( {maxLength: 5}));
   @param context - An object with `maxLength` (number).
   @returns {Validator} A new Validator
-  **/
+  */
   public static maxLength = function(context: any) {
     let valFn = function (v: any, ctx: any) {
       if (v == null) return true;
@@ -434,7 +439,7 @@ export class Validator {
       regionProperty.validators.push(Validator.stringLength( {minLength: 2, maxLength: 5});
   @param context - An object with `maxLength` (number); `minLength` (number).
   @returns {Validator} A new Validator
-  **/
+  */
   public static stringLength = function (context: any) {
     let valFn = function (v: any, ctx: any) {
       if (v == null) return true;
@@ -455,7 +460,7 @@ export class Validator {
       // Validates that the value of the Region property on Customer is a string.
       regionProperty.validators.push(Validator.string());
   @returns {Validator} A new Validator
-  **/
+  */
   public static string = function () {
     let valFn = function (v: any) {
       if (v == null) return true;
@@ -473,7 +478,7 @@ export class Validator {
       // Validates that the value of the CustomerID property on Customer is a Guid.
       customerIdProperty.validators.push(Validator.guid());
   @returns {Validator} A new Validator
-  **/
+  */
   public static guid = function () {
     let valFn = function (v: any) {
       if (v == null) return true;
@@ -491,7 +496,7 @@ export class Validator {
       // Validates that the value of the ElapsedTime property on Customer is a duration.
       elapsedTimeProperty.validators.push(Validator.duration());
   @returns {Validator} A new Validator
-  **/
+  */
   public static duration = function () {
     let valFn = function (v: any) {
       if (v == null) return true;
@@ -509,7 +514,7 @@ export class Validator {
       // Validates that the value of the Freight property on Order is a number.
       freightProperty.validators.push(Validator.number());
   @returns {Validator} A new Validator
-  **/
+  */
 
     // TODO: may need to have seperate logic for single.
   public static number = function(context?: any) {
@@ -522,7 +527,9 @@ export class Validator {
     };
     return new Validator("number", valFn, context);
   };
+  /** Another name for {@link Validator.number}, registered as `double` so that metadata naming it imports. The validator it returns is named `number`. */
   public static double = Validator.number;
+  /** Another name for {@link Validator.number}, registered as `single` so that metadata naming it imports. The validator it returns is named `number`. */
   public static single = Validator.number;
 
   /**
@@ -534,7 +541,7 @@ export class Validator {
       // Validates that the value of the Freight property on Order is within the range of a 64 bit integer.
       freightProperty.validators.push(Validator.int64());
   @returns {Validator} A new Validator
-  **/
+  */
   public static integer = function(context: any) {
     let valFn = function (v: any, ctx: any) {
       if (v == null) return true;
@@ -545,6 +552,7 @@ export class Validator {
     };
     return new Validator("integer", valFn, context);
   };
+  /** Another name for {@link Validator.integer}, and the data-type validator for {@link DataType.Int64}: it checks that the value is a whole number, with no range check. The validator it returns is named `integer`. */
   public static int64 = Validator.integer;
 
   /**
@@ -555,7 +563,7 @@ export class Validator {
       var freightProperty = orderType.getProperty("Freight");
       freightProperty.validators.push(Validator.int32());
   @returns {Validator} A new Validator
-  **/
+  */
   public static int32 = function(context: any) {
     return intRangeValidatorCtor("int32", INT32_MIN, INT32_MAX, context)();
   };
@@ -569,7 +577,7 @@ export class Validator {
       // Validates that the value of the Freight property on Order is within the range of a 16 bit integer.
       freightProperty.validators.push(Validator.int16());
   @returns {Validator} A new Validator
-  **/
+  */
   public static int16 = function(context: any) {
     return intRangeValidatorCtor("int16", INT16_MIN, INT16_MAX, context)();
   };
@@ -584,7 +592,7 @@ export class Validator {
       // Probably not a very good validation to place on the Freight property.
       regionProperty.validators.push(Validator.byte());
   @returns {Validator} A new Validator
-  **/
+  */
   public static byte = function(context: any) {
     return intRangeValidatorCtor("byte", BYTE_MIN, BYTE_MAX, context)();
   };
@@ -598,7 +606,7 @@ export class Validator {
       // Validates that the value of the Discontinued property on Product is a boolean
       discontinuedProperty.validators.push(Validator.bool());
   @returns {Validator} A new Validator
-  **/
+  */
   public static bool = function() {
     let valFn = function (v: any) {
       if (v == null) return true;
@@ -607,6 +615,7 @@ export class Validator {
     return new Validator("bool", valFn);
   };
 
+  /** Returns a Validator named `none` that accepts every value. It is the data-type validator for {@link DataType.Binary} and {@link DataType.Undefined}. */
   public static none = function() {
     let valFn = function (v: any) {
       return true;
@@ -624,7 +633,7 @@ export class Validator {
       // Probably not a very good validation to place on the Freight property.
       orderDateProperty.validators.push(Validator.date());
   @returns {Validator} A new Validator
-  **/
+  */
   public static date = function() {
     let valFn = function (v: any) {
       if (v == null) return true;
@@ -655,7 +664,7 @@ export class Validator {
       creditCardProperty.validators.push(Validator.creditCard());
   @param [context] {Object} optional parameters to pass through to validation constructor
   @returns {Validator} A new Validator
-  **/
+  */
   public static creditCard = function(context?: any) {
     function valFn(v: any) {
       if (v == null || v === '') return true;
@@ -678,7 +687,7 @@ export class Validator {
       regionProperty.validators.push(Validator.regularExpression( {expression: '^[A-Z]{2}$'} );
   @param context - An object with `expression` (string) - String form of the regular expression to apply.
   @returns {Validator} A new Validator
-  **/
+  */
   public static regularExpression = function(context?: any) {
     function valFn(v: any, ctx: any) {
       // do not invalidate if empty; use a separate required test
@@ -704,7 +713,7 @@ export class Validator {
       emailProperty.validators.push(Validator.emailAddress());
   @param [context] {Object} optional parameters to pass through to validation constructor
   @returns {Validator} A new Validator
-  **/
+  */
   public static emailAddress = function(context?: any) {
     // See https://github.com/srkirkland/DataAnnotationsExtensions/blob/master/DataAnnotationsExtensions/EmailAttribute.cs
     let reEmailAddress = /^((([a-z]|\d|[!#\$%&'\*\+\-\/=\?\^_`{\|}~]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])+(\.([a-z]|\d|[!#\$%&'\*\+\-\/=\?\^_`{\|}~]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])+)*)|((\x22)((((\x20|\x09)*(\x0d\x0a))?(\x20|\x09)+)?(([\x01-\x08\x0b\x0c\x0e-\x1f\x7f]|\x21|[\x23-\x5b]|[\x5d-\x7e]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(\\([\x01-\x09\x0b\x0c\x0d-\x7f]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF]))))*(((\x20|\x09)*(\x0d\x0a))?(\x20|\x09)+)?(\x22)))@((([a-z]|\d|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(([a-z]|\d|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])*([a-z]|\d|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])))\.)+(([a-z]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(([a-z]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])*([a-z]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])))\.?$/i;
@@ -731,7 +740,7 @@ export class Validator {
       phoneProperty.validators.push(Validator.phone());
   @param [context] {Object} optional parameters to pass through to validation constructor
   @returns {Validator} A new Validator
-  **/
+  */
   public static phone = function (context?: any) {
     // See https://github.com/srkirkland/DataAnnotationsExtensions/blob/master/DataAnnotationsExtensions/Expressions.cs
     let rePhone = /^((\+|(0(\d+)?[-/.\s]?))[1-9]\d{0,2}[-/.\s]?)?((\(\d{1,6}\)|\d{1,6})[-/.\s]?)?(\d+[-/.\s]?)+\d+$/;
@@ -748,7 +757,7 @@ export class Validator {
       websiteProperty.validators.push(Validator.url());
   @param [context] {Object} optional parameters to pass through to validation constructor
   @returns {Validator} A new Validator
-  **/
+  */
   public static url = function (context?: any) {
     //See https://github.com/srkirkland/DataAnnotationsExtensions/blob/master/DataAnnotationsExtensions/UrlAttribute.cs
     let reUrlProtocolRequired = /^(https?|ftp):\/\/(((([a-zA-Z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(%[\da-fA-F]{2})|[!\$&'\(\)\*\+,;=]|:)*@)?(((\d|[1-9]\d|1\d\d|2[0-4]\d|25[0-5])\.(\d|[1-9]\d|1\d\d|2[0-4]\d|25[0-5])\.(\d|[1-9]\d|1\d\d|2[0-4]\d|25[0-5])\.(\d|[1-9]\d|1\d\d|2[0-4]\d|25[0-5]))|([a-zA-Z][\-a-zA-Z0-9]*)|((([a-zA-Z]|\d|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(([a-zA-Z]|\d|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])([a-zA-Z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])*([a-zA-Z]|\d|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])))\.)+(([a-zA-Z]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(([a-zA-Z]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])([a-zA-Z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])*([a-zA-Z]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])))\.?)(:\d*)?)(\/((([a-zA-Z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(%[\da-fA-F]{2})|[!\$&'\(\)\*\+,;=]|:|@)+(\/(([a-zA-Z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(%[\da-fA-F]{2})|[!\$&'\(\)\*\+,;=]|:|@)*)*)?)?(\?((([a-zA-Z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(%[\da-fA-F]{2})|[!\$&'\(\)\*\+,;=]|:|@)|[\uE000-\uF8FF]|\/|\?)*)?(\#((([a-zA-Z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(%[\da-fA-F]{2})|[!\$&'\(\)\*\+,;=]|:|@)|\/|\?)*)?$/;
@@ -778,7 +787,7 @@ export class Validator {
   @param [defaultMessage] {String} default message for failed validations
   @param [context] {Object} optional parameters to pass through to validation constructor
   @returns {Validator} A new Validator
-  **/
+  */
   public static makeRegExpValidator = makeRegExpValidator;
 
 }
@@ -889,27 +898,37 @@ let  luhn = (function() {
 })();
 
 /**
-A ValidationError is used to describe a failed validation.
-
-**/
-
-/**
-Constructs a new ValidationError
-
-@param validator {Validator || null} The Validator used to create this error, if any.
-@param context { ContextObject || null} The Context object used in conjunction with the Validator to create this error.
-@param errorMessage { String} The actual error message
-@param [key] {String} An optional key used to define a key for this error. One will be created automatically if not provided here.
-**/
+Describes one failed validation: which validator failed, on which property, and the message to
+show. An entity's current errors are in {@link EntityAspect.getValidationErrors}. The errors a
+server reports for a failed save are added there too, with {@link ValidationError.isServerError} set.
+*/
 export class ValidationError {
+  /** The {@link Validator} that produced this error. `undefined` for an error from the server or one created without a validator. __Read Only__ */
   validator?: Validator;
+  /** The key that identifies this error among an entity's validation errors: the validator's name (or the error name), then `:` and the property name if there is one. Adding an error with the same key replaces the old one. __Read Only__ */
   key: string;
+  /** The context the error was created with - for a validator, its context when it ran, which for a property error includes `entity`, `property`, `propertyName` and `value`. __Read Only__ */
   context: any;
+  /** The error message. __Read Only__ */
   errorMessage: string;
+  /** The {@link DataProperty} or {@link NavigationProperty} this error is about, or `undefined` for an entity-level error. __Read Only__ */
   property: any; // IProperty
+  /** The name of the property this error is about - a property path, such as `address.city`, for a property of a complex object - or `undefined` for an entity-level error. __Read Only__ */
   propertyName?: string;
+  /** Whether this error came from the server in a failed save. Server errors do not block a save, and are cleared when the property is changed or the entity is saved again. __Read Only__ */
   isServerError: boolean;
 
+  /**
+  Creates a validation error. Applications usually add one with
+  {@link EntityAspect.addValidationError} after creating it here.
+  @param validator - The Validator that found the error, or `null` for an error found some other way.
+  @param context - The context to record with the error: for a property, its `entity`, `property`,
+    `propertyName` and `value`.
+  @param errorMessage - The message to show.
+  @param key - Identifies the error among the entity's errors. If not given, it is built from the
+    validator's name - or, without a validator, the error message - and the property name; see
+    {@link ValidationError.getKey}.
+  */
   constructor(validator: Validator | null, context: ValidationContext, errorMessage: string, key?: string) {
     // Error is with isInstanceOf(Validator)
     assertParam(validator, "validator").isOptional().isInstanceOf(Validator).check();
@@ -931,63 +950,12 @@ export class ValidationError {
     this.isServerError = false;
   }
 
-
-  /**
-  The Validator associated with this ValidationError.
-
-  __readOnly__
-  @property validator {Validator}
-  **/
-
-  /**
-  A 'context' object associated with this ValidationError.
-
-  __readOnly__
-  @property context {Object}
-  **/
-
-  /**
-  The DataProperty or NavigationProperty associated with this ValidationError.
-
-  __readOnly__
-  @property property {DataProperty|NavigationProperty}
-  **/
-
-  /**
-  The property name associated with this ValidationError. This will be a "property path" for any properties of a complex object.
-
-  __readOnly__
-  @property propertyName {String}
-  **/
-
-  /**
-  The error message associated with the ValidationError.
-
-  __readOnly__
-  @property errorMessage {string}
-  **/
-
-  /**
-  The key by which this validation error may be removed from a collection of ValidationErrors.
-
-  __readOnly__
-  @property key {string}
-  **/
-
-  /**
-  Whether this is a server error.
-
-  __readOnly__
-  @property isServerError {bool}
-  **/
-
-
   /**
   Composes a ValidationError 'key' given a validator or an errorName and an optional propertyName
   @param validatorOrErrorName - A Validator, or an "error name" if no validator is available.
   @param [propertyName] A property name
   @returns {String} A ValidationError 'key'
-  **/
+  */
   public static getKey(validatorOrErrorName: Validator | string, propertyName?: string) {
     let name = (typeof validatorOrErrorName === 'string') ? validatorOrErrorName : validatorOrErrorName.name;
     return name + (propertyName ? ":" + propertyName : "");

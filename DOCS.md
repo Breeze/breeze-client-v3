@@ -171,8 +171,16 @@ VitePress specifics:
 
 - a link to a page that does not exist,
 - a link to an `#anchor` that does not exist (`scripts/check-doc-anchors.mjs`, which checks
-  every link against the ids the built HTML actually emitted), or
-- a `{{` that Vue could not compile.
+  every link against the ids the built HTML actually emitted),
+- a `{{` that Vue could not compile, or
+- an entry in the API reference with no description (`scripts/typedoc-require-docs.mjs`). Every
+  export, member and constructor needs a doc comment that says what it is for, and so does each
+  field of a return or property type written as an object literal, since the reference gives
+  those a heading too. Its error lists each one with its file and line. This runs in
+  `docs:api`, so `docs:dev` fails on it as well.
+
+Close doc comments with `*/`, not `**/`: TypeDoc keeps the extra `*`, which renders as a stray
+`*` after the text, or as an empty bullet when it is on a line of its own.
 
 TypeDoc should also report **0 warnings**. It prints them during `docs:api`, `docs:dev`
 and `docs:build`; the usual causes are a stale `@param` name, an unknown tag, a public
@@ -190,7 +198,9 @@ Note that TypeScript, and so TypeDoc, reads only the **last** doc comment before
 Two stacked `/** ... */` blocks mean the first one's tags are silently discarded — `@hidden
 @internal`, which decides whether a member reaches the published `.d.ts` and the reference, and
 `@deprecated`, which decides whether an editor warns anybody. It reads as two comments about the
-same thing and has happened five times here, so `side-effects.spec.ts` now fails on it.
+same thing and has happened more than twenty times here, so `side-effects.spec.ts` now fails
+on it. A comment that is not about the declaration below it - a note on the design, say - belongs
+in a plain `/* ... */`.
 
 ---
 

@@ -2,18 +2,18 @@
 
 /**
 EntityState is an 'Enum' containing all of the valid states for an 'Entity'.
-**/
+*/
 export class EntityState extends BreezeEnum {
 
-  /** The 'Unchanged' state. **/
+  /** The 'Unchanged' state. */
   static Unchanged = new EntityState();
-  /**  The 'Added' state.  **/
+  /**  The 'Added' state.  */
   static Added = new EntityState();
-  /**  The 'Modified' state.   **/
+  /**  The 'Modified' state.   */
   static Modified = new EntityState();
-  /**  The 'Deleted' state.  **/
+  /**  The 'Deleted' state.  */
   static Deleted = new EntityState();
-  /**  The 'Detached' state.  **/
+  /**  The 'Detached' state.  */
   static Detached = new EntityState();
 
   /**
@@ -23,7 +23,7 @@ export class EntityState extends BreezeEnum {
 
   is the same as
   >     return es === EntityState.Unchanged;
-  **/
+  */
   isUnchanged() {
     return this === EntityState.Unchanged;
   }
@@ -36,7 +36,7 @@ export class EntityState extends BreezeEnum {
 
   is the same as
   >     return es === EntityState.Added;
-  **/
+  */
   isAdded() {
     return this === EntityState.Added;
   }
@@ -48,7 +48,7 @@ export class EntityState extends BreezeEnum {
 
   is the same as
   >     return es === EntityState.Modified;
-  **/
+  */
   isModified() {
     return this === EntityState.Modified;
   }
@@ -61,7 +61,7 @@ export class EntityState extends BreezeEnum {
   is the same as
   
   >     return es === EntityState.Deleted;
-  **/
+  */
   isDeleted() {
     return this === EntityState.Deleted;
   }
@@ -73,7 +73,7 @@ export class EntityState extends BreezeEnum {
 
   is the same as
   >     return es === EntityState.Detached;
-  **/
+  */
   isDetached() {
     return this === EntityState.Detached;
   }
@@ -90,7 +90,7 @@ export class EntityState extends BreezeEnum {
 
   is the same as
   >     return es === EntityState.Unchanged || es === EntityState.Modified
-  **/
+  */
   isUnchangedOrModified() {
     return this === EntityState.Unchanged || this === EntityState.Modified;
   }
@@ -106,7 +106,7 @@ export class EntityState extends BreezeEnum {
 
   is the same as
   >     return es === EntityState.Added || es === EntityState.Modified || es === EntityState.Deleted
-  **/
+  */
   isAddedModifiedOrDeleted() {
     return this === EntityState.Added ||
       this === EntityState.Modified ||

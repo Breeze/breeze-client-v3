@@ -20,13 +20,13 @@ const _dataTypeAliases: Record<string, string> = {
 
 /**  
 DataType is an 'Enum' containing all of the supported data types.
-**/
+*/
 export class DataType extends BreezeEnum {
-  /** The default value of this DataType. __Read Only__ **/
+  /** The default value of this DataType. __Read Only__ */
   declare defaultValue?: any;
-  /** Whether this is a 'numeric' DataType. __Read Only__ **/
+  /** Whether this is a 'numeric' DataType. __Read Only__ */
   declare isNumeric?: boolean;
-  /** Whether this is an 'integer' DataType. __Read Only__ **/
+  /** Whether this is an 'integer' DataType. __Read Only__ */
   declare isInteger?: boolean;
 
   /** The constructor function to create a {@link Validator} to be used in validating instances of this DataType. */
@@ -35,30 +35,36 @@ export class DataType extends BreezeEnum {
   Optional function to normalize a data value for comparison, if its value cannot be used directly. 
   Note that this will be called each time a property is changed, so make it fast.
   @returns value appropriate for this DataType
-  **/
+  */
   normalize?(value: any): any;
   /**
   Optional function to convert a raw (server) value from string to this DataType.
   @returns value appropriate for this DataType
-  **/
+  */
   parseRawValue?(value: any): any;
   /**
   Optional function to convert a value from string to this DataType.  Note that this will be called each time a property is changed, so make it fast.
   @returns value appropriate for this DataType 
-  **/
+  */
   parse?(source: any, sourceTypeName: string): any;
   /** 
   Optional function to get the next value for key generation, if this datatype is used as a key.  Uses an internal table of previous values.
   @returns value appropriate for this DataType 
-  **/
+  */
   getNext?(): any;
   /**
   Optional function to get the next value when the datatype is used as a concurrency property.
   @param previousValue
   @returns the next concurrency value, which may be a function of the previousValue.
-  **/
+  */
   getConcurrencyValue?(previousValue?: any): any;
 
+  /**
+  The function Breeze converts `DateTime` and `DateTimeOffset` values from the server with, when it
+  materializes query and save results. Defaults to {@link DataType.parseDateAsUTC}. Replace it at
+  startup, before the first query, to change how a date-time string with no offset is read - for
+  example with {@link DataType.parseDateAsLocal}. It does not affect saves, which always send UTC.
+  */
   static parseDateFromServer = (value: any) => DataType.parseDateAsUTC(value);
   // same effect as above but doesn't give right TSDOC.
   // static parseDateFromServer = DataType.parseDateAsUTC;
@@ -66,12 +72,14 @@ export class DataType extends BreezeEnum {
   /** @hidden @internal */
   static constants: { stringPrefix: string, nextNumber: number, nextNumberIncrement: number };
 
+  /** A string (.NET `String`; also `Char`). Default `""`. */
   static String = new DataType({
     defaultValue: "",
     parse: coerceToString,
     getNext: getNextString
   });
 
+  /** A 64-bit integer (.NET `Int64`; also `UInt32` and `UInt64`), held as a JavaScript `number`, so values beyond ±2^53 lose precision. Default `0`. */
   static Int64 = new DataType({
     defaultValue: 0,
     isNumeric: true,
@@ -80,6 +88,7 @@ export class DataType extends BreezeEnum {
     getNext: getNextNumber
   });
 
+  /** A 32-bit integer (.NET `Int32`; also `UInt16`), held as a `number`. Default `0`. */
   static Int32 = new DataType({
     defaultValue: 0,
     isNumeric: true,
@@ -88,6 +97,7 @@ export class DataType extends BreezeEnum {
     getNext: getNextNumber
   });
 
+  /** A 16-bit integer (.NET `Int16`; also `SByte`), held as a `number`. Default `0`. */
   static Int16 = new DataType({
     defaultValue: 0,
     isNumeric: true,
@@ -96,6 +106,7 @@ export class DataType extends BreezeEnum {
     getNext: getNextNumber
   });
 
+  /** An unsigned 8-bit integer, 0 to 255 (.NET `Byte`), held as a `number`. Default `0`. */
   static Byte = new DataType({
     defaultValue: 0,
     isNumeric: true,
@@ -103,6 +114,7 @@ export class DataType extends BreezeEnum {
     parse: coerceToInt,
   });
 
+  /** A decimal number (.NET `Decimal`), held as a JavaScript `number` - a double - so digits beyond its precision are lost. Default `0`. */
   static Decimal = new DataType({
     defaultValue: 0,
     isNumeric: true,
@@ -111,6 +123,7 @@ export class DataType extends BreezeEnum {
     getNext: getNextNumber
   });
 
+  /** A 64-bit floating-point number (.NET `Double`). Also the type Breeze infers for an unmapped property that holds a number. Default `0`. */
   static Double = new DataType({
     defaultValue: 0,
     isNumeric: true,
@@ -119,6 +132,7 @@ export class DataType extends BreezeEnum {
     getNext: getNextNumber
   });
 
+  /** A 32-bit floating-point number (.NET `Single`), held as a `number`. Default `0`. */
   static Single = new DataType({
     defaultValue: 0,
     isNumeric: true,
@@ -127,6 +141,7 @@ export class DataType extends BreezeEnum {
     getNext: getNextNumber
   });
 
+  /** A calendar date with no time (.NET `DateOnly`), held as a `Date` at local midnight. Read from the first ten characters (`YYYY-MM-DD`) of the server's value, sent back as `YYYY-MM-DD` from the local date, and compared by date alone. Default 1 January 1900. */
   static DateOnly = new DataType({
     defaultValue: new Date(1900, 0, 1),
     isDate: true,
@@ -137,6 +152,7 @@ export class DataType extends BreezeEnum {
     getConcurrencyValue: getConcurrencyDateTime
   });
 
+  /** A date and time (.NET `DateTime`), held as a `Date`. Read from the server with {@link DataType.parseDateFromServer} and sent as ISO 8601 in UTC. Also the type Breeze infers for an unmapped property that holds a `Date`. Default 1 January 1900, local midnight. */
   static DateTime = new DataType({
     defaultValue: new Date(1900, 0, 1),
     isDate: true,
@@ -147,6 +163,7 @@ export class DataType extends BreezeEnum {
     getConcurrencyValue: getConcurrencyDateTime
   });
 
+  /** A date and time with an offset (.NET `DateTimeOffset`), held as a `Date`, which has no offset: it is read with {@link DataType.parseDateFromServer} and sent back in UTC, so the original offset is lost. Default 1 January 1900, local midnight. */
   static DateTimeOffset = new DataType({
     defaultValue: new Date(1900, 0, 1),
     isDate: true,
@@ -157,6 +174,7 @@ export class DataType extends BreezeEnum {
     getConcurrencyValue: getConcurrencyDateTime
   });
 
+  /** A duration (.NET `TimeSpan`), held as the ISO 8601 duration string the server sends, such as `PT4H30M`. Compared as a number of seconds in local queries. Default `PT0S`. */
   static Time = new DataType({
     defaultValue: "PT0S",
     parseRawValue: DataType.parseTimeFromServer
@@ -167,11 +185,13 @@ export class DataType extends BreezeEnum {
     defaultValue: "00:00:00"
   });
 
+  /** A `true` or `false` value (.NET `Boolean`). Default `false`. */
   static Boolean = new DataType({
     defaultValue: false,
     parse: coerceToBool,
   });
 
+  /** A GUID (.NET `Guid`), held as a lower-case string. Default `"00000000-0000-0000-0000-000000000000"`. */
   static Guid = new DataType({
     defaultValue: "00000000-0000-0000-0000-000000000000",
     parse: coerceToGuid,
@@ -180,15 +200,24 @@ export class DataType extends BreezeEnum {
     getConcurrencyValue: getUuid
   });
 
+  /** Binary data (.NET `byte[]`), such as a SQL `rowversion`, held as the base64 string the server sends. Default `null`. */
   static Binary = new DataType({
     defaultValue: null,
     parseRawValue: parseRawBinary
   });
 
+  /** An unknown type: a server type name the client does not recognize (the original is kept in the property's `rawTypeName`), or an unmapped property whose type cannot be inferred. Values are not converted or validated. Default `undefined`. */
   static Undefined = new DataType({
     defaultValue: undefined,
   });
 
+  /**
+  Returns the function Breeze uses to turn values of a data type into something `===`, `<` and `>`
+  compare correctly, in local queries and when ordering: the data type's `normalize` if it has one,
+  a conversion to seconds for {@link DataType.Time}, and otherwise the value itself. Applications do
+  not normally need it.
+  @param dataType - The data type of the values to compare.
+  */
   static getComparableFn(dataType?: DataType) {
     if (dataType && dataType.normalize) {
       return dataType.normalize;
@@ -208,7 +237,7 @@ export class DataType extends BreezeEnum {
   /**
   Returns the DataType with the specified name, or undefined if there is none. Also accepts the names the .NET
   servers use for some types, such as 'TimeSpan' for {@link DataType.Time}.
-  **/
+  */
   static fromName(name: string): DataType | undefined {
     const dt = super.fromName(name) || super.fromName(_dataTypeAliases[name]);
     return dt instanceof DataType ? dt : undefined;
@@ -233,6 +262,12 @@ export class DataType extends BreezeEnum {
     return DataType.Undefined;
   }
 
+  /**
+  Converts a {@link DataType.Time} value from the server. Returns it unchanged: a `Time` is held as
+  the ISO 8601 duration string the server sends. `DataType.Time` took this function as its
+  `parseRawValue` when it was created, so assigning a new `DataType.parseTimeFromServer` has no
+  effect; assign `DataType.Time.parseRawValue` instead.
+  */
   static parseTimeFromServer(source: any) {
     if (typeof source === 'string') {
       return source;
@@ -240,6 +275,16 @@ export class DataType extends BreezeEnum {
     return source;
   }
 
+  /**
+  Converts a date-time string from the server to a `Date`. This is the default
+  {@link DataType.parseDateFromServer}.
+  - A string with `Z` or an offset (`2024-03-15T10:30:00Z`, `...10:30:00+02:00`) is read as given.
+  - A string with no offset that ends in at least three digits of fractional seconds
+    (`2024-03-15T10:30:00.000`, `...00.1234567`) is read as UTC: Breeze appends `Z`.
+  - Any other string with no offset, such as `2024-03-15T10:30:00`, goes to `Date.parse`
+    unchanged, which reads it as **local** time.
+  @param source - The value from the server.
+  */
   static parseDateAsUTC(source: any) {
     if (typeof source === 'string') {
       // convert to UTC string if no time zone specifier.

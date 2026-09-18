@@ -51,10 +51,6 @@ export interface ExpressionContext {
 }
 
 /**
-Used to define a 'where' predicate for an {@link EntityQuery}.  Predicates are immutable, which means that any
-method that would modify a Predicate actually returns a new Predicate.
-**/
-/**
 Builds {@link Predicate}s checked against one entity type - what {@link Predicate.for} returns.
 
 The predicates it produces are ordinary Predicates, so combining them with `and`, `or` and `not`
@@ -83,12 +79,21 @@ export interface TypedPredicateFactory<T> {
   (predicate: WhereObject<T>): Predicate;
 }
 
+/**
+Used to define a 'where' predicate for an {@link EntityQuery}. Predicates are immutable, which means that any
+method that would modify a Predicate actually returns a new Predicate.
+>     let p1 = Predicate.create("freight", ">", 100);
+>     let p2 = p1.and("shipCity", "startsWith", "C");
+>     let query = EntityQuery.from("Orders").where(p2);
+*/
 export class Predicate {
+  /** The operator of this predicate. Its `key` is, for example, `eq` or `gt` for a comparison, `and` or `or` for a composite, `not`, or `any` or `all`. `undefined` for a pass-through predicate made from a raw filter string. __Read Only__ */
   declare op: Op;
   /** @hidden @internal */
   declare _entityType?: EntityType;
   /** @hidden @internal */
   declare aliasMap: OpMap;
+  /** The name of the visitor method that handles this kind of predicate, such as `binaryPredicate` or `andOrPredicate`. Used by Breeze when it serializes or evaluates a predicate; applications do not normally need it. __Read Only__ */
   declare visitorMethodName: string;
 
 
@@ -109,7 +114,7 @@ export class Predicate {
   property and an 'isLiteral' property set to either true or false.  Breeze also tries to infer the dataType of any
   literal based on context, if this fails you can force this inference by making the value argument an object with a
   'value' property and a 'dataType' property set to one of the breeze.DataType enumeration instances.
-  **/
+  */
   constructor(...args: any[]) {
     if (args.length === 0) return;
     if (!(this instanceof Predicate)) {
@@ -164,7 +169,7 @@ export class Predicate {
   property and an 'isLiteral' property set to either true or false.  Breeze also tries to infer the dataType of any
   literal based on context, if this fails you can force this inference by making the value argument an object with a
   'value' property and a 'dataType' property set to one of the breeze.DataType enumeration instances.
-  **/
+  */
   static create(...args: any[]) {
     // can be called from std javascript without new ( legacy )
 
@@ -217,7 +222,7 @@ export class Predicate {
   >      let newPred = Predicate.and(preds);
   @param args - multiple Predicates or an array of Predicate. 
   Any null or undefined values passed in will be automatically filtered out before constructing the composite predicate.
-  **/
+  */
   static and(...args: any[]) {
     return new AndOrPredicate("and", args);
   }
@@ -235,7 +240,7 @@ export class Predicate {
   >      let newPred = Predicate.or(preds);
   @param args - multiple Predicates or an array of Predicate.
   Any null or undefined values passed in will be automatically filtered out before constructing the composite predicate.
-  **/
+  */
   static or(...args: any[]) {
     return new AndOrPredicate("or", args);
   }
@@ -250,7 +255,7 @@ export class Predicate {
 
   Both of which would be the same as
   >      let not_p1 = Predicate.create("Freight", "le", 100);
-  **/
+  */
   static not(pred: Predicate) {
     return pred.not();
   }
@@ -270,11 +275,22 @@ export class Predicate {
   if it is not, nothing validates the path against the metadata either, exactly as before.
   @param ctor - The entity class to check property paths against.
   @returns A factory that builds Predicates for that type.
-  **/
+  */
   static for<U extends Entity>(ctor: new () => U): TypedPredicateFactory<U> {
     return ((...args: any[]) => Predicate.create(...args as [any])) as TypedPredicateFactory<U>;
   }
 
+  /**
+  Adds functions that predicates can call, such as `toupper` in `Predicate.create("toupper(companyName)", "==", "ACME")`,
+  or replaces existing ones. Each entry maps a function name to `fn`, which evaluates it in local
+  queries, and the {@link DataType} it returns. A server query sends the call by name, so the
+  server must support the function too.
+  >     Predicate.extendFuncMap({
+  >       initial: { fn: (s: string) => s.charAt(0), dataType: DataType.String }
+  >     });
+  @param funcMap - The functions to add, keyed by name. Write names in lower case: Breeze lower-cases a
+  function name when it parses a predicate.
+  */
   static extendFuncMap (funcMap: {[key: string]: {fn: (...args: any[]) => any, dataType: DataType}}): void {
     for (let func in (funcMap || {})) {
       let config = funcMap[func];
@@ -299,7 +315,7 @@ export class Predicate {
   >        .and("Size", "gt", 2000);
   @param args - multiple Predicates or an array of Predicates. 
   Any null or undefined values passed in will be automatically filtered out before constructing the composite predicate.
-  **/
+  */
   and(...args: any[]) {
     return new AndOrPredicate("and", argsForAndOrPredicates(this, args));
   }
@@ -321,7 +337,7 @@ export class Predicate {
   >        .or("Size", "gt", 2000);
   @param args - multiple Predicates or an array of Predicates. 
   Any null or undefined values passed in will be automatically filtered out before constructing the composite predicate.
-  **/
+  */
   or(...args: any[]) {
     return new AndOrPredicate("or", argsForAndOrPredicates(this, args));
   }
@@ -337,11 +353,16 @@ export class Predicate {
 
   which would be the same as
   >      let not_p1 = Predicate.create("Freight", "le", 100);
-  **/
+  */
   not() {
     return new UnaryPredicate("not", this);
   }
 
+  /**
+  Returns this predicate in Breeze's JSON query syntax, with property paths as written - the object
+  form that {@link Predicate.create} and {@link EntityQuery.where} also accept, such as
+  `{ freight: { gt: 100 } }`. `JSON.stringify` calls it.
+  */
   //
   toJSON() {
     // toJSON ( part of js standard - takes a single parameter
@@ -365,6 +386,7 @@ export class Predicate {
     return this.visit(context, toFunctionVisitor);
   }
 
+  /** Returns this predicate as a JSON string: `JSON.stringify` of {@link Predicate.toJSON}. Useful for logging and debugging. */
   toString() {
     return JSON.stringify(this);
   }

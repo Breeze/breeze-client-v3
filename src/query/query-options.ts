@@ -5,7 +5,7 @@ import { assertConfig } from '../core/assert-param.js';
 /**
 MergeStrategy is an 'Enum' that determines how entities are merged into an EntityManager.
 
-**/
+*/
 export class MergeStrategy extends BreezeEnum {
 
   /**
@@ -13,27 +13,27 @@ export class MergeStrategy extends BreezeEnum {
   state (added, modified, deleted) in which case the incoming values are ignored. The updated cached entity’s EntityState will
   remain {@link EntityState.Unchanged} unless you’re importing entities in which case the new EntityState will
   be that of the imported entities.
-  **/
+  */
   static PreserveChanges = new MergeStrategy();
   /**
   MergeStrategy.OverwriteChanges always updates the cached entity with incoming values even if the entity is in
   a changed state (added, modified, deleted). After the merge, the pending changes are lost.
   The new EntityState will be  {@link EntityState.Unchanged} unless you’re importing entities
   in which case the new EntityState will be that of the imported entities.
-  **/
+  */
   static OverwriteChanges = new MergeStrategy();
 
   /**
   SkipMerge is used to ignore incoming values. Adds the incoming entity to the cache only if there is no cached entity with the same key.
   This is the fastest merge strategy but your existing cached data will remain “stale”.
-  **/
+  */
   static SkipMerge = new MergeStrategy();
 
   /**
   Disallowed is used to throw an exception if there is an incoming entity with the same key as an entity already in the cache.
   Use this strategy when you want to be sure that the incoming entity is not already in cache.
   This is the default strategy for EntityManager.attachEntity.
-  **/
+  */
   static Disallowed = new MergeStrategy();
 
 
@@ -43,16 +43,16 @@ MergeStrategy.resolveSymbols();
 
 /**
 FetchStrategy is an 'Enum' that determines how and where entities are retrieved from as a result of a query.
-**/
+*/
 export class FetchStrategy extends BreezeEnum {
 
   /**
   FromServer is used to tell the query to execute the query against a remote data source on the server.
-  **/
+  */
   static FromServer = new FetchStrategy();
   /**
   FromLocalCache is used to tell the query to execute the query against a local EntityManager instead of going to a remote server.
-  **/
+  */
   static FromLocalCache = new FetchStrategy();
 
 }
@@ -71,7 +71,7 @@ export interface QueryOptionsConfig {
 
 /**
 A QueryOptions instance is used to specify the 'options' under which a query will occur.
-**/
+*/
 export class QueryOptions {
   /** @hidden @internal */
   declare _$typeName: string;
@@ -84,7 +84,7 @@ export class QueryOptions {
 
   /**
   The default instance for use whenever QueryOptions are not specified.
-  **/
+  */
   static defaultInstance = new QueryOptions({
     fetchStrategy: FetchStrategy.FromServer,
     mergeStrategy: MergeStrategy.PreserveChanges,
@@ -102,11 +102,18 @@ export class QueryOptions {
   -  to   QueryOptions.defaultInstance;
 
   @param config - A configuration object.
-  **/
+  */
   constructor(config?: QueryOptionsConfig) {
     QueryOptions._updateWithConfig(this, config);
   }
 
+  /**
+  Combines several QueryOptions into one, taking each property from the first of them that has it
+  set. Breeze uses it to combine a query's own options with its EntityManager's and
+  {@link QueryOptions.defaultInstance}; applications do not normally need it.
+  @param queryOptionsArray - The QueryOptions to combine, most specific first. Entries may be null
+  or undefined.
+  */
   static resolve(queryOptionsArray: any[]) {
     return new QueryOptions(core.resolveProperties(queryOptionsArray, ["fetchStrategy", "mergeStrategy", "includeDeleted"]));
   }
@@ -130,7 +137,7 @@ export class QueryOptions {
   >     });
   @param qoConfig - A configuration object or a standalone {@link MergeStrategy} or {@link FetchStrategy} 
   @returns A new QueryOptions instance.
-  **/
+  */
   using(qoConfig: QueryOptionsConfig | MergeStrategy | FetchStrategy) {
     if (!qoConfig) return this;
     let result = new QueryOptions(this);
@@ -147,11 +154,17 @@ export class QueryOptions {
   The current instance is returned unchanged.
   >     var newQo = new QueryOptions( { mergeStrategy: MergeStrategy.OverwriteChanges });
   >     newQo.setAsDefault();
-  **/
+  */
   setAsDefault() {
     return core.setAsDefault(this, QueryOptions);
   }
 
+  /**
+  Returns the serializable form of these options: the names of the `fetchStrategy` and
+  `mergeStrategy`, and `includeDeleted` when it is `true`. `JSON.stringify` calls it when
+  `EntityManager.exportEntities` exports the manager's options and when a query is serialized;
+  {@link QueryOptions.fromJSON} reads it back.
+  */
   toJSON() {
     return core.toJson(this, {
       fetchStrategy: null,
@@ -160,6 +173,11 @@ export class QueryOptions {
     });
   }
 
+  /**
+  Creates a QueryOptions from the output of {@link QueryOptions.toJSON}. Used by
+  `EntityManager.importEntities` and when a serialized query is read back.
+  @param json - A serialized QueryOptions.
+  */
   static fromJSON(json: any) {
     return new QueryOptions({
       fetchStrategy: FetchStrategy.fromName(json.fetchStrategy),

@@ -254,18 +254,38 @@ describe("optional extensions are all documented", () => {
 // discarding `@hidden @internal` on members that were meant to be invisible.
 describe("doc comments", () => {
 
+  // TypeDoc keeps only the doc comment nearest a declaration, so the first of two is silently
+  // lost - which is how EntityType.createEntity lost its @returns and two config methods their
+  // descriptions. A comment that is not about the declaration below it belongs in /* */.
   test("no declaration is preceded by two of them", () => {
     const stacked: string[] = [];
     for (const name of moduleNames) {
       const lines = fs.readFileSync(new URL(`${name}.ts`, srcDir), 'utf8').split(/\r?\n/);
-      for (let i = 1; i < lines.length; i++) {
-        const above = lines[i - 1].trim();
-        // a complete one-line doc comment, immediately followed by the start of another
-        if (above.startsWith('/**') && above.endsWith('*/') && lines[i].trim().startsWith('/**')) {
-          stacked.push(`${name}.ts:${i}  discarded: ${above}`);
+      for (let i = 0; i < lines.length; i++) {
+        if (!lines[i].trim().endsWith('*/')) continue;
+        let start = i;
+        while (start > 0 && !lines[start].includes('/*')) start--;
+        if (!lines[start].includes('/**')) continue;      // a plain /* */ above a doc comment is fine
+        let next = i + 1;
+        while (next < lines.length && lines[next].trim() === '') next++;
+        if (lines[next]?.trim().startsWith('/**')) {
+          stacked.push(`${name}.ts:${start + 1}  discarded: ${lines[start].trim()} ${lines[start + 1]?.trim() ?? ''}`);
         }
       }
     }
     expect(stacked).toEqual([]);
+  });
+
+  // TypeDoc keeps the extra `*` of a `**/` as text: a stray `*` after the description, or an empty
+  // bullet when the closer has a line of its own. There were 358 of them.
+  test("close with */, not **/", () => {
+    const closers: string[] = [];
+    for (const name of moduleNames) {
+      const lines = fs.readFileSync(new URL(`${name}.ts`, srcDir), 'utf8').split(/\r?\n/);
+      lines.forEach((line, i) => {
+        if (!line.trim().startsWith('//') && /\*\*+\/\s*$/.test(line)) closers.push(`${name}.ts:${i + 1}`);
+      });
+    }
+    expect(closers).toEqual([]);
   });
 });
