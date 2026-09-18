@@ -575,7 +575,7 @@ function isEmpty(obj: any) {
  * on every call to bound the placeholder to the number of arguments given - so `%3` with two
  * arguments was left in place rather than replaced. One shared pattern does the same thing:
  * a placeholder with no argument for it is left alone here too.
- * @hidden @internal
+ * @hidden
  */
 export function formatString(str: string, ...params: any[]) {
     return str.replace(formatStringRex, (match, index) => {
@@ -608,7 +608,7 @@ export const hasOwnProperty: (obj: Object, key: string) => boolean = Object.hasO
 export const arraySlice = (ar: any[], start?: number, end?: number): any[] =>
     Array.prototype.slice.call(ar, start, end);
 
-/** @hidden @internal */
+/** @hidden */
 export function arrayFlatMap<T, U>(arr: T[], mapFn: (arg: T) => U[]): U[] {
     return arr.flatMap(mapFn);
 }
@@ -626,7 +626,7 @@ const uuidrex = /[xy]/g;
  * The fallback is the old implementation. `Math.random()` is not a cryptographic source, so the
  * values it produces are unique enough for a client-side temporary key and should not be relied
  * on for anything else.
- * @hidden @internal
+ * @hidden
  */
 export function getUuid(): string {
     if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
@@ -644,7 +644,7 @@ export function getUuid(): string {
 // nothing. `String.prototype.startsWith` throws on the first and compares against the text
 // "null" on the second. The comparison itself is the built-in now - `endsWith` is 2.3x the
 // `indexOf` arithmetic it replaces.
-/** @hidden @internal */
+/** @hidden */
 export function stringStartsWith(str: string, prefix: string) {
     // returns true for empty string or null prefix
     if ((!str)) return false;
@@ -652,7 +652,7 @@ export function stringStartsWith(str: string, prefix: string) {
     return str.startsWith(prefix);
 }
 
-/** @hidden @internal */
+/** @hidden */
 export function stringEndsWith(str: string, suffix: string) {
     // returns true for empty string or null suffix
     if ((!str)) return false;
