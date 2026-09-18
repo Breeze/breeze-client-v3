@@ -165,10 +165,14 @@ provideAppInitializer(() => {
 }),
 ```
 
-`HttpClient` throws on a non-2xx status instead of returning the response. `httpClientFetch` catches
-that and hands Breeze the real status, body and headers, so a rejected save still arrives with its
-`entityErrors` and a 409 is still recognised as a concurrency conflict. A request that never
-completed — status 0 — is reported as a transport failure, as it would be with `fetch`.
+The two report a server error differently. When the server answers with a 4xx or 5xx status,
+`fetch` still returns the response, and Breeze reads its status and body. `HttpClient` throws an
+`HttpErrorResponse` instead. Breeze treats a thrown error as a request that never reached the
+server, so without the extension a save the server rejected would lose its `entityErrors`, and a
+409 would not be recognised as a concurrency conflict. `httpClientFetch` catches the
+`HttpErrorResponse` and turns it back into the response `fetch` would have returned. When
+`HttpClient` reports status 0, meaning there was no response at all, it rethrows the error, and
+Breeze reports a transport failure just as it would with `fetch`.
 
 It is the replacement for 2.x's `AjaxHttpClientAdapter`. Any Angular version from 13 on works; it
 uses only the types of `@angular/common/http`, so it adds no second copy of Angular to your bundle.

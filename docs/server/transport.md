@@ -67,11 +67,12 @@ import { httpClientFetch } from 'breeze-client/adapter-angular-httpclient';
 configureBreeze({ fetch: httpClientFetch(http) });
 ```
 
-One thing to get right if you write your own for another HTTP client: Angular's, like many,
-throws on a non-2xx status instead of returning the response. A wrapper that lets that escape
-hands Breeze every server error as a failed network request, with no status and no body, so a
-rejected save loses its `entityErrors` and a 409 is not seen as a concurrency conflict.
-`httpClientFetch` catches it and passes the real response on.
+One thing to get right if you write your own wrapper for another HTTP client. When the server
+answers with a 4xx or 5xx status, `fetch` still returns the response, but many HTTP clients,
+Angular's among them, throw an error instead. Breeze treats a thrown error as a request that never
+reached the server, with no status and no body. So a wrapper that lets that error through makes a
+rejected save lose its `entityErrors`, and a 409 is not seen as a concurrency conflict. Catch the
+error and return a `Response` built from its status, body and headers, as `httpClientFetch` does.
 
 ## Setting it directly
 

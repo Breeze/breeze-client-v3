@@ -175,11 +175,13 @@ provideAppInitializer(() => { configureBreeze({ fetch: httpClientFetch(inject(Ht
 Your auth interceptor then adds the header to Breeze's requests as it does to every other one.
 
 ::: tip Why not write it yourself
-It is a dozen lines, but one detail is easy to miss. `HttpClient` does not return an error
-response, it throws one. A wrapper that lets that escape hands Breeze a save the server rejected
-with a 400 as a failed network request — status 0, no body — so `entityErrors` never arrive and a
-409 is not recognised as a concurrency conflict. `httpClientFetch` hands Breeze the real status,
-body and headers, and its tests check both that and the failure it replaces.
+It is a dozen lines, but one detail is easy to miss. When the server answers with a 4xx or 5xx
+status, `fetch` still returns the response, but `HttpClient` throws an `HttpErrorResponse`
+instead. A wrapper that lets that error through makes a save the server rejected look to Breeze
+like a request that never reached the server: status 0, no body. The `entityErrors` never arrive,
+and a 409 is not recognised as a concurrency conflict. `httpClientFetch` catches the error and
+hands Breeze the real status, body and headers, and its tests check both that and the failure it
+prevents.
 :::
 
 ### Coming from 2.x's `AjaxHttpClientAdapter`
