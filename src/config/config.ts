@@ -92,6 +92,14 @@ export class BreezeConfig {
     objectRegistry: Record<string, any> = {};
     interfaceInitialized: BreezeEvent<{ interfaceName: string, instance: BaseAdapter, isDefault: boolean }>;
 
+    /**
+     * Adapter instances already subscribed to `interfaceInitialized` for recomposition, so that
+     * re-initializing one does not subscribe it twice. Weak because the entry is only ever looked
+     * up for an instance in hand, and one outliving its adapter would be its own small leak.
+     * @hidden @internal
+     */
+    private _recomposers = new WeakSet<BaseAdapter>();
+
     stringifyPad = '';
     /**
      * The function Breeze makes HTTP requests with, unless a (deprecated) ajax adapter is
@@ -316,7 +324,13 @@ export class BreezeConfig {
         // recomposition of other impls will occur here.
         this.interfaceInitialized.publish({ interfaceName: interfaceDef.name, instance: instance, isDefault: isDefault });
 
-        if (instance.checkForRecomposition != null) {
+        // Once per instance, not once per call. An adapter instance is cached on its impl, so
+        // re-initializing the same one - which configureBreeze does, and a test suite does over
+        // and over - used to add a second subscription for the same object: the subscriber list
+        // grew without bound, each duplicate holding the adapter, and checkForRecomposition ran
+        // once per duplicate on every later initialization. See the retention tier.
+        if (instance.checkForRecomposition != null && !this._recomposers.has(instance)) {
+            this._recomposers.add(instance);
             // now register for own dependencies.
             this.interfaceInitialized.subscribe((interfaceInitializedArgs) => {
                 // The `!` is needed because narrowing does not reach inside the callback:

@@ -1,4 +1,4 @@
-import { EntityManager, MetadataStore, configureBreeze } from '../../src/breeze';
+import { EntityManager, MetadataStore, config, configureBreeze } from '../../src/breeze';
 import { ModelLibraryBackingStoreAdapter } from '../../src/adapters/adapter-model-library-backing-store';
 import { UriBuilderJsonAdapter } from '../../src/adapters/adapter-uri-builder-json';
 import { DataServiceWebApiAdapter } from '../../src/adapters/adapter-data-service-webapi';
@@ -110,12 +110,59 @@ describe('an entity out of the cache is released', () => {
     expect((em as any)._unattachedChildrenMap.map.size).toBe(0);
   });
 
+  test('once a later entity has failed the same validator', async () => {
+    // A FAILED validation deliberately keeps its context: getMessage() reads it, and that is a
+    // documented API. So the last entity to fail each validator stays reachable. That is bounded
+    // - one per validator, replaced by the next failure - and this asserts the bound, so a
+    // change that accumulated contexts instead would be caught here.
+    expect(await isReleased(() => {
+      const em = newManager();
+      const first = em.createEntity('Order', { orderID: 20, shipName: 'x'.repeat(200) });
+      expect(first.entityAspect.validateEntity()).toBe(false);   // maxLength 40: it really fails
+      em.detachEntity(first);
+      const ref = new WeakRef(first);
+
+      const second = em.createEntity('Order', { orderID: 21, shipName: 'y'.repeat(200) });
+      second.entityAspect.validateEntity();
+      held.push(second);
+      return ref;
+    })).toBe(true);
+  });
+
   // The control: without one of these the suite would pass even if nothing were ever released.
   test('but an ATTACHED entity is not released', async () => {
     expect(await isReleased(() => {
       const em = newManager();
       return new WeakRef(em.createEntity('Order', { orderID: 6 }));
     })).toBe(false);
+  });
+});
+
+describe('nothing grows without bound', () => {
+
+  test('a group reuses its slots rather than growing', () => {
+    // detachEntity nulls the slot and puts the index on a free list, so churning entities
+    // through a manager must not leave the array at its high-water mark for ever.
+    const em = newManager();
+    for (let i = 0; i < 2000; i++) {
+      em.detachEntity(em.createEntity('Order', { orderID: i + 1 }));
+    }
+    const group = (em as any)._entityGroupMap.get('Order:#Foo');
+    expect(group._entities.length).toBe(1);
+    expect(group._indexMap.size).toBe(0);
+  });
+
+  test('re-initializing an adapter does not add a subscriber each time', () => {
+    // _initializeAdapterInstanceCore subscribes the instance to interfaceInitialized so it can
+    // recompose. The instance is cached, so a second call hands back the SAME adapter - and used
+    // to subscribe it again. That both grew the subscriber list without bound and called
+    // checkForRecomposition once per duplicate on every later initialization.
+    const event = (config as any).interfaceInitialized;
+    const before = (event._subscribers || []).length;
+    for (let i = 0; i < 50; i++) {
+      config.initializeAdapterInstance('dataService', 'webApi', true);
+    }
+    expect((event._subscribers || []).length).toBe(before);
   });
 });
 
