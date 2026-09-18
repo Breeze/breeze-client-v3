@@ -129,6 +129,24 @@ describe('an entity out of the cache is released', () => {
     })).toBe(true);
   });
 
+  test('along with the whole manager, when another shares its MetadataStore', async () => {
+    // Managers routinely share a store - createEmptyCopy, a per-screen manager, a sandbox for
+    // an edit that may be cancelled. Dropping one must release it and its entities even while a
+    // sibling keeps the store, and everything on the store, alive.
+    expect(await isReleased(() => {
+      const ms = new MetadataStore();
+      ms.importMetadata(metadata);
+      const doomed = new EntityManager({ serviceName: 'breeze/Northwind', metadataStore: ms });
+      doomed.createEntity('Order', { orderID: 30 });
+
+      const survivor = new EntityManager({ serviceName: 'breeze/Northwind', metadataStore: ms });
+      survivor.createEntity('Order', { orderID: 31 });     // drives the shared store's validators
+      held.push(survivor, ms);
+
+      return new WeakRef(doomed);
+    })).toBe(true);
+  });
+
   // The control: without one of these the suite would pass even if nothing were ever released.
   test('but an ATTACHED entity is not released', async () => {
     expect(await isReleased(() => {
@@ -150,6 +168,50 @@ describe('nothing grows without bound', () => {
     const group = (em as any)._entityGroupMap.get('Order:#Foo');
     expect(group._entities.length).toBe(1);
     expect(group._indexMap.size).toBe(0);
+  });
+
+  test('a shared MetadataStore does not grow as managers come and go', () => {
+    // The store outlives every manager and is shared between them, so anything accumulated on a
+    // type is accumulated for the life of the application.
+    const ms = new MetadataStore();
+    ms.importMetadata(metadata);
+    const before = ms.getEntityTypes().length;
+    const shipName = ms.getAsEntityType('Order').getDataProperty('shipName')!;
+    const validatorCount = shipName.validators.length;
+
+    for (let i = 0; i < 100; i++) {
+      const em = new EntityManager({ serviceName: 'breeze/Northwind', metadataStore: ms });
+      em.createEntity('Order', { orderID: i + 1 });
+    }
+
+    expect(ms.getEntityTypes().length).toBe(before);
+    expect(shipName.validators.length).toBe(validatorCount);
+  });
+
+  // A known, bounded cost rather than a defect: the KeyGenerator records every temporary id it
+  // has handed out, so that an imported entity carrying one does not collide with a live entity.
+  // Nothing prunes it, so the set is proportional to entities *ever created* by a manager, not to
+  // entities in its cache. It holds strings, so no entity is pinned, and clear() replaces the
+  // generator outright - that is the lever for a manager kept alive for millions of creates.
+  //
+  // This asserts the bound. Pruning it would mean reaching into key generation and the import
+  // remap, which is not worth it for one short string per entity; making it worse than linear,
+  // or making clear() stop resetting it, would be, and this catches both.
+  test('the key generator remembers one temp id per entity created, and clear() resets it', () => {
+    const em = newManager();
+    const remembered = () => {
+      let n = 0;
+      for (const entry of (em.keyGenerator as any)._tempIdMap.values()) n += entry.keyMap.size;
+      return n;
+    };
+
+    for (let i = 0; i < 500; i++) {
+      em.detachEntity(em.createEntity('Order', {}));   // Identity key: each gets a temp id
+    }
+
+    expect(remembered()).toBe(500);      // linear in creates, and not affected by the detaches
+    em.clear();
+    expect(remembered()).toBe(0);
   });
 
   test('re-initializing an adapter does not add a subscriber each time', () => {

@@ -192,6 +192,36 @@ Subscribe freely. What is worth knowing is the shape of what you get:
 An event object is 40 bytes, so the two on each entity are a negligible part of the ~2.6 KB a
 cached entity occupies.
 
+## What an EntityManager holds on to
+
+Entities leave the cache cleanly. Detaching one, clearing the manager, rejecting an `Added`
+entity's changes, or dropping the manager itself all release the entity and everything only it
+reached — including when another manager is sharing the same `MetadataStore`, and when the
+entity had a live `propertyChanged` subscription. `test/retention/` asserts each of those against
+a real garbage collection rather than a heap-size threshold, so they cannot quietly stop being
+true.
+
+Two things are retained on purpose, both bounded:
+
+- **The last entity to fail each validator.** A failed `validate()` keeps its context, because
+  `getMessage()` reads it. The next failure on that validator replaces it, so the cost is one
+  entity per validator, not one per failure. A validation that *passes* keeps nothing.
+- **A child waiting for a parent that never arrived**, but only while it is attached. It sits in
+  the manager's unattached-children map so it can be linked if that parent shows up later.
+  Detaching the child removes it.
+
+One thing grows with use:
+
+- **The key generator remembers every temporary id it has issued**, so that importing an entity
+  that carries one cannot collide with a live entity. Nothing prunes it, so the set is
+  proportional to the entities a manager has *ever created*, not to the entities in its cache —
+  a manager that creates and saves a hundred rows a minute for a day will hold a few million
+  short strings. It holds strings, not entities, so nothing else is pinned.
+
+  `clear()` replaces the key generator outright, which is the lever if you keep one manager alive
+  indefinitely. A manager per screen, or per unit of work, never gets near it.
+
+
 ## Bundle size
 
 The package is side-effect free apart from the entity-graph mixin, so a bundler drops what you
