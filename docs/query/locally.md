@@ -34,6 +34,9 @@ const cached = query.using(em).executeLocally();
 
 A local query applies `where`, `orderBy`, `skip`, `take` and `select`. It does not need
 `expand`, because the navigation properties of cached entities are already wired.
+To get the results and everything an expand reaches from them as one flat list, deleted entities
+included, pass the query to `getEntityGraph` from the
+[entity graphs](/guide/extensions#entity-graphs) extension.
 
 What it includes:
 

@@ -377,6 +377,9 @@ em.validationErrorsChanged.subscribe(({ entity, added, removed }) => {
 });
 ```
 
+With RxJS, [`validationErrorsChanged$`](/guide/rxjs) is this event as an observable, and the RxJS
+page shows how to keep [every current error in one list](/guide/rxjs#every-validation-error-kept-current).
+
 To silence these events temporarily, use `BreezeEvent.enable`. Disabling on the manager
 also silences the per-entity events for entities in it. Disabling on an `entityAspect`
 affects only that entity:

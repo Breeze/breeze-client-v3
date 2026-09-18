@@ -95,6 +95,15 @@ em.exportEntities(['Customer', 'Employee']);
 An empty array exports no entities. Detached entities cannot be exported; including one
 throws.
 
+To export an entity together with what it is related to, such as a customer with its orders and
+their details, build the list with `getEntityGraph` from the
+[entity graphs](/guide/extensions#entity-graphs) extension. It includes entities deleted since,
+which the navigation properties no longer list, and they import still deleted:
+
+```ts
+em.exportEntities((em as HasEntityGraph).getEntityGraph(customer, 'orders.orderDetails'));
+```
+
 ## Export options
 
 The second argument is an options object:

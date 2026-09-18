@@ -28,6 +28,9 @@ Without classes the same reads are `order.getProperty('customer')` and
 A navigation property returns only entities that are **in the cache**. If
 `order.customer` is `null`, the customer isn't cached. It may still exist on the server.
 An empty `orders` array means no orders for that customer are cached right now.
+A collection also leaves out related entities that have been deleted. To collect an entity with
+everything it reaches, deleted ones included, use `getEntityGraph` from the
+[entity graphs](/guide/extensions#entity-graphs) extension.
 
 A collection navigation property returns a Breeze relation array. That is a real array,
 with an `arrayChanged` event and a `load()` method (see

@@ -100,6 +100,10 @@ catch (e: any) {
 `entity` is `null` when the key does not match anything cached — a save can fail on an entity this
 manager never held. Check it before using it.
 
+With [save queuing](/guide/extensions#save-queuing) turned on, a queued save that fails rejects
+every save waiting on it with a `QueuedSaveFailedError`. The error described here is its
+`innerError`.
+
 ### Client-side validation happens first
 
 `saveChanges` validates before it sends anything. If that fails you get an error with
@@ -232,6 +236,10 @@ anywhere. If a handler has been quietly failing, turning this on is how you find
 
 A callback passed to `publish` still wins over the default, so a caller that wants to handle its
 own publication errors is unaffected.
+
+A subscriber made through [`breeze-client/rxjs`](/guide/rxjs) is different: an error thrown there
+is RxJS's to report, through its `config.onUnhandledError`, and never reaches
+`unhandledErrorCallback`.
 
 ## Concurrency conflicts
 

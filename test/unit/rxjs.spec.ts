@@ -1,5 +1,5 @@
 import { config as rxConfig, map, merge, shareReplay, Subject, take, takeUntil } from 'rxjs';
-import { EntityAction, EntityManager, EntityQuery, MetadataStore, config, configureBreeze } from '../../src/breeze';
+import { BreezeEvent, EntityAction, EntityManager, EntityQuery, MetadataStore, config, configureBreeze } from '../../src/breeze';
 import { ModelLibraryBackingStoreAdapter } from '../../src/adapters/adapter-model-library-backing-store';
 import { UriBuilderJsonAdapter } from '../../src/adapters/adapter-uri-builder-json';
 import { DataServiceWebApiAdapter } from '../../src/adapters/adapter-data-service-webapi';
@@ -92,6 +92,10 @@ describe('fromBreezeEvent', () => {
     const reported: unknown[] = [];
     const previous = rxConfig.onUnhandledError;
     rxConfig.onUnhandledError = err => reported.push(err);
+    // and Breeze's own last-resort handler never sees it - the error-handling guide says so
+    const breezeReported: unknown[] = [];
+    const previousBreeze = BreezeEvent.unhandledErrorCallback;
+    BreezeEvent.unhandledErrorCallback = err => breezeReported.push(err);
     try {
       const em = newManager();
       let plainSubscriberHeard = 0;
@@ -106,8 +110,10 @@ describe('fromBreezeEvent', () => {
       // it went to rxjs, which is where an application's error handling for observables lives
       expect(reported.length).toBeGreaterThan(0);
       expect((reported[0] as Error).message).toBe('subscriber bug');
+      expect(breezeReported).toEqual([]);
     } finally {
       rxConfig.onUnhandledError = previous;
+      BreezeEvent.unhandledErrorCallback = previousBreeze;
     }
   });
 });

@@ -78,6 +78,16 @@ Be careful with this. It is easy to save a new `OrderDetail` without its new par
 `Order`, or leave out an entity the server needs. Saving everything is usually the safer
 default.
 
+A navigation property leaves out entities that have been deleted, so `[order, ...order.orderDetails]`
+misses a detail the user has just deleted, and that deletion is not saved. To save an entity
+together with everything related to it, deletions included, build the list with `getEntityGraph`
+from the [entity graphs](/guide/extensions#entity-graphs) extension:
+
+```ts
+const graph = (em as HasEntityGraph).getEntityGraph(order, 'orderDetails');
+await em.saveChanges(graph);   // the order, its details, and the details that were deleted
+```
+
 ## Save errors
 
 This section covers errors specific to saving. For the shape of a Breeze error in general,
@@ -281,7 +291,7 @@ While a save is in flight, the entities in it have `entityAspect.isBeingSaved` s
 - **Editing.** You can change an entity that is being saved, but when the save completes
   the server's values overwrite your edit — silently. The entity ends up `Unchanged` and
   `hasChanges()` is `false`, so nothing tells you a keystroke was lost. Changes to entities
-  that were *not* part of the save are untouched. [Save queuing](#save-queuing) is what
+  that were *not* part of the save are untouched. [Save queuing](/guide/extensions#save-queuing) is what
   keeps a mid-flight edit.
 - **Rejecting, deleting, clearing.** `rejectChanges()` on an entity being saved throws,
   and so does `em.clear()`. Deleting or detaching a new entity that is waiting for its
@@ -289,7 +299,9 @@ While a save is in flight, the entities in it have `entityAspect.isBeingSaved` s
   being saved".
 
 The usual answer is to disable the save button, and edits if necessary, until the save
-returns.
+returns. An application that saves as the user types can turn on
+[save queuing](/guide/extensions#save-queuing) instead: it holds the second save back rather than
+rejecting it, and keeps the edit made while the first was out.
 
 ## Save queuing
 

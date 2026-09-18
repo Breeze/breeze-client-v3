@@ -160,9 +160,10 @@ once per expand segment, so a deep expand is linear in the entities it returns:
 
 ```ts
 import 'breeze-client/mixin-get-entity-graph';
+import type { HasEntityGraph } from 'breeze-client/mixin-get-entity-graph';
 
 // a customer, its 8,000 orders and their 24,000 details: about 10 ms
-const graph = em.getEntityGraph(customer, 'orders.orderDetails');
+const graph = (em as HasEntityGraph).getEntityGraph(customer, 'orders.orderDetails');
 ```
 
 ## Reads are cheap

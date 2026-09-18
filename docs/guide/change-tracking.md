@@ -255,6 +255,9 @@ em.hasChangesChanged.subscribe(({ hasChanges }) => {
 });
 ```
 
+With RxJS, [`hasChanges$`](/guide/rxjs#a-save-button) does the same and starts with the current
+value, so a button bound to it is right before anything has changed.
+
 ## Validation errors
 
 Breeze validates property values against rules from the metadata and rules you add (see

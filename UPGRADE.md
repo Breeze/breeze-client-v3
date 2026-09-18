@@ -521,10 +521,10 @@ Small pre-existing defects corrected in v3:
   reaching either callback. Every path now settles, and an unreadable body reports the
   real HTTP status. A throw inside a data service adapter callback now rejects the
   promise too.
-- **Calling `enableSaveQueuing` twice hung `saveChanges`**, including turning it off with
+- **Calling [`enableSaveQueuing`](/guide/extensions#save-queuing) twice hung `saveChanges`**, including turning it off with
   `enableSaveQueuing(em, false)`. It looked up a misspelled property, so each call wrapped
   `saveChanges` again.
-- **Save queuing sent temporary keys to the server.** With the save-queuing mixin, a foreign
+- **Save queuing sent temporary keys to the server.** With the [save-queuing mixin](/guide/extensions#save-queuing), a foreign
   key set while its parent row was still being inserted kept its temporary (negative) value in
   the follow-up save, because the fixup compared the type that *declares* the foreign key
   instead of the type it points at. Only a self-referencing key ever matched. Against SQL
@@ -539,7 +539,7 @@ Small pre-existing defects corrected in v3:
 - **Working with many changed entities at once is no longer quadratic.** `acceptChanges`,
   `rejectChanges` and `detachEntity` each asked the manager to work out afresh whether
   anything was still dirty, which meant walking the whole cache — once per entity. Over
-  40,000 entities `acceptChanges` took 8.5 seconds; it takes 33 ms. `getEntityGraph` with a
+  40,000 entities `acceptChanges` took 8.5 seconds; it takes 33 ms. [`getEntityGraph`](/guide/extensions#entity-graphs) with a
   two-level expand was the same shape: 5.1 seconds over 8,000 orders and their 24,000
   details, now 10 ms. See [Performance](/guide/performance).
 - **`BreezeEvent.isEnabled` ignored its object argument**, and
