@@ -195,19 +195,26 @@ enough.**
 Without a type argument, `Predicate.create` is exactly what it always was — `T` defaults to `any`
 and nothing is restricted.
 
-## orderBy and expand
+## orderBy, orderByDesc, select and expand
 
 The same paths, with the same rules:
 
 ```ts
 EntityQuery.from(Order).orderBy('freight desc')
 EntityQuery.from(Order).orderBy(['shipCity', 'freight desc'])
+EntityQuery.from(Order).orderByDesc('freight')
+EntityQuery.from(Order).select(['orderDate', 'customer', 'customer.companyName'])
 EntityQuery.from(Order).expand('customer')
 EntityQuery.from(Order).expand(['customer', 'orderDetails.product'])
 
 EntityQuery.from(Order).orderBy('freight descending')   // not a direction
 EntityQuery.from(Order).expand('freight')               // not a navigation
+EntityQuery.from(Customer).select('orders.freight')     // not a projection: orders is a collection
 ```
+
+`select` takes a value, a complex object or a navigation, reached through to-one navigations
+and complex properties. Its result is still an `EntityQuery<any>`: the rows it returns are not
+entities of the queried type.
 
 A comma-separated list is still accepted but is *not* checked — enumerating every combination of
 paths is not something to ask of a compiler. Pass an array to keep the checking.

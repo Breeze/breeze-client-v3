@@ -1,6 +1,7 @@
 ﻿import { core } from '../core/core.js';
 import { paramError } from '../core/assert-param.js';
-import { EntityType, MetadataStore } from '../metadata/entity-metadata.js';
+import { EntityType, MetadataStore, entityTypeForCtor } from '../metadata/entity-metadata.js';
+import type { Entity } from './entity-aspect.js';
 import { DataType } from '../metadata/data-type.js';
 
 /**
@@ -27,8 +28,7 @@ export class EntityKey {
   Constructs a new EntityKey.  Each entity within an EntityManager will have a unique EntityKey.
   ```ts
   // assume Employee is registered with the MetadataStore
-  const empType = entityTypeForCtor(Employee);
-  const entityKey = new EntityKey(empType, 1);
+  const entityKey = new EntityKey(Employee, 1);
   ```
 
   EntityKey's may also be found by calling EntityAspect.getKey()
@@ -39,15 +39,17 @@ export class EntityKey {
 
   Multipart keys are created by passing an array as the 'keyValues' parameter
   ```ts
-  const empTerrType = entityTypeForCtor(EmployeeTerritory);
-  const empTerrKey = new EntityKey(empTerrType, [1, 77]);
-  // The order of the properties in the 'keyValues' array must be the same as that
-  // returned by empTerrType.keyProperties
+  const empTerrKey = new EntityKey(EmployeeTerritory, [1, 77]);
+  // The order of the values must be the same as that of the type's keyProperties
   ```
-  @param entityType - The {@link EntityType} of the entity.
+  @param entityType - The {@link EntityType} of the entity, or a class registered for it with
+  {@link MetadataStore.registerEntityTypeCtor}.
   @param keyValues - A single value or an array of values. 
   */
-  constructor(entityType: EntityType, keyValues: any) {
+  constructor(entityType: EntityType | (new () => Entity), keyValues: any) {
+    // A class stands for its registered type. Checked by typeof first, so the EntityType that
+    // Breeze itself always passes costs one comparison.
+    if (typeof entityType === "function") entityType = entityTypeForCtor(entityType);
     // Inline, not assertParam: an EntityKey is built for every entity and again for every
     // foreign key the relationship fixup resolves. Same wording.
     if (!(entityType instanceof EntityType)) {
@@ -109,7 +111,7 @@ export class EntityKey {
 
   ```ts
   // assume Employee is registered with the MetadataStore
-  const empKey1 = new EntityKey(entityTypeForCtor(Employee), 1);
+  const empKey1 = new EntityKey(Employee, 1);
   // assume employee1 is an existing Employee entity
   const empKey2 = employee1.entityAspect.getKey();
   if (empKey1.equals(empKey2)) {
@@ -139,7 +141,7 @@ export class EntityKey {
   There is also an instance version of 'equals' with the same functionality.
   ```ts
   // assume Employee is registered with the MetadataStore
-  const empKey1 = new EntityKey(entityTypeForCtor(Employee), 1);
+  const empKey1 = new EntityKey(Employee, 1);
   // assume employee1 is an existing Employee entity
   const empKey2 = employee1.entityAspect.getKey();
   if (EntityKey.equals(empKey1, empKey2)) {

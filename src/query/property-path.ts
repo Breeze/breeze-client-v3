@@ -77,6 +77,14 @@ type RawCollectionPath<T, D extends number = DefaultDepth> =
   | CollectionKeys<T>
   | { [K in WalkKeys<T>]: `${K}.${RawCollectionPath<NonNullable<T[K]>, Prev[D]>}` }[WalkKeys<T>];
 
+/** Paths ending in anything a projection can return - a value, a complex object, or a navigation,
+to-one or collection - walking only through to-one navigations and complex properties: a
+projection cannot reach into each element of a collection. What `select` takes. */
+type RawSelectPath<T, D extends number = DefaultDepth> =
+  [D] extends [never] ? never :
+  | DataKeys<T> | WalkKeys<T> | NavigationKeys<T>
+  | { [K in WalkKeys<T>]: `${K}.${RawSelectPath<NonNullable<T[K]>, Prev[D]>}` }[WalkKeys<T>];
+
 /** Paths ending in a navigation, to-one or collection - what `expand` takes. */
 type RawNavigationPath<T, D extends number = DefaultDepth> =
   [D] extends [never] ? never :
@@ -107,6 +115,12 @@ export type CollectionPath<T> = Entity extends T ? string : RawCollectionPath<T>
 /** The property paths of `T` that name a navigation, for {@link EntityQuery.expand}. Plain
 `string` for an untyped query. */
 export type NavigationPath<T> = Entity extends T ? string : RawNavigationPath<T>;
+
+/** The property paths of `T` that a projection can return, for {@link EntityQuery.select}: a value
+(`'companyName'`), a complex object (`'location'`), or a navigation (`'orders'`, `'customer'`),
+reached through to-one navigations and complex properties (`'customer.companyName'`). Plain
+`string` for an untyped query. */
+export type SelectPath<T> = Entity extends T ? string : RawSelectPath<T>;
 
 /**
 A {@link PropertyPath}, optionally followed by ` desc` or ` asc`, for

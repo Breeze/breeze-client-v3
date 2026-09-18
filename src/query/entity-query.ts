@@ -10,7 +10,7 @@ import { EntityManager, QueryResult } from '../manager/entity-manager.js';
 import { MetadataStore, EntityType, NavigationProperty, EntityProperty, entityTypeForCtor } from '../metadata/entity-metadata.js';
 import { QueryOptions, MergeStrategy, FetchStrategy } from './query-options.js';
 import { Predicate } from './predicate.js';
-import type { CollectionElement, CollectionPath, FilterOpFor, FilterValueFor, FunctionExpressionPath, WhereObject, NavigationPath, OrderByPath, PropertyPath, PropertyValue, QuantifierOp } from './property-path.js';
+import type { CollectionElement, CollectionPath, FilterOpFor, FilterValueFor, FunctionExpressionPath, WhereObject, NavigationPath, OrderByPath, PropertyPath, PropertyValue, QuantifierOp, SelectPath } from './property-path.js';
 
 export interface RecursiveArray<T> {
   [i: number]: T | RecursiveArray<T>;
@@ -410,8 +410,10 @@ export class EntityQuery<T = any> {
   }
 
 
-  orderByDesc(propertyPaths: string): EntityQuery<T>;
-  orderByDesc(propertyPaths: string[]): EntityQuery<T>;
+  orderByDesc(propertyPaths: OrderByPath<T> | OrderByPath<T>[]): EntityQuery<T>;
+  // The same escapes as orderBy.
+  orderByDesc<P extends string>(propertyPaths: P extends `${string},${string}` ? P : (string extends P ? P : never)): EntityQuery<T>;
+  orderByDesc<P extends string>(propertyPaths: string extends P ? P[] : never): EntityQuery<T>;
   /**
   Returns a new query that orders the results of the query by property name in descending order.
   ```ts
@@ -478,6 +480,12 @@ export class EntityQuery<T = any> {
   @param propertyPaths - A comma-separated (',') string of property paths or an array of property paths.
   If 'propertyPaths' is either null or omitted then any existing projection on the query is removed.
   */
+  select(propertyPaths: SelectPath<T> | SelectPath<T>[]): EntityQuery<any>;
+  // The same escapes as orderBy: a path only known at run time, the comma-separated list, and
+  // undefined to remove the projection.
+  select<P extends string>(propertyPaths: P extends `${string},${string}` ? P : (string extends P ? P : never)): EntityQuery<any>;
+  select(propertyPaths?: undefined): EntityQuery<any>;
+  select<P extends string>(propertyPaths: string extends P ? P[] : never): EntityQuery<any>;
   select(propertyPaths?: string | string[]): EntityQuery<any> {
     let selectClause = propertyPaths == null ? null : new SelectClause(normalizePropertyPaths(propertyPaths));
     // A projection no longer returns the entity type, so the type parameter is dropped rather
@@ -894,7 +902,7 @@ export class EntityQuery<T = any> {
   /**
   Creates an EntityQuery for the specified {@link EntityKey}.
   ```ts
-  const entityKey = new EntityKey(entityTypeForCtor(Employee), 1);
+  const entityKey = new EntityKey(Employee, 1);
   const query = EntityQuery.fromEntityKey(entityKey);
   ```
 

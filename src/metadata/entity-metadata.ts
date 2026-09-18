@@ -602,11 +602,16 @@ export class MetadataStore {
     return core.isEmpty(this._structuralTypeMap);
   }
 
+  // Without okIfNotFound it throws rather than return null, so the result is never null.
+  getAsEntityType(type: string | (new () => Entity), okIfNotFound?: false): EntityType;
+  getAsEntityType(type: string | (new () => Entity), okIfNotFound: boolean): EntityType | null;
   /**
-  Returns an {@link EntityType} or null given its name.
+  Returns an {@link EntityType} given a registered class or a type name, or null if there is none
+  and `okIfNotFound` is true.
   ```ts
-  // assume em1 is a preexisting EntityManager
-  const odType = em1.metadataStore.getAsEntityType("OrderDetail");
+  // assume em1 is a preexisting EntityManager, and OrderDetail is registered with its store
+  const odType = em1.metadataStore.getAsEntityType(OrderDetail);
+  const sameType = em1.metadataStore.getAsEntityType("OrderDetail");
   ```
 
   or to throw an error if the type is not found
@@ -614,12 +619,16 @@ export class MetadataStore {
   const badType = em1.metadataStore.getAsEntityType("Foo", false);
   // badType will not get set and an exception will be thrown.
   ```
-  @param typeName - Either the fully qualified name or a short name may be used. If a short name is specified and multiple types share
-  that same short name an exception will be thrown.
-  @param okIfNotFound - (default=false) Whether to throw an error if the specified EntityType is not found.
-  @returns The EntityType. ComplexType or 'null' if not not found.
+  @param type - A class registered with {@link MetadataStore.registerEntityTypeCtor}, or a type
+  name: either the fully qualified name or a short name. If a short name is specified and multiple
+  types share that same short name an exception will be thrown.
+  @param okIfNotFound - (default=false) Whether to return null, rather than throw, if the EntityType is not found.
+  @returns The EntityType, or null if it is not found and `okIfNotFound` is true.
   */
-  getAsEntityType(typeName: string, okIfNotFound: boolean = false) {
+  getAsEntityType(type: string | (new () => Entity), okIfNotFound: boolean = false): EntityType | null {
+    // A class stands for its type name, resolved against this store: a class can be registered
+    // with more than one.
+    const typeName = typeof type === "function" ? entityTypeForCtor(type).name : type;
     const st = this._getStructuralType(typeName, okIfNotFound);
     if (st instanceof EntityType) {
       return st as EntityType;

@@ -1,4 +1,4 @@
-import { EntityManager, EntityQuery, EntityState, MetadataStore, entityTypeForCtor } from '../../src/breeze';
+import { EntityKey, EntityManager, EntityQuery, EntityState, MetadataStore, Validator, entityTypeForCtor } from '../../src/breeze';
 import type { Entity } from '../../src/breeze';
 import { Customer, Employee, Order, OrderDetail, Supplier, registerModelClasses } from '../model';
 import northwindMetadata from '../support/NorthwindIBMetadata_ETNOPAYLOAD.json';
@@ -388,6 +388,122 @@ describe("Typed API - existing untyped code is unaffected", () => {
 
     expect(report.manager).toBe(manager);
     expect(manager.directReports[0]).toBe(report);
+  });
+
+});
+
+// Methods that took plain strings or type names where the rest of the typed API takes checked
+// paths and constructors.
+describe("Typed API - orderByDesc and select check their paths", () => {
+
+  test("orderByDesc sorts descending, whichever form it is given", () => {
+    const em = newEntityManager();
+    ['Beta', 'Acme', 'Cody'].forEach(companyName => em.createEntity(Customer, { companyName }));
+    const names = (q: EntityQuery<Customer>) => em.executeQueryLocally(q).map(c => c.companyName);
+
+    expect(names(EntityQuery.from(Customer).orderByDesc('companyName'))).toEqual(['Cody', 'Beta', 'Acme']);
+    expect(names(EntityQuery.from(Customer).orderByDesc(['companyName']))).toEqual(['Cody', 'Beta', 'Acme']);
+  });
+
+  test("select takes a value, a complex object or a navigation, by checked path", () => {
+    const paths = (q: EntityQuery) => q.selectClause!.propertyPaths;
+    expect(paths(EntityQuery.from(Order).select(['orderDate', 'customer', 'customer.companyName', 'orderDetails'])))
+      .toEqual(['orderDate', 'customer', 'customer.companyName', 'orderDetails']);
+    expect(paths(EntityQuery.from(Supplier).select(['location', 'location.city']))).toEqual(['location', 'location.city']);
+    expect(paths(EntityQuery.from(Customer).select('companyName, city'))).toEqual(['companyName', 'city']);
+  });
+
+});
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function compilerMustRejectPaths() {
+  // @ts-expect-error - a misspelling, which orderByDesc used to accept
+  EntityQuery.from(Order).orderByDesc('freigt');
+  // @ts-expect-error - same, in an array
+  EntityQuery.from(Order).orderByDesc(['freight', 'shipCty']);
+  // @ts-expect-error - select checks its paths
+  EntityQuery.from(Customer).select('compnyName');
+  // @ts-expect-error - a projection cannot reach into each element of a collection
+  EntityQuery.from(Customer).select('orders.freight');
+}
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function compilerMustAcceptPaths(column: string) {
+  EntityQuery.from(Order).orderByDesc('customer.companyName');
+  EntityQuery.from(Order).orderByDesc('freight, shipCity');   // a comma-separated list is not checked
+  EntityQuery.from(Order).orderByDesc(column);                // nor is a path only known at run time
+  EntityQuery.from(Customer).select('companyName, orders');
+  EntityQuery.from(Customer).select(column);
+  EntityQuery.from(Customer).select([column]);
+  EntityQuery.from(Customer).select();                        // removes the projection
+  new EntityQuery('Customers').select('anything.at.all');     // untyped, as before
+}
+
+describe("Typed API - several classes at once, and exports", () => {
+
+  test("getEntities, getChanges and hasChanges take an array of classes", () => {
+    const em = newEntityManager();
+    const cust = em.createEntity(Customer, { companyName: 'Acme' });
+    const order = em.createEntity(Order, { shipName: 'Acme' });
+    em.createEntity(Employee, { lastName: 'Fuller' });
+
+    const both = em.getEntities([Customer, Order]);    // (Customer | Order)[]
+    expect(both).toHaveLength(2);
+    expect(both).toContain(cust);
+    expect(em.getChanges([Customer, Order])).toHaveLength(2);
+    expect(em.hasChanges([Customer, Order])).toBe(true);
+    order.entityAspect.acceptChanges();
+    cust.entityAspect.acceptChanges();
+    expect(em.hasChanges([Customer, Order])).toBe(false);
+  });
+
+  test("exportEntities takes classes, and its result is a string unless asString is false", () => {
+    const em = newEntityManager();
+    em.createEntity(Customer, { companyName: 'Acme' });
+    em.createEntity(Order, { shipName: 'Acme' });
+
+    const bundle: string = em.exportEntities([Customer], { includeMetadata: false });
+    const other = newEntityManager();
+    other.importEntities(bundle);
+    expect(other.getEntities(Customer)).toHaveLength(1);
+    expect(other.getEntities(Order)).toHaveLength(0);
+
+    const asObject: Object = em.exportEntities(undefined, { asString: false });
+    expect(typeof asObject).toBe('object');
+  });
+
+});
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function compilerMustRejectArrays(asString: boolean) {
+  const em = newEntityManager();
+  // @ts-expect-error - [Customer, Order] gives (Customer | Order)[], not Order[]
+  const orders: Order[] = em.getEntities([Customer, Order]);
+  class NotAnEntity { declare somethingElse: number; }
+  // @ts-expect-error - every class in the array must be an entity
+  em.getChanges([Customer, NotAnEntity]);
+  // @ts-expect-error - asString: false gives the bundle as an object, not a string
+  const s: string = em.exportEntities(undefined, { asString: false });
+  // @ts-expect-error - with asString only known at run time, it could be either
+  const t: string = em.exportEntities(undefined, { asString });
+  return [orders, s, t];
+}
+
+describe("Typed API - classes for keys and types, and validator contexts", () => {
+
+  test("an EntityKey and getAsEntityType take a registered class", () => {
+    const em = newEntityManager();
+    const emp = em.createEntity(Employee, { employeeID: 7, lastName: 'Fuller' }, EntityState.Unchanged);
+
+    expect(new EntityKey(Employee, 7).equals(emp.entityAspect.getKey())).toBe(true);
+    expect(em.getEntityByKey(new EntityKey(Employee, 7))).toBe(emp);
+    expect(em.metadataStore.getAsEntityType(Employee)).toBe(em.metadataStore.getAsEntityType('Employee'));
+  });
+
+  test("a validation function reads its own settings from the context, without a cast", () => {
+    const atLeast = new Validator('atLeast', (value, ctx) => value == null || value >= ctx.min, { min: 10 });
+    expect(atLeast.validate(12)).toBeNull();
+    expect(atLeast.validate(5)).not.toBeNull();
   });
 
 });

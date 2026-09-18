@@ -26,7 +26,7 @@ export default {
     // The path machinery in src/query/property-path.ts: helpers that the exported path and
     // operator types are built from.
     'ElementOf', 'RawPropertyPath', 'RawCollectionPath', 'RawNavigationPath',
-    'RawPropertyValue', 'WhereKey', 'EqualityOps', 'ComparisonOps', 'StringOps', 'InOp',
+    'RawPropertyValue', 'RawSelectPath', 'WhereKey', 'EqualityOps', 'ComparisonOps', 'StringOps', 'InOp',
     // The save-queuing mixin's internal bookkeeping, named by QueuedSaveFailedError.failedSaveMemo.
     'SaveMemo',
   ],

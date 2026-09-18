@@ -13,7 +13,7 @@ export const INT32_MAX = 2147483647;
 export const BYTE_MIN = 0;
 export const BYTE_MAX = 255;
 
-/** Passed to ValidationFn */
+/** The entity and property being validated. The {@link ValidationMessageContext} passed to a {@link ValidationFn} extends it with the validator's settings. */
 export interface ValidationContext {
   /** The entity whose property is being validated. Set when Breeze validates a property of an entity; an entity-level validator gets the entity as its value instead. */
   entity?: Entity;
@@ -38,9 +38,11 @@ export interface ValidationMessageContext extends ValidationContext {
   [key:string]: any;
 }
 
-/** Function called to validate an entity or property */
+/** Function called to validate an entity or property. Breeze always passes a context: the
+validator's own, with its settings, extended for each call with the entity and property being
+validated - so a validator reads its settings from it, as `ctx.min`. */
 export interface ValidationFn {
-    (value: any, context?: ValidationContext): boolean;
+    (value: any, context: ValidationMessageContext): boolean;
 }
 
 // add common props and methods for every validator 'context' here.
@@ -118,7 +120,7 @@ return a new Validator.  This requires the use of a 'context' object.
     // create a function that will take in a config object
     // and will return a validator
     const numericRangeValidator = (context: { min?: number, max?: number }) => {
-        const valFn = (v: any, ctx: any) => {
+        const valFn = (v: any, ctx: ValidationMessageContext) => {
             if (v == null) return true;
             if (typeof v !== "number") return false;
             if (ctx.min != null && v < ctx.min) return false;

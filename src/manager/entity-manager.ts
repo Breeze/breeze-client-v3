@@ -207,6 +207,10 @@ export interface EntityError {
  */
 export type EntityTypeArg = EntityType | string | (new () => Entity);
 
+/** What {@link EntityManager.exportEntities} exports: particular entities, or every entity of the
+given types - as registered classes, {@link EntityType}s or type names. */
+export type ExportEntitiesArg = Entity[] | (new () => Entity)[] | EntityType[] | string[];
+
 /**
 The values {@link EntityManager.createEntity} can be given for an entity of class `T`: any of its
 data and navigation properties, each optional.
@@ -770,6 +774,11 @@ export class EntityManager {
     });
   }
 
+  // The bundle is a string unless `asString: false` is passed; with a boolean only known at run
+  // time, the last signature applies.
+  exportEntities(entities?: ExportEntitiesArg, exportConfig?: { asString?: true, includeMetadata?: boolean } | boolean): string;
+  exportEntities(entities: ExportEntitiesArg | undefined, exportConfig: { asString: false, includeMetadata?: boolean }): Object;
+  exportEntities(entities?: ExportEntitiesArg, exportConfig?: { asString?: boolean, includeMetadata?: boolean } | boolean): string | Object;
   /**
   Exports selected entities, all entities of selected types, or an entire EntityManager cache.
 
@@ -828,8 +837,9 @@ export class EntityManager {
   // store JSON bundle somewhere ... perhaps indexDb ... and later import as we do here.
   em2.importEntities(bundle);
   ```
-  @param entities - The entities to export or the EntityType(s) of the entities to export;
-    all entities are exported if this parameter is omitted or null.
+  @param entities - The entities to export, or the types of the entities to export - as registered
+    classes, {@link EntityType}s or type names. All entities are exported if this parameter is
+    omitted or null.
   @param exportConfig - Export configuration options or a boolean
     - asString - (boolean) - If true (default), return export bundle as a string.
     - includeMetadata - (boolean) - If true (default), include metadata in the export bundle.
@@ -841,7 +851,11 @@ export class EntityManager {
   suitable for export, storage, and import. The schema and contents of the bundle may change in future versions of Breeze.
   Manipulate it at your own risk with appropriate caution.
   */
-  exportEntities(entities?: Entity[] | EntityType[] | string[], exportConfig?: { asString?: boolean, includeMetadata?: boolean } | boolean): string | Object {
+  exportEntities(entities?: ExportEntitiesArg, exportConfig?: { asString?: boolean, includeMetadata?: boolean } | boolean): string | Object {
+    // A registered class stands for its type name, as it does for getEntities.
+    if (Array.isArray(entities) && typeof entities[0] === "function") {
+      entities = (entities as (new () => Entity)[]).map(ctor => entityTypeForCtor(ctor).name);
+    }
     assertParam(entities, "entities").isArray().isEntity()
       .or().isNonEmptyArray().isInstanceOf(EntityType)
       .or().isNonEmptyArray().isString()
@@ -862,7 +876,7 @@ export class EntityManager {
       .whereParam("includeMetadata").isBoolean().isOptional().withDefault(true)
       .applyAll(exportConfig);
 
-    let exportBundle = exportEntityGroups(this, entities);
+    let exportBundle = exportEntityGroups(this, entities as Entity[] | EntityType[] | string[] | undefined);   // classes were resolved to names above
     let json = core.extend({}, exportBundle, ["tempKeys", "entityGroupMap"]);
 
     if (exportConfig.includeMetadata) {
@@ -1645,6 +1659,7 @@ export class EntityManager {
   }
 
   hasChanges<T extends Entity>(entityCtor: new () => T): boolean;
+  hasChanges(entityCtors: (new () => Entity)[]): boolean;
   hasChanges(): boolean;
   hasChanges(entityTypeNames: string | string[]): boolean;
   hasChanges(entityTypes: EntityType | EntityType[]): boolean;
@@ -1696,6 +1711,8 @@ export class EntityManager {
     });
   }
   getChanges<T extends Entity>(entityCtor: new () => T): T[];
+  /** Several types at once: `getChanges([Customer, Order])` is `(Customer | Order)[]`. */
+  getChanges<C extends (new () => Entity)[]>(entityCtors: [...C]): InstanceType<C[number]>[];
   getChanges(): Entity[];
   getChanges(entityTypeNames: string | string[]): Entity[];
   getChanges(entityTypes: EntityType | EntityType[]): Entity[];
@@ -1755,6 +1772,8 @@ export class EntityManager {
   }
 
   getEntities<T extends Entity>(entityCtor: new () => T, entityStates?: EntityState | EntityState[]): T[];
+  /** Several types at once: `getEntities([Customer, Order])` is `(Customer | Order)[]`. */
+  getEntities<C extends (new () => Entity)[]>(entityCtors: [...C], entityStates?: EntityState | EntityState[]): InstanceType<C[number]>[];
   getEntities(entityTypeNames?: string | string[], entityStates?: EntityState | EntityState[]): Entity[];
   getEntities(entityTypes?: EntityType | EntityType[], entityStates?: EntityState | EntityState[]): Entity[];
   /**

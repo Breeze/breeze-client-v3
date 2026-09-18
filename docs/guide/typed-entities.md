@@ -72,6 +72,7 @@ It earns its place where there is no constructor to pass:
 - **anonymous results**
 
 `select()` reflects this: it returns `EntityQuery<any>`, because the rows are no longer entities.
+Its paths are still checked against the entity type the query started from.
 
 ```ts
 EntityQuery.from(Customer)          // EntityQuery<Customer>
@@ -89,6 +90,7 @@ EntityQuery.from(Customer)          // EntityQuery<Customer>
 | `EntityManager.createEntity(ctor, …)` | `T` |
 | `EntityManager.getEntities(ctor, …)` | `T[]` |
 | `EntityManager.getChanges(ctor)` | `T[]` |
+| `getEntities`, `getChanges`, `hasChanges` with an array of constructors | `getEntities([Customer, Order])` is `(Customer \| Order)[]` |
 | `EntityManager.fetchEntityByKey(ctor, …)` | `EntityByKeyResult<T>` |
 | `EntityManager.getEntityByKey(ctor, …)` | `T \| null` |
 | `EntityManager.attachEntity(entity)`, `addEntity(entity)` | gives back what it was given, rather than widening to `Entity` |
@@ -97,6 +99,8 @@ EntityQuery.from(Customer)          // EntityQuery<Customer>
 | `EntityQuery.toType(ctor)` | `EntityQuery<T>` — and unlike a type argument on `from(name)`, this one **is** checked |
 | `RelationArray<T>.load()` | `Promise<QueryResult<T>>` |
 | `EntityType.createEntity<T>()` | `T` (defaults to `any`, which is what it always returned) |
+| `new EntityKey(ctor, values)`, `MetadataStore.getAsEntityType(ctor)` | accept a constructor in place of the `EntityType` or its name |
+| `EntityManager.exportEntities(ctors, …)` | accepts constructors; the result is a `string` unless `asString: false` is passed |
 
 `entityTypeForCtor(ctor)` is exported too, for writing your own helpers over the same mechanism.
 

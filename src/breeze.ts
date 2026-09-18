@@ -260,7 +260,7 @@ export type {
   MetadataFetchedEventArgs, MetadataStoreConfig, NavigationPropertyConfig,
 } from './metadata/entity-metadata.js';
 export type {
-  EntityByKeyResult, EntityTypeArg, IEntityByKeyResult, ImportConfig, ImportResult, InitialValues, ITempKeyMap,
+  EntityByKeyResult, EntityTypeArg, ExportEntitiesArg, IEntityByKeyResult, ImportConfig, ImportResult, InitialValues, ITempKeyMap,
   QueryErrorCallback, QuerySuccessCallback, SaveError,
 } from './manager/entity-manager.js';
 export type { LocalQueryComparisonOptionsConfig } from './metadata/local-query-comparison-options.js';
@@ -268,7 +268,7 @@ export type { NamingConventionConfig } from './metadata/naming-convention.js';
 export type {
   CollectionElement, CollectionPath, FilterOpFor, FilterValueExpression, FilterValueFor, FunctionExpressionPath,
   FilterClause, FilterOpsObject, FilterOpNameFor, NavigationPath, OrderByPath,
-  PropertyPath, PropertyValue, QuantifierOp, WhereObject,
+  PropertyPath, PropertyValue, QuantifierOp, SelectPath, WhereObject,
 } from './query/property-path.js';
 export type { TypedPredicateFactory } from './query/predicate.js';
 export type { QueryOptionsConfig } from './query/query-options.js';
