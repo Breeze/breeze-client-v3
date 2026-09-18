@@ -5,7 +5,7 @@ import type { FilterQueryOp, RecursiveArray } from './entity-query.js';
 import { DataType  } from '../metadata/data-type.js';
 import { EntityAspect, Entity } from '../entity/entity-aspect.js';
 import { LocalQueryComparisonOptions } from '../metadata/local-query-comparison-options.js';
-import type { CollectionElement, CollectionPath, FilterOpFor, FilterValueFor, FunctionExpressionPath, PropertyPath, PropertyValue, QuantifierOp, WhereObject } from './property-path.js';
+import type { CollectionElement, CollectionPath, FilterOpFor, FilterValueFor, FunctionExpressionPath, NoInferFrom, PropertyPath, PropertyValue, QuantifierOp, WhereObject } from './property-path.js';
 
 export interface Op {
   key: string;
@@ -53,8 +53,8 @@ export interface ExpressionContext {
 /**
 Builds {@link Predicate}s checked against one entity type - what {@link Predicate.for} returns.
 
-The predicates it produces are ordinary Predicates, so combining them with `and`, `or` and `not`
-works as it always has; those combinators take any Predicate and are not themselves checked.
+Each Predicate it produces is a `Predicate<T>`, so combining them with `and`, `or` and `not` is
+checked too, and an {@link EntityQuery} for another type will not accept them.
 */
 export interface TypedPredicateFactory<T> {
   // Escapes first, checked forms last - when no signature matches, the compiler reports the last
@@ -67,9 +67,9 @@ export interface TypedPredicateFactory<T> {
   ```
   */
   <P extends string>(property: P extends FunctionExpressionPath ? P : (string extends P ? P : never),
-    operator: string | FilterQueryOp, value: any): Predicate;
+    operator: string | FilterQueryOp, value: any): Predicate<T>;
   <P extends string>(collection: string extends P ? P : never, quantifier: string | FilterQueryOp,
-    property: string, operator: string | FilterQueryOp, value: any): Predicate;
+    property: string, operator: string | FilterQueryOp, value: any): Predicate<T>;
   /** A property, an operator that suits its type, and a matching value.
   ```ts
   const p = Predicate.for(Order);
@@ -78,14 +78,15 @@ export interface TypedPredicateFactory<T> {
   ```
   */
   <P extends PropertyPath<T>, O extends FilterOpFor<PropertyValue<T, P>>>(
-    property: P, operator: O, value: FilterValueFor<T, PropertyValue<T, P>, O>): Predicate;
+    property: P, operator: O, value: FilterValueFor<T, PropertyValue<T, P>, O>): Predicate<T>;
   /** `any` or `all` over a collection, filtered by a Predicate built for the element type.
   ```ts
   const pd = Predicate.for(OrderDetail);
   const pred = Predicate.for(Order)("orderDetails", "any", pd("unitPrice", ">", 20));
   ```
   */
-  (collection: CollectionPath<T>, quantifier: QuantifierOp | FilterQueryOp, predicate: Predicate): Predicate;
+  <P extends CollectionPath<T>>(collection: P, quantifier: QuantifierOp | FilterQueryOp,
+    predicate: Predicate<CollectionElement<T, P>>): Predicate<T>;
   /** `any` or `all` over a collection, then a filter on the element type.
   ```ts
   const p = Predicate.for(Customer);
@@ -96,14 +97,14 @@ export interface TypedPredicateFactory<T> {
     P2 extends PropertyPath<CollectionElement<T, P>>,
     O2 extends FilterOpFor<PropertyValue<CollectionElement<T, P>, P2>>>(
     collection: P, quantifier: QuantifierOp, property: P2, operator: O2,
-    value: FilterValueFor<CollectionElement<T, P>, PropertyValue<CollectionElement<T, P>, P2>, O2>): Predicate;
+    value: FilterValueFor<CollectionElement<T, P>, PropertyValue<CollectionElement<T, P>, P2>, O2>): Predicate<T>;
   /** The object form, checked in full.
   ```ts
   const p = Predicate.for(Customer);
   const pred = p({ city: "London", companyName: { startsWith: "A" } });
   ```
   */
-  (predicate: WhereObject<T>): Predicate;
+  (predicate: WhereObject<T>): Predicate<T>;
 }
 
 /**
@@ -116,7 +117,14 @@ const p2 = p1.and(p("shipCity", "startsWith", "C"));
 const query = EntityQuery.from(Order).where(p2);
 ```
 */
-export class Predicate {
+export class Predicate<T = any> {
+  /**
+  Never set: it is here only so that a `Predicate<Order>` and a `Predicate<Customer>` are different
+  types. It is public because a private member reaches the published .d.ts without its type, which
+  would lose the distinction.
+  @hidden
+  */
+  declare readonly _$predicateFor?: T;
   /** The operator of this predicate. Its `key` is, for example, `eq` or `gt` for a comparison, `and` or `or` for a composite, `not`, or `any` or `all`. `undefined` for a pass-through predicate made from a raw filter string. __Read Only__ */
   declare op: Op;
   /** @hidden @internal */
@@ -167,7 +175,7 @@ export class Predicate {
   // its first argument. The object form has only T to infer, so it is checked in full - operator
   // and value included, with a spelling suggestion for a misspelled key. Predicate.for() is the
   // other way to get the whole check, by inferring T from a constructor instead of being told it.
-  static create(predicate: Predicate): Predicate;
+  static create<T = any>(predicate: Predicate<T>): Predicate<T>;
   static create(rawFilterString: string): Predicate;
   static create(anArray: RecursiveArray<string | number | FilterQueryOp | Predicate>): Predicate;
   static create<P extends string>(property: P extends FunctionExpressionPath ? P : (string extends P ? P : never),
@@ -184,29 +192,29 @@ export class Predicate {
   const p = Predicate.create<Customer>("companyName", "startsWith", "C");
   ```
   */
-  static create<T = any>(property: PropertyPath<T> | FunctionExpressionPath,
-    operator: string | FilterQueryOp, value: any): Predicate;
+  static create<T = any>(property: PropertyPath<NoInferFrom<T>> | FunctionExpressionPath,
+    operator: string | FilterQueryOp, value: any): Predicate<T>;
   /** `any` or `all` over a collection, filtered by a Predicate built for the element type.
   ```ts
   const pd = Predicate.for(OrderDetail);
   const p = Predicate.create<Order>("orderDetails", "any", pd("unitPrice", ">", 20));
   ```
   */
-  static create<T = any>(collection: CollectionPath<T>, quantifier: QuantifierOp | FilterQueryOp,
-    predicate: Predicate): Predicate;
+  static create<T = any>(collection: CollectionPath<NoInferFrom<T>>, quantifier: QuantifierOp | FilterQueryOp,
+    predicate: Predicate): Predicate<T>;
   /** Checks the collection path against `T`.
   ```ts
   const p = Predicate.create<Customer>("orders", "any", "freight", ">", 100);
   ```
   */
-  static create<T = any>(collection: CollectionPath<T>, quantifier: QuantifierOp | FilterQueryOp,
-    property: string, operator: string | FilterQueryOp, value: any): Predicate;
+  static create<T = any>(collection: CollectionPath<NoInferFrom<T>>, quantifier: QuantifierOp | FilterQueryOp,
+    property: string, operator: string | FilterQueryOp, value: any): Predicate<T>;
   /** The object form, checked in full against `T`.
   ```ts
   const p = Predicate.create<Order>({ freight: { gt: 100 }, shipCity: { startsWith: "C" } });
   ```
   */
-  static create<T = any>(predicate: WhereObject<T>): Predicate;
+  static create<T = any>(predicate: WhereObject<NoInferFrom<T>>): Predicate<T>;
   /**
   Same as using the ctor, except that given the entity type as a type argument, the compiler checks
   the predicate against that type - everything in the object form, the property path in the
@@ -287,9 +295,11 @@ export class Predicate {
   const preds = [p1, p2, p3];
   const newPred = Predicate.and(preds);
   ```
-  @param args - multiple Predicates or an array of Predicate. 
+  @param predicates - multiple Predicates or an array of Predicates. 
   Any null or undefined values passed in will be automatically filtered out before constructing the composite predicate.
   */
+  static and<T = any>(...predicates: (Predicate<T> | null | undefined)[]): Predicate<T>;
+  static and<T = any>(predicates: (Predicate<T> | null | undefined)[]): Predicate<T>;
   static and(...args: any[]) {
     return new AndOrPredicate("and", args);
   }
@@ -310,9 +320,11 @@ export class Predicate {
   const preds = [p1, p2, p3];
   const newPred = Predicate.or(preds);
   ```
-  @param args - multiple Predicates or an array of Predicate.
+  @param predicates - multiple Predicates or an array of Predicates.
   Any null or undefined values passed in will be automatically filtered out before constructing the composite predicate.
   */
+  static or<T = any>(...predicates: (Predicate<T> | null | undefined)[]): Predicate<T>;
+  static or<T = any>(predicates: (Predicate<T> | null | undefined)[]): Predicate<T>;
   static or(...args: any[]) {
     return new AndOrPredicate("or", args);
   }
@@ -334,7 +346,7 @@ export class Predicate {
   const not_p1 = Predicate.create<Order>({ freight: { le: 100 } });
   ```
   */
-  static not(pred: Predicate) {
+  static not<T = any>(pred: Predicate<T>): Predicate<T> {
     return pred.not();
   }
 
@@ -350,8 +362,9 @@ export class Predicate {
   same way {@link EntityQuery.from} does for a query - and from a constructor rather than a type
   argument, so the type is written once.
 
-  The constructor is read for its type only; nothing about it is kept, and the predicates are
-  ordinary Predicates. It does not have to be registered with a MetadataStore for this - though
+  The constructor is read for its type only; nothing about it is kept. The predicates are ordinary
+  Predicates at run time, typed `Predicate<U>`, so that what they are combined with, and the query
+  they are used in, is checked too. The constructor does not have to be registered with a MetadataStore for this - though
   if it is not, nothing validates the path against the metadata either, exactly as before.
   @param ctor - The entity class to check property paths against.
   @returns A factory that builds Predicates for that type.
@@ -380,6 +393,28 @@ export class Predicate {
     }
   };
 
+  // The forms EntityQuery.where takes, checked against T in the same way and in the same order:
+  // Predicates first, then the escapes for what cannot be checked, then the checked forms last so
+  // that theirs is the error reported. For a Predicate<any>, every path is a plain string.
+  and(...predicates: (Predicate<T> | null | undefined)[]): Predicate<T>;
+  and(predicates: (Predicate<T> | null | undefined)[]): Predicate<T>;
+  and(predicate: WhereObject<T>): Predicate<T>;
+  and<O extends string>(property: PropertyPath<T>,
+    operator: string extends O ? O : never, value: any): Predicate<T>;
+  and<P extends string>(property: P extends FunctionExpressionPath ? P : (string extends P ? P : never),
+    operator: string | FilterQueryOp, value: any): Predicate<T>;
+  and<P extends string>(collection: string extends P ? P : never,
+    quantifier: string | FilterQueryOp, property: string,
+    operator: string | FilterQueryOp, value: any): Predicate<T>;
+  and<P extends CollectionPath<T>>(collection: P, quantifier: QuantifierOp | FilterQueryOp,
+    predicate: Predicate<CollectionElement<T, P>>): Predicate<T>;
+  and<P extends PropertyPath<T>, O extends FilterOpFor<PropertyValue<T, P>>>(
+    property: P, operator: O, value: FilterValueFor<T, PropertyValue<T, P>, O>): Predicate<T>;
+  and<P extends CollectionPath<T>,
+    P2 extends PropertyPath<CollectionElement<T, P>>,
+    O2 extends FilterOpFor<PropertyValue<CollectionElement<T, P>, P2>>>(
+    collection: P, quantifier: QuantifierOp, property: P2, operator: O2,
+    value: FilterValueFor<CollectionElement<T, P>, PropertyValue<CollectionElement<T, P>, P2>, O2>): Predicate<T>;
   /**
   'And's this Predicate with one or more other Predicates and returns a new 'composite' Predicate
   ```ts
@@ -404,7 +439,8 @@ export class Predicate {
   ```
 
   It also takes the arguments of {@link Predicate.create} in place of a Predicate - such as
-  `.and("freight", "gt", 2000)` - but the compiler does not check those.
+  `.and("freight", "gt", 2000)` - checked against the Predicate's entity type, as
+  {@link EntityQuery.where} checks them against the query's.
   @param args - multiple Predicates or an array of Predicates. 
   Any null or undefined values passed in will be automatically filtered out before constructing the composite predicate.
   */
@@ -412,6 +448,28 @@ export class Predicate {
     return new AndOrPredicate("and", argsForAndOrPredicates(this, args));
   }
 
+  // The forms EntityQuery.where takes, checked against T in the same way and in the same order:
+  // Predicates first, then the escapes for what cannot be checked, then the checked forms last so
+  // that theirs is the error reported. For a Predicate<any>, every path is a plain string.
+  or(...predicates: (Predicate<T> | null | undefined)[]): Predicate<T>;
+  or(predicates: (Predicate<T> | null | undefined)[]): Predicate<T>;
+  or(predicate: WhereObject<T>): Predicate<T>;
+  or<O extends string>(property: PropertyPath<T>,
+    operator: string extends O ? O : never, value: any): Predicate<T>;
+  or<P extends string>(property: P extends FunctionExpressionPath ? P : (string extends P ? P : never),
+    operator: string | FilterQueryOp, value: any): Predicate<T>;
+  or<P extends string>(collection: string extends P ? P : never,
+    quantifier: string | FilterQueryOp, property: string,
+    operator: string | FilterQueryOp, value: any): Predicate<T>;
+  or<P extends CollectionPath<T>>(collection: P, quantifier: QuantifierOp | FilterQueryOp,
+    predicate: Predicate<CollectionElement<T, P>>): Predicate<T>;
+  or<P extends PropertyPath<T>, O extends FilterOpFor<PropertyValue<T, P>>>(
+    property: P, operator: O, value: FilterValueFor<T, PropertyValue<T, P>, O>): Predicate<T>;
+  or<P extends CollectionPath<T>,
+    P2 extends PropertyPath<CollectionElement<T, P>>,
+    O2 extends FilterOpFor<PropertyValue<CollectionElement<T, P>, P2>>>(
+    collection: P, quantifier: QuantifierOp, property: P2, operator: O2,
+    value: FilterValueFor<CollectionElement<T, P>, PropertyValue<CollectionElement<T, P>, P2>, O2>): Predicate<T>;
   /**
   'Or's this Predicate with one or more other Predicates and returns a new 'composite' Predicate
   ```ts
@@ -436,7 +494,8 @@ export class Predicate {
   ```
 
   It also takes the arguments of {@link Predicate.create} in place of a Predicate - such as
-  `.or("freight", "gt", 2000)` - but the compiler does not check those.
+  `.or("freight", "gt", 2000)` - checked against the Predicate's entity type, as
+  {@link EntityQuery.where} checks them against the query's.
   @param args - multiple Predicates or an array of Predicates. 
   Any null or undefined values passed in will be automatically filtered out before constructing the composite predicate.
   */
@@ -461,7 +520,7 @@ export class Predicate {
   const not_p1 = Predicate.create<Order>({ freight: { le: 100 } });
   ```
   */
-  not() {
+  not(): Predicate<T> {
     return new UnaryPredicate("not", this);
   }
 

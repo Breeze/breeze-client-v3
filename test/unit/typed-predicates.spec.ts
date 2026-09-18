@@ -315,3 +315,80 @@ function compilerMustRejectCreate() {
 }
 
 export const _compileTimeOnlyCreate = compilerMustRejectCreate;
+
+// A Predicate carries the entity type it was built for: Predicate.for(Order) and
+// Predicate.create<Order>(...) make a Predicate<Order>. So what is combined with it is checked,
+// and a query for another type will not take it. Before, every Predicate was the same type.
+describe("Typed predicates - Predicate<T>", () => {
+
+  const o = Predicate.for(Order);
+
+  test("and, or and not build the same predicates as before", () => {
+    const typed = o('freight', 'gt', 100).and('shipCity', 'startsWith', 'B').or(o('freight', 'lt', 5)).not();
+    const untyped = Predicate.create('freight', 'gt', 100).and('shipCity', 'startsWith', 'B')
+      .or(Predicate.create('freight', 'lt', 5)).not();
+    expect(JSON.stringify(typed)).toBe(JSON.stringify(untyped));
+  });
+
+  test("and and or take the object form too", () => {
+    const pred = o('shipCity', 'startsWith', 'B').and({ freight: { gt: 100 } });
+    expect(JSON.stringify(pred)).toBe(JSON.stringify(Predicate.and(
+      Predicate.create('shipCity', 'startsWith', 'B'), Predicate.create({ freight: { gt: 100 } }))));
+  });
+
+  test("a typed predicate is used by a query for its type, and by an untyped one", () => {
+    const pred = o('freight', 'gt', 100);
+    expect(EntityQuery.from(Order).where(pred).wherePredicate).toBeTruthy();
+    expect(new EntityQuery('Orders').where(pred).wherePredicate).toBeTruthy();
+    expect(EntityQuery.from(Order).where(Predicate.and(pred, o('shipCity', 'eq', 'Bern'))).wherePredicate).toBeTruthy();
+  });
+
+});
+
+/** As compilerMustReject above, for what Predicate<T> now catches. */
+function compilerMustRejectTypedPredicates() {
+  const o = Predicate.for(Order);
+  const c = Predicate.for(Customer);
+  const pOrder = o('freight', 'gt', 100);
+  const pCustomer = c('companyName', 'startsWith', 'C');
+
+  // @ts-expect-error - a Predicate<Order> on a query for Customers
+  EntityQuery.from(Customer).where(pOrder);
+  // @ts-expect-error - or combined with a Predicate<Customer>
+  pOrder.and(pCustomer);
+  // @ts-expect-error - same, statically
+  Predicate.and(pOrder, pCustomer);
+  // @ts-expect-error - the arguments of and() are checked: a misspelled path
+  pOrder.and('shpCity', 'eq', 'Bern');
+  // @ts-expect-error - an operator that does not suit the property
+  pOrder.or('freight', 'startsWith', 'B');
+  // @ts-expect-error - a value of the wrong type
+  pOrder.and('freight', 'gt', 'lots');
+  // @ts-expect-error - the object form, checked in full
+  pOrder.and({ fraight: { gt: 1 } });
+  // @ts-expect-error - any/all takes a predicate for the collection's element type: Order, not Customer
+  EntityQuery.from(Customer).where('orders', 'any', pCustomer);
+  // @ts-expect-error - same for the factory
+  c('orders', 'any', pCustomer);
+  // @ts-expect-error - not() keeps the type
+  EntityQuery.from(Customer).where(pOrder.not());
+}
+
+/** And what must still compile. */
+function compilerMustAcceptTypedPredicates(column: string) {
+  const o = Predicate.for(Order);
+  const pOrder = o('freight', 'gt', 100);
+  const untyped = Predicate.create('freight', 'gt', 100);
+
+  EntityQuery.from(Order).where(untyped);                       // an untyped predicate goes anywhere
+  EntityQuery.from(Customer).where(Predicate.create('companyName', 'eq', 'x'));
+  pOrder.and(untyped);                                          // and combines with anything untyped
+  Predicate.and(pOrder, untyped);
+  untyped.and('anything', 'gt', 1).or({ anything: { eq: 2 } }); // untyped arguments stay untyped
+  pOrder.and(column, 'eq', 1);                                  // a path only known at run time
+  pOrder.and('toLower(shipCity)', 'eq', 'bern');                // a query function
+  EntityQuery.from(Customer).where('orders', 'any', pOrder);    // a Predicate<Order> for the orders
+  Predicate.for(Customer)('orders', 'all', pOrder);
+}
+
+export const _compileTimeOnlyTyped = [compilerMustRejectTypedPredicates, compilerMustAcceptTypedPredicates];

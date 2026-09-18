@@ -23,6 +23,14 @@ type here degrades to `string` / `any` when it cannot see a concrete entity type
 // Walking an entity type
 // ---------------------------------------------------------------------------------------------
 
+/**
+`T`, in a position the compiler does not infer `T` from - so that `Predicate.create(...)` without a
+type argument is a `Predicate<any>`, rather than a Predicate of whatever the arguments look like.
+The built-in `NoInfer` does this, but needs TypeScript 5.4 in the application that compiles
+against Breeze's .d.ts; this works in any version.
+*/
+export type NoInferFrom<T> = [T][T extends any ? 0 : never];
+
 /** Property types that can be compared in a filter. */
 type Scalar = string | number | boolean | Date;
 

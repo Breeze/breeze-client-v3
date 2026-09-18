@@ -156,9 +156,30 @@ p({ city: 'London', country: 'UK' })          // object form
 ```
 
 The constructor is read for its type only — nothing about it is kept, and it does not have to be
-registered with a `MetadataStore`. Hoist the factory and reuse it. The predicates it returns are
-ordinary `Predicate`s, so `and`, `or` and `not` behave as they always have; those combinators take
-any predicate and are not themselves checked.
+registered with a `MetadataStore`. Hoist the factory and reuse it.
+
+### A predicate carries its type
+
+What `Predicate.for(Order)` builds is a `Predicate<Order>`, and so is what `Predicate.create<Order>(…)`
+builds. The type goes with it:
+
+```ts
+const o = Predicate.for(Order);
+const pred = o('freight', 'gt', 100)
+  .and('shipCity', 'startsWith', 'B')       // checked, as where() is
+  .or({ freight: { lt: 5 } });              // the object form too
+
+EntityQuery.from(Order).where(pred);        // fine
+EntityQuery.from(Customer).where(pred);     // error: a Predicate<Order> on a Customer query
+pred.and(Predicate.for(Customer)('city', 'eq', 'Bern'))   // error: mixing types
+```
+
+`any` and `all` want a predicate for the collection's element type: `EntityQuery.from(Customer)
+.where('orders', 'any', pred)` takes a `Predicate<Order>`.
+
+A predicate built without a type - `new Predicate(…)`, or `Predicate.create(…)` with no type
+argument - is a `Predicate<any>`. It combines with anything and any query takes it, exactly as
+before.
 
 ### `Predicate.create<T>(…)` — checks the path, and the object form in full
 

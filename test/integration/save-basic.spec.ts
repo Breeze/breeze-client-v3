@@ -267,7 +267,7 @@ describe("Save Basics", () => {
     //const p2 = breeze.Predicate.create("userId", "ne", userId);
     //const p1 = breeze.Predicate.create("userRoles", "all", p2);
     const p2 = Predicate.create<UserRole>("userId", "==", userId);
-    const p1 = Predicate.create<User>("userRoles", "any", p2).not();
+    const p1 = Predicate.create<Role>("userRoles", "any", p2).not();   // it filters Roles
 
     const q = EntityQuery.from(Role).where(p1).take(1);
     const data = await q.using(em).execute();

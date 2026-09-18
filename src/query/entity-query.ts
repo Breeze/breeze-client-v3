@@ -233,8 +233,8 @@ export class EntityQuery<T = any> {
   // The checked forms come first, so they are tried first. They engage only when the query has a
   // concrete entity type. EntityQuery<T = any> means many queries do not, and for those
   // PropertyPath<T> is plain `string` and these are no narrower than what was always here.
-  where(collection: CollectionPath<T>, quantifier: QuantifierOp | FilterQueryOp,
-    predicate: Predicate): EntityQuery<T>;
+  where<P extends CollectionPath<T>>(collection: P, quantifier: QuantifierOp | FilterQueryOp,
+    predicate: Predicate<CollectionElement<T, P>>): EntityQuery<T>;
   where(collection: CollectionPath<T>, quantifier: QuantifierOp | FilterQueryOp,
     property: string, quantifier2: QuantifierOp | FilterQueryOp,
     predicate: Predicate): EntityQuery<T>;  // nested any/all over a prebuilt Predicate
@@ -242,7 +242,7 @@ export class EntityQuery<T = any> {
   // The object form, checked against T. WhereObject<T> is `object` for an untyped query, so this
   // is exactly the `where(predicate: Object)` overload it replaces wherever T is not concrete.
   where(predicate: WhereObject<T>): EntityQuery<T>;
-  where(predicate?: Predicate): EntityQuery<T>;
+  where(predicate?: Predicate<T>): EntityQuery<T>;
 
   // Escapes, for what cannot be checked: a property path or an operator that is only known at
   // run time. Each one takes the unknowable part as a type parameter and demands that it really
