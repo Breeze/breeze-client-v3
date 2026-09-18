@@ -212,6 +212,36 @@ above hands Breeze the real status and body; `test/unit/angular-httpclient-fetch
 both that and the failure it replaces.
 :::
 
+### Coming from 2.x's `AjaxHttpClientAdapter`
+
+Breeze 2.x shipped an ajax adapter over `HttpClient`, `breeze-client/adapter-ajax-httpclient`, and
+an Angular application usually registered it alongside the other adapters at startup:
+
+```ts
+// Breeze 2.x
+constructor(http: HttpClient) {
+  ModelLibraryBackingStoreAdapter.register();
+  UriBuilderJsonAdapter.register();
+  AjaxHttpClientAdapter.register(http);
+  DataServiceWebApiAdapter.register();
+}
+```
+
+Breeze 3 does not have that module, so the import fails. All four lines become one: the other
+three adapters are Breeze 3's defaults and need no registering, and `httpClientFetch` above takes
+the ajax adapter's place:
+
+```ts
+// Breeze 3
+constructor(http: HttpClient) {
+  configureBreeze({ fetch: httpClientFetch(http) });
+}
+```
+
+`httpClientFetch` does what the 2.x adapter did with an error response — hands Breeze the status,
+body and headers rather than a bare failure. What the adapter also carried, `defaultSettings`
+headers and a `requestInterceptor`, is now simply code inside the fetch function.
+
 ## Unsubscribing
 
 A Breeze event holds its subscribers, so a subscription you never end keeps its callback — and
