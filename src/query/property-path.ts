@@ -130,6 +130,14 @@ reached through to-one navigations and complex properties (`'customer.companyNam
 `string` for an untyped query. */
 export type SelectPath<T> = Entity extends T ? string : RawSelectPath<T>;
 
+/** The key of an entity of type `T` given by property name - `{ orderID: 10248, productID: 11 }` -
+in place of an array whose order must match the type's key. Accepted by
+{@link EntityManager.getEntityByKey} and {@link EntityManager.fetchEntityByKey} with an entity class,
+and by the {@link EntityKey} constructor. The names are checked against `T`'s data properties; which
+of them form the key is known only from the metadata, and checked when the key is made. Plain
+`Record<string, any>` for an untyped call. */
+export type KeyValues<T> = Entity extends T ? Record<string, any> : { [K in DataKeys<T>]?: T[K] };
+
 /**
 A {@link PropertyPath}, optionally followed by ` desc` or ` asc`, for
 {@link EntityQuery.orderBy}. Plain `string` for an untyped query.

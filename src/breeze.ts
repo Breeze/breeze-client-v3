@@ -268,7 +268,7 @@ export type { NamingConventionConfig } from './metadata/naming-convention.js';
 export type {
   CollectionElement, CollectionPath, FilterOpFor, FilterValueExpression, FilterValueFor, FunctionExpressionPath,
   FilterClause, FilterOpsObject, FilterOpNameFor, NavigationPath, OrderByPath,
-  PropertyPath, PropertyValue, QuantifierOp, SelectPath, WhereObject,
+  KeyValues, PropertyPath, PropertyValue, QuantifierOp, SelectPath, WhereObject,
 } from './query/property-path.js';
 export type { TypedPredicateFactory } from './query/predicate.js';
 export type { QueryOptionsConfig } from './query/query-options.js';

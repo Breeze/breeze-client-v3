@@ -88,6 +88,19 @@ const { entity, fromCache } = await em.fetchEntityByKey('Employee', 1, true);
 With `checkCacheFirst` set to `true`, `fetchEntityByKey` returns the cached entity if
 there is one and only goes to the server if not. `fromCache` tells you which happened.
 
+**A key of more than one property** can be given as an array, in the order of the type's
+`keyProperties` - the order of the key's definition on the server, which a generated entity class
+states in its doc comment, as `Key: orderID, productID`. A wrong order is not an error, just a
+key for another row, so give such a key by name instead, in any order:
+
+```ts
+const detail = em.getEntityByKey(OrderDetail, { orderID: 10248, productID: 11 });
+const key = new EntityKey(OrderDetail, { productID: 11, orderID: 10248 });   // the same key
+```
+
+With an entity class, the names are checked against it; a name that is not part of the key, or a
+key property left out, throws.
+
 ### Adding, attaching and detaching
 
 | Method | |

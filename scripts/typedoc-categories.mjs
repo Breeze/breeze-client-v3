@@ -82,7 +82,7 @@ export const CATEGORIES = {
     'QueriedAs', 'KeyMapping', 'EntityByKeyResult', 'IEntityByKeyResult',
     'ImportResult', 'ITempKeyMap', 'ServerError', 'EntityError', 'HttpResponse',
     // what calls take
-    'EntityTypeArg', 'ExportEntitiesArg', 'InitialValues', 'BreezeFetch',
+    'EntityTypeArg', 'ExportEntitiesArg', 'InitialValues', 'KeyValues', 'BreezeFetch',
     'ValidationFn', 'ValidationContext', 'ValidationMessageContext',
     // what events pass their subscribers
     'EntityChangedEventArgs', 'PropertyChangedEventArgs', 'HasChangesChangedEventArgs',

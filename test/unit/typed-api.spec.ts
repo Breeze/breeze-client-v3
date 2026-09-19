@@ -507,3 +507,45 @@ describe("Typed API - classes for keys and types, and validator contexts", () =>
   });
 
 });
+
+// A key of more than one property, by name rather than by position. A positional array in the
+// wrong order is not an error - it is a valid key for another row.
+describe("Typed API - key values by name", () => {
+
+  test("give the same key as an array in key order, whatever order they are written in", () => {
+    const byName = new EntityKey(OrderDetail, { productID: 11, orderID: 10248 });
+    expect(byName.values).toEqual([10248, 11]);
+    expect(byName.equals(new EntityKey(OrderDetail, [10248, 11]))).toBe(true);
+    expect(new EntityKey(Employee, { employeeID: 7 }).equals(new EntityKey(Employee, 7))).toBe(true);
+  });
+
+  // fetchEntityByKey makes its key the same way; its typing is checked in compilerMustRejectKeyNames.
+  test("find the entity through getEntityByKey", () => {
+    const em = newEntityManager();
+    const detail = em.createEntity(OrderDetail, { orderID: 10248, productID: 11, quantity: 3 }, EntityState.Unchanged);
+    expect(em.getEntityByKey(OrderDetail, { productID: 11, orderID: 10248 })).toBe(detail);
+  });
+
+  test("a name that is not part of the key, or a key property left out, is an error that names the key", () => {
+    const em = newEntityManager();
+    expect(() => em.getEntityByKey(OrderDetail, { orderID: 1, productID: 2, quantity: 3 }))
+      .toThrow(/'quantity' is not part of the key of OrderDetail.*orderID, productID/);
+    expect(() => new EntityKey(OrderDetail, { orderID: 1 }))
+      .toThrow(/no value was given for 'productID'/);
+  });
+
+  test("a single Date key value is still a value, not a set of names", () => {
+    const createdOn = new Date(2024, 0, 1);
+    expect(new EntityKey(metadataStore.getAsEntityType('Comment'), [createdOn, 1]).values[0]).toBe(createdOn);
+  });
+
+});
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function compilerMustRejectKeyNames() {
+  const em = newEntityManager();
+  // @ts-expect-error - a misspelled key property
+  em.getEntityByKey(OrderDetail, { orderId: 10248, productID: 11 });
+  // @ts-expect-error - a navigation property is not a key value
+  em.fetchEntityByKey(OrderDetail, { order: undefined, productID: 11 });
+}

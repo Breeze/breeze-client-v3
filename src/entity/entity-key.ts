@@ -37,14 +37,24 @@ export class EntityKey {
   const empKey = employee1.entityAspect.getKey();
   ```
 
-  Multipart keys are created by passing an array as the 'keyValues' parameter
+  A key of more than one property is clearest given by name, in any order:
   ```ts
-  const empTerrKey = new EntityKey(EmployeeTerritory, [1, 77]);
-  // The order of the values must be the same as that of the type's keyProperties
+  const detailKey = new EntityKey(OrderDetail, { orderID: 10248, productID: 11 });
   ```
+
+  or as an array, in the order of the type's {@link EntityType.keyProperties}: the order of the
+  key's definition on the server - `HasKey(od => new { od.OrderID, od.ProductID })` - which a
+  generated entity class states in its doc comment, as `Key: orderID, productID`.
+  ```ts
+  const sameKey = new EntityKey(OrderDetail, [10248, 11]);
+  ```
+  A wrong order is not an error - it is a valid key for another row - which is why the named form
+  is better for these.
   @param entityType - The {@link EntityType} of the entity, or a class registered for it with
   {@link MetadataStore.registerEntityTypeCtor}.
-  @param keyValues - A single value or an array of values. 
+  @param keyValues - The key's value; for a key of more than one property, an object of values by
+  property name, or an array in key order. A named value that is not part of the key, or a key
+  property with no value, throws.
   */
   constructor(entityType: EntityType | (new () => Entity), keyValues: any) {
     // A class stands for its registered type. Checked by typeof first, so the EntityType that
@@ -69,7 +79,7 @@ export class EntityKey {
     }
 
     if (!Array.isArray(keyValues)) {
-      keyValues = [keyValues];
+      keyValues = isPlainObject(keyValues) ? keyValuesByName(entityType, keyValues) : [keyValues];
     }
 
     this.entityType = entityType;
@@ -168,5 +178,29 @@ export class EntityKey {
 
 }
 EntityKey.prototype._$typeName = "EntityKey";
+
+/** An object literal - not an array, a Date, or any other object a single key value could be. */
+function isPlainObject(value: any): value is Record<string, any> {
+  if (value === null || typeof value !== 'object') return false;
+  const proto = Object.getPrototypeOf(value);
+  return proto === Object.prototype || proto === null;
+}
+
+/** The key values given by name, put in the order of the type's key properties. */
+function keyValuesByName(entityType: EntityType, values: Record<string, any>) {
+  const keyProps = entityType.keyProperties;
+  const names = keyProps.map(kp => kp.name);
+  for (const name of Object.keys(values)) {
+    if (!names.includes(name)) {
+      throw new Error(`'${name}' is not part of the key of ${entityType.name}, which is ${names.join(', ')}.`);
+    }
+  }
+  return keyProps.map(kp => {
+    if (!(kp.name in values)) {
+      throw new Error(`The key of ${entityType.name} is ${names.join(', ')}; no value was given for '${kp.name}'.`);
+    }
+    return values[kp.name];
+  });
+}
 
 

@@ -21,6 +21,7 @@ import { KeyGenerator } from '../entity/key-generator.js';
 import { EntityGroup } from '../entity/entity-group.js';
 import { MappingContext } from '../query/mapping-context.js';
 import { EntityQuery } from '../query/entity-query.js';
+import type { KeyValues } from '../query/property-path.js';
 import { UnattachedChildrenMap } from '../entity/unattached-children-map.js';
 import { serverDefaultAdapters } from '../config/default-adapters.js';
 
@@ -1542,8 +1543,12 @@ export class EntityManager {
   // and that Employee is registered with its MetadataStore.
   const employee = em1.getEntityByKey(Employee, 1);   // Employee | null
   ```
+  A key of more than one property is clearest given by name - see {@link KeyValues}:
+  ```ts
+  const detail = em1.getEntityByKey(OrderDetail, { orderID: 10248, productID: 11 });
+  ```
   */
-  getEntityByKey<T extends Entity>(entityCtor: new () => T, keyValues: any | any[]): T | null;
+  getEntityByKey<T extends Entity>(entityCtor: new () => T, keyValues: KeyValues<T> | KeyValue | any[]): T | null;
 
   /**
   Returns the entity in this manager's cache with this key, or `null` if there is none. It does
@@ -1603,7 +1608,7 @@ export class EntityManager {
     return e || null;
   }
 
-  fetchEntityByKey<T extends Entity>(entityCtor: new () => T, keyValues: any | any[], checkLocalCacheFirst?: boolean): Promise<EntityByKeyResult<T>>;
+  fetchEntityByKey<T extends Entity>(entityCtor: new () => T, keyValues: KeyValues<T> | KeyValue | any[], checkLocalCacheFirst?: boolean): Promise<EntityByKeyResult<T>>;
   fetchEntityByKey(typeName: string, keyValues: any | any[], checkLocalCacheFirst?: boolean): Promise<IEntityByKeyResult>;
   fetchEntityByKey(entityType: EntityType, keyValues: any | any[], checkLocalCacheFirst?: boolean): Promise<IEntityByKeyResult>;
   fetchEntityByKey(entityKey: EntityKey, checkLocalCacheFirst?: boolean): Promise<IEntityByKeyResult>;
@@ -2295,19 +2300,26 @@ function getEntitiesCore(em: EntityManager, entityTypes: EntityType | EntityType
 
 
 function createEntityKey(em: EntityManager, args: any[]) {
-  try {
-    if (args[0] instanceof EntityKey) {
-      return { entityKey: args[0] as EntityKey, remainingArgs: arraySlice(args, 1) };
-    } else if (args.length >= 2) {
-      let entityType = (typeof args[0] === 'string') ? em.metadataStore._getStructuralType(args[0], false)
+  if (args[0] instanceof EntityKey) {
+    return { entityKey: args[0] as EntityKey, remainingArgs: arraySlice(args, 1) };
+  }
+  if (args.length >= 2) {
+    let entityType: any;
+    try {
+      entityType = (typeof args[0] === 'string') ? em.metadataStore._getStructuralType(args[0], false)
         : (typeof args[0] === 'function') ? em.metadataStore._getStructuralType(entityTypeForCtor(args[0]).name, false) : args[0];
+    } catch (e) { /* not a type: the error below says what is expected */ }
+    if (entityType instanceof EntityType) {
+      // Outside the try: an error about the key values - a name that is not part of the key, a key
+      // property with no value - says more than the one below.
       return { entityKey: new EntityKey(entityType, args[1]), remainingArgs: arraySlice(args, 2) };
     }
-  } catch (e) {/* throw below */
-    // throw new Error("Must supply an EntityKey OR an EntityType name or EntityType followed by a key value or an array of key values.");
   }
   throw new Error("Must supply an EntityKey OR an EntityType name or EntityType followed by a key value or an array of key values.");
 }
+
+/** A single key value: what a one-property key's value can be. */
+type KeyValue = string | number | boolean | Date;
 
 function markIsBeingSaved(entities: Entity[], flag: boolean) {
   entities.forEach(function (entity) {
