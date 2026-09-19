@@ -31,7 +31,7 @@ service. Managers are cheap, and each should hold one piece of work.
 
 ```ts
 import { Injectable } from '@angular/core';
-import { EntityManager, MetadataStore } from 'breeze-client';
+import { EntityManager, EntityQuery, MetadataStore } from 'breeze-client';
 import metadata from './metadata.json';                       // generated from the server
 import { registerModelClasses } from './model';                // written by the class generator
 
@@ -39,6 +39,7 @@ import { registerModelClasses } from './model';                // written by the
 export class BreezeService {
   readonly metadataStore = new MetadataStore();
   private readonly master: EntityManager;
+  private referenceData?: object;
 
   constructor() {
     this.metadataStore.importMetadata(metadata);
@@ -46,9 +47,19 @@ export class BreezeService {
     this.master = new EntityManager({ serviceName: '/breeze/Northwind', metadataStore: this.metadataStore });
   }
 
-  /** A new, empty manager with the same settings and the same store. */
+  /** The lookup tables, once - see Reference data, below. */
+  async loadReferenceData() {
+    const resources = ['Categories', 'Regions', 'Territories'];
+    await Promise.all(resources.map(r => this.master.executeQuery(EntityQuery.from(r))));
+    this.referenceData = this.master.exportEntities(undefined, { includeMetadata: false, asString: false });
+    this.master.clear();
+  }
+
+  /** A new manager with the same settings and store, and the reference data in its cache. */
   newManager(): EntityManager {
-    return this.master.createEmptyCopy();
+    const em = this.master.createEmptyCopy();
+    if (this.referenceData) em.importEntities(this.referenceData);
+    return em;
   }
 }
 ```
@@ -62,6 +73,16 @@ provideAppInitializer(() => inject(BreezeService).loadMetadata()),   // Angular 
 ```
 
 where `loadMetadata()` returns `this.metadataStore.fetchMetadata(serviceName)`.
+
+**Reference data** - the small lookup tables many screens need - is loaded once the same way, and
+`newManager()` then gives every screen's manager a copy in its cache, with no query:
+
+```ts
+provideAppInitializer(() => inject(BreezeService).loadReferenceData()),
+```
+
+[Reference data across pages](/guide/entitymanager-and-caching#reference-data-across-pages) explains
+why a copy per manager, rather than one manager kept for the whole session.
 
 ### A manager per screen
 

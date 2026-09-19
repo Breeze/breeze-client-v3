@@ -171,9 +171,10 @@ em.entityChanged.subscribe(({ entityAction, entity }) => {
 
 ## More than one manager
 
-Most applications use one manager. A second one is useful when you want to isolate a unit
-of work. For example, edit a customer in its own manager so that cancelling means throwing
-the manager away, without disturbing changes elsewhere.
+A small application can use one manager. Most do better with one per page, or per unit of work:
+edit a customer in its own manager, and cancelling means throwing the manager away, without
+disturbing changes elsewhere. [Reference data across pages](#reference-data-across-pages) shows how
+to give each one the lookup tables it needs without querying them again.
 
 `createEmptyCopy()` gives you a new manager with the same data service, metadata store,
 query, save and validation options, and no entities:
@@ -195,6 +196,92 @@ const em2 = new EntityManager({
 An entity belongs to one manager at a time. Attaching an entity that is already in
 another manager throws. To move entities between managers, export them from one and import
 them into the other. See [Export and import](/guide/export-import).
+
+## Reference data across pages
+
+Most applications have a set of small reference tables - categories, regions, status codes,
+units of measure - that hardly ever change and that many pages need. Querying them again on every
+page is wasteful. The way to avoid it that works best with Breeze is to **load them once, export
+them, and import the export into each page's manager**:
+
+```ts
+import { EntityManager, EntityQuery } from 'breeze-client';
+
+// Holds no page data: it only loads the reference data, and is the template for page managers.
+const master = new EntityManager({ serviceName: '/breeze/Northwind', metadataStore });
+let referenceData: object | undefined;
+
+/** Once, at startup - and again to refresh. */
+export async function loadReferenceData() {
+  const resources = ['Categories', 'Regions', 'Territories'];   // the reference tables
+  await Promise.all(resources.map(r => master.executeQuery(EntityQuery.from(r))));
+  referenceData = master.exportEntities(undefined, { includeMetadata: false, asString: false });
+  master.clear();
+}
+
+/** For each page: an empty manager with the reference data already in its cache. */
+export function newManager() {
+  const em = master.createEmptyCopy();
+  if (referenceData) em.importEntities(referenceData);
+  return em;
+}
+```
+
+A page then finds its lookups in the cache, and an `Order` it queries navigates to its `Category`
+like any other related entity:
+
+```ts
+const categories = em.getEntities(Category);
+```
+
+- **`includeMetadata: false`**: every page manager shares the master's `MetadataStore`, so the
+  metadata need not travel in the bundle.
+- **`asString: false`** keeps the export as an object, so it is not parsed again on each import. A
+  string does as well - and can go into `sessionStorage` to survive a reload.
+- **The imported entities are `Unchanged`**, so they are not counted by `hasChanges()` and are
+  not saved.
+- **It is cheap.** Importing 3,000 reference rows (about 390 KB) into a new manager takes around
+  10 ms.
+
+### Why not one long-lived manager
+
+The alternative is to keep one manager for the life of the application, and clear everything but
+the reference data from it at each page transition. It avoids the import, and the same `Category`
+object is used on every page. It costs more than that saves:
+
+- **A manager is a unit of work.** With a manager per page, a page's changes stay on that page
+  until they are saved, and leaving the page discards them. A shared manager carries unsaved edits
+  from one page to the next unless every transition remembers to reject them, lets two pages open
+  at once share one set of changes, and keeps an accidental edit to a lookup for the rest of the
+  session.
+- **Dropping a manager is a cleanup that cannot be done wrong.** Everything it holds is released -
+  entities, subscriptions to its events, validation state. Clearing a shared manager by hand means
+  detaching every entity that is not reference data, and unsubscribing everything the old page
+  attached to the manager's events. A subscription left behind keeps the old page's components
+  alive.
+- **There is no "clear everything except" operation.** Entities are detached one by one, at a cost
+  that grows with the cache, where `createEmptyCopy()` costs nothing.
+
+If something needs the same object across pages - a selection, a cache keyed by object - key it on
+the entity's key instead.
+
+### Refreshing it
+
+Call `loadReferenceData()` again. Pages opened after that get the new export. To bring an open
+page up to date as well, import the new export into its manager: an import updates the entities it
+already has and, with the default `PreserveChanges` merge strategy, leaves any the page has changed
+alone. It does not remove a row the server has deleted since; a page that must see that should
+query the table.
+
+### When a table is not reference data
+
+This suits tables with tens or hundreds of rows. A table with many thousands of rows, or one that
+changes during the day, is data rather than a lookup: query it where it is needed, and see
+[Keeping the cache fresh](#keeping-the-cache-fresh) below.
+
+Keep the reference data in each page's manager rather than in a manager of its own. Navigation
+properties connect entities in the same manager, so a `Category` held in another manager is not
+what an `Order` on the page navigates to.
 
 ## Keeping the cache fresh
 

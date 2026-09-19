@@ -22,7 +22,7 @@ metadata JSON means no round trip before the first render:
 
 ```ts
 // breeze.ts
-import { EntityManager, MetadataStore } from 'breeze-client';
+import { EntityManager, EntityQuery, MetadataStore } from 'breeze-client';
 import metadata from './metadata.json';            // generated from the server
 import { registerModelClasses } from './model';     // written by the class generator
 
@@ -30,9 +30,36 @@ export const metadataStore = new MetadataStore();
 metadataStore.importMetadata(metadata);
 registerModelClasses(metadataStore);
 
-export const newManager = () =>
-  new EntityManager({ serviceName: '/breeze/Northwind', metadataStore });
+const master = new EntityManager({ serviceName: '/breeze/Northwind', metadataStore });
+let referenceData: object | undefined;
+
+/** The lookup tables, once, before the first render - see below. */
+export async function loadReferenceData() {
+  const resources = ['Categories', 'Regions', 'Territories'];
+  await Promise.all(resources.map(r => master.executeQuery(EntityQuery.from(r))));
+  referenceData = master.exportEntities(undefined, { includeMetadata: false, asString: false });
+  master.clear();
+}
+
+/** A new manager with the reference data already in its cache. */
+export function newManager() {
+  const em = master.createEmptyCopy();
+  if (referenceData) em.importEntities(referenceData);
+  return em;
+}
 ```
+
+**Reference data** - the small lookup tables many screens need - is loaded once, and every manager
+`newManager()` makes starts with a copy in its cache, so no screen queries it again:
+
+```tsx
+// main.tsx
+await loadReferenceData();
+createRoot(document.getElementById('root')!).render(<App />);
+```
+
+[Reference data across pages](/guide/entitymanager-and-caching#reference-data-across-pages) explains
+why a copy per manager, rather than one manager kept for the whole session.
 
 Pass managers down with context rather than importing one global, so a screen can have its own:
 
@@ -50,8 +77,8 @@ export function useEntityManager(): EntityManager {
 
 /** A screen with its own manager: its changes stay here until saved, and go with it. */
 export function EditScope({ children }: { children: React.ReactNode }) {
-  const parent = useContext(EntityManagerContext);
-  const [em] = useState(() => (parent ? parent.createEmptyCopy() : newManager()));
+  // newManager() rather than a copy of the manager above: it brings the reference data with it.
+  const [em] = useState(newManager);
   return <EntityManagerContext.Provider value={em}>{children}</EntityManagerContext.Provider>;
 }
 ```
