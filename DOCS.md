@@ -194,6 +194,14 @@ short version is that several entry points would move every page under `/api/bre
 would stop the category plugin working. A new public symbol appears in the reference by
 itself, and the plugin warns until it has been placed in a category.
 
+The categories come in two tiers, listed in `scripts/api-tiers.mjs`. The first is the API
+itself - what an application constructs or calls. The second, "Supporting types", is what only
+describes the shape of what the API takes and returns: results, errors, event arguments, config
+objects, typed paths. The sidebar collapses the second tier into one group at the bottom. When
+you place a new symbol, ask whether anyone would come to its page other than by clicking it in a
+signature; if not, it belongs in the second tier. The introduction on the index page is the
+`@packageDocumentation` comment at the top of `scripts/docs-entry.ts`.
+
 Note that TypeScript, and so TypeDoc, reads only the **last** doc comment before a declaration.
 Two stacked `/** ... */` blocks mean the first one's tags are silently discarded — `@hidden
 @internal`, which decides whether a member reaches the published `.d.ts` and the reference, and

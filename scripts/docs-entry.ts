@@ -1,4 +1,20 @@
 /**
+ * Everything `breeze-client` exports, and the optional extensions. Most applications need only
+ * the first sections:
+ *
+ * - **Working with data** - {@link EntityManager}, {@link EntityQuery}, {@link Predicate}, and the
+ *   {@link EntityAspect} every entity carries.
+ * - **Metadata** - {@link MetadataStore} and the types that describe your model.
+ * - **Validation**, **Events**, **Configuration**, and the **Optional extensions**.
+ *
+ * **Supporting types**, collapsed at the bottom of the sidebar, are the shapes those take and
+ * return: query and save results, errors, event arguments, config objects, the typed query paths.
+ * Each is linked from the signatures that use it, so there is rarely a reason to browse them.
+ *
+ * @packageDocumentation
+ */
+
+/*
  * The single entry point TypeDoc reads. Not part of the package: nothing imports it, it is
  * outside `src/` so `tsc -p tsconfig.build.json` does not compile it into `dist/`, and it is
  * absent from the `exports` map in package.json.

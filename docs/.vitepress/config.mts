@@ -1,5 +1,23 @@
 import { defineConfig } from 'vitepress';
 import typedocSidebar from '../api/typedoc-sidebar.json';
+import { SUPPORTING_CATEGORIES, SUPPORTING_GROUP } from '../../scripts/api-tiers.mjs';
+
+/**
+ * The API sidebar in two tiers - see scripts/api-tiers.mjs. The API itself is open; the types that
+ * only describe what it takes and returns are one collapsed group at the bottom, reached mostly by
+ * following a link from a signature. A category neither list names - one TypeDoc made for a new,
+ * uncategorised export - stays in the first tier, where it will be noticed.
+ */
+const apiSidebar = [
+  ...typedocSidebar
+    .filter(group => !SUPPORTING_CATEGORIES.includes(group.text))
+    .map(group => ({ ...group, collapsed: false })),
+  {
+    text: SUPPORTING_GROUP,
+    collapsed: true,
+    items: typedocSidebar.filter(group => SUPPORTING_CATEGORIES.includes(group.text)),
+  },
+];
 
 /**
  * The single sidebar, shared by /guide/, /query/, /metadata/ and /server/.
@@ -141,7 +159,7 @@ export default defineConfig({
       '/query/': docsSidebar,
       '/metadata/': docsSidebar,
       '/server/': docsSidebar,
-      '/api/': typedocSidebar,
+      '/api/': apiSidebar,
     },
 
     socialLinks: [

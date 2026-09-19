@@ -5,6 +5,8 @@
  *
  * Run via `npm run docs:api`; `npm run docs:dev` and `docs:build` run it first.
  */
+import { PRIMARY_CATEGORIES, SUPPORTING_CATEGORIES } from './scripts/api-tiers.mjs';
+
 /** @type {Partial<import('typedoc').TypeDocOptions>} */
 export default {
   // Not src/breeze.ts: scripts/docs-entry.ts re-exports it plus the optional mixins, which
@@ -40,17 +42,10 @@ export default {
   // Classes/Interfaces/... split rather than repeating them inside each one.
   categorizeByGroup: false,
   navigation: { includeCategories: true, includeGroups: false },
+  // The API itself first, then the supporting types - see scripts/api-tiers.mjs.
   categoryOrder: [
-    'Working with data',
-    'Metadata',
-    'Validation',
-    'Events',
-    'Configuration',
-    'Typed query paths',
-    'Constructor config objects',
-    'Adapters and extension points',
-    'Optional extensions',
-    '2.x compatibility',
+    ...PRIMARY_CATEGORIES,
+    ...SUPPORTING_CATEGORIES,
     '*',   // anything the plugin warned about, so a new export is visible rather than lost
   ],
 
@@ -67,5 +62,5 @@ export default {
     '@event',
     '@property',
   ],
-  modifierTags: ['@hidden', '@internal', '@readonly', '@virtual', '@override'],
+  modifierTags: ['@hidden', '@internal', '@readonly', '@virtual', '@override', '@packageDocumentation'],
 };
