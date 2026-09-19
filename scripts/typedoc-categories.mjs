@@ -44,6 +44,9 @@ export const CATEGORIES = {
     'EntityManager', 'EntityQuery', 'Predicate', 'EntityAspect', 'ComplexAspect', 'EntityKey',
     'EntityState', 'FetchStrategy', 'MergeStrategy', 'FilterQueryOp',
     'isConcurrencyError', 'ProblemTypes',
+    // Shapes, but the ones an application reads most: every entity and collection it touches, and
+    // what a query or save resolves or rejects with.
+    'Entity', 'RelationArray', 'QueryResult', 'SaveResult', 'SaveError',
   ],
   'Metadata': [
     'MetadataStore', 'EntityType', 'ComplexType', 'DataProperty', 'NavigationProperty',
@@ -73,11 +76,11 @@ export const CATEGORIES = {
   // ---- supporting types: what the API takes and returns ---------------------------------------
   'Results and arguments': [
     // what an entity, and the objects and collections in it, are
-    'Entity', 'ComplexObject', 'StructuralObject', 'ComplexArray', 'RelationArray', 'BreezeEnum',
+    'ComplexObject', 'StructuralObject', 'ComplexArray', 'BreezeEnum',
     'StructuralType', 'EntityProperty',
     // what calls return, and reject with
-    'QueryResult', 'QueriedAs', 'SaveResult', 'KeyMapping', 'EntityByKeyResult', 'IEntityByKeyResult',
-    'ImportResult', 'ITempKeyMap', 'ServerError', 'SaveError', 'EntityError', 'HttpResponse',
+    'QueriedAs', 'KeyMapping', 'EntityByKeyResult', 'IEntityByKeyResult',
+    'ImportResult', 'ITempKeyMap', 'ServerError', 'EntityError', 'HttpResponse',
     // what calls take
     'EntityTypeArg', 'ExportEntitiesArg', 'InitialValues', 'BreezeFetch',
     'ValidationFn', 'ValidationContext', 'ValidationMessageContext',
