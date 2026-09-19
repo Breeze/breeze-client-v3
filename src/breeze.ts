@@ -10,7 +10,7 @@ import type { DataServiceConfig, JsonResultsAdapterConfig, NodeContext, NodeMeta
 import { DataType } from './metadata/data-type.js';
 import { EntityAction } from './entity/entity-action.js';
 import { EntityAspect, ComplexAspect } from './entity/entity-aspect.js';
-import type { Entity, ComplexObject, StructuralObject, PropertyChangedEventArgs, QueriedAs } from './entity/entity-aspect.js';
+import type { Entity, ComplexObject, StructuralObject, PropertyChangedEventArgs, QueriedAs, EntityAspectOf, ComplexAspectOf } from './entity/entity-aspect.js';
 import { EntityKey } from './entity/entity-key.js';
 import { EntityManager, ProblemTypes, isConcurrencyError } from './manager/entity-manager.js';
 import type { EntityManagerConfig, EntityError, EntityChangedEventArgs, SaveContext, SaveBundle, HttpResponse, KeyMapping, ServerError, SaveResult, QueryResult, ValidationErrorsChangedEventArgs, HasChangesChangedEventArgs } from './manager/entity-manager.js';
@@ -137,6 +137,8 @@ export type {
   NodeMeta,
   PropertyChangedEventArgs,
   QueriedAs,
+  EntityAspectOf,
+  ComplexAspectOf,
   QueryResult,
   SaveBundle,
   SaveContext,
@@ -268,7 +270,7 @@ export type { NamingConventionConfig } from './metadata/naming-convention.js';
 export type {
   CollectionElement, CollectionPath, FilterOpFor, FilterValueExpression, FilterValueFor, FunctionExpressionPath,
   FilterClause, FilterOpsObject, FilterOpNameFor, NavigationPath, OrderByPath,
-  KeyValues, PropertyPath, PropertyValue, QuantifierOp, SelectPath, WhereObject,
+  KeyValues, OriginalValues, PropertyPath, PropertyValue, QuantifierOp, SelectPath, WhereObject,
 } from './query/property-path.js';
 export type { TypedPredicateFactory } from './query/predicate.js';
 export type { QueryOptionsConfig } from './query/query-options.js';

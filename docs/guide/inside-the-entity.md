@@ -180,13 +180,32 @@ from.
 
 When you first change a property of an `Unchanged` or `Modified` entity, Breeze records
 the value it had before, in `entityAspect.originalValues`. That object is keyed by
-property name. It is empty while the entity is `Unchanged`, and it contains only the
-properties that have changed since the last query or save. Later changes to the same
-property don't overwrite the recorded value.
+property name. It is empty while the entity is `Unchanged`, and it contains the properties
+edited since the last query or save - including one set back to where it started. Later
+changes to the same property don't overwrite the recorded value.
+
+Two methods answer the usual questions without reading it directly:
 
 ```ts
-const changed = Object.keys(order.entityAspect.originalValues);
-// e.g. ['freight', 'shipName']
+order.freight = 99;
+
+order.entityAspect.getOriginalValue('freight');    // what it was before the edit
+order.entityAspect.getOriginalValue('shipName');   // not edited: its current value
+order.entityAspect.getChangedProperties();         // ['freight'] - what differs now
+```
+
+`getChangedProperties()` compares values, so a property set back to its original value is not
+listed, and dates are compared by time. A complex property's changes are listed as paths, such
+as `'location.city'`, which `getOriginalValue` also takes.
+
+**With a generated entity class they are typed.** Its `entityAspect` is an
+[`EntityAspectOf`](/api/interfaces/EntityAspectOf) the class, so property names are checked
+and values have their properties' types:
+
+```ts
+const before: number = order.entityAspect.getOriginalValue('freight');
+order.entityAspect.originalValues.freight;           // number | undefined
+order.entityAspect.getOriginalValue('frieght');      // error: not a property of Order
 ```
 
 `Added` entities don't record original values, since they have nothing to go back to.

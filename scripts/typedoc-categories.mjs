@@ -83,6 +83,7 @@ export const CATEGORIES = {
     'ImportResult', 'ITempKeyMap', 'ServerError', 'EntityError', 'HttpResponse',
     // what calls take
     'EntityTypeArg', 'ExportEntitiesArg', 'InitialValues', 'KeyValues', 'BreezeFetch',
+    'EntityAspectOf', 'ComplexAspectOf', 'OriginalValues',
     'ValidationFn', 'ValidationContext', 'ValidationMessageContext',
     // what events pass their subscribers
     'EntityChangedEventArgs', 'PropertyChangedEventArgs', 'HasChangesChangedEventArgs',

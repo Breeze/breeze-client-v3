@@ -11,6 +11,8 @@ import { EntityGroup } from './entity-group.js';
 import { EntityManager, QueryResult, QueryErrorCallback, QuerySuccessCallback, ValidationErrorsChangedEventArgs } from '../manager/entity-manager.js';
 import { Validator, ValidationError } from '../validation/validate.js';
 import { EntityQuery } from '../query/entity-query.js';
+import type { DataKeys, OriginalValues } from '../query/property-path.js';
+import { DataType } from '../metadata/data-type.js';
 
 /** An instance of an {@link EntityType}: an object with a key, tracked by an {@link EntityManager}
 once attached. Breeze gives every entity these members, whether its class declares them or not. */
@@ -768,6 +770,46 @@ function (validationChangeArgs) {
   }
 
   /**
+  The value a property had before the entity's pending changes: its original value if it has been
+  edited since the entity was last saved or accepted, and its current value if not. So it answers
+  "what was this?" without first asking whether it changed.
+  ```ts
+  order.freight = 99;
+  order.entityAspect.getOriginalValue('freight');    // the freight before the edit
+  order.entityAspect.getOriginalValue('shipCity');   // unchanged, so its current value
+  ```
+  Also takes a path into a complex property, such as `'location.city'`.
+  @param propertyName - A data property of this entity, or a path to one in a complex property.
+  */
+  getOriginalValue(propertyName: string): any {
+    let target: any = this.entity;
+    let name = propertyName;
+    const dot = name.lastIndexOf('.');
+    if (dot >= 0) {
+      target = this.getPropertyValue(name.slice(0, dot));
+      name = name.slice(dot + 1);
+    }
+    const originals = (target.entityAspect || target.complexAspect).originalValues;
+    return Object.prototype.hasOwnProperty.call(originals, name) ? originals[name] : target.getProperty(name);
+  }
+
+  /**
+  The data properties whose value now differs from the one the entity was last saved or accepted
+  with - as paths, such as `'location.city'`, for those of a complex property, and by name for an
+  array property whose contents changed. A property edited and then set back is not included,
+  although it stays in {@link EntityAspect.originalValues}. Dates are compared by time.
+  ```ts
+  order.freight = 99;
+  order.shipCity = order.shipCity;              // set, but to the same value
+  order.entityAspect.getChangedProperties();    // ['freight']
+  ```
+  Always empty for an `Added` entity, which has no original values to differ from.
+  */
+  getChangedProperties(): string[] {
+    return this.entity ? changedPropertyPaths(this.entity, this.originalValues, '') : [];
+  }
+
+  /**
   Adds a validation error.
 
   An error added here stops the entity being saved - `validateEntity` returns false and
@@ -1189,6 +1231,37 @@ function runAsyncCheck(aspect: EntityAspect, check: AsyncCheck, round: number): 
   return run.done;
 }
 
+/** The paths of target's data properties whose value differs from its original one. */
+function changedPropertyPaths(target: any, originalValues: Record<string, any>, prefix: string): string[] {
+  const stype = target.entityType || target.complexType;
+  const paths: string[] = [];
+  stype.dataProperties.forEach((dp: DataProperty) => {
+    const path = prefix + dp.name;
+    if (dp.isComplexProperty) {
+      const value = target.getProperty(dp.name);
+      if (dp.isScalar) {
+        if (value) paths.push(...changedPropertyPaths(value, value.complexAspect.originalValues, path + '.'));
+      } else if (arrayContentsChanged(value) ||
+        (value || []).some((co: any) => changedPropertyPaths(co, co.complexAspect.originalValues, '').length > 0)) {
+        paths.push(path);
+      }
+    } else if (!dp.isScalar) {
+      if (arrayContentsChanged(target.getProperty(dp.name))) paths.push(path);
+    } else if (Object.prototype.hasOwnProperty.call(originalValues, dp.name)) {
+      const comparable = DataType.getComparableFn(dp.dataType as DataType);
+      if (comparable(originalValues[dp.name]) !== comparable(target.getProperty(dp.name))) paths.push(path);
+    }
+  });
+  return paths;
+}
+
+/** Whether an array property's contents differ from those it had before its entity was changed. */
+function arrayContentsChanged(arr: any): boolean {
+  const original = observableArray.originalContents(arr);
+  if (!original) return false;
+  return original.length !== arr.length || original.some((item: any, ix: number) => item !== arr[ix]);
+}
+
 // coIndex is only used where target is a complex object that is part of an array of complex objects
 // in which case ctIndex is the index of the target within the array.
 function validateTarget(target: any, coIndex?: number) {
@@ -1342,3 +1415,40 @@ function clearOriginalValues(target: any) {
 }
 
 
+
+/**
+An {@link EntityAspect} that knows its entity's class, `T`: the type a generated entity class gives
+its `entityAspect`, as `EntityAspectOf<this>`. It is the same object; only the types are narrower -
+property names are checked, and values have their properties' types:
+```ts
+order.freight = 99;
+order.entityAspect.originalValues.freight;          // number | undefined
+order.entityAspect.getOriginalValue('freight');     // number
+order.entityAspect.getOriginalValue('frieght');     // error: not a property of Order
+order.entityAspect.getChangedProperties();          // ('freight' | 'shipCity' | …)[]
+```
+An interface extending the class, rather than a type parameter on it, so that it is an
+`EntityAspect` by declaration: a generic `EntityAspect<T>` whose members read `keyof T` would not be
+one, and every generated class needs its aspect to be. And typed only by `T`'s own data properties:
+to reach through a navigation property, the types would have to ask whether the entity at the other
+end is an `Entity` - which asks about its aspect, and so about this one.
+*/
+export interface EntityAspectOf<T> extends EntityAspect {
+  /** {@link EntityAspect.originalValues}, keyed and typed by `T`'s data properties. */
+  originalValues: OriginalValues<T>;
+  /** {@link EntityAspect.getOriginalValue}, with the name checked against `T` and the value typed. */
+  getOriginalValue<K extends DataKeys<T>>(propertyName: K): T[K];
+  /** {@link EntityAspect.getOriginalValue} for a path into a complex property, such as `'location.city'`: untyped. */
+  getOriginalValue(propertyPath: `${string}.${string}`): any;
+  /** {@link EntityAspect.getChangedProperties}: `T`'s data properties, and paths into its complex ones. */
+  getChangedProperties(): (DataKeys<T> | `${string}.${string}`)[];
+}
+
+/**
+A {@link ComplexAspect} that knows its complex object's class, `T`: the type a generated complex type
+class gives its `complexAspect`, as `ComplexAspectOf<this>`. See {@link EntityAspectOf}.
+*/
+export interface ComplexAspectOf<T> extends ComplexAspect {
+  /** {@link ComplexAspect.originalValues}, keyed and typed by `T`'s data properties. */
+  originalValues: OriginalValues<T>;
+}

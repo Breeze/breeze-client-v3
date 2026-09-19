@@ -321,4 +321,6 @@ export const observableArray = {
   acceptChanges: (arr: any) => (arr._obs as ObservableArrayState).ops.acceptChanges?.(arr),
   /** True once the array has been changed away from what the server sent. */
   hasOriginalValues: (arr: any) => !!(arr._obs as ObservableArrayState)?.origValues,
+  /** The contents the array had before its entity was changed, or null if it has not been. */
+  originalContents: (arr: any): any[] | null => (arr?._obs as ObservableArrayState | undefined)?.origValues ?? null,
 };

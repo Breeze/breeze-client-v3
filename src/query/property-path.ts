@@ -49,7 +49,8 @@ type IsWalkable<V> =
     ? (NonNullable<V> extends Entity | ComplexObject ? true : false)
     : false;
 
-type DataKeys<T> = { [K in Own<T>]-?: NonNullable<T[K]> extends Scalar ? K : never }[Own<T>];
+/** @hidden The data properties of `T`: those holding a value, rather than an entity or collection. */
+export type DataKeys<T> = { [K in Own<T>]-?: NonNullable<T[K]> extends Scalar ? K : never }[Own<T>];
 type WalkKeys<T> = { [K in Own<T>]-?: IsWalkable<T[K]> extends true ? K : never }[Own<T>];
 type CollectionKeys<T> = { [K in Own<T>]-?: [ElementOf<T[K]>] extends [never] ? never : K }[Own<T>];
 
@@ -129,6 +130,13 @@ export type NavigationPath<T> = Entity extends T ? string : RawNavigationPath<T>
 reached through to-one navigations and complex properties (`'customer.companyName'`). Plain
 `string` for an untyped query. */
 export type SelectPath<T> = Entity extends T ? string : RawSelectPath<T>;
+
+/** The original values an {@link EntityAspect} or {@link ComplexAspect} keeps: for each data property
+edited since the entity was last saved or accepted, its value before the first edit. Typed from the
+entity class - `{ freight?: number; shipCity?: string; … }` - for an {@link EntityAspectOf} or
+{@link ComplexAspectOf}. Only the class's own data properties: reaching another entity from here
+ would make an entity class's type depend on itself. */
+export type OriginalValues<T> = { [K in DataKeys<T>]?: T[K] };
 
 /** The key of an entity of type `T` given by property name - `{ orderID: 10248, productID: 11 }` -
 in place of an array whose order must match the type's key. Accepted by
