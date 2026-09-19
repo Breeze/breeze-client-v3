@@ -67,6 +67,9 @@ em.setProperties({ validationOptions: valOpts });
 
 `valOpts.setAsDefault()` makes the same settings the default for managers created later.
 
+[Async validators](#async-validators) run only on save, and when you ask - not on attach, property
+change or query.
+
 ### What automatic validation costs
 
 Automatic validation is the largest single cost in Breeze's change tracking:
@@ -321,6 +324,62 @@ const nonZeroId = new Validator(
 
 detailType.getProperty('orderID')!.validators.push(nonZeroId);
 ```
+
+## Async validators
+
+Some rules only a server can answer: is this user name still free, is this customer over their
+credit limit. Write the validator's function as `async`, and Breeze waits for its answer where it
+can:
+
+```ts
+const uniqueName = new Validator('uniqueName', async (name: string | null, ctx) => {
+  if (!name) return true;
+  const res = await fetch(`/api/customers/name-taken?name=${encodeURIComponent(name)}`,
+    { signal: ctx.signal });
+  return !(await res.json());
+}, { messageTemplate: "'%value%' is already taken" });
+
+em.metadataStore.getAsEntityType(Customer).getProperty('companyName')!.validators.push(uniqueName);
+```
+
+**Where it runs.** An async validator runs only where something can wait for its answer:
+
+| | |
+|---|---|
+| `saveChanges()` | yes - the save waits for it, and does not send an entity that fails |
+| `validateEntityAsync()`, `validatePropertyAsync()` | yes - they resolve when every answer is in |
+| a property change, attach, query | no |
+| `validateEntity()`, `validateProperty()` | no - they count its last answer, if it has one |
+
+It does not run as the user types, where every keystroke would be a request. **Editing the property
+clears its error**, as it clears an error from the server: the answer was about a value the entity no
+longer has. The next save, or `validateEntityAsync`, asks again.
+
+```ts
+if (!await customer.entityAspect.validateEntityAsync()) {
+  showErrors(customer.entityAspect.getValidationErrors());
+}
+```
+
+`entityAspect.isValidating` is true while a check is running.
+
+**Things Breeze takes care of:**
+
+- **Overlapping runs.** Validating an entity again while a check is still out replaces that check:
+  its `ctx.signal` is aborted and its answer is ignored, and both calls resolve with the newer one.
+  Pass the signal to `fetch` so the abandoned request is cancelled too.
+- **An edit during a check.** If the value changes while it is being checked, the check runs again
+  on the new value, so the answer that sticks is about the value that is there.
+- **Detaching.** Checks still out for a detached entity are aborted and their answers dropped.
+- **The save.** While a save waits for its checks, its entities count as being saved: a second
+  `saveChanges` is refused unless `allowConcurrentSaves` is set.
+
+**Saying it is async.** Breeze has to know before calling a validator whether it returns a promise,
+to keep it out of the places that cannot wait. An `async` function tells it. A function that returns
+a promise without being declared `async` needs `{ isAsync: true }` in its context - otherwise Breeze
+finds out the first time it runs one, warns, and treats it as async from then on.
+
+A rejected promise, or an exception, fails the check, as a validator that throws does.
 
 ## Registering custom validators
 

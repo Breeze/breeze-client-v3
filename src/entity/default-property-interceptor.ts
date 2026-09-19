@@ -516,10 +516,11 @@ function updateStateAndValidate(context: IContext) {
     entityAspect.setModified();
   }
 
-  // Whatever the server said about this property was about the value it had before this edit.
-  // Independent of validateOnPropertyChange: turning that off stops Breeze checking, but the old
-  // verdict is stale either way. A load returns early above, so only the user's edits do this.
-  entityAspect._clearServerErrors(context.propertyName);
+  // Whatever the server, or an async validator, said about this property was about the value it had
+  // before this edit. Independent of validateOnPropertyChange: turning that off stops Breeze
+  // checking, but the old verdict is stale either way. A load returns early above, so only the
+  // user's edits do this.
+  entityAspect._clearStaleErrors(context.propertyName);
 
   if (entityManager.validationOptions.validateOnPropertyChange) {
     // entityAspect.entity is NOT the same as parent in the code below. It's use is deliberate.

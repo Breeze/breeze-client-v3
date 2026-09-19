@@ -35,14 +35,31 @@ export interface ValidationMessageContext extends ValidationContext {
   messageTemplate?: string;
   /** A message to use instead of `messageTemplate`: a string, or a function that returns one from the context. */
   message?: string | ((vc: ValidationContext) => string);
+  /** Marks the validator as async when its function returns a promise without being declared
+  `async`, which Breeze cannot see. An `async` function needs no marking. See {@link Validator.isAsync}. */
+  isAsync?: boolean;
+  /** For an async validator, aborted when its result will no longer be used - another run of the
+  same check started, or the entity was detached. Pass it on to `fetch` to cancel the request. */
+  signal?: AbortSignal;
   [key:string]: any;
 }
 
 /** Function called to validate an entity or property. Breeze always passes a context: the
 validator's own, with its settings, extended for each call with the entity and property being
-validated - so a validator reads its settings from it, as `ctx.min`. */
+validated - so a validator reads its settings from it, as `ctx.min`.
+
+It may return a promise, for a check that has to ask a server - see {@link Validator.isAsync}. */
 export interface ValidationFn {
-    (value: any, context: ValidationMessageContext): boolean;
+    (value: any, context: ValidationMessageContext): boolean | Promise<boolean>;
+}
+
+/** An `async` function - which Breeze can recognize before calling it, unlike one that merely returns a promise. */
+function isAsyncFunction(fn: Function) {
+  return Object.prototype.toString.call(fn) === '[object AsyncFunction]';
+}
+
+function isThenable(value: any): value is PromiseLike<any> {
+  return value != null && typeof value.then === 'function';
 }
 
 // add common props and methods for every validator 'context' here.
@@ -194,6 +211,15 @@ export class Validator {
   /** The context of the most recent call to {@link Validator.validate}: `context` extended with any additional context passed to it. {@link Validator.getMessage} reads it. After a validation that passed, it is `context` again. __Read Only__ */
   declare currentContext: ValidationMessageContext;
   declare private _baseContext: ValidationMessageContext;
+  /**
+  Whether this validator's function returns a promise: an `async` function, or one created with
+  `isAsync: true` in its context. Breeze runs an async validator only when it can wait for the
+  answer - when an entity is saved, and from {@link EntityAspect.validateEntityAsync} and
+  {@link EntityAspect.validatePropertyAsync}. It does not run on a property change, an attach or
+  a query, where nothing could wait for it; editing the property clears its error instead, as it
+  clears the server's. __Read Only__
+  */
+  declare isAsync: boolean;
 
   /** Creates a validator. See the class description for examples.
   @param name - The validator's name. Also the default `key` of the errors it produces.
@@ -211,6 +237,7 @@ export class Validator {
     this.name = name;
     this.valFn = valFn;
     this.context = context;
+    this.isAsync = isAsyncFunction(valFn) || !!context.isAsync;
   }
 
   /**
@@ -236,6 +263,9 @@ export class Validator {
   @returns {ValidationError|null} A ValidationError if validation fails, null otherwise
   */
   validate(value: any, additionalContext?: ValidationMessageContext) {
+    if (this.isAsync) {
+      throw new Error("'" + this.name + "' is an async validator: call validateAsync(), which returns a promise, rather than validate().");
+    }
     let currentContext: ValidationMessageContext; // { value?: Object };
     if (additionalContext) {
       currentContext = core.extend(Object.create(this.context), additionalContext) as ValidationMessageContext;
@@ -245,7 +275,18 @@ export class Validator {
     this.currentContext = currentContext;
 
     try {
-      if (this.valFn(value, currentContext)) {
+      const result = this.valFn(value, currentContext);
+      if (isThenable(result)) {
+        // A promise is truthy, so this validator would have passed every value. It is async
+        // without saying so: treat it as async from now on, and ignore this answer.
+        this.isAsync = true;
+        result.then(undefined, () => { /* ignored, as the result is */ });
+        console.warn("Breeze: validator '" + this.name + "' returned a promise, so it is async. Declare its function " +
+          "'async', or pass { isAsync: true } in its context, so that it is only run where the answer can be awaited.");
+        this.currentContext = this.context;
+        return null;
+      }
+      if (result) {
         // Drop the per-call context on success. It names the entity being validated, and a
         // Validator lives on a DataProperty, so on an EntityType, so on the MetadataStore -
         // the longest-lived object there is, and shared between managers. Holding it pins that
@@ -256,13 +297,37 @@ export class Validator {
         return null;
       } else {
         currentContext.value = value;
-        return new ValidationError(this, currentContext, this.getMessage());
+        return new ValidationError(this, currentContext, this._formatMessage(currentContext));
       }
     } catch (e) {
       return new ValidationError(this, currentContext, "Exception occured while executing this validator: " + this.name);
     }
   }
 
+
+  /**
+  Runs this validator, sync or async, and resolves with a {@link ValidationError} if the value is
+  invalid, or null. Each call has a context of its own, so calls may overlap; unlike
+  {@link Validator.validate}, it does not set {@link Validator.currentContext}.
+  ```ts
+  const ve = await Validator.maxLength({ maxLength: 5 }).validateAsync("adasdfasdf");
+  ```
+  A function that throws or rejects gives an error, as it does in `validate`.
+  @param value - The value to validate.
+  @param additionalContext - Anything else the validator can use, such as the entity and property.
+  */
+  async validateAsync(value: any, additionalContext?: ValidationMessageContext): Promise<ValidationError | null> {
+    const context = (additionalContext
+      ? core.extend(Object.create(this.context), additionalContext)
+      : Object.create(this.context)) as ValidationMessageContext;
+    try {
+      if (await this.valFn(value, context)) return null;
+      context.value = value;
+      return new ValidationError(this, context, this._formatMessage(context));
+    } catch (e) {
+      return new ValidationError(this, context, "Exception occured while executing this validator: " + this.name);
+    }
+  }
 
   // context.value is not avail unless validate was called first.
 
@@ -275,8 +340,12 @@ export class Validator {
   @returns {String}
   */
   getMessage() {
+    return this._formatMessage(this.currentContext);
+  }
+
+  /** @hidden @internal */
+  _formatMessage(context: ValidationMessageContext) {
     try {
-      let context = this.currentContext;
       let message = context.message;
       if (message) {
         if (typeof (message) === "function") {

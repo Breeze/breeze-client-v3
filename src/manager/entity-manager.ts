@@ -12,7 +12,8 @@ import { EntityAction  } from '../entity/entity-action.js';
 import { EntityState } from '../entity/entity-state.js';
 import { DataService } from '../metadata/data-service.js';
 import { DataType } from '../metadata/data-type.js';
-import { ValidationError } from '../validation/validate.js';
+import { ValidationError, Validator } from '../validation/validate.js';
+import type { StructuralType } from '../metadata/entity-metadata.js';
 import { ValidationOptions } from '../validation/validation-options.js';
 import { QueryOptions, MergeStrategy, FetchStrategy } from '../query/query-options.js';
 import { SaveOptions } from './save-options.js';
@@ -1363,12 +1364,33 @@ export class EntityManager {
 
     clearServerErrors(entitiesToSave);
 
-    let valError = this.saveChangesValidateOnClient(entitiesToSave);
-    if (valError) {
+    const rejectInvalid = (valError: any) => {
       if (errorCallback) errorCallback(valError);
       return Promise.reject(valError);
+    };
+
+    // With an async validator, the save waits for it. The entities count as being saved from here,
+    // so a second saveChanges while this one waits is refused, as it would be once this is sent.
+    // Without one, nothing here waits, exactly as before.
+    if (this.validationOptions.validateOnSave && hasAsyncValidators(entitiesToSave)) {
+      markIsBeingSaved(entitiesToSave, true);
+      return this.saveChangesValidateOnClientAsync(entitiesToSave).then(valError => {
+        markIsBeingSaved(entitiesToSave, false);
+        return valError ? rejectInvalid(valError) : this._sendSave(entitiesToSave, saveOptions!, callback, errorCallback);
+      }, err => {
+        markIsBeingSaved(entitiesToSave, false);
+        return rejectInvalid(err);
+      });
     }
 
+    let valError = this.saveChangesValidateOnClient(entitiesToSave);
+    if (valError) return rejectInvalid(valError);
+    return this._sendSave(entitiesToSave, saveOptions, callback, errorCallback);
+  }
+
+  /** The part of saveChanges after validation: send the entities, and merge what comes back.
+  @hidden @internal */
+  _sendSave(entitiesToSave: Entity[], saveOptions: SaveOptions, callback?: Function, errorCallback?: Function): Promise<SaveResult> {
     let dataService = DataService.resolve([saveOptions.dataService, this.dataService]);
     let saveContext: SaveContext = {
       entityManager: this,
@@ -1486,6 +1508,24 @@ export class EntityManager {
       }
     }
     return null;
+  }
+
+  /**
+  The check {@link EntityManager.saveChangesValidateOnClient} makes, with async validators run too:
+  each entity is validated with {@link EntityAspect.validateEntityAsync}. `saveChanges` uses this
+  in its place when any of the entities it saves has an async validator.
+  @param entitiesToSave - The entities to validate.
+  @returns A promise of the error `saveChanges` would reject with, or null.
+  */
+  async saveChangesValidateOnClientAsync(entitiesToSave: Entity[]): Promise<Error | null> {
+    if (!this.validationOptions.validateOnSave) return null;
+    const valid = await Promise.all(entitiesToSave.map(entity =>
+      entity.entityAspect.entityState.isDeleted() || entity.entityAspect.validateEntityAsync()));
+    const failedEntities = entitiesToSave.filter((entity, ix) => !valid[ix]);
+    if (failedEntities.length === 0) return null;
+    const valError = new Error("Client side validation errors encountered - see the entityErrors collection on this object for more detail");
+    (valError as any).entityErrors = createEntityErrors(failedEntities);
+    return valError;
   }
 
   /** @hidden @internal */
@@ -2044,6 +2084,21 @@ BreezeEvent.bubbleEvent(EntityManager.prototype);
 // Installed by this module, which every bundle that talks to a server contains, rather than by
 // an import for effect, which a bundler may drop. See "sideEffects" in CHANGES-DEV.md.
 setDefaultAdapters(serverDefaultAdapters);
+
+/** Whether any of these entities has an async validator, on its type, a property, or a complex type
+it holds. Looked up once per type: validators can be added at any time, so it is not cached. */
+function hasAsyncValidators(entities: Entity[]) {
+  const seen = new Set<StructuralType>();
+  const typeHasAsync = (stype: StructuralType): boolean => {
+    if (seen.has(stype)) return false;
+    seen.add(stype);
+    if (stype.getAllValidators().some(v => v.isAsync)) return true;
+    return stype.getProperties().some((p: any) =>
+      p.getAllValidators().some((v: Validator) => v.isAsync) ||
+      (p.isComplexProperty && typeHasAsync(p.dataType as StructuralType)));
+  };
+  return entities.some(e => !e.entityAspect.entityState.isDeleted() && typeHasAsync(e.entityType));
+}
 
 function clearServerErrors(entities: Entity[]) {
   entities.forEach(function (entity) {

@@ -204,6 +204,18 @@ function (validationChangeArgs) {
   _validationErrors: { [index: string]: ValidationError };
   /** @hidden @internal */
   _pendingValidationResult: any;
+  /**
+  The async validator runs in flight, by the key of the error each would add or remove: one run
+  per check, so that a newer run replaces an older one rather than racing it. Created on first use.
+  @hidden @internal
+  */
+  declare _asyncChecks?: Map<string, AsyncCheckRun>;
+
+  /** Whether an async validator is still running for this entity - see
+  {@link EntityAspect.validateEntityAsync}. __Read Only__ */
+  get isValidating(): boolean {
+    return !!this._asyncChecks && this._asyncChecks.size > 0;
+  }
   /** @hidden @internal */
   _entityKey: EntityKey;
   /** @hidden @internal */
@@ -674,6 +686,43 @@ function (validationChangeArgs) {
     return this._validateProperty(value, context) && !this._hasBlockingErrors(context.propertyName);
   }
 
+  /**
+  Validates the entity as {@link EntityAspect.validateEntity} does, and also runs its async
+  validators - see {@link Validator.isAsync} - resolving when they have all answered. This is the
+  check `saveChanges` makes when any of the entities it saves has an async validator.
+  ```ts
+  if (!await order.entityAspect.validateEntityAsync()) {
+    const errors = order.entityAspect.getValidationErrors();
+  }
+  ```
+  While it runs, {@link EntityAspect.isValidating} is true. If a property changes while one of its
+  checks runs, the check is run again on the new value.
+  @returns Whether the entity can be saved, as {@link EntityAspect.validateEntity} answers, once the
+  async validators' answers are in.
+  */
+  async validateEntityAsync(): Promise<boolean> {
+    this.validateEntity();
+    await runAsyncChecks(this, collectAsyncChecks(this.entity));
+    return !this._hasBlockingErrors();
+  }
+
+  /**
+  Validates one property as {@link EntityAspect.validateProperty} does, and also runs its async
+  validators, resolving when they have all answered.
+  ```ts
+  const isOk = await customer.entityAspect.validatePropertyAsync("companyName");
+  ```
+  @param property - The property, by {@link DataProperty}, {@link NavigationProperty}, name, or path
+  to a property of a complex object.
+  @param context - Additional context for each {@link Validator}.
+  @returns Whether the property can be saved, once the async validators' answers are in.
+  */
+  async validatePropertyAsync(property: EntityProperty | string, context?: any): Promise<boolean> {
+    this.validateProperty(property as any, context && { ...context });
+    await runAsyncChecks(this, collectAsyncPropertyChecks(this, property, context));
+    return !this._hasBlockingErrors(typeof property === "string" ? property : property.name);
+  }
+
   getValidationErrors(): ValidationError[];
   getValidationErrors(property: string): ValidationError[];
   getValidationErrors(property: EntityProperty): ValidationError[];
@@ -840,7 +889,10 @@ function (validationChangeArgs) {
     this.hasValidationErrors = false;
     this.validationErrorsChanged.clear();
     this.propertyChanged.clear();
-
+    if (this._asyncChecks) {
+      this._asyncChecks.forEach(run => run.controller.abort());
+      this._asyncChecks = undefined;
+    }
   }
 
 
@@ -893,16 +945,17 @@ function (validationChangeArgs) {
   }
 
   /** @hidden @internal */
-  // Drops the server's errors about a property once it has been edited: they were about a value
-  // the entity no longer has. Runs on every edit that is not part of a load, so the entity with no
-  // errors - nearly all of them - pays one flag check.
-  _clearServerErrors(propertyName: string) {
+  // Drops the errors about a property that its edit has made stale: the server's, and those of
+  // async validators, which cannot run again until the next save or validateEntityAsync. Both were
+  // about a value the entity no longer has. Runs on every edit that is not part of a load, so the
+  // entity with no errors - nearly all of them - pays one flag check.
+  _clearStaleErrors(propertyName: string) {
     if (!this.hasValidationErrors) return;
     const keys: string[] = [];
     const errors = this._validationErrors;
     for (const key in errors) {
       const ve = errors[key];
-      if (ve && ve.isServerError && isAbout(ve, propertyName)) keys.push(key);
+      if (ve && (ve.isServerError || ve.validator?.isAsync) && isAbout(ve, propertyName)) keys.push(key);
     }
     if (keys.length === 0) return;
     this._processValidationOpAndPublish(function (that: EntityAspect) {
@@ -1023,6 +1076,9 @@ function isAbout(ve: ValidationError, propertyName: string) {
 }
 
 function validate(entityAspect: EntityAspect, validator: Validator, value: any, context?: any) {
+  // Nothing here can wait for an async validator's answer, so it is not asked; its last settled
+  // answer stands. It runs from validateEntityAsync, and when the entity is saved.
+  if (validator.isAsync) return true;
   let ve = validator.validate(value, context);
   if (ve) {
     entityAspect._addValidationError(ve);
@@ -1032,6 +1088,105 @@ function validate(entityAspect: EntityAspect, validator: Validator, value: any, 
     entityAspect._removeValidationError(key);
     return true;
   }
+}
+
+/** One async validator to run: the value to check, the context it gets, and how to read the value
+again - to tell whether it changed while it was being checked. */
+interface AsyncCheck {
+  validator: Validator;
+  value: any;
+  context?: any;
+  read: () => any;
+}
+
+/** @hidden @internal */
+export interface AsyncCheckRun {
+  controller: AbortController;
+  done: Promise<void>;
+}
+
+/** How many times a check is run again because its value keeps changing while it is checked. */
+const MAX_ASYNC_ROUNDS = 3;
+
+/** The async validators of an entity or complex object, walked as validateTarget walks the sync ones. */
+function collectAsyncChecks(target: any, coIndex?: number): AsyncCheck[] {
+  const checks: AsyncCheck[] = [];
+  const stype = target.entityType || target.complexType;
+  const aspect = target.entityAspect || target.complexAspect;
+  const entityAspect = target.entityAspect || target.complexAspect.getEntityAspect();
+
+  stype.getProperties().forEach((p: any) => {
+    const read = () => p.isNavigationProperty && !p.isScalar ? peekProperty(target, p.name) : target.getProperty(p.name);
+    const value = read();
+    const asyncValidators = p.getAllValidators().filter((v: Validator) => v.isAsync);
+    if (asyncValidators.length > 0) {
+      // A context of its own for each property: validateTarget reuses one, which an async check,
+      // still reading it later, would see changed underneath it.
+      const context: any = { entity: entityAspect.entity, property: p, propertyName: aspect.getPropertyPath(p.name) };
+      if (coIndex !== undefined) context.index = coIndex;
+      asyncValidators.forEach((validator: Validator) => checks.push({ validator, value, context, read }));
+    }
+    if (p.isComplexProperty) {
+      if (p.isScalar) {
+        checks.push(...collectAsyncChecks(value));
+      } else {
+        value.forEach((co: any, ix: number) => checks.push(...collectAsyncChecks(co, ix)));
+      }
+    }
+  });
+
+  stype.getAllValidators().filter((v: Validator) => v.isAsync).forEach((validator: Validator) => {
+    checks.push({ validator, value: target, read: () => target });
+  });
+  return checks;
+}
+
+/** The async validators of one property, found as validateProperty finds the sync ones. */
+function collectAsyncPropertyChecks(aspect: EntityAspect, property: EntityProperty | string, context?: any): AsyncCheck[] {
+  const read = () => aspect.getPropertyValue(property);
+  const value = read();
+  if (value && value.complexAspect) return collectAsyncChecks(value);
+  const prop = typeof property === "string" ? aspect.entity!.entityType.getProperty(property, true)! : property;   // throws if not found
+  const propertyName = typeof property === "string" ? property : property.name;
+  const checkContext = { ...context, entity: aspect.entity, property: prop, propertyName };
+  return prop.getAllValidators().filter((v: Validator) => v.isAsync)
+    .map((validator: Validator) => ({ validator, value, context: checkContext, read }));
+}
+
+function runAsyncChecks(aspect: EntityAspect, checks: AsyncCheck[]) {
+  return Promise.all(checks.map(check => runAsyncCheck(aspect, check, 1)));
+}
+
+/**
+Runs one async check and applies its answer, unless the answer is no longer wanted: a newer run of
+the same check has started - whose answer is then the one waited for - or the entity was detached.
+If the value changed while it was checked, the check runs again on the new value.
+*/
+function runAsyncCheck(aspect: EntityAspect, check: AsyncCheck, round: number): Promise<void> {
+  const key = ValidationError.getKey(check.validator, check.context && check.context.propertyName);
+  const runs = aspect._asyncChecks || (aspect._asyncChecks = new Map());
+  runs.get(key)?.controller.abort();
+  const controller = new AbortController();
+  const run = { controller } as AsyncCheckRun;
+  runs.set(key, run);
+
+  run.done = check.validator.validateAsync(check.value, { ...check.context, signal: controller.signal }).then(ve => {
+    const current = aspect._asyncChecks?.get(key);
+    if (current !== run) return current?.done;      // replaced, or detached
+    aspect._asyncChecks!.delete(key);
+    const valueNow = check.read();
+    if (valueNow !== check.value) {
+      return round < MAX_ASYNC_ROUNDS ? runAsyncCheck(aspect, { ...check, value: valueNow }, round + 1) : undefined;
+    }
+    aspect._processValidationOpAndPublish((that: EntityAspect) => {
+      if (ve) {
+        that._addValidationError(ve);
+      } else {
+        that._removeValidationError(key);
+      }
+    });
+  });
+  return run.done;
 }
 
 // coIndex is only used where target is a complex object that is part of an array of complex objects
