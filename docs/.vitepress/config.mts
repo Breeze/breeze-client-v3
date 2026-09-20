@@ -82,6 +82,7 @@ const docsSidebar = [
     items: [
       { text: 'Date and time', link: '/guide/date-and-time' },
       { text: 'Performance', link: '/guide/performance' },
+      { text: 'Performance vs 2.x', link: '/guide/performance-vs-2x' },
       { text: 'Testing', link: '/guide/testing' },
       // Everything opt-in, under one link, one child per extension. A new one goes here and in
       // docs/guide/extensions.md; side-effects.spec.ts fails until that page lists it.

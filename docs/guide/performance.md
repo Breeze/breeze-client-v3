@@ -6,6 +6,7 @@ rows, a bulk import, a generated data set — it helps to know which parts are e
 the answers are not where people usually look.
 
 Everything below is measured, not estimated. See [How these were measured](#how-these-were-measured).
+For how 3.0 compares with 2.x, see [Performance vs 2.x](/guide/performance-vs-2x).
 
 ## What an operation costs
 

@@ -325,6 +325,10 @@ shapes and semantics.
 If you hit a difference not listed here, it is a bug — please
 [file an issue](https://github.com/Breeze/breeze-client-v3/issues).
 
+What the upgrade does change, without your code changing, is what it costs to run: a cached entity
+takes half the memory it did under 2.x, and queries and `importEntities` are about 1.5× quicker.
+See [Performance vs 2.x](/guide/performance-vs-2x).
+
 ## Still there, just not in the API reference
 
 The reference documents the surface an application uses. Two dozen exported names carry
