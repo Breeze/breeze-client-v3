@@ -69,36 +69,44 @@ Three covers the filters people actually write. The cost is paid in the size of 
 compiler carries per entity type, which grows with the model and is multiplied out at every
 level. A deeper path still works - it is simply not offered or checked, because a path these
 types do not recognize falls through to the untyped overload rather than failing.
-*/
-type DefaultDepth = 3;
 
-type Prev = [never, 0, 1, 2, 3, 4, 5];
+The counter is a tuple, and a level is one element off the front of it, rather than a number and
+a lookup table of its predecessors. The two count the same way, but TypeScript 4.6 and 4.7 report
+`TS2589: Type instantiation is excessively deep` against this file for the indexed-access form -
+only under `skipLibCheck: false`, and the paths still type correctly, but a consumer on those two
+versions should not have to see it. Tuple destructuring is understood by every version we support.
+*/
+type DefaultDepth = [unknown, unknown, unknown];
 
 /** Paths ending in a comparable value. */
-type RawPropertyPath<T, D extends number = DefaultDepth> =
-  [D] extends [never] ? never :
+type RawPropertyPath<T, D extends unknown[] = DefaultDepth> =
   | DataKeys<T>
-  | { [K in WalkKeys<T>]: `${K}.${RawPropertyPath<NonNullable<T[K]>, Prev[D]>}` }[WalkKeys<T>];
+  | (D extends [unknown, ...infer Rest]
+      ? { [K in WalkKeys<T>]: `${K}.${RawPropertyPath<NonNullable<T[K]>, Rest>}` }[WalkKeys<T>]
+      : never);
 
 /** Paths ending in a collection, which is what `any` and `all` filter over. */
-type RawCollectionPath<T, D extends number = DefaultDepth> =
-  [D] extends [never] ? never :
+type RawCollectionPath<T, D extends unknown[] = DefaultDepth> =
   | CollectionKeys<T>
-  | { [K in WalkKeys<T>]: `${K}.${RawCollectionPath<NonNullable<T[K]>, Prev[D]>}` }[WalkKeys<T>];
+  | (D extends [unknown, ...infer Rest]
+      ? { [K in WalkKeys<T>]: `${K}.${RawCollectionPath<NonNullable<T[K]>, Rest>}` }[WalkKeys<T>]
+      : never);
 
 /** Paths ending in anything a projection can return - a value, a complex object, or a navigation,
 to-one or collection - walking only through to-one navigations and complex properties: a
 projection cannot reach into each element of a collection. What `select` takes. */
-type RawSelectPath<T, D extends number = DefaultDepth> =
-  [D] extends [never] ? never :
+type RawSelectPath<T, D extends unknown[] = DefaultDepth> =
   | DataKeys<T> | WalkKeys<T> | NavigationKeys<T>
-  | { [K in WalkKeys<T>]: `${K}.${RawSelectPath<NonNullable<T[K]>, Prev[D]>}` }[WalkKeys<T>];
+  | (D extends [unknown, ...infer Rest]
+      ? { [K in WalkKeys<T>]: `${K}.${RawSelectPath<NonNullable<T[K]>, Rest>}` }[WalkKeys<T>]
+      : never);
 
 /** Paths ending in a navigation, to-one or collection - what `expand` takes. */
-type RawNavigationPath<T, D extends number = DefaultDepth> =
-  [D] extends [never] ? never :
+type RawNavigationPath<T, D extends unknown[] = DefaultDepth> =
   | NavigationKeys<T>
-  | { [K in NavigationKeys<T>]: `${K}.${RawNavigationPath<NavigationTarget<T[K]>, Prev[D]>}` }[NavigationKeys<T>];
+  | (D extends [unknown, ...infer Rest]
+      ? { [K in NavigationKeys<T>]: `${K}.${RawNavigationPath<NavigationTarget<T[K]>, Rest>}` }[NavigationKeys<T>]
+      : never);
 
 // ---------------------------------------------------------------------------------------------
 // The public path types, each guarded so that an untyped query is unaffected

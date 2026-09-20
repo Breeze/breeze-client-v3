@@ -19,6 +19,12 @@ One package, one tag. 2.x published the same package under `latest`, `mjs`, `cjs
 `<script src="breeze.debug.js">` + global `breeze` style of deployment is gone. Use a
 bundler, or an import map. Node 20 or later.
 
+**TypeScript 4.1 or later, and a bundler that reads ES2022.** The typings use template
+literal types, which 4.0 cannot parse; the published JavaScript uses class fields, which
+webpack 4's parser cannot. Both are worth checking before you start, because each fails
+immediately and with a message that does not name the cause. An application on Angular 11
+or earlier is on webpack 4 and will need the package transpiled down a level to build.
+
 Subpath imports are spelled the same as before:
 
 ```ts

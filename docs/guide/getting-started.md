@@ -13,6 +13,14 @@ One package, one tag. If you are used to choosing between `breeze-client`,
 `fetch`. Breeze 3 ships ES modules only, so you will be using a bundler (Vite, webpack,
 esbuild, Rollup) or native `import`. There is no UMD bundle and no `<script>` tag build.
 
+**TypeScript 4.1 or later.** The typings use template literal types, which arrived in 4.1;
+an older compiler cannot parse them at all.
+
+**A bundler that reads ES2022.** The published JavaScript uses class fields, so the parser
+has to understand them: webpack 5, Vite, Rollup and esbuild all do. webpack 4 does not, which
+in practice means Angular 11 and earlier cannot bundle Breeze 3 without transpiling the
+package down a level first.
+
 ## Configure
 
 With a Breeze .NET server there is nothing to configure. Go straight to

@@ -25,6 +25,12 @@ npm install breeze-client        # 3.0.0
   - The `<script src="breeze.debug.js">` + global `breeze` deployment style is gone.
     Use a bundler, or an import map.
   - Node 20 or later.
+- **TypeScript 4.1 or later.** The typings use template literal types. TypeScript 4.0 fails to
+  parse them, with a run of syntax errors rather than a version complaint.
+- **A bundler that reads ES2022.** The published JavaScript uses class fields. webpack 5, Vite,
+  Rollup and esbuild are fine; webpack 4 fails with `Module parse failed: Unexpected token` on
+  the first class field. Angular 11 and earlier are on webpack 4 and need the package transpiled
+  down a level before the build sees it.
 - Subpath imports are unchanged in spelling:
   ```ts
   import { EntityManager } from 'breeze-client';
