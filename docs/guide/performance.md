@@ -227,17 +227,19 @@ One thing grows with use:
 ## Bundle size
 
 The package is side-effect free apart from the entity-graph mixin, so a bundler drops what you
-do not use. Bundled with Vite from the published package, unminified:
+do not use. Bundled with Vite 8 from the published package, unminified:
 
 | the app imports | bundle |
 |---|---|
-| `MetadataStore` only | 330 KB |
-| `EntityManager` | 455 KB |
-| `EntityManager` + `breeze-client/mixin-get-entity-graph` | 460 KB |
+| `MetadataStore` only | 382 KB |
+| `EntityManager` | 517 KB |
+| `EntityManager` + `breeze-client/mixin-get-entity-graph` | 524 KB |
 
-Minified, a typical application — core plus the three standard adapters — is about 168 KB, or
-46 KB gzipped. Import the [adapter subpaths](/guide/configuration) you use rather than pulling
-in ones you do not.
+Minified, a typical application is about 222 KB, or 53 KB gzipped. Most of the step up from the
+first row is `EntityManager` bringing in the standard adapters, which it registers so that a
+manager works unconfigured — so adding those adapters' imports yourself costs nothing further.
+Import the [adapter subpaths](/guide/configuration) you use rather than pulling in ones you do
+not. For how this compares with 2.x, see [Performance vs 2.x](/guide/performance-vs-2x#bundle-size).
 
 ## How these were measured
 
