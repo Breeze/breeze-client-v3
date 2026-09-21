@@ -260,7 +260,9 @@ VitePress moves to the next free port and prints it. Use the URL it prints.
 
 - **Automatic publishing.** Publishing is by hand, with `npm run docs:publish`; see
   [Moving to GitHub Actions later](#moving-to-github-actions-later).
-- **The .NET API reference** is a separate DocFX site in breeze-server-v3; its
-  [DOCS.md](https://github.com/Breeze/breeze-server-v3/blob/master/DOCS.md) says how to build
-  and view it locally. It is not published either, so for now the nav's
-  *Server → .NET API reference* link goes to that page.
+- **The .NET server docs** are a separate DocFX site in breeze-server-v3 — guides plus the .NET
+  API reference; its [DOCS.md](https://github.com/Breeze/breeze-server-v3/blob/master/DOCS.md)
+  says how to build and view it locally. It is not published either, so the nav's *Server* menu
+  goes to [docs/server/dotnet.md](docs/server/dotnet.md) here, which says what a .NET server
+  gives this client and how to build that site. Point the menu straight at the published site
+  once there is one, and trim that page's *Reading the server docs* section to a link.

@@ -114,6 +114,7 @@ const docsSidebar = [
     collapsed: true,
     items: [
       { text: 'Overview', link: '/server/' },
+      { text: 'Using a Breeze .NET server', link: '/server/dotnet' },
       { text: 'Supplying your own transport', link: '/server/transport' },
       { text: 'DataServiceAdapter', link: '/server/dataserviceadapter' },
       { text: 'Transforming JSON results', link: '/server/jsonresultsadapter' },
@@ -145,8 +146,12 @@ export default defineConfig({
       {
         text: 'Server',
         items: [
-          { text: '.NET server docs', link: 'https://github.com/Breeze/breeze-server-v3' },
-          { text: '.NET API reference', link: 'https://github.com/Breeze/breeze-server-v3/blob/master/DOCS.md' },
+          // The .NET docs are a DocFX site in breeze-server-v3 and are not published yet, so
+          // these point at the page here that explains what the server gives you and how to
+          // build that site locally, rather than at a GitHub blob URL. Point the first entry
+          // at the published site once there is one.
+          { text: 'Using a Breeze .NET server', link: '/server/dotnet' },
+          { text: 'breeze-server-v3 on GitHub', link: 'https://github.com/Breeze/breeze-server-v3' },
         ],
       },
     ],
