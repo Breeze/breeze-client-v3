@@ -68,30 +68,24 @@ A few decisions have to match, and they are the usual source of confusion:
 
 ## Reading the server docs
 
-The server documentation is a separate [DocFX](https://dotnet.github.io/docfx/) site in the
-breeze-server-v3 repository: hand-written guides plus the .NET API reference, generated from the
-XML doc comments. It is not published yet, so for now you build it locally:
-
-```bash
-git clone https://github.com/Breeze/breeze-server-v3
-cd breeze-server-v3
-dotnet tool restore
-dotnet docfx docs/docfx.json --serve   # then open http://localhost:8080/
-```
-
-Its own
-[DOCS.md](https://github.com/Breeze/breeze-server-v3/blob/master/DOCS.md)
-has the detail. What is there:
+The server documentation is its own site, at
+**[breeze.github.io/breeze-server-v3](https://breeze.github.io/breeze-server-v3/)** — hand-written
+guides plus the [.NET API reference](https://breeze.github.io/breeze-server-v3/api/), generated
+from the XML doc comments. What is there:
 
 | Page | About |
 |---|---|
-| Getting started | from an empty ASP.NET Core project to a working Breeze endpoint |
-| The PersistenceManager | the server-side counterpart of `EntityManager` |
-| Querying | how a client's query becomes SQL, and how to bound what clients may ask for |
-| Saving | save interceptors, transactions and key mappings |
-| Metadata | what the client is told about the model, and how to change it |
-| Error handling | returning validation and concurrency errors this client understands |
-| API reference | every public type in the five server packages |
+| [Getting started](https://breeze.github.io/breeze-server-v3/guide/getting-started.html) | from an empty ASP.NET Core project to a working Breeze endpoint |
+| [The PersistenceManager](https://breeze.github.io/breeze-server-v3/guide/persistence-manager.html) | the server-side counterpart of `EntityManager` |
+| [Querying](https://breeze.github.io/breeze-server-v3/guide/querying.html) | how a client's query becomes SQL, and how to bound what clients may ask for |
+| [Saving](https://breeze.github.io/breeze-server-v3/guide/saving.html) | save interceptors, transactions and key mappings |
+| [Metadata](https://breeze.github.io/breeze-server-v3/guide/metadata.html) | what the client is told about the model, and how to change it |
+| [Error handling](https://breeze.github.io/breeze-server-v3/guide/error-handling.html) | returning validation and concurrency errors this client understands |
+| [API reference](https://breeze.github.io/breeze-server-v3/api/) | every public type in the five server packages |
+
+To build it yourself — to preview a change, or to read it offline — clone
+[breeze-server-v3](https://github.com/Breeze/breeze-server-v3) and follow its
+[DOCS.md](https://github.com/Breeze/breeze-server-v3/blob/master/DOCS.md).
 
 ## See also
 

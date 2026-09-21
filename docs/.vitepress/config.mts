@@ -146,12 +146,11 @@ export default defineConfig({
       {
         text: 'Server',
         items: [
-          // The .NET docs are a DocFX site in breeze-server-v3 and are not published yet, so
-          // these point at the page here that explains what the server gives you and how to
-          // build that site locally, rather than at a GitHub blob URL. Point the first entry
-          // at the published site once there is one.
+          // /server/dotnet is the page here that says what a .NET server gives this client;
+          // the other two are the server's own DocFX site, published from breeze-server-v3.
           { text: 'Using a Breeze .NET server', link: '/server/dotnet' },
-          { text: 'breeze-server-v3 on GitHub', link: 'https://github.com/Breeze/breeze-server-v3' },
+          { text: '.NET server docs', link: 'https://breeze.github.io/breeze-server-v3/' },
+          { text: '.NET API reference', link: 'https://breeze.github.io/breeze-server-v3/api/' },
         ],
       },
     ],
