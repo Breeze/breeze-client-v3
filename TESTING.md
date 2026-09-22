@@ -11,7 +11,7 @@ The suite lives in this repo. Most of it also needs the **.NET test server** and
 ## TL;DR
 
 ```bash
-npm run test:unit      # 352 tests, a few seconds, needs nothing at all
+npm run test:unit      # a few seconds, needs nothing at all
 ```
 
 That is the loop to work in. For everything else, one command creates the database if
@@ -219,31 +219,35 @@ recreating the database by hand** — otherwise those tables are empty.
 
 | command | tier | tests | needs a server? | time |
 |---|---|---|---|---|
-| `npm run test:unit` | unit | 352, 27 files | **no** | a few seconds |
-| `npm run test:integration` | integration | 457 (450 + 7 skipped), 27 files | yes | ~46s |
-| `npm test` | both | 809 (802 + 7 skipped), 54 files † | yes | ~50s |
-| `npm run test:browser` | both, in Chromium | 758 (751 + 7 skipped), 53 files ‡ | yes | ~34s |
-| `npm run test:retention` | retention | 7, 1 file | **no** | under a second |
-| `npm run test:watch` | unit | 352 | no | watch mode |
+| `npm run test:unit` | unit | 744, 58 files | **no** | ~15s |
+| `npm run test:integration` | integration | 478 (477 + 1 skipped), 33 files | yes | ~48s |
+| `npm test` | both | 1222 (1221 + 1 skipped), 91 files † | yes | ~63s |
+| `npm run test:browser` | both, in Chromium | 1094 (1093 + 1 skipped), 86 files ‡ | yes | ~59s |
+| `npm run test:retention` | retention | 17, 1 file | **no** | ~2s |
+| `npm run test:watch` | unit | 744 | no | watch mode |
 
-All of these were measured on 2026-09-15, on the same clean database, except the `npm test`
+All of these were measured on 2026-09-22, on the same clean database, except the `npm test`
 row † — that is the sum of the unit and integration runs, which together are exactly what the
 command runs; it was not observed as a single run.
 
-‡ The browser tier is 51 tests and one file short of `npm test` because it excludes
-`side-effects.spec.ts`, which reads `src/` off disk and parses it with the TypeScript API.
-That is a check on the source tree rather than on runtime behaviour, and there is no `fs` in
-Chromium.
+These counts are a snapshot, not a contract: they drift every time a spec is added, and
+nothing checks them. Treat a disagreement as this table being out of date. What the tiers
+*are* — what each needs, and why the browser tier is smaller — is in the sections below and in
+the `vitest.*.config.ts` headers, which is where to look when the numbers no longer match.
 
-7 tests are skipped by design. Five are skipped on the ASP.NET Core server: three need
-server-side validation, which that server does not perform; one needs a named-query endpoint
-it does not implement; one checks the handling of a bad-parameter error that is not finished
-yet. The other two are always skipped: one is awaiting review, and one covers a known bug
-(`bugs.spec.ts`).
+‡ The browser tier is five files short of `npm test`, and the five are listed in
+`vitest.browser.config.ts`: they read `src/` off disk, spawn a child process, drive the
+TypeScript language service, or ask V8 for a garbage collection. None of that exists in
+Chromium, and all of it checks the repository rather than runtime behaviour. The retention
+tier is excluded for the same reason.
+
+One test is skipped, in `bugs.spec.ts`, and it covers a known bug. The conditional skips that
+used to switch whole files on and off per server flavour are gone — see the note in
+`test/test-fns.ts`.
 
 ### The unit tier
 
-`test/unit/` — 27 files that need nothing. They work against checked-in metadata fixtures.
+`test/unit/` — the specs that need nothing. They work against checked-in metadata fixtures.
 Where a test needs a server response, it supplies a fake `fetch` through
 `configureBreeze({ fetch })` (`fetch-transport.spec.ts` shows how), or, to cover the
 deprecated ajax adapter path, registers `AjaxFakeAdapter` from `test/support/`. No
@@ -288,7 +292,7 @@ there is no forced collection in Chromium.
 
 ### The integration tier
 
-`test/integration/` — 27 files that query and save real data. Every file starts from the
+`test/integration/` — the specs that query and save real data. Every file starts from the
 same, pristine database:
 
 1. Once per run, `test/global-setup.ts` rebuilds `BreezeTestDb` from the script, re-seeds

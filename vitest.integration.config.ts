@@ -4,7 +4,7 @@ import { breezeAlias } from './vitest.shared.config.js';
 /**
  * Integration tier - `npm run test:integration`.
  *
- * The 27 spec files under test/integration require the .NET test server on
+ * The spec files under test/integration require the .NET test server on
  * http://localhost:34377 and the BreezeTestDb database. They query and save real data.
  *
  * They share one database, so:
