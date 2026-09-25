@@ -1,9 +1,9 @@
-// @generated-by generate-entity-classes v1.0.0
+// @generated-by generate-entity-classes v1.1.0
 // Properties of this type in the server metadata are written here and rewritten on
 // every run. Everything else in this file is yours and is never touched.
 // To keep one of those too, see the manual markers in ./README.md.
 
-import { ComplexObjectBase } from './entity-base'; // @generated
+import { ComplexObjectBase } from 'breeze-client'; // @generated
 
 /**
  * Location:#Foo - the complex type.

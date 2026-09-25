@@ -73,7 +73,7 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync } from 
 import { join, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const GENERATOR_VERSION = '1.0.0';
+const GENERATOR_VERSION = '1.1.0';
 const GENERATOR_NAME = 'generate-entity-classes';
 
 /** Where the script itself lives: node_modules/breeze-client/ when installed, scripts/ here. */
@@ -125,7 +125,7 @@ const DEFAULTS = {
   // NodeNext project.
   ext: '',
   // A base class of the caller's own for every generated root type, and the module to import it
-  // from. Null means the EntityBase / ComplexObjectBase in the generated entity-base.ts.
+  // from. Null means Breeze's own EntityBase / ComplexObjectBase, imported from --breeze.
   base: null,
   baseModule: null,
   complexBase: null,
@@ -199,7 +199,7 @@ Optional:
                       inheritance chain extends it; a type with a metadata base type extends
                       that, as before.
 
-                      It is scaffolded once, extending the generated EntityBase, and then never
+                      It is scaffolded once, extending Breeze's EntityBase, and then never
                       rewritten - nothing in it is marked @generated:
 
                         // --base AppEntityBase  ->  app-entity-base.ts
@@ -683,8 +683,13 @@ function reconcileImports(lines, required, notes) {
       at = 0;
       while (at < lines.length && /^\/\//.test(lines[at])) at++;
       at = pastManualRegion(lines, at);
-      lines.splice(at, 0, '');
-      at++;
+      // Reuse the blank line after the header - left there when a moved import was the only one.
+      if (lines[at] === '' && lines[at + 1] === '') {
+        at++;
+      } else {
+        lines.splice(at, 0, '');
+        at++;
+      }
       lines.splice(at, 0, ...additions.map(renderImport));
       return lines;
     }
@@ -912,8 +917,8 @@ function renderNewFile(stype, members, needs, opts, isComplexType) {
 /**
  * The class every generated type at the root of its inheritance chain extends, and the module to
  * import it from. `--base` / `--complex-base` name one of the caller's own, so that behaviour can
- * be added to every entity without giving up code generation; without them it is the
- * `EntityBase` / `ComplexObjectBase` in the generated entity-base.ts.
+ * be added to every entity without giving up code generation; without them it is Breeze's own
+ * `EntityBase` / `ComplexObjectBase`.
  */
 function rootBase(opts, isComplexType) {
   const custom = isComplexType ? opts.complexBase : opts.base;
@@ -921,10 +926,10 @@ function rootBase(opts, isComplexType) {
   if (!custom) {
     return {
       name: isComplexType ? 'ComplexObjectBase' : 'EntityBase',
-      module: `./entity-base${opts.ext}`,
-      file: 'entity-base.ts',
+      module: opts.breeze,
+      file: null,
       isCustom: false,
-      isRelative: true,
+      isRelative: false,
       isComplexType,
     };
   }
@@ -953,7 +958,7 @@ function renderCustomBase(root, opts) {
     `// Anything added with an initializer becomes an unmapped property on every ${kind}; write`,
     '// methods and getters instead unless that is what you want. See',
     '// docs/guide/extending-entities.md.',
-    `import { ${supplied} } from './entity-base${opts.ext}';`,
+    `import { ${supplied} } from '${opts.breeze}';`,
     '',
     `export abstract class ${root.name} extends ${supplied} {`,
     '}',
@@ -961,31 +966,20 @@ function renderCustomBase(root, opts) {
   ].join('\n');
 }
 
-function renderEntityBase(opts) {
+/**
+ * Before v1.1.0 the generator wrote EntityBase and ComplexObjectBase into entity-base.ts; they now
+ * ship in Breeze. A scaffolded custom base imports them from './entity-base', and the generator
+ * never rewrites a scaffold, so an entity-base.ts that is already there is kept as a re-export
+ * rather than deleted. A model generated fresh never gets one.
+ */
+function renderEntityBaseShim(opts) {
   return [
     ...renderHeader('whole'),
     '//',
-    '// The members Breeze itself supplies. Every generated class extends one of these.',
-    '//',
-    '// Each one is `declare`: with ES2022 class fields a plain field would become a real own',
-    '// property set to undefined, hiding the accessors Breeze installs on the prototype. See',
-    '// docs/guide/extending-entities.md, "Class fields and declare".',
-    `import type { ComplexAspectOf, ComplexObject, ComplexType, Entity, EntityAspectOf, EntityType } from '${opts.breeze}';`,
-    '',
-    'export abstract class EntityBase implements Entity {',
-    "  // Of 'this': originalValues and getOriginalValue know the class's properties.",
-    '  declare entityAspect: EntityAspectOf<this>;',
-    '  declare entityType: EntityType;',
-    '  declare getProperty: (prop: string) => any;',
-    '  declare setProperty: (prop: any, value: any) => any;',
-    '}',
-    '',
-    'export abstract class ComplexObjectBase implements ComplexObject {',
-    '  declare complexAspect: ComplexAspectOf<this>;',
-    '  declare complexType: ComplexType;',
-    '  declare getProperty: (prop: string) => any;',
-    '  declare setProperty: (prop: any, value: any) => any;',
-    '}',
+    `// EntityBase and ComplexObjectBase now ship in ${opts.breeze}. This file re-exports them for`,
+    '// code that still imports them from here; once nothing does, delete it and the generator will',
+    '// not write it again.',
+    `export { ComplexObjectBase, EntityBase } from '${opts.breeze}';`,
     '',
   ].join('\n');
 }
@@ -999,7 +993,7 @@ function renderIndex(generated, opts) {
     '// single store - registering the same class in a second store throws - so call it once, on the',
     '// store the managers under test share.',
     `import type { MetadataStore } from '${opts.breeze}';`,
-    `export { ComplexObjectBase, EntityBase } from './entity-base${opts.ext}';`,
+    `export { ComplexObjectBase, EntityBase } from '${opts.breeze}';`,
   ];
   // A custom base class lives alongside the classes, so the barrel should reach it too.
   for (const root of [rootBase(opts, false), rootBase(opts, true)]) {
@@ -1075,7 +1069,10 @@ async function main() {
     if (!opts.dryRun) writeFileSync(path, contents, 'utf8');
   };
 
-  write('entity-base.ts', renderEntityBase(opts));
+  const entityBasePath = join(outDir, 'entity-base.ts');
+  if (existsSync(entityBasePath) && hasGeneratedHeader(readFileSync(entityBasePath, 'utf8').split(/\r?\n/))) {
+    write('entity-base.ts', renderEntityBaseShim(opts));
+  }
 
   // A custom base class is the caller's file, so it is scaffolded once and then left alone.
   for (const root of [rootBase(opts, false), rootBase(opts, true)]) {

@@ -263,6 +263,46 @@ describe.skipIf(!built)("entity generator", () => {
       expect(after).not.toContain('extends EntityBase');
     });
 
+    test("the scaffolded base extends Breeze's EntityBase", () => {
+      generate('--types', 'Customer', '--base', 'AppEntityBase');
+      const scaffold = read('app-entity-base.ts');
+      expect(scaffold).toContain("import { EntityBase } from 'breeze-client';");
+      expect(scaffold).toContain('export abstract class AppEntityBase extends EntityBase {');
+    });
+
+  });
+
+  describe("EntityBase comes from Breeze", () => {
+
+    test("a fresh model imports it from breeze-client and writes no entity-base.ts", () => {
+      generate('--types', 'Customer,Location');
+      expect(read('customer.ts')).toContain("import { EntityBase } from 'breeze-client'; // @generated");
+      expect(read('location.ts')).toContain("import { ComplexObjectBase } from 'breeze-client'; // @generated");
+      expect(existsSync(join(dir, 'model', 'entity-base.ts'))).toBe(false);
+    });
+
+    test("a model from v1.0.0 moves the import, and keeps entity-base.ts as a re-export", () => {
+      // What v1.0.0 wrote: the base classes in a file of their own, imported from there.
+      write('entity-base.ts', '// @generated-by generate-entity-classes v1.0.0\nexport abstract class EntityBase {}\n');
+      generate('--types', 'Customer');
+      write('customer.ts', read('customer.ts').replace(
+        "import { EntityBase } from 'breeze-client';", "import { EntityBase } from './entity-base';"));
+
+      const out = generate('--types', 'Customer');
+      expect(out).toContain("move EntityBase from './entity-base' to 'breeze-client'");
+      expect(read('customer.ts')).toContain("import { EntityBase } from 'breeze-client'; // @generated");
+      expect(read('customer.ts')).not.toContain('./entity-base');
+      // A scaffolded base still imports it from './entity-base', and is never rewritten.
+      expect(read('entity-base.ts')).toContain("export { ComplexObjectBase, EntityBase } from 'breeze-client';");
+    });
+
+    test("an entity-base.ts the generator did not write is left alone", () => {
+      const mine = 'export abstract class EntityBase { mine = true; }\n';
+      write('entity-base.ts', mine);
+      generate('--types', 'Customer');
+      expect(read('entity-base.ts')).toBe(mine);
+    });
+
   });
 
 });

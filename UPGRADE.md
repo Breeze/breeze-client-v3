@@ -353,7 +353,8 @@ notice, both type-only — nothing behaves differently:
 - `getProperty` and `setProperty` are **no longer optional**, on `Entity` or on `ComplexObject`.
   The model library adapter has always installed them, and marking them optional forced needless
   null checks; drop any `!` or `?.`. A class that `implements Entity` now has to list them, with
-  `declare` so the field does not shadow what Breeze installs.
+  `declare` so the field does not shadow what Breeze installs — or extend the new `EntityBase`,
+  which declares them for it.
 - `EntityQuery.wherePredicate`, `EntityAspect.hasTempKey` and `ValidationError.propertyName` are
   now optional, which is what they always were at run time. `propertyName` in particular was
   always undefined for entity-level errors.
@@ -442,6 +443,10 @@ The same treatment reaches `getEntityByKey`, `hasChanges`, `EntityQuery.fromEnti
 
 Where a type is *inferred* from something you pass in — `fromEntities`, `load()` — a plain
 `Entity` still yields `any`, not `Entity`, so existing callers are untouched.
+
+`EntityBase` and `ComplexObjectBase` are new base classes that declare the members Breeze supplies
+— `entityAspect` (typed for your class), `entityType`, `getProperty` and `setProperty` — so an
+entity class declares only its own properties. They have no runtime behaviour and are not required.
 
 Using it does require [registering your classes](/guide/extending-entities#registering-a-constructor),
 which is what tells Breeze which type a constructor stands for. See

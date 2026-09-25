@@ -1,4 +1,4 @@
-import { EntityManager, EntityState, MetadataStore } from '../../src/breeze';
+import { ComplexObjectBase, EntityBase, EntityManager, EntityState, MetadataStore } from '../../src/breeze';
 import { Customer, Employee, Order, Supplier, registerModelClasses } from '../model';
 import northwindMetadata from '../support/NorthwindIBMetadata_ETNOPAYLOAD.json';
 
@@ -48,6 +48,19 @@ describe("Generated model classes", () => {
     expect(Object.prototype.hasOwnProperty.call(cust, 'companyName')).toBe(false);
     expect(Object.prototype.hasOwnProperty.call(cust, 'orders')).toBe(false);
     expect(Object.prototype.hasOwnProperty.call(cust, 'getProperty')).toBe(false);
+  });
+
+  test("the classes extend Breeze's EntityBase, which registration leaves empty", () => {
+    const em = newEntityManager();
+    const cust = em.createEntity('Customer', {}) as Customer;
+    const supplier = em.createEntity('Supplier', { location: { city: 'Oslo' } }) as Supplier;
+
+    expect(cust).toBeInstanceOf(EntityBase);
+    expect(supplier.location).toBeInstanceOf(ComplexObjectBase);
+    // One EntityBase is shared by every model in the process, so Breeze must install its
+    // accessors and entityType on each registered class, never on the base.
+    expect(Object.getOwnPropertyNames(EntityBase.prototype)).toEqual(['constructor']);
+    expect(Object.getOwnPropertyNames(ComplexObjectBase.prototype)).toEqual(['constructor']);
   });
 
   test("no member of the class becomes an unmapped property", () => {
@@ -135,13 +148,14 @@ describe("Importing Breeze by its published name", () => {
     // test/model/ imports 'breeze-client', because those files are what the generator writes
     // for an application. Inside this repo that name is aliased to src/ (vitest.shared.config.ts
     // and the `paths` in test/tsconfig.json). If the alias were missing it would still resolve,
-    // via the package's own `exports` map, to dist/ - and the model would be typed against a
-    // different copy of Breeze from the one the specs run. Two copies means two EntityState
-    // enums and instanceof checks that fail for no visible reason.
+    // via the package's own `exports` map, to dist/ - and the model would extend a different
+    // copy of Breeze from the one the specs run. Two copies means two EntityState enums and
+    // instanceof checks that fail for no visible reason.
     const byName = await import('breeze-client');
     const bySource = await import('../../src/breeze');
     expect(byName.EntityState).toBe(bySource.EntityState);
     expect(byName.MetadataStore).toBe(bySource.MetadataStore);
+    expect(byName.EntityBase).toBe(bySource.EntityBase);
   });
 
 });

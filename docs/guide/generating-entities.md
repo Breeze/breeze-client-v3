@@ -18,13 +18,12 @@ npx breeze-gen-entities \
 ```
 
 ```
-generate-entity-classes v1.0.0
+generate-entity-classes v1.1.0
 21 types from http://localhost:34377/breeze/NorthwindIBModel -> src/app/model
-  new  entity-base.ts
   new  customer.ts
   new  order.ts
   ...
-23 file(s) written
+22 file(s) written
 ```
 
 That is the whole setup. Once the classes exist, [typed entities](./typed-entities.md) and
@@ -68,22 +67,25 @@ Inside an npm script the `npx` prefix is unnecessary — `node_modules/.bin` is 
 
 ## What you get
 
-One file per structural type, named in kebab case, plus two the generator owns outright:
+One file per structural type, named in kebab case, plus a barrel the generator owns outright:
 
 | | |
 |---|---|
 | `customer.ts`, `order.ts`, … | one class per entity or complex type |
-| `entity-base.ts` | `EntityBase` and `ComplexObjectBase`: the members Breeze itself supplies |
 | `index.ts` | a barrel, a `modelClasses` map, and `registerModelClasses` |
+
+Each class extends `EntityBase` — or, for a complex type, `ComplexObjectBase` — from
+`breeze-client`. They declare the members Breeze supplies (`entityAspect`, `entityType`,
+`getProperty`, `setProperty`), so the generated class declares only its own properties.
 
 ```ts
 // src/app/model/customer.ts
-// @generated-by generate-entity-classes v1.0.0
+// @generated-by generate-entity-classes v1.1.0
 // Lines marked `// @generated` are written from server metadata and are rewritten on every
 // run. Everything else in this file is yours and is never touched.
 
 import type { RelationArray } from 'breeze-client'; // @generated
-import { EntityBase } from './entity-base'; // @generated
+import { EntityBase } from 'breeze-client'; // @generated
 import type { Order } from './order'; // @generated
 
 /**
@@ -174,8 +176,16 @@ export class Customer extends EntityBase {
 New properties are appended after the last mapped one rather than sorted into metadata order, so a
 hand-written member never has generated code inserted into the middle of it.
 
-`entity-base.ts` and `index.ts` are generated whole and say so in their headers. Anything you want
-to keep belongs in another module.
+`index.ts` is generated whole and says so in its header. Anything you want to keep belongs in
+another module.
+
+::: info Upgrading from generator v1.0.0
+v1.0.0 wrote `EntityBase` and `ComplexObjectBase` into an `entity-base.ts` of their own. They now
+ship in `breeze-client`. A regeneration moves each class's import to `breeze-client` and turns
+`entity-base.ts` into a one-line re-export, so that a base class scaffolded by `--base`, which
+imports from it, still compiles. Once nothing imports `./entity-base`, delete the file; the
+generator does not write it again.
+:::
 
 `--dry-run` reports what would change and writes nothing:
 
@@ -275,11 +285,11 @@ npx breeze-gen-entities --metadata metadata.json --out src/app/model --base AppE
 ```
 
 Every generated class then reads `export class Customer extends AppEntityBase`. The generator
-scaffolds `app-entity-base.ts` once — extending the generated `EntityBase`, so the Breeze-supplied
+scaffolds `app-entity-base.ts` once — extending Breeze's `EntityBase`, so the Breeze-supplied
 members are still there — and never rewrites it:
 
 ```ts
-import { EntityBase } from './entity-base';
+import { EntityBase } from 'breeze-client';
 
 export abstract class AppEntityBase extends EntityBase {
   get isNew() { return this.entityAspect.entityState.isAdded(); }

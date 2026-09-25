@@ -66,14 +66,10 @@ Optional, but it is what makes everything below type-checked, so it is worth two
 Write a class per entity type and register it:
 
 ```ts
-import type { Entity, EntityAspect, EntityType } from 'breeze-client';
+import { EntityBase } from 'breeze-client';
 
-export class Customer implements Entity {
-  declare entityAspect: EntityAspect;
-  declare entityType: EntityType;
-  declare getProperty: (prop: string) => any;
-  declare setProperty: (prop: any, value: any) => any;
-
+// EntityBase declares the members Breeze supplies: entityAspect, entityType and the rest.
+export class Customer extends EntityBase {
   declare customerID: string;
   declare companyName: string;
   declare orders: Order[];

@@ -1,12 +1,12 @@
-// @generated-by generate-entity-classes v1.0.0
+// @generated-by generate-entity-classes v1.1.0
 // Properties of this type in the server metadata are written here and rewritten on
 // every run. Everything else in this file is yours and is never touched.
 // To keep one of those too, see the manual markers in ./README.md.
 
-import { EntityBase } from './entity-base'; // @generated
 import type { EmployeeTerritory } from './employee-territory'; // @generated
 import type { Region } from './region'; // @generated
 import type { RelationArray } from 'breeze-client'; // @generated
+import { EntityBase } from 'breeze-client'; // @generated
 
 /**
  * Territory:#Foo - the entity type, queried as `Territories`.

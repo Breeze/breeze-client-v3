@@ -10,6 +10,7 @@ import type { DataServiceConfig, JsonResultsAdapterConfig, NodeContext, NodeMeta
 import { DataType } from './metadata/data-type.js';
 import { EntityAction } from './entity/entity-action.js';
 import { EntityAspect, ComplexAspect } from './entity/entity-aspect.js';
+import { EntityBase, ComplexObjectBase } from './entity/entity-base.js';
 import type { Entity, ComplexObject, StructuralObject, PropertyChangedEventArgs, QueriedAs, EntityAspectOf, ComplexAspectOf } from './entity/entity-aspect.js';
 import { EntityKey } from './entity/entity-key.js';
 import { EntityManager, ProblemTypes, isConcurrencyError } from './manager/entity-manager.js';
@@ -56,6 +57,7 @@ export {
   BreezeEnum,
   BreezeEvent,
   ComplexAspect,
+  ComplexObjectBase,
   ComplexType,
   config,
   configureBreeze,
@@ -65,6 +67,7 @@ export {
   DataType,
   EntityAction,
   EntityAspect,
+  EntityBase,
   EntityKey,
   EntityManager,
   EntityQuery,

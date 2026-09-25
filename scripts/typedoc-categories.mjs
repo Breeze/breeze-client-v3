@@ -47,6 +47,8 @@ export const CATEGORIES = {
     // Shapes, but the ones an application reads most: every entity and collection it touches, and
     // what a query or save resolves or rejects with.
     'Entity', 'RelationArray', 'QueryResult', 'SaveResult', 'SaveError',
+    // What an entity class extends.
+    'EntityBase', 'ComplexObjectBase',
   ],
   'Metadata': [
     'MetadataStore', 'EntityType', 'ComplexType', 'DataProperty', 'NavigationProperty',

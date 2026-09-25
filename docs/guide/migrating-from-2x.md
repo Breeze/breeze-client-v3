@@ -260,7 +260,8 @@ you may notice:
   every entity — and marking them optional forced needless null checks on callers. Drop the `!`
   or `?.` you may have needed. A class that `implements Entity` now has to list them, with
   `declare` so the field does not shadow what Breeze installs — see
-  [Class fields and `declare`](/guide/extending-entities#class-fields-and-declare).
+  [Class fields and `declare`](/guide/extending-entities#class-fields-and-declare) — or extend
+  `EntityBase`, which declares them for it.
 - `EntityQuery.wherePredicate`, `EntityAspect.hasTempKey` and
   `ValidationError.propertyName` are now optional, which is what they always were at
   runtime.

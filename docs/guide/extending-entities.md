@@ -68,6 +68,20 @@ You don't have to mention mapped properties in the class. Breeze adds them to th
 prototype when it wires up the type, as accessors that feed change tracking. Declare them
 only so TypeScript knows about them.
 
+The four members Breeze supplies can come from a base class instead. `EntityBase` from
+`breeze-client` declares them, typing `entityAspect` for your class, and has no runtime
+behaviour of its own; `ComplexObjectBase` is the same for complex types. The classes
+[the generator](./generating-entities.md) writes extend it:
+
+```ts
+import { EntityBase } from 'breeze-client';
+
+export class Customer extends EntityBase {
+  declare customerID: string;
+  declare companyName: string;
+}
+```
+
 Register the class before the application creates or queries for any entities of that type.
 Entities built earlier keep the default constructor. The registration can come before or
 after metadata is loaded.

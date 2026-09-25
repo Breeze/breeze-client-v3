@@ -1,11 +1,11 @@
-// @generated-by generate-entity-classes v1.0.0
+// @generated-by generate-entity-classes v1.1.0
 // This whole file is generated. Put hand-written code in a separate module.
 //
 // registerModelClasses attaches these classes to one MetadataStore. Breeze binds a class to a
 // single store - registering the same class in a second store throws - so call it once, on the
 // store the managers under test share.
 import type { MetadataStore } from 'breeze-client';
-export { ComplexObjectBase, EntityBase } from './entity-base';
+export { ComplexObjectBase, EntityBase } from 'breeze-client';
 import { Category } from './category';
 import { Comment } from './comment';
 import { Customer } from './customer';

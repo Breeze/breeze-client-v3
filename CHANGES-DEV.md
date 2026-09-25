@@ -110,7 +110,7 @@ from the code that needs it.
 
 ## Public API surface
 
-`src/breeze.ts` exports **53 runtime values** (classes, `BreezeEnum` subclasses,
+`src/breeze.ts` exports **58 runtime values** (classes, `BreezeEnum` subclasses,
 functions, `config`, `core`, `breeze`) and **75 type-only names**. The type-only ones
 erase at runtime and are exported with `export type`, so browser ESM never goes looking
 for them.
