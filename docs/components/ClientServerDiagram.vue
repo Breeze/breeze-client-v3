@@ -38,7 +38,7 @@ const lanes = [
 ];
 
 // Wide drawing: lane centres, and where the arrows start and end.
-const laneY = [170, 275, 380];
+const laneY = [215, 315, 415];
 const wireFrom = 202;   // right edge of a client row
 const wireTo = 627;     // left edge of a server row
 
@@ -49,25 +49,33 @@ const cardTop = (i: number) => 34 + i * 104;
 <template>
   <figure class="cs-diagram">
     <!-- Wide -->
-    <svg class="cs-wide" viewBox="0 0 900 440" role="img"
+    <svg class="cs-wide" viewBox="0 0 900 500" role="img"
          aria-labelledby="cs-wide-title cs-wide-desc">
       <title id="cs-wide-title">How a Breeze client talks to a Breeze .NET server</title>
       <desc id="cs-wide-desc">
         Three exchanges over HTTP and JSON. Metadata: the client gets the model, which the server
-        reads from its mapping. Query: the client sends a query, the server runs it on IQueryable
-        as SQL, and the entities come back into the client's cache. Save: the client sends its
-        tracked changes as one change-set, the server saves them in one transaction and returns
-        the saved entities and their real keys.
+        reads from its mapping; breeze-gen-entities also turns it into TypeScript classes, which
+        give the app typed entities and typed queries. Query: the client sends a query, the server
+        runs it on IQueryable as SQL, and the entities come back into the client's cache. Save:
+        the client sends its tracked changes as one change-set, the server saves them in one
+        transaction and returns the saved entities and their real keys.
       </desc>
 
       <!-- Client -->
-      <rect class="zone" x="1" y="1" width="228" height="438" rx="14" />
+      <rect class="zone" x="1" y="1" width="228" height="498" rx="14" />
       <text class="zone-label" x="16" y="26">Browser</text>
       <rect class="app" x="16" y="40" width="198" height="44" rx="8" />
       <text class="title" x="115" y="59" text-anchor="middle">Your app</text>
       <text class="sub" x="115" y="75" text-anchor="middle">Angular · React · Vue · …</text>
-      <rect class="lib" x="16" y="100" width="198" height="324" rx="10" />
-      <text class="lib-label" x="28" y="122">breeze-client · EntityManager</text>
+      <rect class="typed" x="16" y="92" width="198" height="44" rx="8" />
+      <text class="title" x="115" y="111" text-anchor="middle">Typed entities &amp; queries</text>
+      <text class="sub" x="115" y="127" text-anchor="middle">TypeScript classes for your model</text>
+      <rect class="lib" x="16" y="150" width="198" height="328" rx="10" />
+      <text class="lib-label" x="28" y="467">breeze-client · EntityManager</text>
+      <!-- The metadata becomes those classes at build time, hence dashed. -->
+      <line class="gen-line" x1="60" :y1="laneY[0] - 31" x2="60" y2="146" />
+      <polygon class="gen-head" points="60,138 55.5,147 64.5,147" />
+      <text class="tiny mono gen-label" x="70" y="170">breeze-gen-entities</text>
       <g v-for="(lane, i) in lanes" :key="'c' + lane.n">
         <rect class="row" x="28" :y="laneY[i] - 29" width="174" height="58" rx="7" />
         <text class="title" x="115" :y="laneY[i] - 4" text-anchor="middle">{{ lane.client[0] }}</text>
@@ -75,13 +83,13 @@ const cardTop = (i: number) => 34 + i * 104;
       </g>
 
       <!-- Server -->
-      <rect class="zone" x="600" y="1" width="200" height="438" rx="14" />
+      <rect class="zone" x="600" y="1" width="200" height="498" rx="14" />
       <text class="zone-label" x="615" y="26">ASP.NET Core server</text>
       <rect class="app" x="615" y="40" width="170" height="44" rx="8" />
       <text class="title" x="700" y="59" text-anchor="middle">Your controller</text>
       <text class="sub" x="700" y="75" text-anchor="middle">one per data service</text>
-      <rect class="lib" x="615" y="100" width="170" height="324" rx="10" />
-      <text class="lib-label" x="627" y="122">Breeze .NET server</text>
+      <rect class="lib" x="615" y="150" width="170" height="328" rx="10" />
+      <text class="lib-label" x="627" y="467">Breeze .NET server</text>
       <g v-for="(lane, i) in lanes" :key="'s' + lane.n">
         <rect class="row" x="627" :y="laneY[i] - 29" width="146" height="58" rx="7" />
         <text class="title mono" x="700" :y="laneY[i] - 4" text-anchor="middle">{{ lane.server[0] }}</text>
@@ -89,11 +97,11 @@ const cardTop = (i: number) => 34 + i * 104;
       </g>
 
       <!-- ORM and database -->
-      <text class="sub strong" x="851" y="214" text-anchor="middle">EF Core or</text>
-      <text class="sub strong" x="851" y="230" text-anchor="middle">NHibernate</text>
-      <path class="db" d="M813 255 a38 9 0 0 0 76 0 v140 a38 9 0 0 1 -76 0 Z" />
-      <ellipse class="db" cx="851" cy="255" rx="38" ry="9" />
-      <text class="title" x="851" y="335" text-anchor="middle">Database</text>
+      <text class="sub strong" x="851" y="254" text-anchor="middle">EF Core or</text>
+      <text class="sub strong" x="851" y="270" text-anchor="middle">NHibernate</text>
+      <path class="db" d="M813 293 a38 9 0 0 0 76 0 v140 a38 9 0 0 1 -76 0 Z" />
+      <ellipse class="db" cx="851" cy="293" rx="38" ry="9" />
+      <text class="title" x="851" y="373" text-anchor="middle">Database</text>
       <g v-for="(lane, i) in lanes" :key="'d' + lane.n">
         <template v-if="lane.sql">
           <line class="res-line" x1="773" :y1="laneY[i]" x2="805" :y2="laneY[i]" />
@@ -138,6 +146,7 @@ const cardTop = (i: number) => 34 + i * 104;
         <line class="res-line" x1="233" :y1="cardTop(i) + 51" x2="113" :y2="cardTop(i) + 51" />
         <polygon class="res-head" :points="`105,${cardTop(i) + 51} 113,${cardTop(i) + 47} 113,${cardTop(i) + 55}`" />
         <text class="tiny" x="170" :y="cardTop(i) + 64" text-anchor="middle">{{ lane.short.response }}</text>
+        <text v-if="lane.n === 1" class="tiny gen-label" x="1" :y="cardTop(i) + 84">and, via <tspan class="mono">breeze-gen-entities</tspan>, typed entities &amp; queries</text>
       </g>
     </svg>
 
@@ -181,6 +190,10 @@ const cardTop = (i: number) => 34 + i * 104;
 .lib-label { fill: var(--vp-c-brand-1); font-size: 12.5px; font-weight: 600; }
 .row { fill: var(--vp-c-bg); stroke: var(--vp-c-divider); }
 .row.client { fill: var(--vp-c-brand-soft); }
+.typed { fill: var(--vp-c-bg); stroke: var(--vp-c-brand-1); stroke-dasharray: 5 3; }
+.gen-line { stroke: var(--vp-c-brand-1); stroke-width: 1.5; stroke-dasharray: 5 3; }
+.gen-head { fill: var(--vp-c-brand-1); }
+.tiny.gen-label { fill: var(--vp-c-brand-1); }
 .db { fill: var(--vp-c-bg); stroke: var(--vp-c-text-3); }
 
 .title { fill: var(--vp-c-text-1); font-size: 13.5px; font-weight: 600; }

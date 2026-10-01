@@ -38,7 +38,10 @@ import ClientServerDiagram from './components/ClientServerDiagram.vue';
 
 1. **Metadata.** The client asks once for the model: entity types, keys, relationships and
    validation. A Breeze .NET server reads it from your Entity Framework Core or NHibernate
-   mapping, so you never describe the model twice. See [Metadata](/metadata/).
+   mapping, so you never describe the model twice. See [Metadata](/metadata/). The same metadata
+   is what `breeze-gen-entities` turns into a TypeScript class per entity type, which is what
+   gives you [typed entities](/guide/typed-entities) and [typed queries](/guide/typed-queries)
+   — see [Generating entity classes](/guide/generating-entities).
 2. **Query.** The client composes a query — filter, sort, page, expand — and sends it in the URL.
    The server applies it to the `IQueryable` your action returns, so it runs in the database as
    SQL. The entities that come back are merged into the cache. See [Querying](/guide/querying).
