@@ -49,6 +49,13 @@ import ClientServerDiagram from './components/ClientServerDiagram.vue';
 The server side is covered in [Using a Breeze .NET server](/server/dotnet). Breeze can also talk
 to other back ends — see [Talking to the server](/server/).
 
+::: info Not using .NET?
+Nothing in these three exchanges is specific to .NET: they are plain HTTP and JSON, so a server
+written for any platform can answer them. Today the .NET server is the only one in production.
+If you need a Breeze server for another platform — Node, Java, Python or anything else —
+[contact IdeaBlade](mailto:info@ideablade.com) about having one written.
+:::
+
 ## Breeze 3
 
 Version 3 is a rewrite of the 2.x codebase with the same public API. What changed:
