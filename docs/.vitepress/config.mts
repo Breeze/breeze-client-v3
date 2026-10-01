@@ -153,6 +153,13 @@ export default defineConfig({
           { text: '.NET API reference', link: 'https://breeze.github.io/breeze-server-v3/api/' },
         ],
       },
+      {
+        text: '3.0',
+        items: [
+          // The old site redirects its pages here; ?v2 is what keeps a reader there instead.
+          { text: '2.x docs', link: 'https://breeze.github.io/doc-js/?v2' },
+        ],
+      },
     ],
 
     // One sidebar for the whole documentation. Every section is keyed to it, so the left bar is
