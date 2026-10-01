@@ -45,6 +45,7 @@ Version 3 is a rewrite of the 2.x codebase with the same public API. What change
 If you are coming from 2.x, start with [Migrating from 2.x](/guide/migrating-from-2x) —
 most applications need only a handful of changes, and they are listed there.
 
-::: warning Not yet released
-Breeze 3 is in development. The API is stable in shape but not yet published to npm.
+::: tip Looking for 2.x?
+The breeze-client 2.x documentation is still at
+[breeze.github.io/doc-js](https://breeze.github.io/doc-js/?v2).
 :::

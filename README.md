@@ -10,9 +10,8 @@ Client-side querying, caching, dynamic object graphs, change tracking and notifi
 model validation, batch save, offline — all part of rich data management with Breeze.
 Breeze clients talk to any remote service that speaks HTTP and JSON.
 
-> **This is breeze-client v3, in development.** It is not released.
-> For the current shipping version see
-> [breeze-client](https://github.com/Breeze/breeze-client).
+> **This is breeze-client 3**, published to npm as `breeze-client` 3.0.0.
+> 2.x is maintained in [breeze-client](https://github.com/Breeze/breeze-client).
 
 ## What v3 is
 
@@ -37,11 +36,10 @@ Source is 42 files / 15,630 lines, down from 51 / 19,708.
 | [CHANGES-DEV.md](./CHANGES-DEV.md) | Structural changes, for people working on Breeze itself |
 | [STATUS.md](./STATUS.md) | What is done, what is in flight, what is next |
 
-General Breeze documentation is at [breeze.github.io](http://breeze.github.io/doc-js/).
+The user documentation is at [breeze.github.io/breeze-client-v3](https://breeze.github.io/breeze-client-v3/).
+The 2.x documentation is still at [breeze.github.io/doc-js](https://breeze.github.io/doc-js/?v2).
 
 ## Install
-
-Not yet published. When it is:
 
 ```bash
 npm install breeze-client

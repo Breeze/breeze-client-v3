@@ -1,11 +1,11 @@
 # Upgrading to breeze-client 3.0
 
-A running list of everything that affects **applications using Breeze**. Kept current as
-v3 develops. Items marked *planned* are decided but not yet implemented.
+Everything that affects **applications using Breeze**. Items marked *planned* are decided but
+not yet implemented.
 
 For changes that only matter if you work on Breeze itself, see [CHANGES-DEV.md](./CHANGES-DEV.md).
 
-> **Status: v3 is in development.** Nothing here is released yet.
+> **Status: 3.0.0 is released** on npm as `breeze-client`.
 
 ---
 
