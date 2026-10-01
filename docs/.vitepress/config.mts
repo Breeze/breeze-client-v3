@@ -142,7 +142,14 @@ export default defineConfig({
     nav: [
       { text: 'Guide', link: '/guide/what-is-breeze' },
       { text: 'API', link: '/api/' },
-      { text: 'Migrating from 2.x', link: '/guide/migrating-from-2x' },
+      {
+        text: 'Migrating from 2.x',
+        items: [
+          { text: 'Migrating from 2.x', link: '/guide/migrating-from-2x' },
+          // The old site redirects its pages here; ?v2 is what keeps a reader there instead.
+          { text: '2.x docs', link: 'https://breeze.github.io/doc-js/?v2' },
+        ],
+      },
       {
         text: 'Server',
         items: [
@@ -151,13 +158,6 @@ export default defineConfig({
           { text: 'Using a Breeze .NET server', link: '/server/dotnet' },
           { text: '.NET server docs', link: 'https://breeze.github.io/breeze-server-v3/' },
           { text: '.NET API reference', link: 'https://breeze.github.io/breeze-server-v3/api/' },
-        ],
-      },
-      {
-        text: '3.0',
-        items: [
-          // The old site redirects its pages here; ?v2 is what keeps a reader there instead.
-          { text: '2.x docs', link: 'https://breeze.github.io/doc-js/?v2' },
         ],
       },
     ],
