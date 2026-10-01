@@ -28,6 +28,27 @@ features:
     link: /metadata/
 ---
 
+<script setup>
+import ClientServerDiagram from './components/ClientServerDiagram.vue';
+</script>
+
+## How the client and server talk
+
+<ClientServerDiagram />
+
+1. **Metadata.** The client asks once for the model: entity types, keys, relationships and
+   validation. A Breeze .NET server reads it from your Entity Framework Core or NHibernate
+   mapping, so you never describe the model twice. See [Metadata](/metadata/).
+2. **Query.** The client composes a query — filter, sort, page, expand — and sends it in the URL.
+   The server applies it to the `IQueryable` your action returns, so it runs in the database as
+   SQL. The entities that come back are merged into the cache. See [Querying](/guide/querying).
+3. **Save.** The client sends every pending change in one request. The server saves them in one
+   transaction, and sends back the saved entities with the real keys in place of the temporary
+   ones. See [Saving changes](/guide/saving-changes).
+
+The server side is covered in [Using a Breeze .NET server](/server/dotnet). Breeze can also talk
+to other back ends — see [Talking to the server](/server/).
+
 ## Breeze 3
 
 Version 3 is a rewrite of the 2.x codebase with the same public API. What changed:
