@@ -34,6 +34,8 @@ const docsSidebar = [
       { text: 'Getting started', link: '/guide/getting-started' },
       { text: 'Configuration', link: '/guide/configuration' },
       { text: 'Migrating from 2.x', link: '/guide/migrating-from-2x' },
+      // The same table is on the server site, at /guide/versions there. Change both together.
+      { text: 'Versions', link: '/guide/versions' },
     ],
   },
   {
