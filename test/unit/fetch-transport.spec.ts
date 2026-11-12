@@ -94,6 +94,25 @@ describe("requests without an ajax adapter", () => {
       .rejects.toMatchObject({ status: 0 });
   });
 
+  test("a 204 No Content resolves with no results", async () => {
+    // ASP.NET Core answers 204, with no body, when an action returns null.
+    respond = () => new Response(null, { status: 204 });
+    const qr = await newManager().executeQuery(EntityQuery.from("Customers"));
+    expect(qr.results).toEqual([]);
+  });
+
+  test("a 200 with an empty body resolves with no results", async () => {
+    respond = () => new Response("", { status: 200 });
+    const qr = await newManager().executeQuery(EntityQuery.from("Customers"));
+    expect(qr.results).toEqual([]);
+  });
+
+  test("a 204 to a query of a resource with no entity type resolves with no results", async () => {
+    respond = () => new Response(null, { status: 204 });
+    const qr = await newManager().executeQuery(EntityQuery.from("ClusterGroupsByLabel").withParameters({ term: "x" }));
+    expect(qr.results).toEqual([]);
+  });
+
   test("a 200 whose body is not JSON rejects instead of hanging", async () => {
     respond = () => new Response("<html>Please sign in</html>", { status: 200, headers: { 'Content-Type': 'text/html' } });
     await expect(newManager().executeQuery(EntityQuery.from("Customers")))
