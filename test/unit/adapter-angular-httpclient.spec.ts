@@ -140,6 +140,16 @@ describe('breeze-client/adapter-angular-httpclient', () => {
     expect(response.status).toBe(204);
   });
 
+  test('resolves a query answered 204 No Content with no results', async () => {
+    // What ASP.NET Core sends when an action returns null.
+    const { http } = backend(() => ({ status: 204 }));
+    configureBreeze({ fetch: httpClientFetch(http) });
+
+    const qr = await manager().executeQuery(EntityQuery.from('Customers'));
+
+    expect(qr.results).toEqual([]);
+  });
+
   test('recognises an HttpErrorResponse from another copy of Angular - by name, not instanceof', async () => {
     // Two Angular copies in one application (a library bundling its own) make instanceof fail.
     const foreign = { name: 'HttpErrorResponse', status: 400, statusText: 'Bad Request', error: '{"message":"no"}',
