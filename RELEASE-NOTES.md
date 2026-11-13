@@ -9,18 +9,19 @@ from 2.x is covered in [UPGRADE.md](./UPGRADE.md).
 
 ### Fixed
 
-**An empty response body failed the request with "Unexpected end of input".**
+**An empty response body failed the request with "Unexpected end of JSON input".**
 
 A query or save whose response was successful but had no body was reported as an error,
-`SyntaxError: Unexpected end of input` (the exact message depends on the browser), instead
-of resolving. This happened with:
+`SyntaxError: Unexpected end of JSON input` in Chrome, Edge and Node (other browsers word
+it differently), instead of resolving. This happened with:
 
 - a **204 No Content**. ASP.NET Core sends one whenever a controller action returns `null`,
   for example a lookup that finds nothing. That made this common with .NET servers.
 - a **200 with an empty body**.
 
-The request was reported as failed with the real status (204 or 200), and the message
-began *Unable to read the response body*.
+The rejected error carried the real `status` (204 or 200). Its `message` was the parser's
+own, as above, and its `statusText` began *Unable to read the response body:*, followed by
+that same message. Search for the `statusText` to find these failures in your logs.
 
 *Cause.* Breeze 3 sends every request through one fetch path, and it read every successful
 response with `response.json()`, which throws on an empty body. It affected the default
