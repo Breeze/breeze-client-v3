@@ -79,5 +79,6 @@ If you have discovered a bug or missing feature, please create an issue.
 If you have questions about using Breeze, please ask on
 [Stack Overflow](https://stackoverflow.com/questions/tagged/breeze).
 
-If you need help developing your application, please contact us at
-[IdeaBlade](mailto:info@ideablade.com).
+If you need help developing your application, or upgrading an older Breeze application to Breeze 3,
+IdeaBlade, the team that builds Breeze, [can help](https://www.ideablade.com/modernization/#breeze):
+contact us at [info@ideablade.com](mailto:info@ideablade.com).
