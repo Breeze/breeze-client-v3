@@ -29,6 +29,7 @@ Source is 42 files / 15,630 lines, down from 51 / 19,708.
 
 | | |
 |---|---|
+| [RELEASE-NOTES.md](./RELEASE-NOTES.md) | **What changed in each 3.x release** — fixes and changes since 3.0.0 |
 | [UPGRADE.md](./UPGRADE.md) | **Converting an app from 2.x** — every consumer-facing change |
 | [TESTING.md](./TESTING.md) | **Running the tests** — creating the database, starting the server |
 | [DOCS.md](./DOCS.md) | **Building and viewing the docs** — the guides and the API reference |

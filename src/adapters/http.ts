@@ -84,7 +84,7 @@ export async function sendFetch(fetchFn: BreezeFetch, url: string, init: Request
 
   let data: any;
   try {
-    data = response.ok ? await response.json() : await response.text();
+    data = response.ok ? parseJsonBody(await response.text()) : await response.text();
   } catch (err) {
     return failure(request, response.status, 'Unable to read the response body: ' + errorText(err),
       null, response, err);
@@ -93,6 +93,15 @@ export async function sendFetch(fetchFn: BreezeFetch, url: string, init: Request
   return response.ok
     ? success(request, data, response.statusText, response)
     : failure(request, response.status, response.statusText, data, response, null);
+}
+
+/**
+ * Parses a successful response's body. An empty body - a 204 No Content, or a 200 with
+ * nothing in it - is not JSON: it means there is no data, so it reads as `null`. ASP.NET Core
+ * answers 204 whenever an action returns null.
+ */
+function parseJsonBody(text: string): any {
+  return text.trim() === '' ? null : JSON.parse(text);
 }
 
 function success(request: HttpRequestConfig, data: any, statusText: string, response: Response | null): HttpOutcome {
