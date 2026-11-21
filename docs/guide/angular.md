@@ -3,8 +3,8 @@
 Breeze 3 needs nothing Angular-specific. There is no adapter to install or register: it makes its
 requests with `fetch`, holds entities as plain objects, and returns native promises. This page is
 about fitting it into an Angular application well — where the `MetadataStore` and the managers
-live, how change detection sees an entity change, how requests get their auth header, and what to
-unsubscribe.
+live, how change detection and signals see an entity change, how requests get their auth header,
+and what to unsubscribe.
 
 ## Configure once, before bootstrap
 
@@ -159,6 +159,75 @@ export class OrderEditor {
 ```
 
 `markForCheck` works with and without zone.js, so the same component is correct either way.
+
+## Signals
+
+Entities are not signals, and putting one in a signal does not make it one. An entity is changed
+in place: `order.shipName = 'x'` writes to the same object, so a `signal<Order>` holding it
+reports no change, and a `computed` that reads `order.shipName` is not re-run. Breeze reports the
+change through its events, so let a signal follow those:
+
+```ts
+import { computed, inject, signal } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { entityChanged$ } from 'breeze-client/rxjs';
+
+export class OrderEditor {
+  private readonly em = inject(EntityManager);
+  readonly order = signal<Order | null>(null);
+
+  // A new value whenever any entity in the manager changes.
+  private readonly changes = toSignal(entityChanged$(this.em));
+
+  readonly total = computed(() => {
+    this.changes();
+    return this.order()?.orderDetails.reduce((sum, d) => sum + d.unitPrice * d.quantity, 0) ?? 0;
+  });
+}
+```
+
+A `signal<Order>` is still the right way to say *which* order is shown; it just does not see what
+happens to it. Reading `changes()` is what makes `total` follow the edits, and a template that
+reads `total()` is re-rendered with it, with or without zone.js.
+
+Don't copy an entity's properties into signals of their own to edit them. That is a second copy
+of the data, which has to be copied back and kept in step, the same problem as with
+[reactive forms](#binding-to-entities).
+
+### Signal Forms
+
+**Signal Forms (`@angular/forms/signals`) cannot edit an entity.** A Signal Form treats its model
+as a value: when a field changes, it replaces the model with a copy that has the new value,
+`{ ...model, [field]: value }`. Given an entity, the copy is a plain object. The entity keeps its
+old value, the manager never sees the change, so nothing is tracked, validated or saved, and the
+form goes on editing the copy.
+
+Use Signal Forms for data that is not an entity: search criteria, or a dialog's own view model.
+When the user confirms, copy the values onto the entity, which then tracks and validates them as
+usual:
+
+```ts
+import { input, linkedSignal } from '@angular/core';
+import { form } from '@angular/forms/signals';
+
+export class CustomerNameDialog {
+  readonly customer = input.required<Customer>();
+
+  // The form's own copy of the names, taken from the customer.
+  readonly name = linkedSignal(() => ({
+    firstName: this.customer().firstName,
+    lastName: this.customer().lastName,
+  }));
+  readonly nameForm = form(this.name);
+
+  ok() {
+    Object.assign(this.customer(), this.name());
+  }
+}
+```
+
+To edit an entity in place, bind to it with `ngModel`, as in
+[Binding to entities](#binding-to-entities).
 
 ## Requests and the auth header
 
