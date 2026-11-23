@@ -504,8 +504,54 @@ custType.getProperty('companyName')!.displayName = 'Company name';
 For a single validator you can pass `messageTemplate` in its context. You can also pass
 `message`: either a fixed string, or a function that takes the context and returns one.
 
+## Going further: IdeaBlade Validation
+
+Breeze validates entities, one at a time, with validators attached to their types: the ones
+the server's metadata brings, and the ones you add in code. For many applications that is all
+they need. [IdeaBlade Validation](https://github.com/Breeze/ideablade-validation), from the
+team behind Breeze, goes much further, and works together with Breeze rather than replacing it.
+It is on npm as [`ideablade-validation`](https://www.npmjs.com/package/ideablade-validation)
+and on NuGet as [`IdeaBlade.Validation`](https://www.nuget.org/packages/IdeaBlade.Validation).
+
+- **The rules live outside the code.** They are a JSON metadata document, written once and
+  shared by the client and the server, instead of validators created in client code. The same
+  rules run in TypeScript and in .NET, and conditions and expressions run in a safe interpreter,
+  with no `eval`.
+- **Not only entities.** It validates any object: a view model, a form's model, a search filter.
+  A view model's property can take the Breeze rules of an entity's property, so a dialog that
+  edits a copy of a customer's name checks the same `required` and `maxLength` as the entity.
+- **Across entities.** A rule can read other entities in the manager, such as "a customer has at
+  least one address", and the whole manager can be validated continuously, so deleting the last
+  address breaks the customer's rule at once. Breeze, validating entity by entity, would only
+  notice when the customer itself is validated.
+- **Forms and the server.** It comes with Angular (template-driven, reactive and Signal Forms)
+  and React integrations, which also decide when a new record's errors start to show. Its .NET
+  package runs the same rules on the server, so a save can be checked there against them too.
+
+It plugs into Breeze in both directions, and you can use either one or both:
+
+```ts
+import { breezeEntityStore, breezeValidator, installBreezeValidators } from 'ideablade-validation/breeze';
+
+// Its rules inside Breeze: Breeze runs them on property change and before save, and their errors
+// appear in entityAspect.getValidationErrors() like any other.
+installBreezeValidators(em.metadataStore, validationService);
+
+// Breeze's rules inside it: register breezeValidator and list it as a global validator in the
+// metadata, and it runs the validators from Breeze's metadata (required, maxLength, your own), so
+// every rule reports the same kind of error.
+
+// The whole manager, validated again whenever an entity in it changes.
+validationService.validateEntityStore(breezeEntityStore(em)).subscribe((result) => { /* ... */ });
+```
+
+Its [Breeze documentation](https://github.com/Breeze/ideablade-validation/blob/main/docs/breeze.md)
+covers each of these, and [TempHire](https://github.com/Breeze/temphire.angular) uses all of them,
+in an Angular and a React version.
+
 ## See also
 
+- [IdeaBlade Validation](https://github.com/Breeze/ideablade-validation) — rules shared by client and server, for entities and other objects, working with Breeze
 - [Saving changes](/guide/saving-changes)
 - [Metadata](/metadata/)
 - API: [Validator](/api/classes/Validator), [ValidationError](/api/classes/ValidationError), [ValidationOptions](/api/classes/ValidationOptions), [EntityAspect](/api/classes/EntityAspect)
