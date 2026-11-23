@@ -5,7 +5,7 @@ not yet implemented.
 
 For changes that only matter if you work on Breeze itself, see [CHANGES-DEV.md](./CHANGES-DEV.md).
 
-> **Status: 3.0.0 is released** on npm as `breeze-client`.
+> **Status: 3.0.1 is the current release** on npm as `breeze-client`; [RELEASE-NOTES.md](./RELEASE-NOTES.md) lists what changed since 3.0.0.
 
 ---
 
@@ -14,7 +14,7 @@ For changes that only matter if you work on Breeze itself, see [CHANGES-DEV.md](
 **Done.**
 
 ```bash
-npm install breeze-client        # 3.0.0
+npm install breeze-client        # 3.0.1
 ```
 
 - **One package, one tag.** 2.x published the same package under `latest`, `mjs`, `cjs`

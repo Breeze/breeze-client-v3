@@ -249,7 +249,7 @@ export const breeze = {
   /** The same as the {@link Validator} export. */
   Validator: Validator,
   /** The version of `breeze-client`. A test keeps it equal to the one in package.json. */
-  version: "3.0.0"
+  version: "3.0.1"
 };
 
 // breeze.assertConfig = assertConfig as any;

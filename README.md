@@ -10,7 +10,7 @@ Client-side querying, caching, dynamic object graphs, change tracking and notifi
 model validation, batch save, offline — all part of rich data management with Breeze.
 Breeze clients talk to any remote service that speaks HTTP and JSON.
 
-> **This is breeze-client 3**, published to npm as `breeze-client` 3.0.0.
+> **This is breeze-client 3**, published to npm as `breeze-client` 3.0.1.
 > 2.x is maintained in [breeze-client](https://github.com/Breeze/breeze-client).
 
 ## What v3 is
