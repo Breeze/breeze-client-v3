@@ -9,7 +9,7 @@ repository, and is kept in step with the code.
 ## 1. Install
 
 ```bash
-npm install breeze-client   # 3.0.0
+npm install breeze-client   # 3.0.1
 ```
 
 One package, one tag. 2.x published the same package under `latest`, `mjs`, `cjs` and
@@ -387,7 +387,7 @@ One caveat carried over from 2.x unchanged: `breeze.assertParam` and `breeze.ass
 `null`, not functions — the lines that would have assigned them are commented out in both
 versions. Call `assertParam` directly.
 
-`breeze.version` is `"3.0.0"`, so code that checks it - for example, to take a 2.x-only path -
+`breeze.version` is `"3.0.1"` (the package version), so code that checks it - for example, to take a 2.x-only path -
 now sees Breeze 3.
 
 

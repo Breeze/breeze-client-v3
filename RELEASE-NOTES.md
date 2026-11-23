@@ -5,7 +5,7 @@ from 2.x is covered in [UPGRADE.md](./UPGRADE.md).
 
 ---
 
-## Unreleased
+## 3.0.1 — 2026-11-23
 
 ### Fixed
 
@@ -30,7 +30,7 @@ response with `response.json()`, which throws on an empty body. It affected the 
 as `null`, so a 204 came through as `null`. Applications moving from 2.x could therefore
 start failing on endpoints that had always worked.
 
-*Fix.* An empty successful body now reads as no data (`null`): a query resolves with
+*Fix, in 3.0.1.* An empty successful body now reads as no data (`null`): a query resolves with
 `results` as an empty array. A body that is not empty must still be valid JSON. An HTML
 page from a proxy, for instance, still rejects with the real HTTP status, as before.
 
@@ -54,7 +54,7 @@ function emptyBodyAsNull(fetchFn: BreezeFetch): BreezeFetch {
 configureBreeze({ fetch: emptyBodyAsNull(httpClientFetch(http)) });   // or wrap your own fetch
 ```
 
-Remove it once you upgrade.
+Remove it once you are on 3.0.1.
 
 ---
 

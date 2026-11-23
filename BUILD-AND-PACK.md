@@ -13,11 +13,11 @@ Everything below was run end to end before being written down.
 npm run pack
 ```
 
-That builds `dist/`, stages it as a complete package, and writes `breeze-client-3.0.0.tgz`
+That builds `dist/`, stages it as a complete package, and writes `breeze-client-3.0.1.tgz`
 in the repo root. Then, in the app you want to test with:
 
 ```bash
-npm install C:/GitHub/breeze-client-v3/breeze-client-3.0.0.tgz
+npm install C:/GitHub/breeze-client-v3/breeze-client-3.0.1.tgz
 ```
 
 and `import { EntityManager } from 'breeze-client'` works exactly as it would from npm.
@@ -88,7 +88,7 @@ npm run pack        # = npm run build && npm pack ./dist
 >
 > The `./` is what makes it a path: `npm pack ./dist`. `npm run pack` spells it correctly.
 
-The result is `breeze-client-3.0.0.tgz`, 138 files, with the package at the tarball root:
+The result is `breeze-client-3.0.1.tgz`, 138 files, with the package at the tarball root:
 
 ```
 package/package.json
@@ -109,13 +109,13 @@ From the consuming app, install the tarball by path. An absolute path is the lea
 surprising:
 
 ```bash
-npm install C:/GitHub/breeze-client-v3/breeze-client-3.0.0.tgz
+npm install C:/GitHub/breeze-client-v3/breeze-client-3.0.1.tgz
 ```
 
 A relative path works too, resolved from the app's directory:
 
 ```bash
-npm install ../breeze-client-v3/breeze-client-3.0.0.tgz
+npm install ../breeze-client-v3/breeze-client-3.0.1.tgz
 ```
 
 npm records it in the app's `package.json` as `"breeze-client": "file:../..."`, so remember
@@ -130,7 +130,7 @@ npm caches by path and content, so after rebuilding you usually want:
 npm run pack
 
 # in the app
-npm install C:/GitHub/breeze-client-v3/breeze-client-3.0.0.tgz --force
+npm install C:/GitHub/breeze-client-v3/breeze-client-3.0.1.tgz --force
 ```
 
 `--force` because the filename does not change between builds. If the app still seems to be

@@ -5,8 +5,8 @@ were released together, but their version numbers are not the same.
 
 | | Current | Previous |
 |---|---|---|
-| **JavaScript client** — npm [`breeze-client`](https://www.npmjs.com/package/breeze-client) | **3.x** (3.0.0) | 2.x (2.2.2) |
-| **.NET server** — NuGet [`Breeze.*`](https://www.nuget.org/packages/Breeze.AspNetCore.NetCore/), five packages | **8.x** (8.0.0) | 7.x (7.5.2) |
+| **JavaScript client** — npm [`breeze-client`](https://www.npmjs.com/package/breeze-client) | **3.x** (3.0.1) | 2.x (2.2.2) |
+| **.NET server** — NuGet [`Breeze.*`](https://www.nuget.org/packages/Breeze.AspNetCore.NetCore/), five packages | **8.x** (8.0.1) | 7.x (7.5.2) |
 | **.NET versions** the server targets | .NET 8, 9 and 10 | .NET 5 to 10 |
 | **Source** | [breeze-client-v3](https://github.com/Breeze/breeze-client-v3), [breeze-server-v3](https://github.com/Breeze/breeze-server-v3) | [breeze-client](https://github.com/Breeze/breeze-client), [breeze.server.net](https://github.com/Breeze/breeze.server.net) |
 | **Documentation** | [Client](/) (this site), [server](https://breeze.github.io/breeze-server-v3/) | [Client 2.x](https://breeze.github.io/doc-js/?v2), [server 7.x](https://breeze.github.io/doc-net/?v2) |
@@ -37,8 +37,8 @@ npm install breeze-client@2      # previous
 ```
 
 ```bash
-dotnet add package Breeze.AspNetCore.NetCore --version 8.0.0
-dotnet add package Breeze.Persistence.EFCore --version 8.0.0
+dotnet add package Breeze.AspNetCore.NetCore --version 8.0.1
+dotnet add package Breeze.Persistence.EFCore --version 8.0.1
 ```
 
 For .NET 5, 6 or 7, which are out of support, stay on 7.5.2.
